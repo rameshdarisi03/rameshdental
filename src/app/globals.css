@@ -14,7 +14,13 @@
   --foreground: #1a2620;
 }
 
-/* Force Light Mode - Disable automatic dark mode based on OS preferences */
+/* Manual Dark Mode variables */
+.dark {
+  --background: #0f1412;
+  --foreground: #f7faf8;
+}
+
+/* Tie Tailwind's dark utility variant strictly to the .dark class (disables OS automatic mode) */
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {

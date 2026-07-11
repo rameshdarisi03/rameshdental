@@ -1,13 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Activity, Phone } from "lucide-react";
+import { Menu, X, Activity, Phone, Moon, Sun } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
 
   // If we are in the dashboard, we don't render the public Navbar
   if (pathname?.startsWith("/dashboard")) {
@@ -61,6 +81,27 @@ export default function Navbar() {
 
         {/* CTA & Mobile Toggle */}
         <div className="flex items-center gap-4">
+          {/* Dark Mode Slider Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+            aria-label="Toggle Dark Mode"
+            title="Toggle Dark Mode"
+          >
+            <span className="sr-only">Toggle Dark Mode</span>
+            <span
+              className={`${
+                isDark ? "translate-x-5" : "translate-x-0.5"
+              } pointer-events-none flex h-5 w-5 transform items-center justify-center rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+            >
+              {isDark ? (
+                <Moon className="h-3 w-3 text-slate-700" />
+              ) : (
+                <Sun className="h-3 w-3 text-amber-500" />
+              )}
+            </span>
+          </button>
+
           <a
             href="tel:+919206651295"
             className="hidden sm:flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-green dark:text-slate-200 dark:hover:text-brand-green/85 mr-1 transition-colors"
