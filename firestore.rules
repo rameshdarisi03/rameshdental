@@ -13,7 +13,7 @@ service cloud.firestore {
 
     // 1. Appointments Collection
     match /appointments/{appointmentId} {
-      allow read: if isSignedIn();
+      allow read: if true; // Required for patients to check slot availability
       allow create: if true; // Patients can book
       allow update, delete: if isSignedIn();
     }
