@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper check: is user authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper check: retrieve user role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // 1. Appointments Collection
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn();
+      allow create: if true; // Patients can book
+      allow update, delete: if isSignedIn();
+    }
+
+    // 2. Blocks Collection
+    match /blocks/{blockId} {
+      allow read: if true; // Patients see closed slots
+      allow write: if isSignedIn();
+    }
+
+    // 3. Settings Collection
+    match /settings/{settingId} {
+      allow read: if true; // Patients see durations/shifts
+      allow write: if isSignedIn() && getUserRole() == 'admin';
+    }
+
+    // 4. Users Collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && getUserRole() == 'admin';
+    }
+
+    // 5. Patients Collection & Sub-collections
+    match /patients/{patientId} {
+      allow read, write: if isSignedIn();
+      
+      match /consultations/{consultationId} {
+        allow read, write: if isSignedIn();
+      }
+      
+      match /files/{fileId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+  }
+}

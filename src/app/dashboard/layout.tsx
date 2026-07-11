@@ -1,0 +1,253 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import {
+  Activity,
+  Calendar,
+  Clock,
+  Users,
+  LogOut,
+  Menu,
+  X,
+  UserCheck,
+  Loader2,
+  Lock,
+  LayoutGrid,
+  Settings,
+  Globe,
+  BarChart3
+} from "lucide-react";
+
+interface UserProfile {
+  uid: string;
+  email: string;
+  role: "admin" | "receptionist";
+  name: string;
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userJson = localStorage.getItem("gpc_user");
+    if (!userJson) {
+      router.push("/login");
+    } else {
+      setUser(JSON.parse(userJson));
+      setLoading(false);
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("gpc_user");
+    document.cookie = "gpc_session=; Max-Age=-99999999; path=/";
+    router.push("/login");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-brand-bg dark:bg-slate-955 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-green mr-2" />
+        <span className="text-sm font-semibold">Loading portal session...</span>
+      </div>
+    );
+  }
+
+  const navLinks = [
+    { name: "Overview", href: "/dashboard", icon: Activity, role: "all" },
+    { name: "Appointments", href: "/dashboard/appointments", icon: Calendar, role: "all" },
+    { name: "Day Snapshot", href: "/dashboard/snapshot", icon: LayoutGrid, role: "all" },
+    { name: "Patients", href: "/dashboard/patients", icon: Users, role: "all" },
+    { name: "Schedule Blocks", href: "/dashboard/blocks", icon: Clock, role: "all" },
+    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, role: "admin" },
+    { name: "Staff Management", href: "/dashboard/staff", icon: UserCheck, role: "admin" },
+    { name: "Settings", href: "/dashboard/settings", icon: Settings, role: "admin" },
+  ];
+
+  const isActive = (href: string) => {
+    if (href === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+    return pathname?.startsWith(href);
+  };
+
+  return (
+    <div className="flex h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden">
+      {/* Sidebar Desktop */}
+      <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="flex h-16 items-center gap-2 px-6 border-b border-slate-100 dark:border-slate-850 text-brand-green dark:text-teal-400 font-semibold">
+          <Activity className="h-6 w-6 text-brand-green" />
+          <span className="text-lg font-black tracking-tight text-brand-charcoal dark:text-white">
+            GPC <span className="text-brand-green dark:text-teal-400">Portal</span>
+          </span>
+        </div>
+
+        {/* Sidebar Nav */}
+        <nav className="flex-1 space-y-1.5 px-4 py-6 overflow-y-auto">
+          {navLinks.map((link) => {
+            if (link.role === "admin" && user?.role !== "admin") return null;
+            const isLinkActive = isActive(link.href);
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl transition-all ${
+                  isLinkActive
+                    ? "bg-brand-green text-white shadow-md shadow-brand-green/20"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-brand-bg/60 dark:hover:bg-slate-900/50 hover:text-brand-green dark:hover:text-white"
+                }`}
+              >
+                <link.icon className="h-4 w-4 shrink-0" />
+                {link.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User Card & Logout bottom */}
+        <div className="border-t border-slate-100 dark:border-slate-850 p-4 space-y-3">
+          <div className="flex items-center gap-3 px-2 py-1.5">
+            <div className="h-9 w-9 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+              <UserCheck className="h-4.5 w-4.5" />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-black text-brand-charcoal dark:text-white truncate">{user?.name}</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-wider font-extrabold truncate">{user?.role}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-bold text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Sidebar Mobile Toggle Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-slate-955/55 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Mobile Drawer */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transform transition-transform duration-300 md:hidden ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
+        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-100 dark:border-slate-850">
+          <div className="flex items-center gap-2 text-brand-green font-semibold">
+            <Activity className="h-6 w-6" />
+            <span className="text-lg font-black text-brand-charcoal dark:text-white">GPC Portal</span>
+          </div>
+          <button onClick={() => setSidebarOpen(false)} className="text-slate-500 hover:text-slate-700">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1.5 px-4 py-6 overflow-y-auto">
+          {navLinks.map((link) => {
+            if (link.role === "admin" && user?.role !== "admin") return null;
+            const isLinkActive = isActive(link.href);
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-xl transition-all ${
+                  isLinkActive
+                    ? "bg-brand-green text-white shadow-md shadow-brand-green/20"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-brand-bg/60 dark:hover:bg-slate-900/50 hover:text-brand-green dark:hover:text-white"
+                }`}
+              >
+                <link.icon className="h-4 w-4 shrink-0" />
+                {link.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-slate-100 dark:border-slate-850 p-4 space-y-3">
+          <div className="flex items-center gap-3 px-2 py-1.5">
+            <div className="h-9 w-9 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+              <UserCheck className="h-4.5 w-4.5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-brand-charcoal dark:text-white">{user?.name}</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-wider font-extrabold">{user?.role}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-bold text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Panel Content Area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile Header Bar */}
+        <header className="flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 sm:px-6 md:px-8 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-slate-500 focus:outline-none hover:text-slate-700 md:hidden"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brand-green hover:text-brand-green-hover border border-brand-green/25 dark:border-teal-800 rounded-lg hover:bg-brand-bg/50 transition-all"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              View Website
+            </Link>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider hidden sm:inline">
+                Live Connection
+              </span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            </div>
+          </div>
+        </header>
+
+        {/* Content body */}
+        <main className="flex-grow overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#f4f7f5] dark:bg-slate-955">
+          <style>{`
+            @keyframes fadeInUp {
+              from {
+                opacity: 0;
+                transform: translateY(8px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .animate-page-fade {
+              animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+          `}</style>
+          <div key={pathname} className="animate-page-fade">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
