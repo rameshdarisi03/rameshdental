@@ -29,8 +29,13 @@ export default function Navbar() {
     }
   };
 
-  // If we are in the dashboard, we don't render the public Navbar
-  if (pathname?.startsWith("/dashboard")) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // If we are in the dashboard or not mounted on the client, we don't render the public Navbar
+  if (!mounted || pathname?.startsWith("/dashboard")) {
     return null;
   }
 

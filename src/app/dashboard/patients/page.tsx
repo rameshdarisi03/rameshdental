@@ -38,6 +38,14 @@ interface Patient {
   upcoming?: string;
 }
 
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -51,7 +59,6 @@ export default function PatientsPage() {
 
   // Registration modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [dobInputType, setDobInputType] = useState<"text" | "date">("text");
   const [dialCode, setDialCode] = useState("+91");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
@@ -126,15 +133,7 @@ export default function PatientsPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
-    // Auto-convert native calendar selection (YYYY-MM-DD) to DD/MM/YYYY
-    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      const [y, m, d] = val.split("-");
-      val = `${d}/${m}/${y}`;
-    }
-    setFormData((prev) => ({ ...prev, dob: val }));
-  };
+
 
   const handleCreatePatient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -655,33 +654,52 @@ export default function PatientsPage() {
                   </label>
                   <div className="relative flex items-center">
                     <input
-                      type={dobInputType}
-                      id="dob-input"
+                      type="text"
                       name="dob"
                       required
                       placeholder="DD/MM/YYYY"
-                      {...(dobInputType === "text" ? {
-                        pattern: "\\d{2}/\\d{2}/\\d{4}",
-                        title: "Please enter DOB in DD/MM/YYYY format (e.g., 15/05/1990)"
-                      } : {})}
+                      pattern="\d{2}/\d{2}/\d{4}"
+                      title="Please enter DOB in DD/MM/YYYY format (e.g., 15/05/1990)"
                       value={formData.dob}
-                      onChange={handleDobChange}
-                      onBlur={() => setDobInputType("text")}
+                      onChange={handleInputChange}
                       className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 pl-4 pr-11 py-2.5 text-xs font-bold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
+                    
+                    {/* Hidden Native Date Input for triggering picker */}
+                    <input
+                      type="date"
+                      id="hidden-dob-picker"
+                      min="1920-01-01"
+                      max={getTodayDateString()}
+                      onChange={(e) => {
+                        const val = e.target.value; // YYYY-MM-DD
+                        if (val) {
+                          const [y, m, d] = val.split("-");
+                          setFormData((prev) => ({ ...prev, dob: `${d}/${m}/${y}` }));
+                        }
+                      }}
+                      className="absolute pointer-events-none opacity-0 w-0 h-0"
+                      tabIndex={-1}
+                    />
+
                     <button
                       type="button"
                       onClick={() => {
-                        const input = document.getElementById("dob-input") as HTMLInputElement;
-                        if (input) {
-                          setDobInputType("date");
-                          setTimeout(() => {
-                            try {
-                              input.showPicker();
-                            } catch (e) {
-                              input.focus();
-                            }
-                          }, 50);
+                        const picker = document.getElementById("hidden-dob-picker") as HTMLInputElement;
+                        if (picker) {
+                          // Try to pre-fill the picker if the current text is a valid DD/MM/YYYY
+                          const currentText = formData.dob;
+                          if (/^\d{2}\/\d{2}\/\d{4}$/.test(currentText)) {
+                            const [d, m, y] = currentText.split("/");
+                            picker.value = `${y}-${m}-${d}`;
+                          } else {
+                            picker.value = "";
+                          }
+                          try {
+                            picker.showPicker();
+                          } catch (e) {
+                            picker.focus();
+                          }
                         }
                       }}
                       className="absolute right-3.5 text-slate-400 hover:text-brand-green p-1 transition-colors"

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, Phone, Mail, MapPin, Clock } from "lucide-react";
@@ -7,8 +8,13 @@ import { Activity, Phone, Mail, MapPin, Clock } from "lucide-react";
 export default function Footer() {
   const pathname = usePathname();
 
-  // If we are in the dashboard, we don't render the public Footer
-  if (pathname?.startsWith("/dashboard")) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // If we are in the dashboard or not mounted on the client, we don't render the public Footer
+  if (!mounted || pathname?.startsWith("/dashboard")) {
     return null;
   }
 
