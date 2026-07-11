@@ -14,12 +14,8 @@
   --foreground: #1a2620;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1412;
-    --foreground: #f7faf8;
-  }
-}
+/* Force Light Mode - Disable automatic dark mode based on OS preferences */
+@custom-variant dark (&:where(.dark, .dark *));
 
 body {
   background: var(--background);
