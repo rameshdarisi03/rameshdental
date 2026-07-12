@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getClinicConfig, saveClinicConfig, ClinicConfig } from "@/lib/db";
-import { Loader2, Save, CheckCircle, ShieldAlert, Lock, Clock, Calendar, Users, Trash2, Plus } from "lucide-react";
+import { Loader2, Save, CheckCircle, ShieldAlert, Lock, Clock, Calendar, Users, Trash2, Plus, MapPin, Mail, Phone } from "lucide-react";
 
 interface UserProfile {
   uid: string;
@@ -35,6 +35,12 @@ export default function DashboardSettings() {
     eveningEnd: "07:00 PM",
     operationalHoursText: "",
     therapists: [],
+    address: "",
+    landmark: "",
+    phone: "",
+    email: "",
+    googleMapsLink: "",
+    googleMapsEmbed: "",
   });
 
   const [newTherapistName, setNewTherapistName] = useState("");
@@ -277,6 +283,117 @@ export default function DashboardSettings() {
               </div>
             </div>
 
+          </div>
+
+          {/* Clinic Location & Contact Info Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] space-y-6">
+            <h3 className="font-black text-brand-charcoal dark:text-white text-base flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-brand-green" />
+              Clinic Location & Contact Info
+            </h3>
+
+            <div className="space-y-4">
+              {/* Address */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Clinic Location Address *
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  required
+                  value={config.address || ""}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 123 Clinical Wellness Way, Bangalore"
+                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                />
+              </div>
+
+              {/* Landmark */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Landmark
+                </label>
+                <input
+                  type="text"
+                  name="landmark"
+                  value={config.landmark || ""}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Next to Central Bank..."
+                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                />
+              </div>
+
+              {/* Phone & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Contact Phone Number *
+                  </label>
+                  <input
+                    type="text"
+                    name="phone"
+                    required
+                    value={config.phone || ""}
+                    onChange={handleInputChange}
+                    placeholder="e.g. +91 92066 51295"
+                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Contact Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={config.email || ""}
+                    onChange={handleInputChange}
+                    placeholder="e.g. info@gaitphysioclinic.com"
+                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Google Maps Link & Embed */}
+              <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-850">
+                <h4 className="text-xs font-bold text-brand-charcoal dark:text-slate-350">Google Maps Integration</h4>
+                
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Google Maps Navigation Link *
+                  </label>
+                  <input
+                    type="text"
+                    name="googleMapsLink"
+                    required
+                    value={config.googleMapsLink || ""}
+                    onChange={handleInputChange}
+                    placeholder="https://maps.google.com/?q=..."
+                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Google Maps Embed URL (Iframe src) *
+                  </label>
+                  <input
+                    type="text"
+                    name="googleMapsEmbed"
+                    required
+                    value={config.googleMapsEmbed || ""}
+                    onChange={handleInputChange}
+                    placeholder="https://www.google.com/maps/embed?pb=..."
+                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                  />
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 leading-relaxed">
+                    To get the embed URL: Open Google Maps &gt; Search for your clinic &gt; Click Share &gt; Choose Embed a map &gt; copy only the `src` URL string inside the double quotes.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end pt-2">

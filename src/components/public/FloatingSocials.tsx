@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, ChevronRight, ChevronLeft } from "lucide-react";
 
 const FacebookIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -38,11 +38,16 @@ const YoutubeIcon = ({ className }: { className?: string }) => (
 export default function FloatingSocials() {
   const pathname = usePathname();
   const [isDark, setIsDark] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     // Check initial dark mode state
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
+      
+      // Collapse by default on mobile/tablet (less than lg breakpoint / 1024px)
+      const isMobileOrTablet = window.innerWidth < 1024;
+      setIsOpen(!isMobileOrTablet);
     }
   }, []);
 
@@ -63,62 +68,79 @@ export default function FloatingSocials() {
   if (pathname?.startsWith("/dashboard")) return null;
 
   return (
-    <div className="fixed top-1/2 left-0 -translate-y-1/2 z-50 flex flex-col gap-4 bg-brand-green/95 backdrop-blur-md px-3 py-5 rounded-r-2xl border border-l-0 border-white/20 shadow-[4px_0_24px_rgba(93,122,109,0.3)] animate-fade-in-up">
-      {/* Theme Toggle Button */}
-      <button
-        onClick={toggleDarkMode}
-        className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1 mb-2 border-b border-white/20 pb-4"
-        aria-label="Toggle Dark Mode"
-        title="Toggle Dark Mode"
-      >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
+    <div
+      className={`fixed top-1/2 left-0 -translate-y-1/2 z-50 flex items-center transition-transform duration-300 ease-in-out ${
+        isOpen ? "translate-x-0" : "-translate-x-[48px]"
+      }`}
+    >
+      {/* Socials bar content */}
+      <div className="flex flex-col gap-4 bg-brand-green/95 backdrop-blur-md px-3 py-5 rounded-r-2xl border border-l-0 border-white/20 shadow-[4px_0_24px_rgba(93,122,109,0.3)]">
+        {/* Theme Toggle Button */}
+        <button
+          onClick={toggleDarkMode}
+          className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1 mb-2 border-b border-white/20 pb-4"
+          aria-label="Toggle Dark Mode"
+          title="Toggle Dark Mode"
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
 
-      <Link
-        href="https://www.facebook.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
-        aria-label="Facebook"
+        <Link
+          href="https://www.facebook.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
+          aria-label="Facebook"
+        >
+          <FacebookIcon className="w-5 h-5" />
+        </Link>
+        <Link
+          href="https://www.instagram.com/gaitphysioclinic?igsh=MXRqMWxndHpybWN5bA=="
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
+          aria-label="Instagram"
+        >
+          <InstagramIcon className="w-5 h-5" />
+        </Link>
+        <Link
+          href="https://www.linkedin.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
+          aria-label="LinkedIn"
+        >
+          <LinkedinIcon className="w-5 h-5" />
+        </Link>
+        <Link
+          href="https://twitter.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
+          aria-label="Twitter"
+        >
+          <TwitterIcon className="w-5 h-5" />
+        </Link>
+        <Link
+          href="https://youtube.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
+          aria-label="YouTube"
+        >
+          <YoutubeIcon className="w-5 h-5" />
+        </Link>
+      </div>
+
+      {/* Toggle Tab Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="h-12 w-5 bg-brand-green/95 hover:bg-brand-green text-white border border-l-0 border-white/20 rounded-r-xl flex items-center justify-center cursor-pointer shadow-[2px_0_10px_rgba(93,122,109,0.2)] focus:outline-none transition-colors"
+        aria-label={isOpen ? "Collapse Widget" : "Expand Widget"}
+        title={isOpen ? "Collapse Social Links" : "Expand Social Links"}
       >
-        <FacebookIcon className="w-5 h-5" />
-      </Link>
-      <Link
-        href="https://www.instagram.com/gaitphysioclinic?igsh=MXRqMWxndHpybWN5bA=="
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
-        aria-label="Instagram"
-      >
-        <InstagramIcon className="w-5 h-5" />
-      </Link>
-      <Link
-        href="https://www.linkedin.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
-        aria-label="LinkedIn"
-      >
-        <LinkedinIcon className="w-5 h-5" />
-      </Link>
-      <Link
-        href="https://twitter.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
-        aria-label="Twitter"
-      >
-        <TwitterIcon className="w-5 h-5" />
-      </Link>
-      <Link
-        href="https://youtube.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
-        aria-label="YouTube"
-      >
-        <YoutubeIcon className="w-5 h-5" />
-      </Link>
+        {isOpen ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+      </button>
     </div>
   );
 }

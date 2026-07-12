@@ -61,6 +61,12 @@ export interface ClinicConfig {
   eveningEnd: string; // "07:00 PM"
   operationalHoursText: string;
   therapists: string[];
+  address?: string;
+  landmark?: string;
+  phone?: string;
+  email?: string;
+  googleMapsLink?: string;
+  googleMapsEmbed?: string;
 }
 
 // Default Configuration fallback
@@ -81,6 +87,12 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   eveningEnd: "07:00 PM",
   operationalHoursText: "Morning: 09:00 AM - 01:00 PM | Evening: 02:00 PM - 07:00 PM (Monday - Saturday)",
   therapists: ["Dr. Sarah Jenkins", "Dr. Rohan Das"],
+  address: "123 Clinical Wellness Way, Near Central Park, Sector 4, Bangalore, 560001",
+  landmark: "Next to Central Bank, opposite Central Park Main Gate",
+  phone: "+91 92066 51295",
+  email: "info@gaitphysioclinic.com",
+  googleMapsLink: "https://maps.google.com/?q=Gait+Physio+Clinic+Bangalore",
+  googleMapsEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.9700303102434!2d77.62018597576572!3d12.973797614838645!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae16a62c4a92c1%3A0xe54e60408542cd5!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
 };
 
 // Fetch Clinic Config settings
