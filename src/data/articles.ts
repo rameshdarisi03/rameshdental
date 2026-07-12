@@ -1,5 +1,5 @@
 export interface ArticleSection {
-  type: "paragraph" | "header2" | "header3" | "list" | "takeaway" | "image";
+  type: "paragraph" | "header2" | "header3" | "list" | "takeaway" | "quote" | "reflection" | "image";
   text?: string;
   items?: string[];
   imageSrc?: string;
@@ -147,7 +147,12 @@ export const articles: Article[] = [
       },
       {
         type: "takeaway",
-        text: "CRITICAL ALERT: Seek urgent medical care if you experience a major injury or fall followed by severe pain, inability to bear weight on the leg, significant swelling immediately after injury, the knee appears deformed, or if you develop fever, redness, or severe warmth around the joint. These symptoms may indicate a more serious structural tear or infection that requires prompt medical evaluation."
+        text: "CRITICAL ALERT\nSeek urgent medical care if you experience a major injury or fall followed by severe pain, inability to bear weight on the leg, significant swelling immediately after injury, the knee appears deformed, or if you develop fever, redness, or warmth around the joint. These symptoms may indicate a structural tear or infection requiring prompt medical evaluation.",
+        items: [
+          "Do not try to walk if the joint cannot support your weight.",
+          "Avoid applying intense direct heat to freshly swollen joints.",
+          "Have structural alignment assessed immediately if the kneecap looks out of position."
+        ]
       },
       {
         type: "header2",
@@ -225,6 +230,14 @@ export const articles: Article[] = [
           "Avoid suddenly increasing running distance or training volume.",
           "Listen to your body—persistent pain is a signal to get assessed, not simply push through."
         ]
+      },
+      {
+        type: "quote",
+        text: "Healing requires patience, structure, and targeted loading. By allowing the joints space to move and training supporting muscles, we give the body the control it needs to step without pain."
+      },
+      {
+        type: "reflection",
+        text: "When you feel knee pain climbing stairs, pay attention. Not out of fear, but out of body awareness.\n\nBecause sometimes, recovery is not about pushing harder — but adjusting how you move.\n\nIn that space of proper rehab and strengthening, your knee finds its natural function and balance again."
       }
     ]
   },
@@ -248,7 +261,14 @@ export const articles: Article[] = [
       },
       {
         type: "takeaway",
-        text: "Key Takeaways:\n• There is no single perfect posture.\n• Regular movement is more important than sitting perfectly straight.\n• Muscle fatigue often causes posture-related discomfort.\n• Simple ergonomic changes and strengthening exercises can help.\n• Persistent pain should be assessed by a physiotherapist."
+        text: "KEY TAKEAWAYS",
+        items: [
+          "There is no single perfect posture.",
+          "Regular movement is more important than sitting perfectly straight.",
+          "Muscle fatigue often causes posture-related discomfort.",
+          "Simple ergonomic changes and strengthening exercises can help.",
+          "Persistent pain should be assessed by a physiotherapist."
+        ]
       },
       {
         type: "header2",
@@ -357,6 +377,14 @@ export const articles: Article[] = [
       {
         type: "paragraph",
         text: "• Myth: Standing all day is healthier than sitting all day.\n• Fact: Both can cause discomfort if you don't move regularly. Balance sitting, standing, and walking throughout the day."
+      },
+      {
+        type: "quote",
+        text: "Knowledge creates structure. But healing requires flexibility. When you hold knowledge too tightly, it becomes limitation. When you allow space, it becomes guidance."
+      },
+      {
+        type: "reflection",
+        text: "When you feel stiff or fatigued from sitting, pause. Not out of helplessness, but out of awareness.\n\nBecause sometimes, the most powerful intervention is not what you add — but what you remove.\n\nIn that space, the system finds its own way back to balance."
       }
     ]
   }
