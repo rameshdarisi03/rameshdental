@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getClinicConfig, saveClinicConfig, ClinicConfig } from "@/lib/db";
-import { Loader2, Save, CheckCircle, ShieldAlert, Lock, Clock, Calendar } from "lucide-react";
+import { Loader2, Save, CheckCircle, ShieldAlert, Lock, Clock, Calendar, Users, Trash2, Plus } from "lucide-react";
 
 interface UserProfile {
   uid: string;
@@ -34,7 +34,10 @@ export default function DashboardSettings() {
     eveningStart: "02:00 PM",
     eveningEnd: "07:00 PM",
     operationalHoursText: "",
+    therapists: [],
   });
+
+  const [newTherapistName, setNewTherapistName] = useState("");
 
   const hourOptions = {
     morningStart: ["08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM", "10:00 AM"],
@@ -297,38 +300,120 @@ export default function DashboardSettings() {
           </div>
         </div>
 
-        {/* Right Side: Weekly Holidays */}
-        <div className="md:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-805 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] space-y-5">
-          <h3 className="font-black text-brand-charcoal dark:text-white text-base flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-brand-green" />
-            Weekly Holidays
-          </h3>
-          <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-            Select the days of the week that the clinic is closed. These days will automatically be disabled on the patient booking calendar.
-          </p>
+        {/* Right Side: Weekly Holidays & Therapist Management */}
+        <div className="md:col-span-4 space-y-6">
+          {/* Weekly Holidays Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-805 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] space-y-5">
+            <h3 className="font-black text-brand-charcoal dark:text-white text-base flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-brand-green" />
+              Weekly Holidays
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+              Select the days of the week that the clinic is closed. These days will automatically be disabled on the patient booking calendar.
+            </p>
 
-          <div className="space-y-3 pt-2">
-            {(Object.keys(config.weeklyHolidays) as Array<keyof ClinicConfig["weeklyHolidays"]>).map((day) => {
-              const isChecked = config.weeklyHolidays[day];
-              return (
-                <label
-                  key={day}
-                  className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer select-none transition-all ${
-                    isChecked
-                      ? "bg-red-50/45 border-red-200 text-red-650 dark:bg-rose-955/20 dark:border-rose-900/50"
-                      : "bg-white hover:bg-brand-bg border-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800"
-                  }`}
+            <div className="space-y-3 pt-2">
+              {(Object.keys(config.weeklyHolidays) as Array<keyof ClinicConfig["weeklyHolidays"]>).map((day) => {
+                const isChecked = config.weeklyHolidays[day];
+                return (
+                  <label
+                    key={day}
+                    className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer select-none transition-all ${
+                      isChecked
+                        ? "bg-red-50/45 border-red-200 text-red-650 dark:bg-rose-955/20 dark:border-rose-900/50"
+                        : "bg-white hover:bg-brand-bg border-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <span className="text-xs font-bold capitalize">{day}</span>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => handleHolidayToggle(day)}
+                      className="h-4 w-4 accent-brand-green rounded cursor-pointer"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Therapist Management Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-805 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] space-y-5">
+            <h3 className="font-black text-brand-charcoal dark:text-white text-base flex items-center gap-2">
+              <Users className="h-5 w-5 text-brand-green" />
+              Enrolled Therapists
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+              Add or remove physiotherapists for this clinic. These names populate the patient assignment dropdowns.
+            </p>
+
+            <div className="space-y-2.5 pt-2 max-h-[300px] overflow-y-auto pr-1">
+              {config.therapists && config.therapists.map((therapist) => (
+                <div
+                  key={therapist}
+                  className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-[#fbfcfb] dark:bg-slate-950"
                 >
-                  <span className="text-xs font-bold capitalize">{day}</span>
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => handleHolidayToggle(day)}
-                    className="h-4 w-4 accent-brand-green rounded cursor-pointer"
-                  />
-                </label>
-              );
-            })}
+                  <span className="text-xs font-bold text-slate-850 dark:text-slate-200">{therapist}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (config.therapists.length <= 1) {
+                        alert("At least one therapist must remain enrolled.");
+                        return;
+                      }
+                      if (confirm(`Are you sure you want to remove ${therapist}?`)) {
+                        setConfig((prev) => ({
+                          ...prev,
+                          therapists: prev.therapists.filter((t) => t !== therapist),
+                        }));
+                        setSavedSuccess(false);
+                      }
+                    }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {(!config.therapists || config.therapists.length === 0) && (
+                <div className="text-center py-4 text-xs font-semibold text-slate-450 italic">
+                  No therapists enrolled.
+                </div>
+              )}
+            </div>
+
+            {/* Add Therapist Row */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-850">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Vikram Seth"
+                  value={newTherapistName}
+                  onChange={(e) => setNewTherapistName(e.target.value)}
+                  className="flex-1 rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-955 px-3 py-2 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = newTherapistName.trim();
+                    if (!trimmed) return;
+                    if (config.therapists && config.therapists.includes(trimmed)) {
+                      alert("This therapist is already enrolled.");
+                      return;
+                    }
+                    setConfig((prev) => ({
+                      ...prev,
+                      therapists: prev.therapists ? [...prev.therapists, trimmed] : [trimmed],
+                    }));
+                    setNewTherapistName("");
+                    setSavedSuccess(false);
+                  }}
+                  className="inline-flex items-center justify-center p-2.5 rounded-xl bg-brand-green text-white hover:bg-brand-green-hover transition-colors shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -60,6 +60,7 @@ export interface ClinicConfig {
   eveningStart: string; // "02:00 PM"
   eveningEnd: string; // "07:00 PM"
   operationalHoursText: string;
+  therapists: string[];
 }
 
 // Default Configuration fallback
@@ -79,6 +80,7 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   eveningStart: "02:00 PM",
   eveningEnd: "07:00 PM",
   operationalHoursText: "Morning: 09:00 AM - 01:00 PM | Evening: 02:00 PM - 07:00 PM (Monday - Saturday)",
+  therapists: ["Dr. Sarah Jenkins", "Dr. Rohan Das"],
 };
 
 // Fetch Clinic Config settings

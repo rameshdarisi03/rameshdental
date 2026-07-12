@@ -28,6 +28,7 @@ import {
   addMedicalRecordFile, 
   updatePatient 
 } from "@/lib/patientsDb";
+import { getClinicConfig } from "@/lib/db";
 
 interface Patient {
   id: string;
@@ -82,14 +83,29 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [formSuccess, setFormSuccess] = useState("");
   const [formError, setFormError] = useState("");
 
-  // Default active user name (matching clinic mockup credentials)
-  const defaultTherapist = "Dr. Sarah Jenkins";
+  const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
 
   useEffect(() => {
     if (id) {
       loadPatientDetails();
     }
+    async function loadTherapists() {
+      try {
+        const config = await getClinicConfig();
+        if (config && config.therapists && config.therapists.length > 0) {
+          setEnrolledTherapists(config.therapists);
+        } else {
+          setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+        }
+      } catch (err) {
+        console.error("Error loading therapists list in patient details:", err);
+        setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+      }
+    }
+    loadTherapists();
   }, [id]);
+
+  const defaultTherapist = enrolledTherapists[0] || "Dr. Sarah Jenkins";
 
   // Set default visit date to today
   useEffect(() => {
@@ -198,10 +214,20 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       // 2. Log Consultation session in Firestore client-side
       if (notes) {
         console.log("[Detail Page] Logging session details to Firestore...");
+        
+        let loggingTherapist = patient?.therapistName || defaultTherapist;
+        const userJson = localStorage.getItem("gpc_user");
+        if (userJson) {
+          const userObj = JSON.parse(userJson);
+          if (userObj.name) {
+            loggingTherapist = userObj.name;
+          }
+        }
+
         await addConsultation(id, {
           date: formattedDate,
           summary: notes,
-          therapistName: defaultTherapist,
+          therapistName: loggingTherapist,
         });
       }
 

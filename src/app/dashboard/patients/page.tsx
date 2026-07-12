@@ -22,6 +22,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient } from "@/lib/patientsDb";
+import { getClinicConfig } from "@/lib/db";
 
 interface Patient {
   id: string;
@@ -56,6 +57,7 @@ export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [therapistFilter, setTherapistFilter] = useState("all");
+  const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
 
   // Registration modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,7 +86,27 @@ export default function PatientsPage() {
   // Initial Fetch of Patients
   useEffect(() => {
     fetchPatientsList();
+    fetchEnrolledTherapists();
   }, []);
+
+  const fetchEnrolledTherapists = async () => {
+    try {
+      const config = await getClinicConfig();
+      if (config && config.therapists && config.therapists.length > 0) {
+        setEnrolledTherapists(config.therapists);
+        // Default patient assigned therapist to the first one in the list
+        setFormData((prev) => ({
+          ...prev,
+          therapistName: config.therapists[0]
+        }));
+      } else {
+        setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+      }
+    } catch (err) {
+      console.error("Error loading enrolled therapists: ", err);
+      setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+    }
+  };
 
   // Filter Patients Locally
   useEffect(() => {
@@ -193,7 +215,7 @@ export default function PatientsPage() {
         dob: "",
         gender: "Male",
         treatmentPlan: "",
-        therapistName: "Dr. Sarah Jenkins",
+        therapistName: enrolledTherapists[0] || "Dr. Sarah Jenkins",
         status: "active",
         upcoming: "",
       });
@@ -217,7 +239,10 @@ export default function PatientsPage() {
 
   // Filter lists internally
   const therapistList = Array.from(
-    new Set(patients.map((p) => p.therapistName).filter(Boolean))
+    new Set([
+      ...enrolledTherapists,
+      ...patients.map((p) => p.therapistName).filter(Boolean)
+    ])
   );
 
   // Pagination calculation
@@ -754,8 +779,11 @@ export default function PatientsPage() {
                     onChange={handleInputChange}
                     className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-bold outline-none focus:border-brand-green cursor-pointer text-slate-700 dark:text-slate-350"
                   >
-                    <option value="Dr. Sarah Jenkins">Dr. Sarah Jenkins</option>
-                    <option value="Dr. Rohan Das">Dr. Rohan Das</option>
+                    {enrolledTherapists.map((therapist) => (
+                      <option key={therapist} value={therapist}>
+                        {therapist}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
