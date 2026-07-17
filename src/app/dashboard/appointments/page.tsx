@@ -91,6 +91,8 @@ export default function DashboardAppointments() {
   // WhatsApp popup modal states
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [pendingNotificationApp, setPendingNotificationApp] = useState<Appointment | null>(null);
+  const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
+  const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
 
   // Manual Booking Date availability details
   const [manualDateAppointments, setManualDateAppointments] = useState<Appointment[]>([]);
@@ -182,7 +184,7 @@ export default function DashboardAppointments() {
   }, [manualForm.date]);
 
   // Update appointment status in Firestore with staff auditing
-  const handleStatusChange = async (appId: string, newStatus: "approved" | "rejected") => {
+  const handleStatusChange = async (appId: string, newStatus: "approved" | "rejected", shouldNotify = false) => {
     setActionLoadingId(appId);
     try {
       const appRef = doc(db, "appointments", appId);
@@ -200,12 +202,11 @@ export default function DashboardAppointments() {
         prev.map((app) => (app.id === appId ? { ...app, ...auditData } : app))
       );
 
-      // If approved, trigger custom WhatsApp notification modal
-      if (newStatus === "approved") {
+      // Trigger WhatsApp if approved and requested
+      if (newStatus === "approved" && shouldNotify) {
         const approvedApp = appointments.find((a) => a.id === appId);
         if (approvedApp) {
-          setPendingNotificationApp({ ...approvedApp, ...auditData });
-          setNotificationModalOpen(true);
+          triggerWhatsAppConfirmation({ ...approvedApp, ...auditData });
         }
       }
     } catch (error) {
@@ -233,11 +234,14 @@ export default function DashboardAppointments() {
   // Pre-fill WhatsApp confirmation message
   const triggerWhatsAppConfirmation = (app: Appointment) => {
     let cleanPhone = app.patientPhone.replace(/\D/g, "");
-    if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "9206651295";
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = cleanPhone.replace(/^0+/, "");
     }
     if (cleanPhone.length === 10) {
       cleanPhone = "91" + cleanPhone;
+    }
+    if (!cleanPhone || cleanPhone.length < 10) {
+      cleanPhone = "919206651295";
     }
 
     const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you.`;
@@ -245,6 +249,12 @@ export default function DashboardAppointments() {
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
     window.open(waUrl, "_blank");
+  };
+
+  const initiateApprovalProcess = (app: Appointment) => {
+    setPendingNotificationApp(app);
+    setNotifyWhatsApp(true);
+    setNotificationModalOpen(true);
   };
 
   // Handle Manual Staff Booking submission with staff audit
@@ -276,9 +286,10 @@ export default function DashboardAppointments() {
 
       setIsManualBookingOpen(false);
       
-      // Trigger custom WhatsApp notification modal preview
-      setPendingNotificationApp(newBooking as Appointment);
-      setNotificationModalOpen(true);
+      // Directly trigger WhatsApp without modal if checked
+      if (manualNotifyWhatsApp) {
+        triggerWhatsAppConfirmation(newBooking as Appointment);
+      }
 
       // Reset form
       setManualForm({
@@ -498,7 +509,7 @@ export default function DashboardAppointments() {
                 {activeTab === "pending" && (
                   <>
                     <button
-                      onClick={() => handleStatusChange(app.id!, "approved")}
+                      onClick={() => initiateApprovalProcess(app)}
                       disabled={actionLoadingId === app.id}
                       className="flex-1 md:flex-none inline-flex items-center justify-center gap-1 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-4.5 py-2.5 text-xs font-black shadow-sm transition-all duration-200"
                     >
@@ -697,6 +708,19 @@ export default function DashboardAppointments() {
                     className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                   />
                 </div>
+
+                <div className="flex items-center gap-2 pt-2 select-none">
+                  <input
+                    type="checkbox"
+                    id="manualNotifyWhatsApp"
+                    checked={manualNotifyWhatsApp}
+                    onChange={(e) => setManualNotifyWhatsApp(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+                  />
+                  <label htmlFor="manualNotifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                    Notify patient via WhatsApp
+                  </label>
+                </div>
               </form>
             </div>
 
@@ -760,9 +784,7 @@ export default function DashboardAppointments() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Custom WhatsApp Notification Modal */}
+      )}      {/* Custom WhatsApp Notification Modal */}
       {notificationModalOpen && pendingNotificationApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 text-center animate-zoom-in">
@@ -772,19 +794,35 @@ export default function DashboardAppointments() {
               </div>
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Appointment Approved</h3>
+              <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Confirm Appointment Approval</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                The appointment status for <strong>{pendingNotificationApp.patientName}</strong> has been updated to Approved. Would you like to notify them on WhatsApp?
+                Are you sure you want to approve this appointment for <strong>{pendingNotificationApp.patientName}</strong>?
               </p>
             </div>
 
-            {/* Preview box */}
-            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 text-left text-xs space-y-1.5">
-              <p className="font-bold text-slate-400">Message Preview:</p>
-              <p className="text-slate-600 dark:text-slate-450 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                "Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you."
-              </p>
+            {/* Checkbox toggle */}
+            <div className="flex items-center justify-center gap-2 py-1 select-none">
+              <input
+                type="checkbox"
+                id="notifyWhatsApp"
+                checked={notifyWhatsApp}
+                onChange={(e) => setNotifyWhatsApp(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+              />
+              <label htmlFor="notifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                Notify patient via WhatsApp
+              </label>
             </div>
+
+            {/* Preview box - shows only if checked */}
+            {notifyWhatsApp && (
+              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in">
+                <p className="font-bold text-slate-400">Message Preview:</p>
+                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  "Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you."
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <button
@@ -795,19 +833,20 @@ export default function DashboardAppointments() {
                 }}
                 className="flex-1 rounded-full border border-slate-200 text-slate-600 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
               >
-                No
+                No, Cancel
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  triggerWhatsAppConfirmation(pendingNotificationApp);
+                onClick={async () => {
+                  const appId = pendingNotificationApp.id!;
                   setNotificationModalOpen(false);
+                  await handleStatusChange(appId, "approved", notifyWhatsApp);
                   setPendingNotificationApp(null);
                 }}
                 className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
               >
-                <MessageSquare className="h-4 w-4" />
-                Yes, Notify
+                <Check className="h-4 w-4" />
+                Yes, Approve
               </button>
             </div>
           </div>

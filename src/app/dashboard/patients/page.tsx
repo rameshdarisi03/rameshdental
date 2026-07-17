@@ -19,7 +19,8 @@ import {
   TrendingUp,
   Activity,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient } from "@/lib/patientsDb";
 import { getClinicConfig } from "@/lib/db";
@@ -465,6 +466,27 @@ export default function PatientsPage() {
                                 Google Drive
                               </a>
                             )}
+                            <button
+                              onClick={() => {
+                                let cleanPhone = patient.phone.replace(/\D/g, "");
+                                if (cleanPhone.startsWith("0")) {
+                                  cleanPhone = cleanPhone.replace(/^0+/, "");
+                                }
+                                if (cleanPhone.length === 10) {
+                                  cleanPhone = "91" + cleanPhone;
+                                }
+                                if (!cleanPhone || cleanPhone.length < 10) {
+                                  cleanPhone = "919206651295";
+                                }
+                                const waUrl = `https://wa.me/${cleanPhone}`;
+                                window.open(waUrl, "_blank");
+                                setActiveMenuId(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-brand-bg/50 hover:text-brand-green dark:hover:bg-slate-800 text-left"
+                            >
+                              <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              WhatsApp Chat
+                            </button>
                           </div>
                         )}
                       </td>

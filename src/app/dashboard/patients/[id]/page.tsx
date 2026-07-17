@@ -18,7 +18,8 @@ import {
   Eye,
   ExternalLink,
   ChevronRight,
-  Camera
+  Camera,
+  MessageSquare
 } from "lucide-react";
 import { 
   getPatientById, 
@@ -365,7 +366,30 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
               <div>
                 <p className="text-[9px] font-extrabold uppercase text-slate-400">Contact Number</p>
-                <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.phone}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
+                  <button
+                    onClick={() => {
+                      let cleanPhone = patient.phone.replace(/\D/g, "");
+                      if (cleanPhone.startsWith("0")) {
+                        cleanPhone = cleanPhone.replace(/^0+/, "");
+                      }
+                      if (cleanPhone.length === 10) {
+                        cleanPhone = "91" + cleanPhone;
+                      }
+                      if (!cleanPhone || cleanPhone.length < 10) {
+                        cleanPhone = "919206651295";
+                      }
+                      const waUrl = `https://wa.me/${cleanPhone}`;
+                      window.open(waUrl, "_blank");
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-green bg-brand-sand/50 dark:bg-brand-green/20 px-2 py-0.5 rounded-md hover:bg-brand-sand transition-colors"
+                    title="Chat on WhatsApp"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
               </div>
 
               <div>
