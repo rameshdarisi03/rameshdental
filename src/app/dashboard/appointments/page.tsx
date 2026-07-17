@@ -283,7 +283,7 @@ export default function DashboardAppointments() {
     }
 
     const calendarUrl = generateGoogleCalendarUrl(app);
-    const calendarMsg = calendarUrl ? ` Add to Google Calendar: ${calendarUrl}` : "";
+    const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
     const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
     const encodedMessage = encodeURIComponent(message);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
@@ -858,8 +858,10 @@ export default function DashboardAppointments() {
             {notifyWhatsApp && (
               <div className="bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in">
                 <p className="font-bold text-slate-400">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all">
-                  "Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED! Add to Google Calendar: {generateGoogleCalendarUrl(pendingNotificationApp)} Looking forward to seeing you."
+                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line">
+                  Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
+                  Add to Google Calendar: {generateGoogleCalendarUrl(pendingNotificationApp)}{"\n\n"}
+                  Looking forward to seeing you.
                 </p>
               </div>
             )}

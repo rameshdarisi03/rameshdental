@@ -611,7 +611,7 @@ export default function DaySnapshot() {
     }
 
     const calendarUrl = generateGoogleCalendarUrl(app);
-    const calendarMsg = isApprove && calendarUrl ? ` Add to Google Calendar: ${calendarUrl}` : "";
+    const calendarMsg = isApprove && calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
     const message = isApprove
       ? `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`
       : `Hi ${app.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${app.date}* at *${app.slot}* due to schedule overrides. Please visit our website to select another slot.`;
@@ -1222,10 +1222,16 @@ export default function DaySnapshot() {
             {(pendingActionType === "reject" || (pendingActionType === "approve" && notifyWhatsApp)) && (
               <div className="bg-[#fbfcfb] dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in break-all">
                 <p className="font-bold text-slate-400">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                  {pendingActionType === "approve"
-                    ? `"Hi ${pendingActionApp.patientName}, your appointment request for *${pendingActionApp.serviceId}* on *${pendingActionApp.date}* at *${pendingActionApp.slot}* at Gait Physio Clinic is APPROVED! Add to Google Calendar: ${generateGoogleCalendarUrl(pendingActionApp)} Looking forward to seeing you."`
-                    : `"Hi ${pendingActionApp.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${pendingActionApp.date}* at *${pendingActionApp.slot}* due to schedule overrides. Please visit our website to select another slot."`}
+                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line">
+                  {pendingActionType === "approve" ? (
+                    <>
+                      Hi {pendingActionApp.patientName}, your appointment request for *{pendingActionApp.serviceId}* on *{pendingActionApp.date}* at *{pendingActionApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
+                      Add to Google Calendar: {generateGoogleCalendarUrl(pendingActionApp)}{"\n\n"}
+                      Looking forward to seeing you.
+                    </>
+                  ) : (
+                    `"Hi ${pendingActionApp.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${pendingActionApp.date}* at *${pendingActionApp.slot}* due to schedule overrides. Please visit our website to select another slot."`
+                  )}
                 </p>
               </div>
             )}
