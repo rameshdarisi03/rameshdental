@@ -40,7 +40,8 @@ import {
   ShieldAlert,
   ClipboardList,
   Mail,
-  FileText,
+  ChevronLeft,
+  ChevronRight,
   RotateCw
 } from "lucide-react";
 
@@ -302,6 +303,26 @@ export default function DaySnapshot() {
   };
 
   // Trigger Rejection warning popup
+  const handlePreviousDay = () => {
+    if (!selectedDate) return;
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() - 1);
+    const yyyy = current.getFullYear();
+    const mm = String(current.getMonth() + 1).padStart(2, '0');
+    const dd = String(current.getDate()).padStart(2, '0');
+    setSelectedDate(`${yyyy}-${mm}-${dd}`);
+  };
+
+  const handleNextDay = () => {
+    if (!selectedDate) return;
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() + 1);
+    const yyyy = current.getFullYear();
+    const mm = String(current.getMonth() + 1).padStart(2, '0');
+    const dd = String(current.getDate()).padStart(2, '0');
+    setSelectedDate(`${yyyy}-${mm}-${dd}`);
+  };
+
   const triggerRejectionGuard = () => {
     const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
     if (targetApps.length === 0) {
@@ -567,11 +588,9 @@ export default function DaySnapshot() {
       }
       
       const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
-      const title = encodeURIComponent(`${app.serviceId} - Gait Physio Clinic`);
-      const details = encodeURIComponent(`Hi ${app.patientName}, this is a reminder for your confirmed session.\n\nService: ${app.serviceId}\nDate: ${app.date}\nTime: ${app.slot}`);
-      const location = encodeURIComponent("Gait Physio Clinic, India");
+      const title = encodeURIComponent(`Session at Gait Physio Clinic`);
       
-      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}&details=${details}&location=${location}`;
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}`;
     } catch (err) {
       console.error(err);
       return "";
@@ -623,6 +642,24 @@ export default function DaySnapshot() {
 
         {/* Date Selector and Refresh Button */}
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handlePreviousDay}
+            title="Previous Day"
+            type="button"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          
+          <button
+            onClick={handleNextDay}
+            title="Next Day"
+            type="button"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
           <button
             onClick={fetchDayData}
             disabled={loading}

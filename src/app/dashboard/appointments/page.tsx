@@ -260,11 +260,9 @@ export default function DashboardAppointments() {
       }
       
       const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
-      const title = encodeURIComponent(`${app.serviceId} - Gait Physio Clinic`);
-      const details = encodeURIComponent(`Hi ${app.patientName}, this is a reminder for your confirmed session.\n\nService: ${app.serviceId}\nDate: ${app.date}\nTime: ${app.slot}`);
-      const location = encodeURIComponent("Gait Physio Clinic, India");
+      const title = encodeURIComponent(`Session at Gait Physio Clinic`);
       
-      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}&details=${details}&location=${location}`;
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}`;
     } catch (err) {
       console.error(err);
       return "";
