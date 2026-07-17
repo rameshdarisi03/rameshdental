@@ -94,6 +94,8 @@ export default function DaySnapshot() {
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [pendingActionApp, setPendingActionApp] = useState<Appointment | null>(null);
   const [pendingActionType, setPendingActionType] = useState<"approve" | "reject" | null>(null);
+  const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
+  const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
 
   // Book for Patient modal drawer states
   const [isBookForPatientOpen, setIsBookForPatientOpen] = useState(false);
@@ -348,16 +350,25 @@ export default function DaySnapshot() {
     }
   };
 
-  // Handle single or multi approval
-  const handleApprove = async () => {
+  // Trigger approve confirm flow
+  const handleApprove = () => {
     const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
     if (targetApps.length === 0) {
       alert("No patient appointments selected to approve.");
       return;
     }
 
+    setPendingActionApp(targetApps[0]);
+    setPendingActionType("approve");
+    setNotifyWhatsApp(true);
+    setNotificationModalOpen(true);
+  };
+
+  const confirmApproval = async (shouldNotify: boolean) => {
+    if (!pendingActionApp) return;
     setLoading(true);
     try {
+      const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
       const batch = writeBatch(db);
       const auditData = {
         status: "approved" as const,
@@ -375,10 +386,14 @@ export default function DaySnapshot() {
       });
       await batch.commit();
 
-      setPendingActionApp({ ...targetApps[0], ...auditData });
-      setPendingActionType("approve");
-      setNotificationModalOpen(true);
+      if (shouldNotify) {
+        triggerWhatsAppConfirmation({ ...pendingActionApp, ...auditData }, true);
+      }
 
+      setNotificationModalOpen(false);
+      setPendingActionApp(null);
+      setPendingActionType(null);
+      setSelectedSlots([]);
       await fetchDayData();
     } catch (error) {
       console.error("Approval error: ", error);
@@ -439,13 +454,13 @@ export default function DaySnapshot() {
         notes: "",
       });
 
-      // Launch WhatsApp confirm overlay modal using first selection info
-      setPendingActionApp({
-        ...primaryBookingDetails,
-        slot: selectedSlots[0]
-      });
-      setPendingActionType("approve");
-      setNotificationModalOpen(true);
+      // Directly trigger WhatsApp without modal if checked
+      if (manualNotifyWhatsApp) {
+        triggerWhatsAppConfirmation({
+          ...primaryBookingDetails,
+          slot: selectedSlots[0]
+        }, true);
+      }
 
       setSelectedSlots([]);
       await fetchDayData();
@@ -526,11 +541,14 @@ export default function DaySnapshot() {
   // Launch WhatsApp Confirmation
   const triggerWhatsAppConfirmation = (app: Appointment, isApprove: boolean) => {
     let cleanPhone = app.patientPhone.replace(/\D/g, "");
-    if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "9206651295";
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = cleanPhone.replace(/^0+/, "");
     }
     if (cleanPhone.length === 10) {
       cleanPhone = "91" + cleanPhone;
+    }
+    if (!cleanPhone || cleanPhone.length < 10) {
+      cleanPhone = "919206651295";
     }
 
     const message = isApprove
@@ -954,8 +972,21 @@ export default function DaySnapshot() {
                     value={patientForm.notes}
                     onChange={handlePatientInputChange}
                     placeholder="Describe any pain or symptoms..."
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                   />
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 select-none">
+                  <input
+                    type="checkbox"
+                    id="manualNotifyWhatsApp"
+                    checked={manualNotifyWhatsApp}
+                    onChange={(e) => setManualNotifyWhatsApp(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+                  />
+                  <label htmlFor="manualNotifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                    Notify patient via WhatsApp
+                  </label>
                 </div>
               </form>
             </div>
@@ -1061,9 +1092,7 @@ export default function DaySnapshot() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* WhatsApp Rejection/Approval Preview Modal */}
+      )}      {/* WhatsApp Rejection/Approval Preview Modal */}
       {notificationModalOpen && pendingActionApp && pendingActionType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 text-center animate-zoom-in">
@@ -1074,7 +1103,7 @@ export default function DaySnapshot() {
                   : "bg-red-50 dark:bg-red-950/30 text-red-655"
               }`}>
                 {pendingActionType === "approve" ? (
-                  <Check className="h-6 w-6 animate-bounce" />
+                  <Check className="h-6 w-6" />
                 ) : (
                   <X className="h-6 w-6" />
                 )}
@@ -1083,22 +1112,44 @@ export default function DaySnapshot() {
             
             <div className="space-y-2">
               <h3 className="text-lg font-black text-brand-charcoal dark:text-white">
-                Appointment {pendingActionType === "approve" ? "Approved" : "Rejected"}
+                {pendingActionType === "approve" ? "Confirm Appointment Approval" : "Appointment Rejected"}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Status updated successfully in the system database. Would you like to notify <strong>{pendingActionApp.patientName}</strong> via WhatsApp?
+                {pendingActionType === "approve" ? (
+                  <>Are you sure you want to approve this appointment for <strong>{pendingActionApp.patientName}</strong>?</>
+                ) : (
+                  <>Status updated successfully in the system database. Would you like to notify <strong>{pendingActionApp.patientName}</strong> via WhatsApp?</>
+                )}
               </p>
             </div>
 
+            {/* Checkbox toggle (only for approval confirmation) */}
+            {pendingActionType === "approve" && (
+              <div className="flex items-center justify-center gap-2 py-1 select-none">
+                <input
+                  type="checkbox"
+                  id="notifyWhatsApp"
+                  checked={notifyWhatsApp}
+                  onChange={(e) => setNotifyWhatsApp(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+                />
+                <label htmlFor="notifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                  Notify patient via WhatsApp
+                </label>
+              </div>
+            )}
+
             {/* Preview Box */}
-            <div className="bg-[#fbfcfb] dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 text-left text-xs space-y-1.5">
-              <p className="font-bold text-slate-400">Message Preview:</p>
-              <p className="text-slate-600 dark:text-slate-450 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                {pendingActionType === "approve"
-                  ? `"Hi ${pendingActionApp.patientName}, your appointment request for *${pendingActionApp.serviceId}* on *${pendingActionApp.date}* at *${pendingActionApp.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you."`
-                  : `"Hi ${pendingActionApp.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${pendingActionApp.date}* at *${pendingActionApp.slot}* due to schedule overrides. Please visit our website to select another slot."`}
-              </p>
-            </div>
+            {(pendingActionType === "reject" || (pendingActionType === "approve" && notifyWhatsApp)) && (
+              <div className="bg-[#fbfcfb] dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in">
+                <p className="font-bold text-slate-400">Message Preview:</p>
+                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                  {pendingActionType === "approve"
+                    ? `"Hi ${pendingActionApp.patientName}, your appointment request for *${pendingActionApp.serviceId}* on *${pendingActionApp.date}* at *${pendingActionApp.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you."`
+                    : `"Hi ${pendingActionApp.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${pendingActionApp.date}* at *${pendingActionApp.slot}* due to schedule overrides. Please visit our website to select another slot."`}
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-2">
               <button
@@ -1110,25 +1161,32 @@ export default function DaySnapshot() {
                 }}
                 className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
               >
-                No
+                {pendingActionType === "approve" ? "No, Cancel" : "No"}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  triggerWhatsAppConfirmation(pendingActionApp, pendingActionType === "approve");
-                  setNotificationModalOpen(false);
-                  setPendingActionApp(null);
-                  setPendingActionType(null);
-                }}
-                className={`flex-grow flex items-center justify-center gap-1.5 rounded-full text-white py-3.5 text-xs font-black shadow-md transition-all hover:scale-105 active:scale-95 ${
-                  pendingActionType === "approve"
-                    ? "bg-brand-green hover:bg-brand-green-hover"
-                    : "bg-red-600 hover:bg-red-500"
-                }`}
-              >
-                <MessageSquare className="h-4 w-4" />
-                Yes, Notify
-              </button>
+              {pendingActionType === "approve" ? (
+                <button
+                  type="button"
+                  onClick={() => confirmApproval(notifyWhatsApp)}
+                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Check className="h-4 w-4" />
+                  Yes, Approve
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerWhatsAppConfirmation(pendingActionApp, false);
+                    setNotificationModalOpen(false);
+                    setPendingActionApp(null);
+                    setPendingActionType(null);
+                  }}
+                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-500 text-white py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Yes, Notify
+                </button>
+              )}
             </div>
           </div>
         </div>
