@@ -231,6 +231,46 @@ export default function DashboardAppointments() {
     setPendingRejectionId(null);
   };
 
+  const generateGoogleCalendarUrl = (app: Appointment) => {
+    try {
+      const cleanDate = app.date.replace(/-/g, "");
+      const timeMatch = app.slot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!timeMatch) return "";
+      
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = timeMatch[2];
+      const ampm = timeMatch[3].toUpperCase();
+      
+      if (ampm === "PM" && hours < 12) hours += 12;
+      if (ampm === "AM" && hours === 12) hours = 0;
+      
+      const pad = (num: number) => String(num).padStart(2, "0");
+      const startHour = pad(hours);
+      const startTimeStr = `${cleanDate}T${startHour}${minutes}00`;
+      
+      let endHours = hours;
+      let endMinutes = parseInt(minutes, 10) + 45;
+      if (endMinutes >= 60) {
+        endHours += 1;
+        endMinutes -= 60;
+      }
+      if (endHours >= 24) {
+        endHours = 23;
+        endMinutes = 59;
+      }
+      
+      const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
+      const title = encodeURIComponent(`${app.serviceId} - Gait Physio Clinic`);
+      const details = encodeURIComponent(`Hi ${app.patientName}, this is a reminder for your confirmed session.\n\nService: ${app.serviceId}\nDate: ${app.date}\nTime: ${app.slot}`);
+      const location = encodeURIComponent("Gait Physio Clinic, India");
+      
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}&details=${details}&location=${location}`;
+    } catch (err) {
+      console.error(err);
+      return "";
+    }
+  };
+
   // Pre-fill WhatsApp confirmation message
   const triggerWhatsAppConfirmation = (app: Appointment) => {
     let cleanPhone = app.patientPhone.replace(/\D/g, "");
@@ -244,7 +284,9 @@ export default function DashboardAppointments() {
       cleanPhone = "919206651295";
     }
 
-    const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you.`;
+    const calendarUrl = generateGoogleCalendarUrl(app);
+    const calendarMsg = calendarUrl ? ` Add to Google Calendar: ${calendarUrl}` : "";
+    const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
     const encodedMessage = encodeURIComponent(message);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
@@ -816,10 +858,10 @@ export default function DashboardAppointments() {
 
             {/* Preview box - shows only if checked */}
             {notifyWhatsApp && (
-              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in">
+              <div className="bg-slate-50 dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in">
                 <p className="font-bold text-slate-400">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                  "Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED! Looking forward to seeing you."
+                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all">
+                  "Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED! Add to Google Calendar: {generateGoogleCalendarUrl(pendingNotificationApp)} Looking forward to seeing you."
                 </p>
               </div>
             )}
