@@ -17,7 +17,8 @@ import {
   LayoutGrid,
   Settings,
   Globe,
-  BarChart3
+  BarChart3,
+  PlusCircle
 } from "lucide-react";
 
 interface UserProfile {
@@ -68,6 +69,7 @@ export default function DashboardLayout({
     { name: "Overview", href: "/dashboard", icon: Activity, role: "all" },
     { name: "Appointments", href: "/dashboard/appointments", icon: Calendar, role: "all" },
     { name: "Day Snapshot", href: "/dashboard/snapshot", icon: LayoutGrid, role: "all" },
+    { name: "Walk-in Bookings", href: "/dashboard/walkin", icon: PlusCircle, role: "all" },
     { name: "Patients", href: "/dashboard/patients", icon: Users, role: "all" },
     { name: "Schedule Blocks", href: "/dashboard/blocks", icon: Clock, role: "all" },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, role: "admin" },

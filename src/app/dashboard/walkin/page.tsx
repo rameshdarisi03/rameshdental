@@ -1,0 +1,593 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import {
+  getAppointmentsByDate,
+  getBlocksByDate,
+  getClinicConfig,
+  generateSlotsFromHours,
+  DEFAULT_CLINIC_CONFIG,
+  ClinicConfig,
+  isSlotInPast,
+  Appointment
+} from "@/lib/db";
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  User, 
+  Phone, 
+  Mail, 
+  FileText, 
+  Loader2, 
+  Check, 
+  Bookmark, 
+  ArrowRight,
+  ShieldCheck
+} from "lucide-react";
+
+// Get today's date formatted as YYYY-MM-DD
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Get max date string (10 days from today)
+function getMaxDateString() {
+  const today = new Date();
+  today.setDate(today.getDate() + 9);
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export default function WalkInBookingPage() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // Settings config state
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [successBooking, setSuccessBooking] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // Form State
+  const [formData, setFormData] = useState({
+    patientName: "",
+    patientEmail: "",
+    patientPhone: "",
+    serviceId: "General Physiotherapy Consultation",
+    date: getTodayDateString(),
+    slot: "",
+    notes: "",
+  });
+
+  const [dialCode, setDialCode] = useState("+91");
+  const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
+
+  // Firestore availability state for selected date
+  const [approvedSlots, setApprovedSlots] = useState<string[]>([]);
+  const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
+  const [blockedType, setBlockedType] = useState<"none" | "full" | "morning" | "evening">("none");
+
+  const servicesList = [
+    "General Physiotherapy Consultation",
+    "Gait & Biomechanical Analysis",
+    "Sports Injury Rehabilitation",
+    "Spine & Musculoskeletal Care",
+    "Post-Operative Orthopedic Care",
+    "Dry Needling & Myofascial Release",
+    "Custom Insoles & Orthotics Fitment",
+  ];
+
+  // Fetch current user from local storage
+  useEffect(() => {
+    const userJson = localStorage.getItem("gpc_user");
+    if (userJson) {
+      setCurrentUser(JSON.parse(userJson));
+    }
+  }, []);
+
+  // Load clinic config
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const fetched = await getClinicConfig();
+        setClinicConfig(fetched);
+      } catch (err) {
+        console.error("Failed to load clinic settings: ", err);
+      } finally {
+        setLoadingConfig(false);
+      }
+    }
+    loadConfig();
+  }, []);
+
+  // Generate slots dynamically based on active shift boundaries
+  const allSlots = generateSlotsFromHours(
+    clinicConfig.morningStart,
+    clinicConfig.morningEnd,
+    clinicConfig.eveningStart,
+    clinicConfig.eveningEnd,
+    clinicConfig.slotDuration
+  );
+
+  // Check if a time slot is a morning slot
+  const isMorningSlot = (time: string) => {
+    const [hourStr, minAndMod] = time.split(":");
+    const hour = parseInt(hourStr, 10);
+    const isPM = minAndMod.includes("PM");
+    return !isPM || hour === 12;
+  };
+
+  // Fetch slot availability when date changes
+  useEffect(() => {
+    if (!formData.date || loadingConfig) return;
+
+    async function checkAvailability() {
+      setLoadingSlots(true);
+      setErrorMessage("");
+      setApprovedSlots([]);
+      setBlockedSlots([]);
+      setBlockedType("none");
+
+      try {
+        // 1. Fetch approved appointments for that date
+        const appointments = await getAppointmentsByDate(formData.date);
+        const approved = appointments
+          .filter((app) => app.status === "approved")
+          .map((app) => app.slot);
+        setApprovedSlots(approved);
+
+        // 2. Fetch active day/session blocks
+        const blocks = await getBlocksByDate(formData.date);
+        let blockState: "none" | "full" | "morning" | "evening" = "none";
+        const individualBlocked: string[] = [];
+        
+        blocks.forEach((b) => {
+          if (b.type === "full_day" || b.type === "holiday") {
+            blockState = "full";
+          } else if (b.type === "session" && b.session === "morning") {
+            blockState = blockState === "evening" ? "full" : "morning";
+          } else if (b.type === "session" && b.session === "evening") {
+            blockState = blockState === "morning" ? "full" : "evening";
+          } else if (b.type === "slot" && b.slot) {
+            individualBlocked.push(b.slot);
+          }
+        });
+        setBlockedType(blockState);
+        setBlockedSlots(individualBlocked);
+      } catch (err) {
+        console.error(err);
+        setErrorMessage("Could not load time slots. Please try refreshing.");
+      } finally {
+        setLoadingSlots(false);
+      }
+    }
+    checkAvailability();
+  }, [formData.date, loadingConfig]);
+
+  // Helper to check if a slot is disabled
+  const isSlotDisabled = (time: string) => {
+    if (blockedType === "full") return true;
+    if (blockedType === "morning" && isMorningSlot(time)) return true;
+    if (blockedType === "evening" && !isMorningSlot(time)) return true;
+    return (
+      approvedSlots.includes(time) ||
+      blockedSlots.includes(time) ||
+      isSlotInPast(time, formData.date)
+    );
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSlotSelect = (time: string) => {
+    setFormData((prev) => ({ ...prev, slot: time }));
+  };
+
+  // Google Calendar Link generator helper
+  const generateGoogleCalendarUrl = (app: { date: string; slot: string; serviceId: string }) => {
+    try {
+      const cleanDate = app.date.replace(/-/g, "");
+      const timeMatch = app.slot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!timeMatch) return "";
+      
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = timeMatch[2];
+      const ampm = timeMatch[3].toUpperCase();
+      
+      if (ampm === "PM" && hours < 12) hours += 12;
+      if (ampm === "AM" && hours === 12) hours = 0;
+      
+      const pad = (num: number) => String(num).padStart(2, "0");
+      const startHour = pad(hours);
+      const startTimeStr = `${cleanDate}T${startHour}${minutes}00`;
+      
+      let endHours = hours;
+      let endMinutes = parseInt(minutes, 10) + 45;
+      if (endMinutes >= 60) {
+        endHours += 1;
+        endMinutes -= 60;
+      }
+      if (endHours >= 24) {
+        endHours = 23;
+        endMinutes = 59;
+      }
+      
+      const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
+      const title = encodeURIComponent(`Session at Gait Physio Clinic`);
+      
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}`;
+    } catch (err) {
+      console.error(err);
+      return "";
+    }
+  };
+
+  // Trigger manual WhatsApp alert redirect
+  const triggerWhatsAppRedirect = (app: { patientName: string; patientPhone: string; serviceId: string; date: string; slot: string }) => {
+    let cleanPhone = app.patientPhone.replace(/\D/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = cleanPhone.replace(/^0+/, "");
+    }
+    if (cleanPhone.length === 10) {
+      cleanPhone = "91" + cleanPhone;
+    }
+    if (!cleanPhone || cleanPhone.length < 10) {
+      cleanPhone = "919206651295";
+    }
+
+    const calendarUrl = generateGoogleCalendarUrl(app);
+    const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
+    const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
+    const encodedMessage = encodeURIComponent(message);
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+
+    window.open(waUrl, "_blank");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.slot) {
+      setErrorMessage("Please select a time slot before confirming.");
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage("");
+    try {
+      const fullPhone = dialCode + formData.patientPhone.replace(/\D/g, "");
+      
+      const newBooking = {
+        patientName: formData.patientName,
+        patientPhone: fullPhone,
+        patientEmail: formData.patientEmail,
+        serviceId: formData.serviceId,
+        date: formData.date,
+        slot: formData.slot,
+        notes: formData.notes,
+        status: "approved" as const,
+        type: "manual" as const,
+        createdAt: Timestamp.now(),
+        createdByUid: currentUser?.uid || "system",
+        createdByName: currentUser?.name || "Clinic Staff",
+        createdByRole: currentUser?.role || "receptionist",
+        actionedByUid: currentUser?.uid || "system",
+        actionedByName: currentUser?.name || "Clinic Staff",
+        actionedByRole: currentUser?.role || "receptionist",
+        actionedAt: Timestamp.now(),
+      };
+
+      await addDoc(collection(db, "appointments"), newBooking);
+
+      setSuccessBooking({
+        patientName: formData.patientName,
+        patientPhone: fullPhone,
+        serviceId: formData.serviceId,
+        date: formData.date,
+        slot: formData.slot,
+      });
+
+      // Directly trigger WhatsApp alert if checked
+      if (manualNotifyWhatsApp) {
+        triggerWhatsAppRedirect({
+          patientName: formData.patientName,
+          patientPhone: fullPhone,
+          serviceId: formData.serviceId,
+          date: formData.date,
+          slot: formData.slot,
+        });
+      }
+
+      // Reset Form State
+      setFormData({
+        patientName: "",
+        patientEmail: "",
+        patientPhone: "",
+        serviceId: "General Physiotherapy Consultation",
+        date: getTodayDateString(),
+        slot: "",
+        notes: "",
+      });
+
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage("Failed to save booking. Check database permissions.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loadingConfig) {
+    return (
+      <div className="flex h-64 items-center justify-center text-slate-500 text-sm font-semibold">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-green mr-2" />
+        <span>Syncing clinic shift settings...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header and Bookmark Info */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-black text-brand-charcoal dark:text-white flex items-center gap-2">
+            Walk-in & Call Booking
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 font-semibold">
+            Dedicated portal for booking call-ins and walk-ins using the full-screen interactive grid layout.
+          </p>
+        </div>
+        <div className="flex gap-2 bg-[#f0f4f2] dark:bg-brand-green/10 border border-brand-green/20 px-4 py-2.5 rounded-xl text-brand-green text-xs font-black shrink-0 items-center">
+          <Bookmark className="h-4.5 w-4.5 shrink-0" />
+          <span>Bookmark this page (Ctrl+D) for fast phone access</span>
+        </div>
+      </div>
+
+      {/* Success Alert Banner */}
+      {successBooking && (
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-2xl text-emerald-800 dark:text-emerald-400 text-xs font-black shadow-sm flex items-center gap-3 animate-fade-in">
+          <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>
+            Successfully booked <strong>{successBooking.patientName}</strong> for <strong>{successBooking.serviceId}</strong> on <strong>{successBooking.date}</strong> at <strong>{successBooking.slot}</strong>!
+          </span>
+          <button 
+            onClick={() => setSuccessBooking(null)}
+            className="ml-auto underline hover:text-emerald-900 cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Error Message banner */}
+      {errorMessage && (
+        <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs font-black rounded-2xl animate-shake shadow-sm">
+          {errorMessage}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full">
+        {/* Left Column: Form Details */}
+        <form onSubmit={handleSubmit} className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/60 dark:border-slate-800 p-6 sm:p-8 shadow-sm space-y-6">
+          <h3 className="text-base font-black text-brand-charcoal dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+            <span className="h-5 w-5 rounded-full bg-brand-green text-white flex items-center justify-center text-[10px] font-black">1</span>
+            Patient Credentials
+          </h3>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Patient Full Name *
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                <input
+                  type="text"
+                  name="patientName"
+                  value={formData.patientName}
+                  onChange={handleInputChange}
+                  placeholder="e.g. John Doe"
+                  required
+                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Mobile / WhatsApp Number *
+              </label>
+              <div className="flex items-center relative">
+                <input
+                  type="text"
+                  value={dialCode}
+                  onChange={(e) => setDialCode(e.target.value)}
+                  placeholder="+91"
+                  className="w-24 rounded-l-2xl border border-r-0 border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-3.5 text-xs font-bold outline-none focus:border-brand-green text-center text-slate-700 dark:text-slate-350"
+                />
+                <input
+                  type="tel"
+                  name="patientPhone"
+                  value={formData.patientPhone}
+                  onChange={handleInputChange}
+                  placeholder="9206651295"
+                  required
+                  className="flex-grow rounded-r-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Email Address (Optional)
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                <input
+                  type="email"
+                  name="patientEmail"
+                  value={formData.patientEmail}
+                  onChange={handleInputChange}
+                  placeholder="john@example.com"
+                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Select Service *
+              </label>
+              <select
+                name="serviceId"
+                value={formData.serviceId}
+                onChange={handleInputChange}
+                className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-3.5 text-xs outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white font-bold"
+              >
+                {servicesList.map((svc) => (
+                  <option key={svc} value={svc}>
+                    {svc}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Symptoms / Notes (Optional)
+              </label>
+              <div className="relative">
+                <FileText className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  rows={3}
+                  placeholder="Describe pain points or clinical request details..."
+                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* Notification Checkbox */}
+            <div className="flex items-center gap-2.5 pt-2 select-none border-t border-slate-100 dark:border-slate-800">
+              <input
+                type="checkbox"
+                id="manualNotifyWhatsApp"
+                checked={manualNotifyWhatsApp}
+                onChange={(e) => setManualNotifyWhatsApp(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+              />
+              <label htmlFor="manualNotifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                Notify patient via WhatsApp
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={submitting || !formData.slot}
+                className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-4 text-sm font-black shadow-md hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span>Confirm Offline Booking</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Right Column: Slot Selection Grid */}
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/60 dark:border-slate-800 p-6 sm:p-8 shadow-sm space-y-6">
+          <h3 className="text-base font-black text-brand-charcoal dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
+            <span className="h-5 w-5 rounded-full bg-brand-green text-white flex items-center justify-center text-[10px] font-black">2</span>
+            Select Date & Time Grid
+          </h3>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Booking Date (10-Day Horizon) *
+              </label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                <input
+                  type="date"
+                  name="date"
+                  min={getTodayDateString()}
+                  max={getMaxDateString()}
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white font-bold"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Time Slots Grid
+              </label>
+              
+              {loadingSlots ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-500 text-xs font-semibold">
+                  <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
+                  <span>Checking database availability...</span>
+                </div>
+              ) : blockedType === "full" ? (
+                <div className="p-8 bg-slate-50 dark:bg-slate-950 rounded-2xl text-center text-xs font-semibold text-slate-400 border border-slate-200/40">
+                  The clinic is marked closed on this date (Holiday/Admin block).
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                  {allSlots.map((time) => {
+                    const disabled = isSlotDisabled(time);
+                    const isSelected = formData.slot === time;
+                    return (
+                      <button
+                        key={time}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => handleSlotSelect(time)}
+                        className={`py-3 text-[11px] font-extrabold rounded-xl border text-center transition-all ${
+                          disabled
+                            ? "bg-slate-100 dark:bg-slate-950 border-slate-200/50 dark:border-slate-850 text-slate-400 cursor-not-allowed opacity-50"
+                            : isSelected
+                            ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-105"
+                            : "bg-[#f0f4f2] dark:bg-brand-green/10 border-brand-green/20 text-brand-green hover:bg-brand-green/15"
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
