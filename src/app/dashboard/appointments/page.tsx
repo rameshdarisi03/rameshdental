@@ -300,6 +300,10 @@ export default function DashboardAppointments() {
   // Handle Manual Staff Booking submission with staff audit
   const handleManualBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!manualForm.slot) {
+      alert("Please select an available time slot card before confirming the booking.");
+      return;
+    }
     setSubmittingManual(true);
     try {
       const newBooking = {
@@ -690,7 +694,7 @@ export default function DashboardAppointments() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
                       Booking Date *
@@ -705,33 +709,50 @@ export default function DashboardAppointments() {
                       className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                      Time Slot *
+                    <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-2">
+                      Select Available Time Slot *
                     </label>
-                    <select
-                      name="slot"
-                      value={manualForm.slot}
-                      onChange={handleManualInputChange}
-                      disabled={!manualForm.date || loadingManualSlots}
-                      required
-                      className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
-                    >
-                      <option value="">
-                        {loadingManualSlots ? "Syncing slots..." : "Select Slot"}
-                      </option>
-                      {allSlots.filter((s) => !getManualSlotStatus(s).disabled).length === 0 ? (
-                        <option value="" disabled>No slots available on this date</option>
-                      ) : (
-                        allSlots
-                          .filter((s) => !getManualSlotStatus(s).disabled)
-                          .map((s) => (
-                            <option key={s} value={s}>
-                              {s} (Available)
-                            </option>
-                          ))
-                      )}
-                    </select>
+                    {loadingManualSlots ? (
+                      <div className="flex items-center justify-center py-6 gap-2 text-slate-500 text-xs font-semibold">
+                        <Loader2 className="h-4 w-4 animate-spin text-brand-green" />
+                        <span>Syncing slots...</span>
+                      </div>
+                    ) : !manualForm.date ? (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center text-xs font-semibold text-slate-400 border border-slate-200/40">
+                        Please select a booking date first.
+                      </div>
+                    ) : allSlots.length === 0 ? (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-center text-xs font-semibold text-slate-400 border border-slate-200/40">
+                        No slots generated. Check shift hours in settings.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1">
+                        {allSlots.map((time) => {
+                          const status = getManualSlotStatus(time);
+                          const isSelected = manualForm.slot === time;
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              disabled={status.disabled}
+                              title={status.label}
+                              onClick={() => setManualForm((prev) => ({ ...prev, slot: time }))}
+                              className={`py-2 text-[10px] font-extrabold rounded-lg border text-center transition-all ${
+                                status.disabled
+                                  ? "bg-slate-100 dark:bg-slate-900 border-slate-200/50 dark:border-slate-850 text-slate-400 cursor-not-allowed opacity-50"
+                                  : isSelected
+                                  ? "bg-brand-green border-brand-green text-white shadow-sm"
+                                  : "bg-[#f0f4f2] dark:bg-brand-green/10 border-brand-green/20 text-brand-green hover:bg-brand-green/15"
+                              }`}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
