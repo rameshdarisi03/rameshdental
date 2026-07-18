@@ -107,7 +107,7 @@ export default function Team() {
 
               {/* Headline */}
               <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white leading-tight animate-fade-in-up delay-100">
-                Passionate About Providing <span className="text-brand-green dark:text-teal-400">Expert Care</span> And Support
+                Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
               </h2>
 
               {/* Sub-paragraph */}
