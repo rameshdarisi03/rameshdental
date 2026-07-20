@@ -16,10 +16,16 @@ import {
   AlertCircle,
   Download,
   Eye,
-  ExternalLink,
   ChevronRight,
   Camera,
-  MessageSquare
+  MessageSquare,
+  Activity,
+  PlusCircle,
+  Trash2,
+  BellRing,
+  Phone,
+  Mail,
+  UserCheck
 } from "lucide-react";
 import { 
   getPatientById, 
@@ -44,6 +50,8 @@ interface Patient {
   therapistName?: string;
   lastVisit?: string;
   upcoming?: string;
+  reminders?: string[];
+  attendanceRate?: number;
 }
 
 interface Consultation {
@@ -85,6 +93,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [formError, setFormError] = useState("");
 
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
+
+  // Reminders states
+  const [newReminder, setNewReminder] = useState("");
+  const [updatingReminders, setUpdatingReminders] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -158,6 +170,38 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Add clinical reminder dynamic action
+  const handleAddReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReminder.trim() || !patient) return;
+    setUpdatingReminders(true);
+    try {
+      const updatedReminders = [...(patient.reminders || []), newReminder.trim()];
+      await updatePatient(patient.id, { reminders: updatedReminders });
+      setPatient((prev) => (prev ? { ...prev, reminders: updatedReminders } : null));
+      setNewReminder("");
+    } catch (err) {
+      console.error("Failed to add reminder:", err);
+    } finally {
+      setUpdatingReminders(false);
+    }
+  };
+
+  // Delete clinical reminder dynamic action
+  const handleDeleteReminder = async (indexToDelete: number) => {
+    if (!patient) return;
+    setUpdatingReminders(true);
+    try {
+      const updatedReminders = (patient.reminders || []).filter((_, idx) => idx !== indexToDelete);
+      await updatePatient(patient.id, { reminders: updatedReminders });
+      setPatient((prev) => (prev ? { ...prev, reminders: updatedReminders } : null));
+    } catch (err) {
+      console.error("Failed to delete reminder:", err);
+    } finally {
+      setUpdatingReminders(false);
+    }
   };
 
   const handleLogVisit = async (e: React.FormEvent) => {
@@ -278,35 +322,36 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="space-y-6 animate-page-fade">
+    <div className="space-y-6 animate-page-fade max-w-7xl mx-auto">
       
       {/* Back to Directory Link */}
-      <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+      <div className="flex items-center gap-2 text-xs font-bold text-slate-400 select-none">
         <Link href="/dashboard/patients" className="hover:text-brand-green transition-colors">
-          Patients
+          Patients List
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-slate-500">{patient.name}</span>
+        <span className="text-slate-500 font-extrabold">{patient.name}</span>
       </div>
 
       {/* Main Clinical Profile Header */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-3xl bg-brand-sand/80 dark:bg-brand-green/20 flex items-center justify-center text-brand-green font-black text-xl uppercase ring-4 ring-brand-sand/30 shrink-0">
+          <div className="h-16 w-16 rounded-2xl bg-[#1b3d2f] text-white flex items-center justify-center font-black text-xl uppercase ring-4 ring-emerald-500/10 shrink-0">
             {patient.name.charAt(0)}
           </div>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-black text-brand-charcoal dark:text-white">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-black text-brand-charcoal dark:text-white tracking-tight">
                 {patient.name}
               </h1>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[9px] font-extrabold capitalize ${
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
                 patient.status === "active" 
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400" 
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/35" 
                   : patient.status === "pending"
-                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200/30"
+                    : "bg-slate-100 text-slate-655 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/30"
               }`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
                 {patient.status}
               </span>
             </div>
@@ -322,13 +367,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               href={`https://drive.google.com/drive/folders/${patient.googleDriveFolderId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-300 hover:text-brand-green hover:border-brand-green/30 transition-all"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-300 hover:text-brand-green hover:border-brand-green/30 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all shadow-sm"
             >
-              <Folder className="h-4.5 w-4.5" />
+              <Folder className="h-4.5 w-4.5 text-brand-green" />
               View Drive Folder
             </a>
           ) : (
-            <span className="text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200/50 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200/50 dark:border-slate-800 select-none">
               No Drive Folder Associated
             </span>
           )}
@@ -336,11 +381,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Main Grid: Left Side Clinical details, Right Side History tabs */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
         
-        {/* Left Column: Basic Patient Clinical Info */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] space-y-5">
+        {/* Left Column: Basic Patient Clinical Info (Span 4) */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Card 1: Patient Information */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-5">
             <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">
               Patient Information
             </h2>
@@ -348,12 +395,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <div className="space-y-4">
               <div>
                 <p className="text-[9px] font-extrabold uppercase text-slate-400">Treatment Plan</p>
-                <p className="text-xs font-bold text-brand-green mt-0.5 bg-brand-bg dark:bg-brand-green/10 border border-brand-green/10 px-2.5 py-1.5 rounded-xl inline-block">
+                <p className="text-xs font-bold text-brand-green mt-1 bg-brand-bg dark:bg-brand-green/10 border border-brand-green/10 px-2.5 py-1 rounded-xl inline-block lowercase">
                   {patient.treatmentPlan}
                 </p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-850 pt-3">
                 <div>
                   <p className="text-[9px] font-extrabold uppercase text-slate-400">Gender</p>
                   <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.gender || "Not specified"}</p>
@@ -364,9 +411,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              <div>
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
                 <p className="text-[9px] font-extrabold uppercase text-slate-400">Contact Number</p>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center justify-between gap-2 mt-1">
                   <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
                   <button
                     onClick={() => {
@@ -383,30 +430,115 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                       const waUrl = `https://wa.me/${cleanPhone}`;
                       window.open(waUrl, "_blank");
                     }}
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-green bg-brand-sand/50 dark:bg-brand-green/20 px-2 py-0.5 rounded-md hover:bg-brand-sand transition-colors"
+                    className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-sand/50 dark:bg-brand-green/20 px-2.5 py-1 rounded-lg hover:bg-brand-sand transition-colors cursor-pointer"
                     title="Chat on WhatsApp"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
+                    <MessageSquare className="w-3 h-3" />
                     <span>WhatsApp</span>
                   </button>
                 </div>
               </div>
 
-              <div>
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
                 <p className="text-[9px] font-extrabold uppercase text-slate-400">Email Address</p>
                 <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5 truncate">{patient.email}</p>
               </div>
 
-              <div>
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
                 <p className="text-[9px] font-extrabold uppercase text-slate-400">Primary Therapist</p>
                 <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.therapistName || defaultTherapist}</p>
               </div>
             </div>
           </div>
+
+          {/* Card 2: Care Metrics (Forest Green Mockup layout) */}
+          <div className="bg-[#1b3d2f] text-white rounded-3xl p-6 shadow-md border border-brand-green/10 space-y-4">
+            <div className="flex items-center gap-2 text-white font-extrabold text-xs select-none">
+              <Activity className="h-4.5 w-4.5 text-emerald-400 animate-pulse" />
+              <span>Care Metrics</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="bg-white/10 dark:bg-slate-950/40 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[9px] font-black uppercase text-white/60 tracking-wider">Total Visits</p>
+                <p className="text-3xl font-black text-white mt-1.5">{consultations.length}</p>
+                <p className="text-[8.5px] font-bold text-white/50 mt-1 uppercase tracking-wide">All-time logs</p>
+              </div>
+              
+              <div className="bg-white/10 dark:bg-slate-950/40 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[9px] font-black uppercase text-white/60 tracking-wider">Reliability</p>
+                <p className="text-3xl font-black text-emerald-400 mt-1.5">{patient.attendanceRate || 92}%</p>
+                <p className="text-[8.5px] font-bold text-white/50 mt-1 uppercase tracking-wide">Appt. Kept</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Provider Reminders (Dashed Border Mockup layout) */}
+          <div className="border border-dashed border-slate-350 dark:border-slate-800 rounded-3xl p-6 bg-slate-50/50 dark:bg-slate-950/10 space-y-4">
+            <div className="flex items-center gap-2 text-brand-charcoal dark:text-white font-black text-[11px] uppercase tracking-wider select-none">
+              <BellRing className="h-4 w-4 text-amber-500" />
+              <span>Provider Reminders</span>
+            </div>
+
+            {/* List */}
+            <div className="space-y-2.5 max-h-48 overflow-y-auto pr-0.5">
+              {(!patient.reminders || patient.reminders.length === 0) ? (
+                <div className="text-[11px] font-semibold text-slate-400 italic py-2 pl-1 select-none">
+                  No custom reminders configured. Add below.
+                </div>
+              ) : (
+                patient.reminders.map((rem, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-start justify-between gap-3 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200/50 dark:border-slate-850 shadow-sm relative group"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 mt-1.5" />
+                      <span className="leading-normal">{rem}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteReminder(idx)}
+                      disabled={updatingReminders}
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 p-0.5 rounded transition-all shrink-0 cursor-pointer"
+                      title="Delete Reminder"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add input form */}
+            <form onSubmit={handleAddReminder} className="flex items-center gap-2 pt-2 border-t border-slate-200/40 dark:border-slate-800/40">
+              <input
+                type="text"
+                placeholder="Add clinical reminder..."
+                value={newReminder}
+                onChange={(e) => setNewReminder(e.target.value)}
+                disabled={updatingReminders}
+                required
+                className="flex-grow rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+              <button
+                type="submit"
+                disabled={updatingReminders || !newReminder.trim()}
+                className="p-2.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                title="Add Reminder"
+              >
+                {updatingReminders ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Plus className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </form>
+          </div>
+
         </div>
 
-        {/* Right Column: Timelines & File Upload Form (Span 2) */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Right Column: Timelines & File Upload Form (Span 8) */}
+        <div className="lg:col-span-8 space-y-6">
           
           {/* Tab Selector Navigation */}
           <div className="border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -439,60 +571,61 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <div className="space-y-6">
               
               {/* Form to Log a New Consultation */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                 <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4 flex items-center gap-1.5">
-                  <Plus className="w-4 h-4 text-brand-green" />
+                  <PlusCircle className="w-4.5 h-4.5 text-brand-green" />
                   Log Consultation & Attach Files
                 </h3>
 
                 <form onSubmit={handleLogVisit} className="space-y-4">
                   {formSuccess && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-150 text-emerald-800 text-xs font-bold rounded-2xl flex items-center gap-1.5 animate-fade-in">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                       {formSuccess}
                     </div>
                   )}
                   {formError && (
-                    <div className="p-3 bg-red-50 border border-red-150 text-red-800 text-xs font-bold rounded-2xl flex items-center gap-1.5">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    <div className="p-3.5 bg-red-50 border border-red-150 text-red-800 text-xs font-bold rounded-2xl flex items-center gap-1.5 animate-shake">
+                      <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
                       {formError}
                     </div>
                   )}
 
-                  {/* Visit Date */}
-                  <div className="w-48">
-                    <label className="block text-[9px] font-extrabold uppercase text-slate-400 mb-1">
-                      Consultation Date
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      max={maxDateStr}
-                      value={visitDate}
-                      onChange={(e) => setVisitDate(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-3 py-2 text-xs font-bold outline-none focus:border-brand-green text-slate-900 dark:text-white"
-                    />
-                  </div>
-
-                  {/* Consultation Notes */}
-                  <div>
-                    <label className="block text-[9px] font-extrabold uppercase text-slate-400 mb-1">
-                      Session Details / Recovery Notes
-                    </label>
-                    <textarea
-                      placeholder="Type brief visit updates (e.g. Range of motion improved by 10 degrees. Prescribed single-leg hops.)"
-                      rows={3}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 p-4 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white placeholder:text-slate-400"
-                    />
+                  {/* Visit Date & Notes row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                    <div className="md:col-span-1">
+                      <label className="block text-[9px] font-extrabold uppercase text-slate-455 mb-1.5">
+                        Consultation Date
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        max={maxDateStr}
+                        value={visitDate}
+                        onChange={(e) => setVisitDate(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-3 py-2.5 text-xs font-bold outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-3">
+                      <label className="block text-[9px] font-extrabold uppercase text-slate-455 mb-1.5">
+                        Session Details / Recovery Notes
+                      </label>
+                      <textarea
+                        placeholder="Type visit updates (e.g. Range of motion improved by 10 degrees. Prescribed single-leg hops.)"
+                        rows={2}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white placeholder:text-slate-400"
+                      />
+                    </div>
                   </div>
 
                   {/* Drag-and-drop / File upload Selector */}
-                  <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/20 dark:bg-slate-900/10 flex flex-col items-center justify-center gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-all">
+                  <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-6 bg-slate-50/30 dark:bg-slate-950/20 flex flex-col items-center justify-center gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-all duration-200">
                     <div className="flex flex-col items-center text-center">
                       <p className="text-[10px] font-black text-slate-500">
-                        {selectedFile ? `Attached: ${selectedFile.name}` : "Attach medical scans, prescriptions, or files"}
+                        {selectedFile ? `Attached file: ${selectedFile.name}` : "Attach medical scans, prescriptions, or files"}
                       </p>
                       <p className="text-[9px] text-slate-400 mt-1">
                         {selectedFile ? `File size: ${formatBytes(selectedFile.size)}` : "Select an option below to add clinical records"}
@@ -501,7 +634,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
                     <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-sm">
                       {/* Option 1: File Browser */}
-                      <label className="relative flex-grow flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-[11px] font-black text-slate-600 dark:text-slate-300 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all">
+                      <label className="relative flex-grow flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-[11px] font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
                         <Upload className="w-4 h-4 text-brand-green" />
                         Choose File
                         <input
@@ -513,7 +646,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                       </label>
 
                       {/* Option 2: Camera Capture */}
-                      <label className="relative flex-grow flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-[11px] font-black text-slate-600 dark:text-slate-300 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all">
+                      <label className="relative flex-grow flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-[11px] font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
                         <Camera className="w-4 h-4 text-brand-green" />
                         Take Photo
                         <input
@@ -529,11 +662,11 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                   </div>
 
                   {/* Action Trigger Buttons */}
-                  <div className="flex justify-end pt-2">
+                  <div className="flex justify-end pt-1">
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                     >
                       {submitting ? (
                         <>
@@ -541,37 +674,43 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                           Syncing with Drive...
                         </>
                       ) : (
-                        "Log Visit & Upload Records"
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                          <span>Log Visit & Upload Records</span>
+                        </>
                       )}
                     </button>
                   </div>
                 </form>
               </div>
 
-              {/* timeline items list */}
-              <div className="space-y-4 relative pl-6 border-l border-slate-200/80 dark:border-slate-800">
+              {/* Timeline visit history logs */}
+              <div className="space-y-4 relative pl-6 border-l border-slate-200 dark:border-slate-800 ml-1 pt-2">
                 {consultations.length === 0 ? (
-                  <div className="text-slate-400 text-xs font-semibold py-8 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+                  <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
                     <FileText className="w-6 h-6 text-slate-300 mx-auto mb-2" />
                     <span>No visit logs recorded for this patient yet.</span>
                   </div>
                 ) : (
                   consultations.map((consult) => (
-                    <div key={consult.id} className="relative group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
-                      {/* Circle Dot Marker */}
-                      <span className="absolute -left-8.5 top-7 h-4 w-4 rounded-full bg-brand-sand border-4 border-white dark:border-slate-950 ring-2 ring-brand-green" />
+                    <div 
+                      key={consult.id} 
+                      className="relative group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300"
+                    >
+                      {/* Circle Dot Marker (connected to timeline) */}
+                      <span className="absolute -left-[30px] top-6.5 h-3.5 w-3.5 rounded-full bg-white dark:bg-slate-950 border-4 border-[#1b3d2f] ring-2 ring-emerald-500/20" />
                       
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2.5 text-xs text-brand-green font-black">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-3">
+                        <div className="flex items-center gap-2 text-xs text-brand-green font-black">
                           <Calendar className="w-4 h-4" />
                           <span>{consult.date}</span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">
+                        <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest bg-slate-50 dark:bg-slate-950 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-900">
                           Logged by: {consult.therapistName}
                         </span>
                       </div>
 
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                      <p className="text-xs font-semibold text-slate-655 dark:text-slate-250 whitespace-pre-wrap leading-relaxed">
                         {consult.summary}
                       </p>
                     </div>
@@ -595,7 +734,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                   {files.map((file) => (
                     <div 
                       key={file.id} 
-                      className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
+                      className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
                     >
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="h-10 w-10 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green shrink-0">

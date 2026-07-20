@@ -28,6 +28,8 @@ export interface Patient {
   therapistName?: string;    // Name of the primary therapist
   lastVisit?: string;        // DD-MM-YYYY or Date
   upcoming?: string;         // DD-MM-YYYY or string representation
+  reminders?: string[];      // clinical provider reminders
+  attendanceRate?: number;   // attendance reliability percentage
   createdAt: Timestamp;
 }
 
