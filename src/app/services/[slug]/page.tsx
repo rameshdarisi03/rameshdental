@@ -10,7 +10,8 @@ import {
   Activity, 
   Sparkles,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  Video
 } from "lucide-react";
 
 interface ServiceData {
@@ -23,6 +24,7 @@ interface ServiceData {
   goals: string[];
   recoveryTimeline: string;
   sessions: string;
+  youtubeId: string;
 }
 
 const serviceDictionary: Record<string, ServiceData> = {
@@ -51,7 +53,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Improve baseline functional capacity for daily activities"
     ],
     recoveryTimeline: "4 to 8 Weeks",
-    sessions: "8 to 12 Sessions"
+    sessions: "8 to 12 Sessions",
+    youtubeId: "3_Pey0bXg78" // Back pain physical therapy exercises
   },
   "post-surgical": {
     title: "Post-Surgical Rehabilitation",
@@ -78,7 +81,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Re-establish normal walking gait patterns without compensations"
     ],
     recoveryTimeline: "8 to 16 Weeks",
-    sessions: "12 to 24 Sessions"
+    sessions: "12 to 24 Sessions",
+    youtubeId: "2pYBD5i2Yw0" // Post arthroscopic knee surgery rehab
   },
   "neurological": {
     title: "Neurological Rehabilitation",
@@ -105,7 +109,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Enhance fine and gross motor controls for daily tasks"
     ],
     recoveryTimeline: "12 to 24 Weeks",
-    sessions: "16 to 32 Sessions"
+    sessions: "16 to 32 Sessions",
+    youtubeId: "jNlCea99iP0" // Stroke rehabilitation exercises
   },
   "sports-injury": {
     title: "Sports Injury Management",
@@ -132,7 +137,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Build tissue tolerance to sustain heavy athletic workloads"
     ],
     recoveryTimeline: "4 to 12 Weeks",
-    sessions: "6 to 16 Sessions"
+    sessions: "6 to 16 Sessions",
+    youtubeId: "H07W-nF8mPE" // ACL sports rehabilitation
   },
   "cardiopulmonary": {
     title: "Cardiopulmonary Physiotherapy",
@@ -159,7 +165,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Restore independence in basic domestic activities without rapid fatigue"
     ],
     recoveryTimeline: "6 to 12 Weeks",
-    sessions: "10 to 20 Sessions"
+    sessions: "10 to 20 Sessions",
+    youtubeId: "uV2f8WvE1gU" // Chest physiotherapy breathing exercises
   },
   "pediatric": {
     title: "Pediatric Physiotherapy",
@@ -186,7 +193,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Provide families with clear, practical home play-rehab frameworks"
     ],
     recoveryTimeline: "8 to 24 Weeks",
-    sessions: "12 to 36 Sessions"
+    sessions: "12 to 36 Sessions",
+    youtubeId: "K1cZgQ28Zoc" // Pediatric physical therapy
   },
   "geriatric": {
     title: "Geriatric Physiotherapy",
@@ -213,7 +221,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Restore ease in rising from chairs, stepping over obstacles, and climbing stairs"
     ],
     recoveryTimeline: "6 to 12 Weeks",
-    sessions: "8 to 16 Sessions"
+    sessions: "8 to 16 Sessions",
+    youtubeId: "_nE8f6nK9C0" // Senior balance physical therapy exercises
   },
   "pelvic-floor": {
     title: "Pelvic Floor Rehab",
@@ -240,7 +249,8 @@ const serviceDictionary: Record<string, ServiceData> = {
       "Alleviate deep tailbone, hip, and pelvic girdle discomfort"
     ],
     recoveryTimeline: "6 to 10 Weeks",
-    sessions: "6 to 12 Sessions"
+    sessions: "6 to 12 Sessions",
+    youtubeId: "3W_hG_n9x3A" // Pelvic floor muscles exercises guide
   }
 };
 
@@ -305,6 +315,23 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                 </p>
               </div>
 
+              {/* Section: Clinical Video Demonstration */}
+              <div className="space-y-4 border-t border-slate-100 dark:border-slate-850 pt-8">
+                <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5 select-none">
+                  <Video className="w-4.5 h-4.5 text-brand-green dark:text-teal-400" />
+                  Rehabilitation Demonstration Video
+                </h2>
+                <div className="relative w-full aspect-video rounded-3xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-black shadow-sm">
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={`https://www.youtube.com/embed/${data.youtubeId}`}
+                    title={`${data.title} Demonstration`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              </div>
+
               {/* Section 2: Symptoms Treated */}
               <div className="space-y-4 border-t border-slate-100 dark:border-slate-850 pt-8">
                 <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5 select-none">
@@ -315,7 +342,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                   {data.symptoms.map((sym, idx) => (
                     <div 
                       key={idx} 
-                      className="flex items-start gap-2 bg-[#faf8f5] dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-850"
+                      className="flex items-start gap-2 bg-[#faf8f5] dark:bg-slate-955 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-850"
                     >
                       <CheckCircle className="w-4 h-4 text-brand-green shrink-0 mt-0.5" />
                       <span className="text-xs text-slate-655 dark:text-slate-300 font-normal leading-snug">
@@ -363,7 +390,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                       className="flex items-start gap-2 bg-[#f0f4f2]/50 dark:bg-brand-green/5 p-4 rounded-2xl border border-brand-green/10"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-2" />
-                      <span className="text-xs text-slate-655 dark:text-slate-350 font-normal leading-normal">
+                      <span className="text-xs text-slate-655 dark:text-slate-355 font-normal leading-normal">
                         {goal}
                       </span>
                     </li>
