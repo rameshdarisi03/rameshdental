@@ -56,13 +56,15 @@ export default function Team() {
     setCurrentIndex((prev) => (prev - 1 + profiles.length) % profiles.length);
   }, [profiles.length]);
 
-  // Autoplay loop running every 4 seconds
+  // Autoplay effect loops every 4 seconds. Reset on index changes (prevents rapid double-skipping)
   useEffect(() => {
     const timer = setInterval(() => {
       nextSlide();
     }, 4000);
     return () => clearInterval(timer);
   }, [nextSlide]);
+
+  const active = profiles[currentIndex];
 
   return (
     <div className="flex flex-col w-full min-h-screen">
@@ -73,15 +75,15 @@ export default function Team() {
           50% { transform: translateY(-50%) translateY(-6px) scale(1.03); }
         }
         @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(15px); }
+          from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes fade-in-left {
-          from { opacity: 0; transform: translateX(-20px); }
+          from { opacity: 0; transform: translateX(-30px); }
           to { opacity: 1; transform: translateX(0); }
         }
         @keyframes fade-in-right {
-          from { opacity: 0; transform: translateX(20px); }
+          from { opacity: 0; transform: translateX(30px); }
           to { opacity: 1; transform: translateX(0); }
         }
         .animate-float-badge {
@@ -89,16 +91,20 @@ export default function Team() {
         }
         .animate-fade-in-up {
           opacity: 0;
-          animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .animate-fade-in-left {
           opacity: 0;
-          animation: fade-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fade-in-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .animate-fade-in-right {
           opacity: 0;
-          animation: fade-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: fade-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
       `}</style>
 
       <PageHeader
@@ -129,112 +135,100 @@ export default function Team() {
             </button>
           </div>
 
-          {/* Core Grid Wrapper */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start w-full">
+          {/* Sliding Content Container - keyed by currentIndex to re-trigger animations cleanly */}
+          <div key={currentIndex} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full">
             
-            {/* Left Column: Sliding Portrait Frame */}
-            <div className="lg:col-span-5 relative animate-fade-in-left overflow-hidden rounded-[2.5rem]">
-              <div 
-                className="flex w-[200%] transition-transform duration-700 cubic-bezier(0.25, 1, 0.5, 1)"
-                style={{ transform: `translateX(-${currentIndex * 50}%)` }}
-              >
-                {profiles.map((p, idx) => (
-                  <div key={idx} className="w-1/2 relative px-1 shrink-0">
-                    <img
-                      src={p.image}
-                      alt={`${p.name} Standing in GPC Clinic`}
-                      className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.25)] border-4 border-white dark:border-slate-900"
-                    />
-                    
-                    {/* Floating circular expertise badge */}
-                    <div className="absolute -right-4 top-1/2 z-10 w-24 h-24 rounded-full bg-[#1b3d2f] text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
-                      <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{p.years}</span>
-                      <span className="text-[7.5px] font-black uppercase tracking-wider mt-1.5 leading-tight">
-                        Years of<br />Expertise
-                      </span>
-                    </div>
-                  </div>
-                ))}
+            {/* Left Column: Portrait and floating badge */}
+            <div className="lg:col-span-5 relative animate-fade-in-left">
+              <div className="relative max-w-md mx-auto">
+                <img
+                  src={active.image}
+                  alt={`${active.name} Standing in GPC Clinic`}
+                  className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.25)] border-4 border-white dark:border-slate-900 transition-all duration-300"
+                />
+                
+                {/* Floating circular expertise badge - Overlaid on center right edge with pulsing/floating animation */}
+                <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-[#1b3d2f] text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
+                  <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{active.years}</span>
+                  <span className="text-[7.5px] font-black uppercase tracking-wider mt-1.5 leading-tight">
+                    Years of<br />Expertise
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Right Column: Static Title and Sliding Bios */}
-            <div className="lg:col-span-7 space-y-6 animate-fade-in-right">
+            {/* Right Column: Premium Text Info Panel */}
+            <div className="lg:col-span-7 space-y-6">
               
-              {/* Static sub-badge header (Stays Still) */}
-              <div className="flex items-center gap-2 text-brand-green dark:text-teal-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest">
+              {/* Static sub-badge header (Not sliding inside the grid layout, but mounts with the dynamic slide card details) */}
+              <div className="flex items-center gap-2 text-brand-green dark:text-teal-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest animate-fade-in-up">
                 <span className="h-[2px] w-8 bg-brand-green dark:bg-teal-400 rounded-full"></span>
                 OUR TRUSTED SUPPORT
               </div>
 
-              {/* Static Headline Caption (Stays Still) */}
-              <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white leading-tight">
-                Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
+              {/* Headline */}
+              <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white leading-tight animate-fade-in-up delay-100">
+                {active.headline.includes("Providing") ? (
+                  <>
+                    Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
+                  </>
+                ) : (
+                  <>
+                    Empowering Movement And <span className="text-brand-green dark:text-teal-400">Rebuilding Structural</span> Resilience
+                  </>
+                )}
               </h2>
 
-              {/* Sliding Details Wrapper (No refresh blink) */}
-              <div className="overflow-hidden w-full">
-                <div 
-                  className="flex w-[200%] transition-transform duration-700 cubic-bezier(0.25, 1, 0.5, 1)"
-                  style={{ transform: `translateX(-${currentIndex * 50}%)` }}
-                >
-                  {profiles.map((p, idx) => (
-                    <div key={idx} className="w-1/2 space-y-6 pr-4 shrink-0">
-                      {/* Sub-paragraph */}
-                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
-                        {p.desc}
-                      </p>
+              {/* Sub-paragraph */}
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal animate-fade-in-up delay-200">
+                {active.desc}
+              </p>
 
-                      {/* Quote block */}
-                      <div className="border-l-4 border-brand-green dark:border-teal-500 bg-[#f0f4f2]/60 dark:bg-brand-green/5 p-4 sm:p-5 rounded-r-2xl italic text-[11px] sm:text-xs font-normal text-slate-655 dark:text-slate-355 leading-relaxed">
-                        "{p.quote}"
-                      </div>
+              {/* Quote block */}
+              <div className="border-l-4 border-brand-green dark:border-teal-500 bg-[#f0f4f2]/60 dark:bg-brand-green/5 p-4 sm:p-5 rounded-r-2xl italic text-[11px] sm:text-xs font-normal text-slate-655 dark:text-slate-350 leading-relaxed animate-fade-in-up delay-300">
+                "{active.quote}"
+              </div>
 
-                      {/* Profile Card & Handwriting Signature */}
-                      <div className="flex flex-wrap items-center justify-between gap-6 pt-6 border-t border-slate-200/60 dark:border-slate-800">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={p.image}
-                            alt={`${p.name} Profile`}
-                            className="w-12 h-12 rounded-full object-cover border border-brand-green/20 ring-4 ring-brand-green/5 shrink-0"
-                          />
-                          <div>
-                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none block mb-1">
-                              {p.role}
-                            </span>
-                            <h4 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
-                              {p.name}
-                            </h4>
-                          </div>
-                        </div>
-
-                        {/* Flowy Handwriting Cursive Signature */}
-                        <div className={`${signatureFont.className} text-4xl sm:text-5xl text-brand-green dark:text-teal-400 font-medium select-none pr-4 rotate-[-3deg] transform origin-center tracking-wide`}>
-                          {p.signature}
-                        </div>
-                      </div>
-
-                      {/* Action booking CTA Button */}
-                      <div className="pt-2">
-                        <Link
-                          href="/book"
-                          className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
-                        >
-                          <span>Request Booking</span>
-                          <ArrowRight className="h-4 w-4" />
-                        </Link>
-                      </div>
-
-                    </div>
-                  ))}
+              {/* Profile Card & Handwriting Signature (Flex row wrapper) */}
+              <div className="flex flex-wrap items-center justify-between gap-6 pt-6 border-t border-slate-200/60 dark:border-slate-800 animate-fade-in-up delay-400">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={active.image}
+                    alt={`${active.name} Profile Icon`}
+                    className="w-12 h-12 rounded-full object-cover border border-brand-green/20 ring-4 ring-brand-green/5 shrink-0"
+                  />
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none block mb-1">
+                      {active.role}
+                    </span>
+                    <h4 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
+                      {active.name}
+                    </h4>
+                  </div>
                 </div>
+
+                {/* Flowy Handwriting Cursive Signature */}
+                <div className={`${signatureFont.className} text-4xl sm:text-5xl text-brand-green dark:text-teal-400 font-medium select-none pr-4 rotate-[-3deg] transform origin-center tracking-wide`}>
+                  {active.signature}
+                </div>
+              </div>
+
+              {/* Action booking CTA Button */}
+              <div className="pt-2 animate-fade-in-up delay-400">
+                <Link
+                  href="/book"
+                  className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                  <span>Request Booking</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
 
             </div>
 
           </div>
 
-          {/* Dot Indicator and Mobile Step control */}
+          {/* Desktop/Tablet Pagination Indicator Dots & Mobile Navigator Control */}
           <div className="flex items-center justify-center gap-4 pt-12">
             <button
               onClick={prevSlide}
