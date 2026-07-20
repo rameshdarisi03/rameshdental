@@ -6,48 +6,56 @@ export default function Services() {
   const treatments = [
     {
       title: "Musculoskeletal (Orthopaedic) Rehab",
+      slug: "musculoskeletal",
       desc: "Treats bones, joints, ligaments, and muscles. It resolves conditions like back pain, arthritis, sciatica, and scoliosis.",
       conditions: ["Back Pain", "Arthritis", "Sciatica", "Scoliosis"],
       image: "/images/services/musculoskeletal.webp",
     },
     {
       title: "Post-Surgical Rehabilitation",
+      slug: "post-surgical",
       desc: "Restores mobility and strength after operations. Common focus areas include joint replacements, ACL reconstructions, and fracture repairs.",
       conditions: ["Joint Replacements", "ACL Reconstruction", "Fracture Repairs"],
       image: "/images/services/postsurgical.webp",
     },
     {
       title: "Neurological Rehabilitation",
+      slug: "neurological",
       desc: "Retrains the nervous system after injury. It improves balance and mobility for stroke, Parkinson's disease, and spinal cord injuries.",
       conditions: ["Stroke Recovery", "Parkinson's", "Spinal Cord Injury"],
       image: "/images/services/neurological.webp",
     },
     {
       title: "Sports Injury Management",
+      slug: "sports-injury",
       desc: "Focuses on athletic recovery and prevention. It treats sprains, strains, rotator cuff tears, and tennis elbow.",
       conditions: ["Sprains & Strains", "Rotator Cuff Tears", "Tennis Elbow"],
       image: "/images/services/sports.webp",
     },
     {
       title: "Cardiopulmonary Physiotherapy",
+      slug: "cardiopulmonary",
       desc: "Improves heart and lung function. It benefits individuals recovering from heart attacks, bypass surgeries, or managing COPD.",
       conditions: ["Heart Recovery", "Bypass Surgery", "COPD Management"],
       image: "/images/services/cardiopulmonary.webp",
     },
     {
       title: "Pediatric Physiotherapy",
+      slug: "pediatric",
       desc: "Supports physical development in children. It treats cerebral palsy, developmental delays, and congenital conditions.",
       conditions: ["Cerebral Palsy", "Developmental Delay", "Congenital Issues"],
       image: "/images/services/pediatric.webp",
     },
     {
       title: "Geriatric Physiotherapy",
+      slug: "geriatric",
       desc: "Addresses age-related mobility issues. It focuses on fall prevention, arthritis management, and maintaining independence.",
       conditions: ["Fall Prevention", "Arthritis Care", "Mobility Enhancement"],
       image: "/images/services/geriatric.webp",
     },
     {
       title: "Pelvic Floor Rehab",
+      slug: "pelvic-floor",
       desc: "Strengthens pelvic muscles. It treats urinary incontinence, pelvic pain, and aids in pre- and post-pregnancy recovery.",
       conditions: ["Urinary Incontinence", "Pelvic Pain", "Pregnancy Rehab"],
       image: "/images/services/pelvic.webp",
@@ -72,7 +80,7 @@ export default function Services() {
             <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white tracking-tight">
               Our Comprehensive Services
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
               We combine clinical excellence with biophilic design principles to create a sanctuary where physical recovery feels as natural as breathing. Explore our range of evidence-based treatments tailored to your unique journey.
             </p>
           </div>
@@ -80,9 +88,10 @@ export default function Services() {
           {/* Cards Grid: 4 columns on desktop as shown in mockup */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {treatments.map((t) => (
-              <div
+              <Link
                 key={t.title}
-                className="group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+                href={`/services/${t.slug}`}
+                className="group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               >
                 {/* Image Thumbnail Header */}
                 <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
@@ -100,7 +109,7 @@ export default function Services() {
                     {t.title}
                   </h3>
                   
-                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium flex-grow">
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal flex-grow">
                     {t.desc}
                   </p>
 
@@ -122,39 +131,17 @@ export default function Services() {
                       </div>
                     </div>
                     
-                    {/* CTA Book Button */}
-                    <Link
-                      href={`/book?service=${encodeURIComponent(t.title)}`}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-[11px] font-black shadow-sm transition-all duration-200"
-                    >
-                      <span>Book Session</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    {/* CTA Read More Link */}
+                    <div className="flex items-center gap-1.5 pt-1 text-[11px] font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors duration-200">
+                      <span>Read More</span>
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
-        </div>
-      </section>
-
-      {/* Specialty Box */}
-      <section className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-16">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <h2 className="text-2xl font-black text-brand-charcoal dark:text-white">
-            Customized Orthotics & Insoles
-          </h2>
-          <p className="text-slate-650 dark:text-slate-400 max-w-2xl mx-auto text-xs sm:text-sm leading-relaxed font-semibold">
-            Following your Digital Gait Analysis, we can fabricate custom-designed orthotic insoles that fit inside your shoes. These correct foot strike errors, absorb impacts, and balance the pressure distributions on your lower body.
-          </p>
-          <Link
-            href="/book"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
-          >
-            <span>Schedule Foot Scan</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
         </div>
       </section>
     </div>
