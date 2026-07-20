@@ -60,44 +60,27 @@ export default function Team() {
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             
-            {/* Left Column: Image Collage Grid (Matches the Mockup Layout with slide-in animation) */}
-            <div className="lg:col-span-6 grid grid-cols-12 gap-4 items-center relative animate-fade-in-left">
-              
-              {/* Main Portrait (Left card) */}
-              <div className="col-span-7 relative">
+            {/* Left Column: Main Portrait (Matches the mockup request by removing crossed-out details) */}
+            <div className="lg:col-span-5 relative animate-fade-in-left">
+              <div className="relative max-w-md mx-auto">
                 <img
                   src="/images/dr-kinnera-portrait.jpg"
                   alt="Dr. Kinnera Standing in GPC Clinic"
-                  className="w-full rounded-[2rem] sm:rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.2)] border-4 border-white dark:border-slate-900 transition-all duration-300"
+                  className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.25)] border-4 border-white dark:border-slate-900 transition-all duration-300"
                 />
                 
                 {/* Floating circular expertise badge - Overlaid on center right edge with pulsing/floating animation */}
-                <div className="absolute -right-6 sm:-right-8 top-1/2 z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1b3d2f] text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
+                <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-[#1b3d2f] text-white flex flex-col items-center justify-center border-4 border-slate-55 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
                   <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">12+</span>
                   <span className="text-[7.5px] font-black uppercase tracking-wider mt-1.5 leading-tight">
                     Years of<br />Expertise
                   </span>
                 </div>
               </div>
-
-              {/* Stacked Images Column (Right card split) */}
-              <div className="col-span-5 flex flex-col gap-4">
-                <img
-                  src="/images/dr-kinnera-stretch.jpg"
-                  alt="Dr. Kinnera stretching a patient's leg"
-                  className="w-full rounded-2xl sm:rounded-3xl object-cover aspect-[4/3] shadow-md border-2 border-white dark:border-slate-900 hover:scale-[1.02] transition-transform duration-300"
-                />
-                <img
-                  src="/images/dr-kinnera-back.jpg"
-                  alt="Dr. Kinnera performing back therapy"
-                  className="w-full rounded-2xl sm:rounded-3xl object-cover aspect-[4/3] shadow-md border-2 border-white dark:border-slate-900 hover:scale-[1.02] transition-transform duration-300"
-                />
-              </div>
-
             </div>
 
             {/* Right Column: Premium Text Info Panel with slide-in animation */}
-            <div className="lg:col-span-6 space-y-6 animate-fade-in-right">
+            <div className="lg:col-span-7 space-y-6 animate-fade-in-right">
               
               {/* Sub-badge text with line graphic */}
               <div className="flex items-center gap-2 text-brand-green dark:text-teal-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest animate-fade-in-up">
