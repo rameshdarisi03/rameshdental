@@ -254,23 +254,27 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="flex flex-col w-full min-h-screen bg-brand-bg dark:bg-slate-955">
-      {/* Top Header Banner with Breadcrumbs */}
-      <div className="bg-[#1b3d2f] text-white py-12 border-b border-[#153025]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-white/60 select-none">
-            <Link href="/" className="hover:text-emerald-400 transition-colors">Home</Link>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <Link href="/services" className="hover:text-emerald-400 transition-colors">Services</Link>
-            <ChevronRight className="w-3.5 h-3.5" />
-            <span className="text-emerald-400 font-extrabold">{data.title}</span>
+      {/* Top Header Banner with Breadcrumbs (Warm Sand Style) */}
+      <section className="relative overflow-hidden bg-brand-sand py-12 border-b border-slate-200/60 dark:border-slate-800">
+        {/* Decorative blurred circles for natural biophilic feel */}
+        <div className="absolute top-0 right-10 w-32 h-32 bg-brand-green/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-44 h-44 bg-brand-green/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 space-y-3">
+          <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-brand-charcoal/60 select-none">
+            <Link href="/" className="hover:text-brand-green transition-colors">Home</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-brand-charcoal/40" />
+            <Link href="/services" className="hover:text-brand-green transition-colors">Services</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-brand-charcoal/40" />
+            <span className="text-brand-green font-extrabold">{data.title}</span>
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{data.title}</h1>
-            <p className="text-xs sm:text-sm text-emerald-350 font-bold tracking-wide italic">{data.subtitle}</p>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">{data.title}</h1>
+            <p className="text-xs sm:text-sm text-brand-green font-bold tracking-wide italic">{data.subtitle}</p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Two-Column Layout Section */}
       <section className="py-16">
