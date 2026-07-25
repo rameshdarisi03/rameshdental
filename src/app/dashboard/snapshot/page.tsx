@@ -49,10 +49,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCw,
-  Search,
-  History,
-  MoreVertical,
-  FileText
+  Search
 } from "lucide-react";
 import Link from "next/link";
 
@@ -727,129 +724,65 @@ export default function DaySnapshot() {
     });
   };
 
-  const totalSlotsCount = allSlots.length;
-  const bookedCount = allSlots.filter((s) => getSlotState(s).type === "appointment").length;
-  const blockedCount = allSlots.filter((s) => getSlotState(s).type === "blocked").length;
-  const availableCount = allSlots.filter((s) => {
-    const state = getSlotState(s);
-    return state.type === "free" && !isSlotInPast(s, selectedDate);
-  }).length;
-
-  const getFormattedSelectedDate = () => {
-    try {
-      const dateObj = new Date(selectedDate);
-      if (isNaN(dateObj.getTime())) return selectedDate;
-      return dateObj.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-    } catch {
-      return selectedDate;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header Panel */}
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 select-none">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Clinic Status: On Track
-            </div>
-            <h1 className="text-2xl font-black text-brand-charcoal dark:text-white mt-1">Physiotherapy Unit 2</h1>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-4 text-xs font-bold text-slate-500 select-none">
-            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Connection
-            </span>
-            <span className="text-slate-300">|</span>
-            <Link href="/" className="underline hover:text-brand-green">View Website</Link>
-            
-            <Link 
-              href="/dashboard/walkin"
-              className="flex items-center gap-1 bg-[#1b3d2f] hover:bg-[#122b21] text-white px-4 py-2 rounded-xl font-black text-[11px] shadow-sm tracking-wide ml-2"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Emergency Walk-in
-            </Link>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Day Snapshot</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Therapist view: click to select, hold <strong>Shift</strong> to select ranges. Right-click or use toolbar to Approve, Reject, or Block.
+          </p>
         </div>
 
-        {/* Date Selector and Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mt-2">
-          {/* Custom Formatted Date Badge */}
-          <div className="relative inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-950 px-4 py-2.5 rounded-2xl border border-slate-205 dark:border-slate-850 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors select-none">
-            <Calendar className="h-4 w-4 text-brand-green" />
-            <span className="text-xs font-black text-slate-700 dark:text-slate-250">{getFormattedSelectedDate()}</span>
+        {/* Date Selector and Refresh Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handlePreviousDay}
+            title="Previous Day"
+            type="button"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          
+          <button
+            onClick={handleNextDay}
+            title="Next Day"
+            type="button"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          <button
+            onClick={fetchDayData}
+            disabled={loading}
+            title="Refresh snapshot data"
+            type="button"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+          >
+            <RotateCw className={`h-4.5 w-4.5 ${loading ? "animate-spin text-brand-green" : ""}`} />
+          </button>
+
+          <div className="relative">
+            <Calendar className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer"
+              className="rounded-xl border border-slate-200/80 dark:border-slate-805 bg-white dark:bg-slate-900 pl-11 pr-4 py-2 text-xs font-bold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
             />
-          </div>
-
-          {/* Quick Nav Controls */}
-          <div className="flex items-center gap-2 shrink-0 bg-slate-100 dark:bg-slate-950 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-850">
-            <button
-              onClick={handlePreviousDay}
-              title="Previous Day"
-              type="button"
-              className="p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
-            >
-              <ChevronLeft className="h-4.5 w-4.5" />
-            </button>
-            
-            <button
-              onClick={() => {
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = String(today.getMonth() + 1).padStart(2, "0");
-                const day = String(today.getDate()).padStart(2, "0");
-                setSelectedDate(`${year}-${month}-${day}`);
-              }}
-              type="button"
-              className="px-4 py-2 bg-white dark:bg-slate-900 shadow-sm text-[10px] font-black tracking-wider uppercase rounded-xl text-slate-700 dark:text-slate-250 transition-all shrink-0"
-            >
-              TODAY
-            </button>
-            
-            <button
-              onClick={handleNextDay}
-              title="Next Day"
-              type="button"
-              className="p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
-            >
-              <ChevronRight className="h-4.5 w-4.5" />
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Legend and Instructions Panel */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4 rounded-3xl shadow-sm text-xs select-none">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 font-bold text-slate-500">
-            <span className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-            <span>Past Slots</span>
-          </div>
-          <div className="flex items-center gap-2 font-bold text-slate-500">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#10b981]" />
-            <span>Available</span>
-          </div>
-          <div className="flex items-center gap-2 font-bold text-slate-500">
-            <span className="h-2.5 w-2.5 rounded-full border-2 border-emerald-500 bg-emerald-50" />
-            <span>Booked</span>
-          </div>
-          <div className="flex items-center gap-2 font-bold text-slate-500">
-            <span className="h-2.5 w-2.5 rounded-full border border-red-500" />
-            <span>Blocked</span>
-          </div>
-        </div>
-        <div className="text-[10px] font-black text-slate-400 italic dark:text-slate-400">
-          Right-click any slot to access clinical notes or cancel booking.
-        </div>
+      {/* Helper Info Note */}
+      <div className="flex gap-2.5 bg-[#f0f4f2] dark:bg-teal-950/20 border border-brand-green/20 p-4 rounded-2xl text-slate-650 dark:text-teal-400 text-xs">
+        <Info className="h-4.5 w-4.5 text-brand-green shrink-0 mt-0.5" />
+        <p className="leading-relaxed font-semibold">
+          <strong>Grid Instructions:</strong> Click cells to select, hold <strong>Shift</strong> to select ranges. Right-click to access **Book for Patient**, Approve, Reject, or Block. Floating actions bar handles adjustments on tablet screens.
+        </p>
       </div>
 
       {/* Grid Container */}
@@ -866,10 +799,9 @@ export default function DaySnapshot() {
           {allSlots.map((slot) => {
             const slotState = getSlotState(slot);
             const isSelected = selectedSlots.includes(slot);
-            const isPast = isSlotInPast(slot, selectedDate);
             
-            // Build card styles
-            let cardClasses = "group relative border rounded-3xl p-5 shadow-sm transition-all duration-350 select-none cursor-pointer hover:scale-[1.02] flex flex-col justify-between min-h-[140px] ";
+            let cardClasses = "group relative border rounded-3xl p-5 shadow-sm transition-all select-none cursor-pointer duration-300 hover:scale-[1.02] hover:shadow-md ";
+            let statusIndicator = null;
             let detailNode = null;
 
             // Highlight ring if selected
@@ -878,271 +810,105 @@ export default function DaySnapshot() {
             }
 
             if (slotState.type === "appointment") {
-              // Booked appointment (Approved, Pending, or Rejected)
               const app = slotState.data;
               const isPending = app.status === "pending";
               const isApproved = app.status === "approved";
               const isRejected = app.status === "rejected";
-              
-              // Initials avatar
-              const initials = (app.patientName || "Patient")
-                .trim()
-                .split(/\s+/)
-                .map((n) => n[0] || "")
-                .join("")
-                .slice(0, 2)
-                .toUpperCase() || "PT";
 
               if (isApproved) {
-                // Approved Slot (Clean white/light-slate background, green accents)
-                cardClasses += "bg-white dark:bg-slate-900 border-emerald-500/35 hover:border-emerald-500/50 shadow-sm text-slate-700 dark:text-slate-200";
-                
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between gap-3 w-full">
-                    <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
-                      <span className="text-[10px] font-extrabold tracking-wider">{slot}</span>
-                      {app.patientId ? (
-                        <span className="bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">{app.patientId}</span>
-                      ) : (
-                        <span className="bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">APPROVED</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-3 py-1">
-                      <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 text-emerald-600 dark:text-emerald-450 flex items-center justify-center font-black text-xs shrink-0 select-none shadow-sm">
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-sm truncate text-brand-charcoal dark:text-white leading-tight">{app.patientName}</p>
-                        <p className="text-[10px] text-slate-400 font-bold truncate mt-0.5">{app.serviceId}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800 select-none">
-                      <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-emerald-600 dark:text-emerald-400">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Approved
-                      </span>
-                      
-                      <button 
-                        type="button" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`/dashboard/patients/${app.patientId || ""}`, "_blank");
-                        }}
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-brand-green transition-colors"
-                        title="Clinical Profile"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+                cardClasses += "bg-gradient-to-br from-[#f0f4f2] to-[#fafcfb] dark:from-slate-900 dark:to-slate-950 border-l-[6px] border-l-brand-green border-slate-200/80 shadow-sm";
+                statusIndicator = (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-green/10 text-[9px] font-black uppercase tracking-wider text-brand-green">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse" />
+                    Approved
+                  </span>
                 );
-              } else if (isRejected) {
-                // Rejected Slot (Soft red card styling)
-                cardClasses += "bg-red-50/60 dark:bg-red-955/10 border-red-200/50 dark:border-red-800 text-slate-700 dark:text-slate-200";
-                
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between gap-3 w-full">
-                    <div className="flex justify-between items-center text-red-500">
-                      <span className="text-[10px] font-extrabold tracking-wider">{slot}</span>
-                      <span className="bg-red-100/50 dark:bg-red-950/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">REJECTED</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 py-1">
-                      <div className="h-10 w-10 rounded-full bg-red-100/30 dark:bg-red-900/30 text-red-500 flex items-center justify-center font-black text-xs shrink-0 select-none shadow-sm">
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-sm truncate text-brand-charcoal dark:text-white leading-tight">{app.patientName}</p>
-                        <p className="text-[10px] text-slate-400 font-bold truncate mt-0.5">{app.serviceId}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800 select-none">
-                      <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-950/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-red-650 dark:text-red-405">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                        Rejected
-                      </span>
-                      
-                      {app.notes && (
-                        <span className="text-[9px] font-bold text-red-500/80 truncate max-w-[50%] italic" title={app.notes}>
-                          Reason: {app.notes}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+              } else if (isPending) {
+                cardClasses += "bg-gradient-to-br from-amber-50/80 to-yellow-50/20 dark:from-amber-950/25 dark:to-yellow-950/5 border-l-[6px] border-l-amber-500 border-amber-250/60 dark:border-amber-900/50 shadow-amber-500/5";
+                statusIndicator = (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100/60 dark:bg-amber-950/50 text-[9px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                    Pending
+                  </span>
                 );
               } else {
-                // Pending / Rescheduled Slot (White background, amber details)
-                cardClasses += "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200";
-                
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between gap-3 w-full">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span className="text-[10px] font-extrabold tracking-wider">{slot}</span>
-                      {app.patientId ? (
-                        <span className="bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">{app.patientId}</span>
-                      ) : (
-                        <span className="bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">PENDING</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3 py-1">
-                      <div className="h-10 w-10 rounded-full bg-amber-50 dark:bg-amber-955/20 border border-amber-100/50 text-amber-655 dark:text-amber-400 flex items-center justify-center font-black text-xs shrink-0 select-none shadow-sm">
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-sm truncate text-brand-charcoal dark:text-white leading-tight">{app.patientName}</p>
-                        <p className="text-[10px] text-slate-400 font-bold truncate mt-0.5">{app.serviceId}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800 select-none">
-                      <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-amber-600 dark:text-amber-400">
-                        <span className="h-1 w-1 rounded-full bg-amber-500 animate-ping" />
-                        Not Arrived
-                      </span>
-                      
-                      <button 
-                        type="button" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          let cleanPhone = (app.patientPhone || "").replace(/\D/g, "");
-                          if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.replace(/^0+/, "");
-                          if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
-                          window.open(`https://wa.me/${cleanPhone}`, "_blank");
-                        }}
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-brand-green transition-colors"
-                        title="WhatsApp Chat"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+                cardClasses += "bg-gradient-to-br from-red-50/80 to-rose-50/20 dark:from-red-955/25 dark:to-rose-950/5 border-l-[6px] border-l-red-500 border-red-250/60 dark:border-red-900/50 shadow-red-500/5";
+                statusIndicator = (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-100/60 dark:bg-red-950/50 text-[9px] font-black uppercase tracking-wider text-red-650 dark:text-red-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    Rejected
+                  </span>
                 );
               }
+
+              detailNode = (
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className={`font-black text-sm truncate ${
+                      isApproved ? "text-brand-charcoal dark:text-emerald-50" :
+                      isPending ? "text-amber-950 dark:text-amber-50" :
+                      "text-red-955 dark:text-red-50"
+                    }`}>{app.patientName}</p>
+                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 shrink-0 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{slot}</p>
+                  </div>
+                  <p className="text-xs text-slate-650 dark:text-slate-350 truncate font-bold leading-tight">{app.serviceId}</p>
+                  
+                  {/* Audit trail indicator */}
+                  {(app.createdByName || app.actionedByName) && (
+                    <div className="text-[8px] text-slate-400 font-bold uppercase tracking-wider leading-tight">
+                      {app.type === "manual" && app.createdByName && `Manual: ${app.createdByName}`}
+                      {app.actionedByName && app.status !== "pending" && ` • Action: ${app.actionedByName}`}
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-850">
+                    {statusIndicator}
+                    <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold tracking-tight truncate max-w-[60%]">
+                      {app.patientPhone}
+                    </p>
+                  </div>
+                </div>
+              );
 
             } else if (slotState.type === "blocked") {
-              // Blocked Slots (custom colors based on reason)
-              const reasonLower = slotState.reason.toLowerCase();
-              const isLunch = reasonLower.includes("lunch") || reasonLower.includes("break");
-              
-              if (isLunch) {
-                // Light blue themed blocker card
-                cardClasses += "bg-blue-50/60 dark:bg-blue-955/10 border-blue-205 dark:border-blue-800 text-slate-700 dark:text-slate-205";
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between py-0.5 w-full">
-                    <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">{slot}</span>
-                    <div className="flex flex-col items-center justify-center space-y-1 py-1">
-                      <span className="p-1.5 bg-blue-100/50 dark:bg-blue-900/30 rounded-full text-blue-500">
-                        <Lock className="h-3.5 w-3.5" />
-                      </span>
-                      <p className="font-extrabold text-xs tracking-wide text-blue-600 dark:text-blue-400">{slotState.reason}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Block action edit context
-                        setContextMenu({ visible: true, x: e.clientX, y: e.clientY, slot });
-                      }}
-                      className="text-[9px] text-blue-500 font-black tracking-wide text-center uppercase hover:underline cursor-pointer border-0 bg-transparent"
-                    >
-                      Edit Block
-                    </button>
+              cardClasses += "bg-gradient-to-br from-slate-100/90 to-slate-50/40 dark:from-slate-900/60 dark:to-slate-950/40 border-l-[6px] border-l-slate-400/80 border-slate-200 dark:border-slate-800 opacity-90";
+              detailNode = (
+                <div className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="inline-flex items-center gap-1 bg-slate-205 dark:bg-slate-800 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-350">
+                      <Lock className="h-2.5 w-2.5 text-slate-500" />
+                      Blocked
+                    </span>
+                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 shrink-0 bg-slate-205 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{slot}</p>
                   </div>
-                );
-              } else {
-                // Red/pink themed standard blocker card
-                cardClasses += "bg-red-50/60 dark:bg-red-955/10 border-red-200/50 dark:border-red-800 text-slate-700 dark:text-slate-205";
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between py-0.5 w-full">
-                    <div className="flex justify-between items-center text-slate-400">
-                      <span className="text-[10px] font-extrabold tracking-wider">{slot}</span>
-                      <span className="text-[8px] font-black tracking-widest text-red-500 dark:text-red-400">BLOCKED</span>
-                    </div>
-                    <div className="flex items-center gap-3 py-1">
-                      <div className="h-10 w-10 rounded-full bg-red-100/50 dark:bg-red-900/30 text-red-500 flex items-center justify-center shrink-0">
-                        <Calendar className="h-4.5 w-4.5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-xs text-red-600 dark:text-red-400 truncate">{slotState.reason}</p>
-                        <p className="text-[9px] text-slate-450 italic mt-0.5">Availability blocked</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Direct block removal trigger
-                        setSelectedSlots([slot]);
-                        handleUnblock();
-                      }}
-                      className="text-[9px] text-red-500 font-black tracking-wide text-left uppercase hover:underline cursor-pointer border-0 bg-transparent"
-                    >
-                      Cancel Block
-                    </button>
-                  </div>
-                );
-              }
-
+                  <p className="text-xs text-slate-550 dark:text-slate-355 truncate font-semibold">Reason: {slotState.reason}</p>
+                  <p className="text-[10px] text-slate-400 italic font-medium">Availability overridden</p>
+                </div>
+              );
             } else {
               // Free Slot
+              const isPast = isSlotInPast(slot, selectedDate);
               if (isPast) {
-                // Completed / Past / Expired Slots (Grayed out)
-                cardClasses += "bg-[#f8fafc]/60 dark:bg-slate-900/10 border-slate-200 dark:border-slate-800/50 opacity-65 cursor-not-allowed hover:scale-100 hover:shadow-none";
-                
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between text-slate-450 dark:text-slate-500 w-full">
-                    <div className="flex justify-between items-center text-[10px] font-black tracking-wider">
-                      <span>{slot}</span>
-                      <span className="bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[8px] tracking-widest uppercase">PAST SLOT</span>
-                    </div>
-                    <div className="space-y-1 py-1">
-                      <div className="flex items-center gap-1.5 text-xs font-black">
-                        <History className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Completed Slot</span>
-                      </div>
-                      <div className="text-[10px] font-extrabold">Time passed / Not booked</div>
-                    </div>
-                  </div>
-                );
+                cardClasses += "bg-slate-100/60 dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-450 opacity-60 cursor-not-allowed hover:scale-100 hover:shadow-none";
               } else {
-                // Free Available Slot (Clean grid display, no quick book button)
-                cardClasses += "border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/10 hover:border-[#10b981]/50 hover:shadow-md hover:shadow-emerald-500/5";
-                
-                detailNode = (
-                  <div className="h-full flex flex-col justify-between w-full">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">{slot}</span>
-                      <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-wider">
-                        AVAILABLE
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      </span>
-                    </div>
-
-                    <div className="space-y-0.5 py-1">
-                      <h4 className="text-xs font-black text-brand-charcoal dark:text-white leading-tight">Open for Booking</h4>
-                      <p className="text-[10px] text-slate-400 font-semibold truncate">General Assessment Window</p>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-1 text-[10px] text-slate-400/80 font-bold select-none border-t border-slate-100 dark:border-slate-850">
-                      <span className="italic">Click cell to select slot</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setContextMenu({ visible: true, x: e.clientX, y: e.clientY, slot });
-                        }}
-                        className="p-1 border border-slate-105 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-400 hover:text-brand-green transition-colors cursor-pointer"
-                      >
-                        <MoreVertical className="h-3.5 w-3.5" />
-                      </button>
+                cardClasses += "border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/10 hover:border-brand-green/80 hover:bg-[#f0f4f2]/30 cursor-pointer";
+              }
+              detailNode = (
+                <div className="h-full flex flex-col justify-between py-1 min-h-[92px]">
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[9px] font-black tracking-wider ${isPast ? "text-slate-400" : "text-brand-green"}`}>
+                      {isPast ? "PAST SLOT" : "AVAILABLE"}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {!isPast && <Plus className="h-3 w-3 text-brand-green opacity-0 group-hover:opacity-100 transition-opacity" />}
+                      <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 shrink-0 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{slot}</p>
                     </div>
                   </div>
-                );
-              }
+                  <p className="text-xs text-slate-400 italic font-semibold">
+                    {isPast ? "Unavailable" : "Free slot"}
+                  </p>
+                </div>
+              );
             }
 
             return (
@@ -1219,34 +985,6 @@ export default function DaySnapshot() {
               Block Slot(s)
             </button>
           )}
-        </div>
-      )}
-
-      {/* Floating Summary Footer Panel (Only shows when no slots are actively selected) */}
-      {selectedSlots.length === 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 rounded-full px-8 py-3.5 shadow-2xl flex items-center gap-8 select-none max-w-[90vw] animate-slide-up">
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Slots</p>
-            <p className="text-lg font-black text-slate-700 dark:text-slate-200 leading-none">{totalSlotsCount}</p>
-          </div>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
-          
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">Booked</p>
-            <p className="text-lg font-black text-[#1b3d2f] dark:text-emerald-400 leading-none">{bookedCount}</p>
-          </div>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
-
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">Available</p>
-            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">{availableCount}</p>
-          </div>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
-
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-455 uppercase tracking-widest leading-none mb-1">Blocked</p>
-            <p className="text-lg font-black text-red-500 leading-none">{blockedCount}</p>
-          </div>
         </div>
       )}
 
