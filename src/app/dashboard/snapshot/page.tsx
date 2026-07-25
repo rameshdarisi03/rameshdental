@@ -51,7 +51,8 @@ import {
   RotateCw,
   Search,
   History,
-  MoreVertical
+  MoreVertical,
+  FileText
 } from "lucide-react";
 import Link from "next/link";
 
