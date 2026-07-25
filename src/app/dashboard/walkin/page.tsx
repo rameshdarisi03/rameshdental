@@ -14,6 +14,13 @@ import {
   isSlotInPast,
   Appointment
 } from "@/lib/db";
+import {
+  getPatients,
+  createPatient,
+  updatePatient,
+  Patient
+} from "@/lib/patientsDb";
+import Link from "next/link";
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -25,7 +32,8 @@ import {
   Check, 
   Bookmark, 
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Search
 } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
@@ -73,6 +81,13 @@ export default function WalkInBookingPage() {
   const [dialCode, setDialCode] = useState("+91");
   const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
 
+  // Patient lookup state
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientType, setPatientType] = useState<"new" | "existing">("new");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+
   // Firestore availability state for selected date
   const [approvedSlots, setApprovedSlots] = useState<string[]>([]);
   const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
@@ -109,6 +124,19 @@ export default function WalkInBookingPage() {
       }
     }
     loadConfig();
+  }, []);
+
+  // Fetch patients list for existing lookup
+  useEffect(() => {
+    async function loadPatients() {
+      try {
+        const fetched = await getPatients();
+        setPatients(fetched);
+      } catch (err) {
+        console.error("Failed to load patients list: ", err);
+      }
+    }
+    loadPatients();
   }, []);
 
   // Generate slots dynamically based on active shift boundaries
@@ -323,6 +351,44 @@ export default function WalkInBookingPage() {
         notes: "",
       });
 
+      // Automate Patient Profile Integration
+      if (patientType === "new") {
+        try {
+          await createPatient({
+            name: formData.patientName,
+            email: formData.patientEmail,
+            phone: fullPhone,
+            treatmentPlan: formData.serviceId,
+            status: "active",
+            lastVisit: formData.date
+          });
+        } catch (patientErr) {
+          console.error("Failed to register new patient profile: ", patientErr);
+        }
+      } else if (selectedPatient && selectedPatient.id) {
+        try {
+          await updatePatient(selectedPatient.id, {
+            lastVisit: formData.date,
+            status: "active",
+            treatmentPlan: formData.serviceId
+          });
+        } catch (patientErr) {
+          console.error("Failed to update existing patient last visit: ", patientErr);
+        }
+      }
+
+      // Reload patients list to reflect any new additions
+      try {
+        const fetched = await getPatients();
+        setPatients(fetched);
+      } catch (err) {
+        console.error(err);
+      }
+
+      setSelectedPatient(null);
+      setSearchQuery("");
+      setPatientType("new");
+
     } catch (err: any) {
       console.error(err);
       setErrorMessage("Failed to save booking. Check database permissions.");
@@ -389,65 +455,227 @@ export default function WalkInBookingPage() {
             Patient Credentials
           </h3>
 
+          {/* Patient Type Selectors */}
+          <div className="flex rounded-xl bg-slate-100 dark:bg-slate-950 p-1 border border-slate-200/80 dark:border-slate-850 select-none">
+            <button
+              type="button"
+              onClick={() => {
+                setPatientType("new");
+                setSelectedPatient(null);
+                setSearchQuery("");
+                setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+              }}
+              className={`flex-1 rounded-lg py-2 text-xs font-black transition-all ${
+                patientType === "new"
+                  ? "bg-[#1b3d2f] text-white shadow-sm"
+                  : "text-slate-500 hover:text-brand-green"
+              }`}
+            >
+              New Patient
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPatientType("existing");
+                setSelectedPatient(null);
+                setSearchQuery("");
+                setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+              }}
+              className={`flex-1 rounded-lg py-2 text-xs font-black transition-all ${
+                patientType === "existing"
+                  ? "bg-[#1b3d2f] text-white shadow-sm"
+                  : "text-slate-500 hover:text-brand-green"
+              }`}
+            >
+              Existing Patient
+            </button>
+          </div>
+
           <div className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Patient Full Name *
-              </label>
+            
+            {patientType === "existing" ? (
               <div className="relative">
-                <User className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
-                <input
-                  type="text"
-                  name="patientName"
-                  value={formData.patientName}
-                  onChange={handleInputChange}
-                  placeholder="e.g. John Doe"
-                  required
-                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
-                />
+                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Search Patient Profile (Name or Phone) *
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowDropdown(true);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    placeholder="Type patient name or mobile number..."
+                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                  />
+                </div>
+                
+                {/* Autocomplete dropdown list */}
+                {showDropdown && searchQuery.trim().length > 0 && (
+                  <div className="absolute z-20 w-full mt-1.5 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl py-1.5">
+                    {patients
+                      .filter((p) => 
+                        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        p.phone.includes(searchQuery)
+                      )
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPatient(p);
+                            setSearchQuery(p.name);
+                            let rawPhone = p.phone;
+                            let parsedDial = "+91";
+                            if (rawPhone.startsWith("+")) {
+                              const match = rawPhone.match(/^(\+\d{2})(\d{10})$/);
+                              if (match) {
+                                parsedDial = match[1];
+                                rawPhone = match[2];
+                              }
+                            }
+                            setDialCode(parsedDial);
+                            setFormData(prev => ({
+                              ...prev,
+                              patientName: p.name,
+                              patientPhone: rawPhone,
+                              patientEmail: p.email || "",
+                              serviceId: p.treatmentPlan || prev.serviceId
+                            }));
+                            setShowDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs hover:bg-[#f0f4f2] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border-b border-slate-50 dark:border-slate-855 last:border-0"
+                        >
+                          <div className="font-black text-brand-charcoal dark:text-white">{p.name}</div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{p.phone} • Plan: {p.treatmentPlan}</div>
+                        </button>
+                      ))}
+                    {patients.filter((p) => 
+                      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      p.phone.includes(searchQuery)
+                    ).length === 0 && (
+                      <div className="px-4 py-3 text-xs text-slate-400 italic text-center">
+                        No matching patient records found.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  Patient Full Name *
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                  <input
+                    type="text"
+                    name="patientName"
+                    value={formData.patientName}
+                    onChange={handleInputChange}
+                    placeholder="e.g. John Doe"
+                    required
+                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Mobile / WhatsApp Number *
-              </label>
-              <div className="flex items-center relative">
-                <input
-                  type="text"
-                  value={dialCode}
-                  onChange={(e) => setDialCode(e.target.value)}
-                  placeholder="+91"
-                  className="w-24 rounded-l-2xl border border-r-0 border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-3.5 text-xs font-bold outline-none focus:border-brand-green text-center text-slate-700 dark:text-slate-350"
-                />
-                <input
-                  type="tel"
-                  name="patientPhone"
-                  value={formData.patientPhone}
-                  onChange={handleInputChange}
-                  placeholder="9206651295"
-                  required
-                  className="flex-grow rounded-r-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
-                />
-              </div>
-            </div>
+            {/* Read-Only/Editable Fields depending on Selection */}
+            {(!selectedPatient || patientType === "new") ? (
+              <>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Mobile / WhatsApp Number *
+                  </label>
+                  <div className="flex items-center relative">
+                    <input
+                      type="text"
+                      value={dialCode}
+                      onChange={(e) => setDialCode(e.target.value)}
+                      placeholder="+91"
+                      className="w-24 rounded-l-2xl border border-r-0 border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-3.5 text-xs font-bold outline-none focus:border-brand-green text-center text-slate-700 dark:text-slate-355"
+                    />
+                    <input
+                      type="tel"
+                      name="patientPhone"
+                      value={formData.patientPhone}
+                      onChange={handleInputChange}
+                      placeholder="9206651295"
+                      required
+                      className="flex-grow rounded-r-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Email Address (Optional)
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
-                <input
-                  type="email"
-                  name="patientEmail"
-                  value={formData.patientEmail}
-                  onChange={handleInputChange}
-                  placeholder="john@example.com"
-                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
-                />
-              </div>
-            </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Email Address (Optional)
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                    <input
+                      type="email"
+                      name="patientEmail"
+                      value={formData.patientEmail}
+                      onChange={handleInputChange}
+                      placeholder="john@example.com"
+                      className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              selectedPatient && (
+                <div className="bg-[#f0f4f2]/50 dark:bg-brand-green/5 border border-brand-green/10 p-4.5 rounded-2xl space-y-3 animate-fade-in-up">
+                  <div className="flex justify-between items-center text-[10px] font-black text-brand-green uppercase tracking-wider">
+                    <span>Patient Profile Summary</span>
+                    <Link 
+                      href={`/dashboard/patients/${selectedPatient.id}`}
+                      target="_blank"
+                      className="underline hover:text-brand-green-hover"
+                    >
+                      Full Details →
+                    </Link>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Patient ID:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-350">{selectedPatient.id}</div>
+                    
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Full Name:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-350">{selectedPatient.name}</div>
+                    
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Phone / Email:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{dialCode} {formData.patientPhone}</div>
+                    
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Gender / DOB:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.gender || "Not specified"} / {selectedPatient.dob || "N/A"}</div>
+                    
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Last Visited:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.lastVisit || "First session"}</div>
+                    
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Active Plan:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-355 truncate">{selectedPatient.treatmentPlan || "None"}</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPatient(null);
+                      setSearchQuery("");
+                      setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                    }}
+                    className="text-[10px] text-red-500 font-black underline hover:text-red-750 cursor-pointer block border-0 bg-transparent p-0 pt-1"
+                  >
+                    Change Patient Selection
+                  </button>
+                </div>
+              )
+            )}
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">

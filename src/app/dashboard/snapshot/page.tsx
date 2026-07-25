@@ -24,6 +24,12 @@ import {
   isSlotInPast
 } from "@/lib/db";
 import {
+  getPatients,
+  createPatient,
+  updatePatient,
+  Patient
+} from "@/lib/patientsDb";
+import {
   Calendar,
   Clock,
   User,
@@ -42,8 +48,10 @@ import {
   Mail,
   ChevronLeft,
   ChevronRight,
-  RotateCw
+  RotateCw,
+  Search
 } from "lucide-react";
+import Link from "next/link";
 
 interface UserProfile {
   uid: string;
@@ -108,6 +116,13 @@ export default function DaySnapshot() {
     notes: "",
   });
   const [submittingPatientForm, setSubmittingPatientForm] = useState(false);
+
+  // Patient lookup state
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientType, setPatientType] = useState<"new" | "existing">("new");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -188,6 +203,17 @@ export default function DaySnapshot() {
     if (userJson) {
       setCurrentUser(JSON.parse(userJson));
     }
+
+    // 3. Fetch patients list for existing lookup
+    async function loadPatients() {
+      try {
+        const fetched = await getPatients();
+        setPatients(fetched);
+      } catch (err) {
+        console.error("Failed to load patients list: ", err);
+      }
+    }
+    loadPatients();
   }, []);
 
   // Close context menu on click outside
@@ -474,6 +500,44 @@ export default function DaySnapshot() {
         serviceId: "General Physiotherapy Consultation",
         notes: "",
       });
+
+      // Automate Patient Profile Integration
+      if (patientType === "new") {
+        try {
+          await createPatient({
+            name: patientForm.patientName,
+            email: patientForm.patientEmail,
+            phone: patientForm.patientPhone,
+            treatmentPlan: patientForm.serviceId,
+            status: "active",
+            lastVisit: selectedDate
+          });
+        } catch (patientErr) {
+          console.error("Failed to automatically register new patient profile: ", patientErr);
+        }
+      } else if (selectedPatient && selectedPatient.id) {
+        try {
+          await updatePatient(selectedPatient.id, {
+            lastVisit: selectedDate,
+            status: "active",
+            treatmentPlan: patientForm.serviceId
+          });
+        } catch (patientErr) {
+          console.error("Failed to update existing patient last visit: ", patientErr);
+        }
+      }
+
+      // Reload patients list to reflect any new additions
+      try {
+        const fetched = await getPatients();
+        setPatients(fetched);
+      } catch (err) {
+        console.error(err);
+      }
+
+      setSelectedPatient(null);
+      setSearchQuery("");
+      setPatientType("new");
 
       // Directly trigger WhatsApp without modal if checked
       if (manualNotifyWhatsApp) {
@@ -968,7 +1032,12 @@ export default function DaySnapshot() {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Book for Patient</h3>
                 <button
-                  onClick={() => setIsBookForPatientOpen(false)}
+                  onClick={() => {
+                    setSelectedPatient(null);
+                    setSearchQuery("");
+                    setPatientType("new");
+                    setIsBookForPatientOpen(false);
+                  }}
                   className="p-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
                 >
                   <X className="h-5 w-5" />
@@ -978,50 +1047,198 @@ export default function DaySnapshot() {
                 Manually schedule an approved booking on <strong>{selectedDate}</strong> for slots: <strong>{selectedSlots.join(", ")}</strong>.
               </p>
 
-              <form id="bookForPatientForm" onSubmit={handleBookForPatientSubmit} className="space-y-4 pt-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                    Patient Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    name="patientName"
-                    value={patientForm.patientName}
-                    onChange={handlePatientInputChange}
-                    placeholder="e.g. John Doe"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                  />
-                </div>
+              {/* Patient Type Selectors */}
+              <div className="flex rounded-xl bg-slate-100 dark:bg-slate-950 p-1 border border-slate-200/80 dark:border-slate-855 select-none">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPatientType("new");
+                    setSelectedPatient(null);
+                    setSearchQuery("");
+                    setPatientForm(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                  }}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${
+                    patientType === "new"
+                      ? "bg-[#1b3d2f] text-white shadow-sm"
+                      : "text-slate-500 hover:text-brand-green"
+                  }`}
+                >
+                  New Patient
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPatientType("existing");
+                    setSelectedPatient(null);
+                    setSearchQuery("");
+                    setPatientForm(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                  }}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${
+                    patientType === "existing"
+                      ? "bg-[#1b3d2f] text-white shadow-sm"
+                      : "text-slate-500 hover:text-brand-green"
+                  }`}
+                >
+                  Existing Patient
+                </button>
+              </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                    Mobile/WhatsApp Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    name="patientPhone"
-                    value={patientForm.patientPhone}
-                    onChange={handlePatientInputChange}
-                    placeholder="e.g. 9206651295"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                  />
-                </div>
+              <form id="bookForPatientForm" onSubmit={handleBookForPatientSubmit} className="space-y-4 pt-1">
+                
+                {patientType === "existing" ? (
+                  <div className="relative">
+                    <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                      Search Patient Profile (Name or Phone) *
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-brand-green" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        placeholder="Type patient name or mobile number..."
+                        className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    
+                    {/* Dropdown suggestions list */}
+                    {showDropdown && searchQuery.trim().length > 0 && (
+                      <div className="absolute z-30 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-xl shadow-xl py-1">
+                        {patients
+                          .filter((p) => 
+                            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            p.phone.includes(searchQuery)
+                          )
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPatient(p);
+                                setSearchQuery(p.name);
+                                setPatientForm(prev => ({
+                                  ...prev,
+                                  patientName: p.name,
+                                  patientPhone: p.phone,
+                                  patientEmail: p.email || "",
+                                  serviceId: p.treatmentPlan || prev.serviceId
+                                }));
+                                setShowDropdown(false);
+                              }}
+                              className="w-full text-left px-3.5 py-2 text-xs hover:bg-[#f0f4f2] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-250 font-semibold border-b border-slate-50 dark:border-slate-850 last:border-0"
+                            >
+                              <div className="font-extrabold text-brand-charcoal dark:text-white">{p.name}</div>
+                              <div className="text-[9px] text-slate-400 mt-0.5">{p.phone} • Plan: {p.treatmentPlan}</div>
+                            </button>
+                          ))}
+                        {patients.filter((p) => 
+                          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          p.phone.includes(searchQuery)
+                        ).length === 0 && (
+                          <div className="px-3 py-2.5 text-xs text-slate-400 italic text-center">
+                            No matching patient records found.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                      Patient Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      name="patientName"
+                      value={patientForm.patientName}
+                      onChange={handlePatientInputChange}
+                      placeholder="e.g. John Doe"
+                      className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                    Email Address (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    name="patientEmail"
-                    value={patientForm.patientEmail}
-                    onChange={handlePatientInputChange}
-                    placeholder="john@example.com"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                  />
-                </div>
+                {(!selectedPatient || patientType === "new") ? (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                        Mobile/WhatsApp Number *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        name="patientPhone"
+                        value={patientForm.patientPhone}
+                        onChange={handlePatientInputChange}
+                        placeholder="e.g. 9206651295"
+                        className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        name="patientEmail"
+                        value={patientForm.patientEmail}
+                        onChange={handlePatientInputChange}
+                        placeholder="john@example.com"
+                        className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  selectedPatient && (
+                    <div className="bg-[#f0f4f2]/40 dark:bg-brand-green/5 border border-brand-green/10 p-4 rounded-xl space-y-2.5 animate-fade-in-up">
+                      <div className="flex justify-between items-center text-[9px] font-black text-brand-green uppercase tracking-wider">
+                        <span>Patient Summary</span>
+                        <Link 
+                          href={`/dashboard/patients/${selectedPatient.id}`}
+                          target="_blank"
+                          className="underline hover:text-brand-green-hover"
+                        >
+                          Full Profile →
+                        </Link>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Patient ID:</div>
+                        <div className="font-extrabold text-slate-700 dark:text-slate-350">{selectedPatient.id}</div>
+                        
+                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Full Name:</div>
+                        <div className="font-extrabold text-slate-700 dark:text-slate-350">{selectedPatient.name}</div>
+                        
+                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Phone / Email:</div>
+                        <div className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{selectedPatient.phone}</div>
+                        
+                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Last Visited:</div>
+                        <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.lastVisit || "First session"}</div>
+                        
+                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Active Plan:</div>
+                        <div className="font-extrabold text-slate-700 dark:text-slate-355 truncate">{selectedPatient.treatmentPlan || "None"}</div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPatient(null);
+                          setSearchQuery("");
+                          setPatientForm(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                        }}
+                        className="text-[9px] text-red-500 font-black underline hover:text-red-755 cursor-pointer block border-0 bg-transparent p-0 pt-0.5"
+                      >
+                        Change Selection
+                      </button>
+                    </div>
+                  )
+                )}
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
@@ -1031,7 +1248,7 @@ export default function DaySnapshot() {
                     name="serviceId"
                     value={patientForm.serviceId}
                     onChange={handlePatientInputChange}
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
+                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
                   >
                     {servicesList.map((svc) => (
                         <option key={svc} value={svc}>
@@ -1073,7 +1290,12 @@ export default function DaySnapshot() {
             <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
               <button
                 type="button"
-                onClick={() => setIsBookForPatientOpen(false)}
+                onClick={() => {
+                  setSelectedPatient(null);
+                  setSearchQuery("");
+                  setPatientType("new");
+                  setIsBookForPatientOpen(false);
+                }}
                 className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
               >
                 Cancel
