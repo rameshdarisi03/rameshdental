@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import {
@@ -55,8 +55,10 @@ function getMaxDateString() {
   return `${year}-${month}-${day}`;
 }
 
-export default function WalkInBookingPage() {
+function WalkInBookingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const patientIdQuery = searchParams.get("patientId");
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Settings config state
@@ -138,6 +140,36 @@ export default function WalkInBookingPage() {
     }
     loadPatients();
   }, []);
+
+  // Pre-populate patient details if patientId query param is provided
+  useEffect(() => {
+    if (patientIdQuery && patients.length > 0) {
+      const match = patients.find(p => p.id === patientIdQuery);
+      if (match) {
+        setPatientType("existing");
+        setSelectedPatient(match);
+        setSearchQuery(match.name);
+        
+        let rawPhone = match.phone;
+        let parsedDial = "+91";
+        if (rawPhone.startsWith("+")) {
+          const phoneMatch = rawPhone.match(/^(\+\d{2})(\d{10})$/);
+          if (phoneMatch) {
+            parsedDial = phoneMatch[1];
+            rawPhone = phoneMatch[2];
+          }
+        }
+        setDialCode(parsedDial);
+        setFormData(prev => ({
+          ...prev,
+          patientName: match.name,
+          patientPhone: rawPhone,
+          patientEmail: match.email || "",
+          serviceId: match.treatmentPlan || prev.serviceId
+        }));
+      }
+    }
+  }, [patients, patientIdQuery]);
 
   // Generate slots dynamically based on active shift boundaries
   const allSlots = generateSlotsFromHours(
@@ -817,5 +849,18 @@ export default function WalkInBookingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function WalkInBookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col h-screen items-center justify-center text-slate-500 text-xs font-semibold">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-green mb-2" />
+        <span>Loading walk-in booking details...</span>
+      </div>
+    }>
+      <WalkInBookingContent />
+    </Suspense>
   );
 }

@@ -51,6 +51,7 @@ function getTodayDateString() {
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  const [daysSortOrder, setDaysSortOrder] = useState<"none" | "asc" | "desc">("none");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
@@ -109,10 +110,48 @@ export default function PatientsPage() {
     }
   };
 
-  // Filter Patients Locally
+  // Helper to parse dates like "DD-MM-YYYY" or "YYYY-MM-DD" or "Month DD, YYYY"
+  function parseDate(dateStr?: string): Date | null {
+    if (!dateStr) return null;
+    const clean = dateStr.trim();
+    if (clean.toLowerCase().includes("pending") || clean.toLowerCase().includes("unscheduled") || clean === "—" || clean === "") {
+      return null;
+    }
+    
+    // Try standard JS Date parsing
+    let parsed = new Date(clean);
+    if (!isNaN(parsed.getTime())) return parsed;
+    
+    // Try DD-MM-YYYY format
+    const dmyMatch = clean.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if (dmyMatch) {
+      const day = parseInt(dmyMatch[1], 10);
+      const month = parseInt(dmyMatch[2], 10) - 1; // 0-indexed
+      const year = parseInt(dmyMatch[3], 10);
+      parsed = new Date(year, month, day);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    
+    return null;
+  }
+
+  function getDaysLeft(dateStr?: string): number | null {
+    const parsed = parseDate(dateStr);
+    if (!parsed) return null;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    parsed.setHours(0, 0, 0, 0);
+    
+    const diffTime = parsed.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  // Filter & Sort Patients Locally
   useEffect(() => {
     const search = searchQuery.toLowerCase().trim();
-    const result = patients.filter((patient) => {
+    let result = patients.filter((patient) => {
       // 1. Search Query filter (matches name, ID, phone, email)
       const matchesSearch = 
         search === "" ||
@@ -132,9 +171,31 @@ export default function PatientsPage() {
       return matchesSearch && matchesStatus && matchesTherapist;
     });
 
+    // Sort by Days Left if order is set
+    if (daysSortOrder !== "none") {
+      result = [...result].sort((a, b) => {
+        const daysA = getDaysLeft(a.upcoming);
+        const daysB = getDaysLeft(b.upcoming);
+        
+        if (daysA === null && daysB === null) return 0;
+        if (daysA === null) return 1; // Unscheduled goes to bottom
+        if (daysB === null) return -1;
+        
+        // Past slots go below future slots
+        if (daysA < 0 && daysB >= 0) return 1;
+        if (daysB < 0 && daysA >= 0) return -1;
+        
+        if (daysSortOrder === "asc") {
+          return daysA - daysB;
+        } else {
+          return daysB - daysA;
+        }
+      });
+    }
+
     setFilteredPatients(result);
     setCurrentPage(1); // Reset to page 1 on filter change
-  }, [patients, searchQuery, statusFilter, therapistFilter]);
+  }, [patients, searchQuery, statusFilter, therapistFilter, daysSortOrder]);
 
   const fetchPatientsList = async () => {
     setLoading(true);
@@ -362,6 +423,23 @@ export default function PatientsPage() {
                   <th className="px-6 py-4">Treatment Plan</th>
                   <th className="px-6 py-4">Last Visit</th>
                   <th className="px-6 py-4">Upcoming</th>
+                  <th 
+                    className="px-6 py-4 cursor-pointer hover:text-brand-green select-none transition-colors"
+                    onClick={() => {
+                      setDaysSortOrder((prev) => {
+                        if (prev === "none") return "asc";
+                        if (prev === "asc") return "desc";
+                        return "none";
+                      });
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Days Left</span>
+                      <span className="text-[8px]">
+                        {daysSortOrder === "asc" ? "▲" : daysSortOrder === "desc" ? "▼" : "⇅"}
+                      </span>
+                    </div>
+                  </th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -416,6 +494,56 @@ export default function PatientsPage() {
                         {patient.upcoming || "Pending Schedule"}
                       </td>
 
+                      {/* Days Left Countdown */}
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const days = getDaysLeft(patient.upcoming);
+                          if (days === null) {
+                            return <span className="text-slate-400 font-semibold text-xs">—</span>;
+                          }
+                          if (days < 0) {
+                            return (
+                              <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200/80 px-2 py-0.5 text-[10px] font-extrabold text-slate-500">
+                                Past Slot
+                              </span>
+                            );
+                          }
+                          if (days === 0) {
+                            return (
+                              <span className="inline-flex items-center rounded-full bg-red-50 dark:bg-red-950/20 border border-red-100 px-2 py-0.5 text-[10px] font-extrabold text-red-600 dark:text-red-400 animate-pulse">
+                                Today
+                              </span>
+                            );
+                          }
+                          if (days === 1) {
+                            return (
+                              <span className="inline-flex items-center rounded-full bg-red-50 dark:bg-red-950/20 border border-red-100 px-2 py-0.5 text-[10px] font-extrabold text-red-600 dark:text-red-400">
+                                Tomorrow
+                              </span>
+                            );
+                          }
+                          if (days <= 2) {
+                            return (
+                              <span className="inline-flex items-center rounded-full bg-red-50 dark:bg-red-950/20 border border-red-100 px-2 py-0.5 text-[10px] font-extrabold text-red-600 dark:text-red-400">
+                                2 Days Left
+                              </span>
+                            );
+                          }
+                          if (days <= 7) {
+                            return (
+                              <span className="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950/20 border border-amber-100 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
+                                {days} Days Left
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                              {days} Days Left
+                            </span>
+                          );
+                        })()}
+                      </td>
+
                       {/* Status Badge */}
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold capitalize ${statusColors[patient.status]}`}>
@@ -448,12 +576,19 @@ export default function PatientsPage() {
                             className="absolute right-6 top-12 z-20 w-44 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl py-2 animate-fade-in text-left"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Link
+                             <Link
                               href={`/dashboard/patients/${patient.id}`}
                               className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-brand-bg/50 hover:text-brand-green dark:hover:bg-slate-800"
                             >
-                              <FileText className="w-4 h-4" />
+                              <FileText className="w-4 h-4 text-brand-green" />
                               Clinical Profile
+                            </Link>
+                            <Link
+                              href={`/dashboard/walkin?patientId=${patient.id}`}
+                              className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-brand-bg/50 hover:text-brand-green dark:hover:bg-slate-800"
+                            >
+                              <Calendar className="w-4 h-4 text-brand-green" />
+                              Book Appointment
                             </Link>
                             {patient.googleDriveFolderId && (
                               <a
