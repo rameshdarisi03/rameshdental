@@ -724,6 +724,14 @@ export default function DaySnapshot() {
     });
   };
 
+  const totalSlotsCount = allSlots.length;
+  const bookedCount = allSlots.filter((s) => getSlotState(s).type === "appointment").length;
+  const blockedCount = allSlots.filter((s) => getSlotState(s).type === "blocked").length;
+  const availableCount = allSlots.filter((s) => {
+    const state = getSlotState(s);
+    return state.type === "free" && !isSlotInPast(s, selectedDate);
+  }).length;
+
   return (
     <div className="space-y-6">
       {/* Header Panel */}
@@ -1051,6 +1059,34 @@ export default function DaySnapshot() {
             >
               Clear
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Summary Footer Panel (Only shows when no slots are actively selected) */}
+      {selectedSlots.length === 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 rounded-full px-8 py-3.5 shadow-2xl flex items-center gap-8 select-none max-w-[90vw] animate-slide-up">
+          <div className="text-center shrink-0">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Slots</p>
+            <p className="text-lg font-black text-slate-700 dark:text-slate-200 leading-none">{totalSlotsCount}</p>
+          </div>
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+          
+          <div className="text-center shrink-0">
+            <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">Booked</p>
+            <p className="text-lg font-black text-[#1b3d2f] dark:text-emerald-400 leading-none">{bookedCount}</p>
+          </div>
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+          <div className="text-center shrink-0">
+            <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">Available</p>
+            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">{availableCount}</p>
+          </div>
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+          <div className="text-center shrink-0">
+            <p className="text-[9px] font-black text-slate-455 uppercase tracking-widest leading-none mb-1">Blocked</p>
+            <p className="text-lg font-black text-red-500 leading-none">{blockedCount}</p>
           </div>
         </div>
       )}
