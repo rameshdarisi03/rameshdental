@@ -64,6 +64,7 @@ export default function DashboardSettings() {
   });
 
   const [newTherapistName, setNewTherapistName] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState("Oct 12, 2023, 10:45 AM");
 
   const hourOptions = {
@@ -317,9 +318,6 @@ export default function DashboardSettings() {
                     </p>
                   </div>
                 </div>
-                <span className="text-[10px] font-black text-brand-green dark:text-teal-400 tracking-wider uppercase border-b border-brand-green/30 pb-0.5 cursor-pointer">
-                  Templates
-                </span>
               </div>
 
               {/* Duration and operational status */}
@@ -604,7 +602,7 @@ export default function DashboardSettings() {
 
               {/* Day Selection List */}
               <div className="space-y-2 pt-2">
-                {(Object.keys(config.weeklyHolidays) as Array<keyof ClinicConfig["weeklyHolidays"]>).map((day) => {
+                {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as Array<keyof ClinicConfig["weeklyHolidays"]>).map((day) => {
                   const isChecked = config.weeklyHolidays[day];
                   return (
                     <label
@@ -660,9 +658,9 @@ export default function DashboardSettings() {
                 {/* White Plus on Dark Green Button */}
                 <button
                   type="button"
-                  onClick={() => document.getElementById("add-therapist-input")?.focus()}
+                  onClick={() => setShowAddForm((prev) => !prev)}
                   className="h-7 w-7 rounded-full bg-[#1b3d2f] text-white hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-sm border-0"
-                  title="Focus Add Therapist"
+                  title="Add Staff Therapist"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -670,6 +668,56 @@ export default function DashboardSettings() {
 
               {/* Therapist Cards List */}
               <div className="space-y-3 pt-2 max-h-[300px] overflow-y-auto pr-0.5">
+                {/* Expandable Add Staff Form */}
+                {showAddForm && (
+                  <div className="p-3.5 border border-brand-green/20 bg-brand-bg/15 rounded-xl space-y-3 animate-fade-in-up">
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                      Staff Member Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Dr. Rohan Sharma"
+                      value={newTherapistName}
+                      onChange={(e) => setNewTherapistName(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs outline-none focus:border-brand-green text-slate-700 dark:text-slate-250 font-semibold"
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2 text-[10px] select-none">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          setNewTherapistName("");
+                        }}
+                        className="px-3 py-1 text-slate-450 hover:text-slate-600 dark:hover:text-slate-300 font-bold bg-transparent border-0 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const trimmed = newTherapistName.trim();
+                          if (!trimmed) return;
+                          if (config.therapists && config.therapists.includes(trimmed)) {
+                            alert("This therapist is already enrolled.");
+                            return;
+                          }
+                          setConfig((prev) => ({
+                            ...prev,
+                            therapists: prev.therapists ? [...prev.therapists, trimmed] : [trimmed],
+                          }));
+                          setNewTherapistName("");
+                          setShowAddForm(false);
+                          setSavedSuccess(false);
+                        }}
+                        className="px-3.5 py-1 bg-[#1b3d2f] text-white font-black rounded-lg cursor-pointer border-0 shadow-sm"
+                      >
+                        Add Therapist
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {config.therapists && config.therapists.map((therapist) => {
                   const meta = getTherapistMeta(therapist);
                   const IconComp = meta.icon;
@@ -716,40 +764,6 @@ export default function DashboardSettings() {
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Add Therapist Row */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-850">
-                <div className="flex gap-2">
-                  <input
-                    id="add-therapist-input"
-                    type="text"
-                    placeholder="Add new therapist name..."
-                    value={newTherapistName}
-                    onChange={(e) => setNewTherapistName(e.target.value)}
-                    className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-3 py-2 text-xs outline-none focus:border-brand-green text-slate-700 dark:text-slate-200 font-semibold"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const trimmed = newTherapistName.trim();
-                      if (!trimmed) return;
-                      if (config.therapists && config.therapists.includes(trimmed)) {
-                        alert("This therapist is already enrolled.");
-                        return;
-                      }
-                      setConfig((prev) => ({
-                        ...prev,
-                        therapists: prev.therapists ? [...prev.therapists, trimmed] : [trimmed],
-                      }));
-                      setNewTherapistName("");
-                      setSavedSuccess(false);
-                    }}
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-805 text-xs font-black shadow-sm transition-all"
-                  >
-                    Invited
-                  </button>
-                </div>
               </div>
 
             </div>
