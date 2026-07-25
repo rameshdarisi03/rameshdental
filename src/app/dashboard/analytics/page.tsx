@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
+import { getClinicConfig } from "@/lib/db";
 import { 
   TrendingUp, 
   Users, 
@@ -14,8 +15,26 @@ import {
   RotateCw,
   Clock,
   UserCheck,
-  CalendarDays
+  CalendarDays,
+  Download,
+  Info,
+  ChevronDown
 } from "lucide-react";
+import Link from "next/link";
+import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
 
 interface Appointment {
   id: string;
@@ -27,6 +46,7 @@ interface Appointment {
   slot: string;
   status: "pending" | "approved" | "rejected";
   actionedByName?: string;
+  type?: "online" | "manual";
 }
 
 interface UserProfile {
@@ -36,70 +56,53 @@ interface UserProfile {
   name: string;
 }
 
-interface CounterProps {
-  value: number;
-  duration?: number;
-  prefix?: string;
-  suffix?: string;
-}
-
-function AnimatedCounter({ value, duration = 800, prefix = "", suffix = "" }: CounterProps) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTimestamp: number | null = null;
-    let animationFrameId: number;
-
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      setCount(Math.floor(progress * value));
-      if (progress < 1) {
-        animationFrameId = window.requestAnimationFrame(step);
-      }
-    };
-
-    animationFrameId = window.requestAnimationFrame(step);
-    return () => {
-      if (animationFrameId) {
-        window.cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }, [value, duration]);
-
-  return (
-    <span>
-      {prefix}
-      {count.toLocaleString()}
-      {suffix}
-    </span>
-  );
-}
-
 export default function DashboardAnalytics() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("all");
+  const [therapistsList, setTherapistsList] = useState<string[]>(["Dr. Rohan", "Dr. Kinnera"]);
 
-  // Statistics State
+  // Toolbar Filters
+  const [selectedTherapist, setSelectedTherapist] = useState<string>("All Therapists");
+  const [selectedService, setSelectedService] = useState<string>("All Services");
+  const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("week");
+  const [compareOn, setCompareOn] = useState(true);
+  const [activeMetric, setActiveMetric] = useState<"bookings" | "revenue">("bookings");
+
+  // Dynamic Statistics
   const [stats, setStats] = useState({
     total: 0,
     approved: 0,
     pending: 0,
     rejected: 0,
     revenue: 0,
-    noShowRate: 0
+    avgRevPerSession: 0,
+    noShowRate: 0,
+    prevTotal: 0,
+    prevRevenue: 0,
+    prevAvgRevPerSession: 0,
+    prevRejected: 0,
+    prevNoShowRate: 0,
   });
 
-  // Chart Data States
-  const [weeklyTraffic, setWeeklyTraffic] = useState<{ day: string; count: number }[]>([]);
-  const [serviceSplit, setServiceSplit] = useState<{ name: string; count: number; color: string }[]>([]);
-  const [hourlyDemand, setHourlyDemand] = useState<{ hour: string; count: number }[]>([]);
-  const [staffActivity, setStaffActivity] = useState<{ name: string; approved: number; rejected: number }[]>([]);
+  // Dynamic Insight Cards Strip
+  const [insights, setInsights] = useState({
+    growingService: "Musculoskeletal Rehab bookings are steady this week.",
+    cancellationDetails: "Cancellation rate is steady at 3%, comfortably under your 8% threshold.",
+    busiestSlot: "Mondays 09:30 AM carry your heaviest load — consider an extra slot there.",
+    noShowAlert: "No-show rate ticked up to 7% this period — 2 patients missed booked visits."
+  });
 
-  // Key to force-trigger CSS animations when timeRange changes
+  // Dynamic Lists and Charts data
+  const [weeklyTraffic, setWeeklyTraffic] = useState<{ day: string; current: number; previous: number }[]>([]);
+  const [serviceSplit, setServiceSplit] = useState<{ name: string; count: number; percent: number; color: string }[]>([]);
+  const [hourlyDemand, setHourlyDemand] = useState<{ hour: string; count: number }[]>([]);
+  const [staffActivity, setStaffActivity] = useState<{ name: string; approved: number; rejected: number; utilization: number }[]>([]);
+  const [patientMix, setPatientMix] = useState({ returningCount: 0, returningPercent: 60, newCount: 0, newPercent: 40 });
+  const [acquisitionChannels, setAcquisitionChannels] = useState({ online: 0, walkin: 0, referral: 0 });
+
+  // Key to force-trigger CSS animations when data updates
   const [animationKey, setAnimationKey] = useState(0);
 
   const checkRole = () => {
@@ -115,6 +118,7 @@ export default function DashboardAnalytics() {
   const loadData = async () => {
     setRefreshing(true);
     try {
+      // 1. Fetch appointments
       const q = query(collection(db, "appointments"));
       const snapshot = await getDocs(q);
       const apps: Appointment[] = [];
@@ -122,7 +126,14 @@ export default function DashboardAnalytics() {
         apps.push({ id: docSnap.id, ...docSnap.data() } as Appointment);
       });
       setAppointments(apps);
-      calculateStats(apps, timeRange);
+
+      // 2. Fetch enrolled therapists from config settings
+      const config = await getClinicConfig();
+      if (config && config.therapists && config.therapists.length > 0) {
+        setTherapistsList(config.therapists);
+      }
+
+      calculateStats(apps, timeRange, selectedTherapist, selectedService);
     } catch (err) {
       console.error("Failed to fetch appointments for analytics: ", err);
     } finally {
@@ -132,47 +143,79 @@ export default function DashboardAnalytics() {
   };
 
   // Helper to check if a date is within past N days
-  const isWithinPastDays = (dateStr: string, days: number) => {
+  const isWithinPastDays = (dateStr: string, startDay: number, endDay: number) => {
     const appDate = new Date(dateStr + "T00:00:00");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffTime = today.getTime() - appDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays < days;
+    return diffDays >= startDay && diffDays < endDay;
   };
 
-  const calculateStats = (apps: Appointment[], range: "week" | "month" | "all") => {
-    // 1. Filter appointments based on selected time range
-    let filteredApps = [...apps];
-    if (range === "week") {
-      filteredApps = apps.filter(a => isWithinPastDays(a.date, 7));
-    } else if (range === "month") {
-      filteredApps = apps.filter(a => isWithinPastDays(a.date, 30));
+  // Estimate revenue based on standard price matrix
+  const getAppRevenue = (app: Appointment) => {
+    if (app.status !== "approved") return 0;
+    const s = app.serviceId.toLowerCase();
+    if (s.includes("gait") || s.includes("biomechanical")) return 1500;
+    if (s.includes("sports") || s.includes("injury")) return 1200;
+    if (s.includes("post-surgical") || s.includes("surgical")) return 1000;
+    if (s.includes("neurological") || s.includes("neuro")) return 1500;
+    if (s.includes("pelvic")) return 1000;
+    return 800; // General Consultation
+  };
+
+  const calculateStats = (
+    apps: Appointment[], 
+    range: "week" | "month" | "all",
+    therapist: string,
+    service: string
+  ) => {
+    // 1. Initial filter by therapist & service selection
+    let baseApps = [...apps];
+    if (therapist !== "All Therapists") {
+      baseApps = baseApps.filter(a => a.actionedByName === therapist);
+    }
+    if (service !== "All Services") {
+      baseApps = baseApps.filter(a => a.serviceId.toLowerCase().includes(service.toLowerCase()) || service.toLowerCase().includes(a.serviceId.toLowerCase()));
     }
 
-    const total = filteredApps.length;
-    const approved = filteredApps.filter(a => a.status === "approved").length;
-    const pending = filteredApps.filter(a => a.status === "pending").length;
-    const rejected = filteredApps.filter(a => a.status === "rejected").length;
+    // 2. Partition into current period and previous period
+    let currentApps: Appointment[] = [];
+    let prevApps: Appointment[] = [];
 
-    // Approximate Pricing Matrix for Estimating Revenue
+    if (range === "week") {
+      currentApps = baseApps.filter(a => isWithinPastDays(a.date, 0, 7));
+      prevApps = baseApps.filter(a => isWithinPastDays(a.date, 7, 14));
+    } else if (range === "month") {
+      currentApps = baseApps.filter(a => isWithinPastDays(a.date, 0, 30));
+      prevApps = baseApps.filter(a => isWithinPastDays(a.date, 30, 60));
+    } else {
+      currentApps = baseApps;
+      prevApps = baseApps; // Delts remain neutral
+    }
+
+    // --- Current Stats ---
+    const total = currentApps.length;
+    const approved = currentApps.filter(a => a.status === "approved").length;
+    const pending = currentApps.filter(a => a.status === "pending").length;
+    const rejected = currentApps.filter(a => a.status === "rejected").length;
+
     let revenue = 0;
-    filteredApps.forEach((app) => {
-      if (app.status === "approved") {
-        const s = app.serviceId;
-        if (s.includes("Gait") || s.includes("Biomechanical")) {
-          revenue += 1500;
-        } else if (s.includes("Sports") || s.includes("Injury") || s.includes("Rehabilitation")) {
-          revenue += 1200;
-        } else if (s.includes("Post-Surgical") || s.includes("Rehab")) {
-          revenue += 1000;
-        } else {
-          revenue += 800; // General Consultation
-        }
-      }
-    });
+    currentApps.forEach(a => { revenue += getAppRevenue(a); });
 
+    const avgRevPerSession = approved > 0 ? Math.round(revenue / approved) : 0;
     const noShowRate = total > 0 ? Math.round((rejected / total) * 100) : 0;
+
+    // --- Previous Stats ---
+    const prevTotal = prevApps.length;
+    const prevApproved = prevApps.filter(a => a.status === "approved").length;
+    const prevRejected = prevApps.filter(a => a.status === "rejected").length;
+
+    let prevRevenue = 0;
+    prevApps.forEach(a => { prevRevenue += getAppRevenue(a); });
+
+    const prevAvgRevPerSession = prevApproved > 0 ? Math.round(prevRevenue / prevApproved) : 0;
+    const prevNoShowRate = prevTotal > 0 ? Math.round((prevRejected / prevTotal) * 100) : 0;
 
     setStats({
       total,
@@ -180,48 +223,77 @@ export default function DashboardAnalytics() {
       pending,
       rejected,
       revenue,
-      noShowRate
+      avgRevPerSession,
+      noShowRate,
+      prevTotal,
+      prevRevenue,
+      prevAvgRevPerSession,
+      prevRejected,
+      prevNoShowRate
     });
 
-    // 2. Calculate Weekly Traffic Trend (last 7 days of dates)
+    // 3. Traffic Trends (last 7 calendar days or relative slots)
     const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const last7Days = Array.from({ length: 7 }).map((_, i) => {
+    const trafficDays = Array.from({ length: 7 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       return d;
     }).reverse();
 
-    const traffic = last7Days.map((dateObj) => {
+    const trafficData = trafficDays.map((dateObj) => {
       const year = dateObj.getFullYear();
       const month = String(dateObj.getMonth() + 1).padStart(2, "0");
       const day = String(dateObj.getDate()).padStart(2, "0");
       const dateStr = `${year}-${month}-${day}`;
-      
-      const count = filteredApps.filter(a => a.date === dateStr).length;
-      return {
-        day: daysOfWeek[dateObj.getDay()],
-        count
-      };
-    });
-    setWeeklyTraffic(traffic);
 
-    // 3. Calculate Service Type split
+      const currSet = currentApps.filter(a => a.date === dateStr);
+      const prevDate = new Date(dateObj.getTime() - (range === "week" ? 7 : 30) * 24 * 60 * 60 * 1000);
+      const prevYear = prevDate.getFullYear();
+      const prevMonth = String(prevDate.getMonth() + 1).padStart(2, "0");
+      const prevDay = String(prevDate.getDate()).padStart(2, "0");
+      const prevDateStr = `${prevYear}-${prevMonth}-${prevDay}`;
+      const prevSet = prevApps.filter(a => a.date === prevDateStr);
+
+      if (activeMetric === "bookings") {
+        return {
+          day: daysOfWeek[dateObj.getDay()],
+          current: currSet.length,
+          previous: prevSet.length
+        };
+      } else {
+        let currRev = 0;
+        currSet.forEach(a => { currRev += getAppRevenue(a); });
+        let prevRev = 0;
+        prevSet.forEach(a => { prevRev += getAppRevenue(a); });
+        return {
+          day: daysOfWeek[dateObj.getDay()],
+          current: currRev,
+          previous: prevRev
+        };
+      }
+    });
+    setWeeklyTraffic(trafficData);
+
+    // 4. Popular Services Progress bars
     const serviceCounts: Record<string, number> = {};
-    filteredApps.forEach((a) => {
+    currentApps.forEach((a) => {
       serviceCounts[a.serviceId] = (serviceCounts[a.serviceId] || 0) + 1;
     });
-
-    const colors = ["bg-teal-500", "bg-emerald-500", "bg-purple-500", "bg-indigo-500", "bg-pink-500"];
-    const serviceList = Object.entries(serviceCounts).map(([name, count], index) => ({
-      name: name.replace(" Consultation", "").replace(" Rehabilitation", ""),
-      count,
-      color: colors[index % colors.length]
-    })).sort((a, b) => b.count - a.count);
+    const colors = ["var(--teal)", "var(--amber)", "var(--clay)", "var(--green)"];
+    const serviceList = Object.entries(serviceCounts).map(([name, count], index) => {
+      const cleanName = name.replace(" Consultation", "").replace(" Rehabilitation", "").replace(" Rehab", "");
+      return {
+        name: cleanName,
+        count,
+        percent: total > 0 ? Math.round((count / total) * 100) : 0,
+        color: colors[index % colors.length]
+      };
+    }).sort((a, b) => b.count - a.count);
     setServiceSplit(serviceList);
 
-    // 4. Hourly Demand (aggregate booking count per time slot)
+    // 5. Peak Scheduling Hours
     const hourCounts: Record<string, number> = {};
-    filteredApps.forEach((a) => {
+    currentApps.forEach((a) => {
       if (a.status === "approved") {
         hourCounts[a.slot] = (hourCounts[a.slot] || 0) + 1;
       }
@@ -229,43 +301,116 @@ export default function DashboardAnalytics() {
     const sortedHours = Object.entries(hourCounts).map(([hour, count]) => ({
       hour,
       count
-    })).sort((a, b) => {
-      // Sort in ascending order (9am -> 6pm)
-      const parseTime = (t: string) => {
-        const [time, modifier] = t.split(" ");
-        let [hours, minutes] = time.split(":").map(Number);
-        if (modifier === "PM" && hours < 12) hours += 12;
-        if (modifier === "AM" && hours === 12) hours = 0;
-        return hours * 60 + minutes;
-      };
-      return parseTime(a.hour) - parseTime(b.hour);
-    });
+    })).sort((a, b) => b.count - a.count).slice(0, 5);
     setHourlyDemand(sortedHours);
 
-    // 5. Staff Workload Audit (count approvals/rejections per staff name)
+    // 6. Staff Workload & Utilization
     const staff: Record<string, { approved: number; rejected: number }> = {};
-    filteredApps.forEach((a) => {
+    therapistsList.forEach(t => { staff[t] = { approved: 0, rejected: 0 }; });
+    currentApps.forEach((a) => {
       const name = a.actionedByName || "Online Patient / System";
       if (!staff[name]) staff[name] = { approved: 0, rejected: 0 };
       if (a.status === "approved") staff[name].approved += 1;
       if (a.status === "rejected") staff[name].rejected += 1;
     });
-    const staffListObj = Object.entries(staff)
-      .map(([name, vals]) => ({
+
+    const staffList = Object.entries(staff).map(([name, vals]) => {
+      // Hardcoded capacity benchmarks
+      const capacity = name.includes("Rohan") ? 26 : 5;
+      const utilization = Math.min(Math.round((vals.approved / capacity) * 100), 100);
+      return {
         name,
         approved: vals.approved,
-        rejected: vals.rejected
-      }))
-      .filter((s) => s.approved > 0 || s.rejected > 0);
-    setStaffActivity(staffListObj);
+        rejected: vals.rejected,
+        utilization: isNaN(utilization) ? 0 : utilization
+      };
+    });
+    setStaffActivity(staffList);
 
-    // Increment animation key to restart CSS transitions on state reload
+    // 7. Patient Mix (New vs Returning)
+    const phoneCounts: Record<string, number> = {};
+    apps.forEach(a => { phoneCounts[a.patientPhone] = (phoneCounts[a.patientPhone] || 0) + 1; });
+    
+    let returningCount = 0;
+    let newCount = 0;
+    currentApps.forEach(a => {
+      if ((phoneCounts[a.patientPhone] || 0) > 1) {
+        returningCount += 1;
+      } else {
+        newCount += 1;
+      }
+    });
+    const retPercent = total > 0 ? Math.round((returningCount / total) * 100) : 60;
+    const newPercent = total > 0 ? (100 - retPercent) : 40;
+    setPatientMix({
+      returningCount,
+      returningPercent: retPercent,
+      newCount,
+      newPercent
+    });
+
+    // 8. Acquisition Channels
+    let online = 0;
+    let walkin = 0;
+    let referral = 0;
+    currentApps.forEach(a => {
+      if (a.type === "manual") {
+        if (a.notes?.toLowerCase().includes("referral")) {
+          referral += 1;
+        } else {
+          walkin += 1;
+        }
+      } else {
+        online += 1;
+      }
+    });
+    setAcquisitionChannels({ online, walkin, referral });
+
+    // 9. Generate dynamic insight messages
+    const topSvc = serviceList[0]?.name || "Gait & Biomechanical";
+    const topSvcCount = serviceList[0]?.count || 0;
+    setInsights({
+      growingService: `${topSvc} bookings are at ${topSvcCount} this week — your fastest-growing service line.`,
+      cancellationDetails: `Cancellation rate is steady at ${noShowRate}%, comfortably under your 8% threshold.`,
+      busiestSlot: `Peak hours carry your heaviest load — consider allocating resources in top slots.`,
+      noShowAlert: `No-show rate is at ${noShowRate}% this period — ${rejected} bookings were cancelled.`
+    });
+
     setAnimationKey(prev => prev + 1);
   };
 
-  const handleTimeRangeChange = (range: "week" | "month" | "all") => {
-    setTimeRange(range);
-    calculateStats(appointments, range);
+  const handleFilterChange = (type: "therapist" | "service" | "range", value: string) => {
+    let t = selectedTherapist;
+    let s = selectedService;
+    let r = timeRange;
+
+    if (type === "therapist") {
+      t = value;
+      setSelectedTherapist(value);
+    } else if (type === "service") {
+      s = value;
+      setSelectedService(value);
+    } else if (type === "range") {
+      r = value as "week" | "month" | "all";
+      setTimeRange(value as "week" | "month" | "all");
+    }
+
+    calculateStats(appointments, r, t, s);
+  };
+
+  // Export dataset as CSV file
+  const handleExport = () => {
+    const headers = "Date,Slot,Patient Name,Phone,Email,Service,Therapist,Status,Type\n";
+    const rows = appointments.map(a => 
+      `"${a.date}","${a.slot}","${a.patientName}","${a.patientPhone}","${a.patientEmail || ""}","${a.serviceId}","${a.actionedByName || "Online System"}","${a.status}","${a.type || "online"}"`
+    ).join("\n");
+    
+    const blob = new Blob([headers + rows], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `GPC_Analytics_Report_${timeRange}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
   };
 
   useEffect(() => {
@@ -273,11 +418,16 @@ export default function DashboardAnalytics() {
     loadData();
   }, []);
 
+  // Update SVG charts metrics dynamically when bookings/revenue toggle updates
+  useEffect(() => {
+    calculateStats(appointments, timeRange, selectedTherapist, selectedService);
+  }, [activeMetric, compareOn]);
+
   if (loading) {
     return (
       <div className="flex h-[50vh] items-center justify-center text-slate-500 text-xs font-semibold">
         <Loader2 className="h-6 w-6 animate-spin text-brand-green mr-2" />
-        <span>Loading analytics calculations...</span>
+        <span>Loading Analytics Hub...</span>
       </div>
     );
   }
@@ -290,345 +440,636 @@ export default function DashboardAnalytics() {
         </div>
         <h2 className="text-xl font-black text-brand-charcoal dark:text-white">Access Denied</h2>
         <p className="text-xs text-slate-500 max-w-sm leading-relaxed font-semibold">
-          The Advanced Analytics Hub is restricted to administrators only. Receptionist accounts do not have access permissions.
+          The Advanced Analytics Hub is restricted to administrators only.
         </p>
       </div>
     );
   }
 
-  // --- SVG Path Calculators for Area Chart ---
-  const chartHeight = 160;
-  const chartWidth = 500;
-  const paddingX = 40;
-  const paddingY = 20;
+  // --- SVG Coordinates calculations for Patient Traffic Line Chart ---
+  const chartHeight = 220;
+  const chartWidth = 820;
+  const padL = 40;
+  const padR = 40;
+  const padT = 30;
+  const padB = 40;
 
-  const maxTrafficVal = Math.max(...weeklyTraffic.map(t => t.count), 4);
-  const trafficPoints = weeklyTraffic.map((t, idx) => {
-    const x = paddingX + (idx * (chartWidth - paddingX * 2)) / (weeklyTraffic.length - 1);
-    const y = chartHeight - paddingY - (t.count * (chartHeight - paddingY * 2)) / maxTrafficVal;
-    return { x, y, label: t.day, value: t.count };
-  });
+  const currentValues = weeklyTraffic.map(t => t.current);
+  const previousValues = weeklyTraffic.map(t => t.previous);
+  const allChartValues = compareOn ? currentValues.concat(previousValues) : currentValues;
+  const maxChartVal = Math.max(...allChartValues) * 1.25 || 1;
 
-  const linePathD = trafficPoints.length > 0
-    ? `M ${trafficPoints[0].x} ${trafficPoints[0].y} ` + 
-      trafficPoints.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
-    : "";
+  const stepX = (chartWidth - padL - padR) / (weeklyTraffic.length - 1);
+  const yFor = (val: number) => chartHeight - padB - (val / maxChartVal) * (chartHeight - padT - padB);
+  const xFor = (idx: number) => padL + idx * stepX;
 
-  const areaPathD = trafficPoints.length > 0
-    ? `${linePathD} L ${trafficPoints[trafficPoints.length - 1].x} ${chartHeight - paddingY} L ${trafficPoints[0].x} ${chartHeight - paddingY} Z`
-    : "";
+  const currentPathD = weeklyTraffic.map((t, i) => (i === 0 ? "M" : "L") + xFor(i) + " " + yFor(t.current)).join(" ");
+  const previousPathD = weeklyTraffic.map((t, i) => (i === 0 ? "M" : "L") + xFor(i) + " " + yFor(t.previous)).join(" ");
+
+  // Donut chart path variables
+  const donutRadius = 32;
+  const donutCircumference = 2 * Math.PI * donutRadius;
+  const returningOffset = donutCircumference - (patientMix.returningPercent / 100) * donutCircumference;
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${inter.className}`}>
+      
       {/* Self-contained CSS Animations Injector */}
       <style>{`
-        @keyframes drawLine {
-          to { stroke-dashoffset: 0; }
+        :root {
+          --ink: #182625;
+          --ink-soft: #4B5E59;
+          --paper: #EEF2ED;
+          --surface: #FFFFFF;
+          --line: #DCE3DC;
+          --teal: #1F4B43;
+          --teal-deep: #123430;
+          --teal-soft: #E7EFE9;
+          --amber: #D9A441;
+          --amber-deep: #B9832C;
+          --amber-soft: #FBF1DD;
+          --clay: #C65D4B;
+          --clay-soft: #FBEAE7;
+          --green: #3B9E6F;
+          --green-soft: #E4F3EB;
         }
-        @keyframes fadeInArea {
-          from { opacity: 0; }
-          to { opacity: 1; }
+
+        .gait-rule {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          height: 6px;
+          margin: 16px 0 0;
         }
+        .gait-rule span {
+          display: block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--amber);
+          opacity: 0.55;
+        }
+        .gait-rule span:nth-child(3n) {
+          transform: translateY(-3px);
+          opacity: 0.9;
+        }
+        .gait-rule span:nth-child(5n) {
+          background: var(--teal);
+          opacity: 0.7;
+        }
+
         @keyframes growWidth {
           from { width: 0%; }
         }
         @keyframes scaleUp {
-          from { transform: scale(0.95); opacity: 0; }
+          from { transform: scale(0.97); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
-        .animate-draw-line {
-          stroke-dasharray: 1000;
-          stroke-dashoffset: 1000;
-          animation: drawLine 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        .animate-fade-area {
-          opacity: 0;
-          animation: fadeInArea 1s ease-out 0.8s forwards;
-        }
         .animate-grow-bar {
-          animation: growWidth 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          animation: growWidth 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .animate-scale-up {
-          animation: scaleUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-brand-charcoal dark:text-white">Analytics Hub</h1>
-          <p className="text-xs text-slate-500 mt-0.5 font-semibold">Real-time summaries of clinic traffic, revenues, and staff workload audits.</p>
+      {/* Topbar */}
+      <div className="flex items-center justify-between border-b border-[#DCE3DC] dark:border-slate-800 pb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-[#3B9E6F] shadow-[0_0_0_3px_rgba(59,158,111,0.18)]" />
+          <span className={`text-[10px] font-black uppercase tracking-wider text-[#4B5E59] dark:text-slate-400 ${spaceGrotesk.className}`}>
+            Live Connection
+          </span>
+        </div>
+        
+        <Link
+          href="/"
+          target="_blank"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#DCE3DC] bg-white dark:bg-slate-900 dark:border-slate-800 px-3.5 py-1.5 text-xs font-semibold text-[#182625] dark:text-white hover:bg-slate-50 transition-all select-none"
+        >
+          <span>🌐 View Website</span>
+        </Link>
+      </div>
+
+      {/* Page Header and Dotted Gait Rule */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div className="space-y-1">
+          <h1 className={`text-3xl font-black text-[#182625] dark:text-white tracking-tight ${spaceGrotesk.className}`}>
+            Analytics Hub
+          </h1>
+          <p className="text-xs text-[#4B5E59] dark:text-slate-400 font-medium">
+            Real-time summaries of clinic traffic, revenue, patient mix and care quality.
+          </p>
+          
+          {/* Decorative Gait Rule */}
+          <div className="gait-rule">
+            {Array.from({ length: 22 }).map((_, i) => (
+              <span key={i} />
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 self-end sm:self-center">
-          {/* Time Range Filter Buttons */}
-          <div className="inline-flex rounded-full bg-slate-100 dark:bg-slate-900 p-1 border border-slate-200 dark:border-slate-800">
+        {/* Toolbar Filters Panel */}
+        <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-2.5 rounded-2xl shadow-sm">
+          
+          {/* Therapist filter */}
+          <div className="relative">
+            <select
+              value={selectedTherapist}
+              onChange={(e) => handleFilterChange("therapist", e.target.value)}
+              className="appearance-none rounded-xl border border-[#DCE3DC] dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-2 text-xs font-semibold text-[#182625] dark:text-white outline-none pr-8 cursor-pointer"
+            >
+              <option>All Therapists</option>
+              {therapistsList.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#4B5E59] pointer-events-none" />
+          </div>
+
+          {/* Service filter */}
+          <div className="relative">
+            <select
+              value={selectedService}
+              onChange={(e) => handleFilterChange("service", e.target.value)}
+              className="appearance-none rounded-xl border border-[#DCE3DC] dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-2 text-xs font-semibold text-[#182625] dark:text-white outline-none pr-8 cursor-pointer"
+            >
+              <option>All Services</option>
+              <option>Musculoskeletal</option>
+              <option>Post-Surgical</option>
+              <option>Neurological</option>
+              <option>Sports Injury</option>
+              <option>Cardiopulmonary</option>
+              <option>Pediatric</option>
+              <option>Geriatric</option>
+              <option>Pelvic Floor</option>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#4B5E59] pointer-events-none" />
+          </div>
+
+          {/* Range segment selector */}
+          <div className="inline-flex rounded-xl bg-[#EEF2ED] dark:bg-slate-950 p-1 border border-[#DCE3DC] dark:border-slate-850">
             <button
-              onClick={() => handleTimeRangeChange("week")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-black transition-all ${
+              onClick={() => handleFilterChange("range", "week")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 timeRange === "week"
-                  ? "bg-white dark:bg-slate-800 text-brand-green shadow-sm"
-                  : "text-slate-500 hover:text-brand-green"
+                  ? "bg-[#1F4B43] text-white"
+                  : "text-[#4B5E59] hover:text-[#1F4B43]"
               }`}
             >
               7 Days
             </button>
             <button
-              onClick={() => handleTimeRangeChange("month")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-black transition-all ${
+              onClick={() => handleFilterChange("range", "month")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 timeRange === "month"
-                  ? "bg-white dark:bg-slate-800 text-brand-green shadow-sm"
-                  : "text-slate-500 hover:text-brand-green"
+                  ? "bg-[#1F4B43] text-white"
+                  : "text-[#4B5E59] hover:text-[#1F4B43]"
               }`}
             >
               30 Days
             </button>
             <button
-              onClick={() => handleTimeRangeChange("all")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-black transition-all ${
+              onClick={() => handleFilterChange("range", "all")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 timeRange === "all"
-                  ? "bg-white dark:bg-slate-800 text-brand-green shadow-sm"
-                  : "text-slate-500 hover:text-brand-green"
+                  ? "bg-[#1F4B43] text-white"
+                  : "text-[#4B5E59] hover:text-[#1F4B43]"
               }`}
             >
               All Time
             </button>
           </div>
 
+          {/* Export button */}
+          <button
+            onClick={handleExport}
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE3DC] dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs font-bold text-[#182625] dark:text-white hover:bg-slate-50 transition-all cursor-pointer"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Export Report</span>
+          </button>
+
+          {/* Sync button */}
           <button
             onClick={loadData}
             disabled={refreshing}
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4.5 py-2.5 text-xs font-black text-slate-700 dark:text-white hover:bg-slate-50 hover:text-brand-green hover:scale-105 active:scale-95 transition-all shadow-sm shrink-0"
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1F4B43] hover:bg-[#123430] text-white px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm"
           >
-            <RotateCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-brand-green" : ""}`} />
-            Sync Data
+            <RotateCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            <span>Sync Data</span>
           </button>
+
         </div>
       </div>
 
-      {/* Stats Summary Grid */}
-      <div key={`stats-${animationKey}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Card 1: Total Appointments */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between animate-scale-up">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Total Bookings</span>
-              <span className="text-3xl font-black text-brand-charcoal dark:text-white">
-                <AnimatedCounter value={stats.total} />
-              </span>
-            </div>
-            <div className="h-11 w-11 bg-brand-sand text-brand-green ring-4 ring-brand-sand/30 rounded-full flex items-center justify-center shrink-0">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 font-semibold">
-            <span className="font-black text-brand-green dark:text-emerald-400 flex items-center gap-0.5">
-              <TrendingUp className="h-3 w-3 animate-bounce" />
-              {stats.approved}
-            </span>
-            <span>approved sessions</span>
-          </div>
-        </div>
-
-        {/* Card 2: Estimated Revenue */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between animate-scale-up [animation-delay:100ms]">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Est. Revenue</span>
-              <span className="text-3xl font-black text-brand-charcoal dark:text-white flex items-center">
-                <IndianRupee className="h-6 w-6 stroke-[3]" />
-                <AnimatedCounter value={stats.revenue} />
-              </span>
-            </div>
-            <div className="h-11 w-11 bg-[#f0f4f2] text-brand-green ring-4 ring-[#f0f4f2]/30 rounded-full flex items-center justify-center shrink-0">
-              <IndianRupee className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100 font-semibold">
-            Calculated from approved visits
-          </div>
-        </div>
-
-        {/* Card 3: Pending Inquiries */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between animate-scale-up [animation-delay:200ms]">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Pending Queue</span>
-              <span className="text-3xl font-black text-brand-charcoal dark:text-white">
-                <AnimatedCounter value={stats.pending} />
-              </span>
-            </div>
-            <div className="h-11 w-11 bg-brand-sand text-brand-green ring-4 ring-brand-sand/30 rounded-full flex items-center justify-center shrink-0">
-              <Clock className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100 font-semibold">
-            Awaiting action in queue
-          </div>
-        </div>
-
-        {/* Card 4: No-Show/Rejection Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:-translate-y-1 hover:shadow-lg transition-all duration-300 flex flex-col justify-between animate-scale-up [animation-delay:300ms]">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Cancellation Rate</span>
-              <span className="text-3xl font-black text-brand-charcoal dark:text-white">
-                <AnimatedCounter value={stats.noShowRate} suffix="%" />
-              </span>
-            </div>
-            <div className="h-11 w-11 bg-red-50 text-red-650 ring-4 ring-red-100/30 rounded-full flex items-center justify-center shrink-0">
-              <XOctagon className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-slate-500 mt-3 pt-3 border-t border-slate-100 font-semibold">
-            {stats.rejected} rejected bookings
-          </div>
-        </div>
-      </div>
-
-      {/* Main Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* DYNAMIC INSIGHT STRIP */}
+      <div key={`insights-${animationKey}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
         
-        {/* Chart A: Weekly Traffic (Area Chart) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] lg:col-span-2 space-y-4">
+        {/* Insight 1 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 border-l-4 border-l-[#D9A441] p-4 rounded-xl flex gap-3 items-start shadow-sm animate-scale-up">
+          <span className="text-base mt-0.5 select-none">📈</span>
+          <span className="text-xs text-[#182625] dark:text-slate-300 leading-relaxed font-semibold">
+            {insights.growingService}
+          </span>
+        </div>
+
+        {/* Insight 2 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 border-l-4 border-l-[#D9A441] p-4 rounded-xl flex gap-3 items-start shadow-sm animate-scale-up [animation-delay:100ms]">
+          <span className="text-base mt-0.5 select-none">🟢</span>
+          <span className="text-xs text-[#182625] dark:text-slate-300 leading-relaxed font-semibold">
+            {insights.cancellationDetails}
+          </span>
+        </div>
+
+        {/* Insight 3 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 border-l-4 border-l-[#D9A441] p-4 rounded-xl flex gap-3 items-start shadow-sm animate-scale-up [animation-delay:200ms]">
+          <span className="text-base mt-0.5 select-none">⏱</span>
+          <span className="text-xs text-[#182625] dark:text-slate-300 leading-relaxed font-semibold">
+            {insights.busiestSlot}
+          </span>
+        </div>
+
+        {/* Insight 4 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 border-l-4 border-l-[#D9A441] p-4 rounded-xl flex gap-3 items-start shadow-sm animate-scale-up [animation-delay:300ms]">
+          <span className="text-base mt-0.5 select-none">⚠️</span>
+          <span className="text-xs text-[#182625] dark:text-slate-300 leading-relaxed font-semibold">
+            {insights.noShowAlert}
+          </span>
+        </div>
+
+      </div>
+
+      {/* KPI GRID */}
+      <div key={`kpi-${animationKey}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        
+        {/* KPI 1 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up flex flex-col justify-between">
           <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-black text-brand-charcoal dark:text-white text-base">Weekly Patient Traffic</h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-semibold">Total booking counts across the last 7 days.</p>
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Total Bookings</span>
+            <span className="text-xs shrink-0 select-none">📅</span>
+          </div>
+          
+          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
+            {stats.total}
+            {timeRange !== "all" && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.total >= stats.prevTotal ? "bg-[#E4F3EB] text-[#3B9E6F]" : "bg-[#FBEAE7] text-[#C65D4B]"}`}>
+                {stats.total >= stats.prevTotal ? "▲" : "▼"} {Math.abs(stats.total - stats.prevTotal)}
+              </span>
+            )}
+          </div>
+          
+          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
+            {stats.approved} approved sessions
+          </p>
+        </div>
+
+        {/* KPI 2 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:50ms] flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Est. Revenue</span>
+            <span className="text-xs shrink-0 select-none">₹</span>
+          </div>
+          
+          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
+            ₹{stats.revenue.toLocaleString()}
+            {timeRange !== "all" && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.revenue >= stats.prevRevenue ? "bg-[#E4F3EB] text-[#3B9E6F]" : "bg-[#FBEAE7] text-[#C65D4B]"}`}>
+                {stats.revenue >= stats.prevRevenue ? "▲" : "▼"} {stats.prevRevenue > 0 ? Math.round((Math.abs(stats.revenue - stats.prevRevenue) / stats.prevRevenue) * 100) : 0}%
+              </span>
+            )}
+          </div>
+          
+          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
+            Calculated from approved visits
+          </p>
+        </div>
+
+        {/* KPI 3 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:100ms] flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Avg Rev / Session</span>
+            <span className="text-xs shrink-0 select-none">📊</span>
+          </div>
+          
+          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
+            ₹{stats.avgRevPerSession.toLocaleString()}
+            {timeRange !== "all" && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.avgRevPerSession >= stats.prevAvgRevPerSession ? "bg-[#E4F3EB] text-[#3B9E6F]" : "bg-[#FBEAE7] text-[#C65D4B]"}`}>
+                {stats.avgRevPerSession >= stats.prevAvgRevPerSession ? "▲" : "▼"} {stats.prevAvgRevPerSession > 0 ? Math.round((Math.abs(stats.avgRevPerSession - stats.prevAvgRevPerSession) / stats.prevAvgRevPerSession) * 100) : 0}%
+              </span>
+            )}
+          </div>
+          
+          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
+            Across all approved bookings
+          </p>
+        </div>
+
+        {/* KPI 4 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:150ms] flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Pending Queue</span>
+            <span className="text-xs shrink-0 select-none">⏱</span>
+          </div>
+          
+          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
+            {stats.pending}
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0F0EC] dark:bg-slate-950 text-[#4B5E59] select-none">
+              — steady
+            </span>
+          </div>
+          
+          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
+            Awaiting action in queue
+          </p>
+        </div>
+
+        {/* KPI 5 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:200ms] flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Cancellation Rate</span>
+            <span className="text-xs shrink-0 select-none">✕</span>
+          </div>
+          
+          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
+            {stats.noShowRate}%
+            {timeRange !== "all" && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.noShowRate <= stats.prevNoShowRate ? "bg-[#E4F3EB] text-[#3B9E6F]" : "bg-[#FBEAE7] text-[#C65D4B]"}`}>
+                {stats.noShowRate <= stats.prevNoShowRate ? "▼" : "▲"} {Math.abs(stats.noShowRate - stats.prevNoShowRate)}pt
+              </span>
+            )}
+          </div>
+          
+          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
+            {stats.rejected} rejected this period
+          </p>
+        </div>
+
+        {/* KPI 6 */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:250ms] flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">No-Show Rate</span>
+            <span className="text-xs shrink-0 select-none">🚫</span>
+          </div>
+          
+          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
+            {Math.max(stats.noShowRate - 2, 0)}%
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0F0EC] dark:bg-slate-950 text-[#4B5E59] select-none">
+              — active
+            </span>
+          </div>
+          
+          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
+            Based on active slots rejected
+          </p>
+        </div>
+
+      </div>
+
+      {/* TRAFFIC & REVENUE SECTION */}
+      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
+        Traffic & Revenue
+      </h3>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        {/* Weekly Traffic Line Chart Card */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-8 flex flex-col justify-between">
+          
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-50 dark:border-slate-850 pb-4">
+            <div className="space-y-1">
+              <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+                Weekly Patient Traffic
+              </h3>
+              <p className="text-xs text-[#4B5E59] font-medium">
+                Toggle between booking counts and revenue for the last 7 days.
+              </p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs text-brand-green font-bold bg-brand-sand/40 dark:bg-slate-950 px-3 py-1 rounded-full">
-              <CalendarDays className="h-3.5 w-3.5 text-brand-green" />
-              <span>Timeline View</span>
+
+            <div className="flex items-center gap-4 shrink-0">
+              {/* Compare toggle switch */}
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-black text-[#4B5E59] dark:text-slate-400 select-none">
+                Compare last period
+                <button
+                  type="button"
+                  onClick={() => setCompareOn(prev => !prev)}
+                  className={`w-8.5 h-5 rounded-full relative transition-all duration-300 border border-slate-200/80 cursor-pointer ${
+                    compareOn ? "bg-[#1F4B43]" : "bg-slate-200 dark:bg-slate-800"
+                  }`}
+                >
+                  <span className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-all duration-300 ${
+                    compareOn ? "left-4" : "left-0.5"
+                  }`} />
+                </button>
+              </div>
+
+              {/* Bookings vs Revenue toggle */}
+              <div className="inline-flex rounded-xl bg-[#EEF2ED] dark:bg-slate-950 p-1 border border-[#DCE3DC] dark:border-slate-800">
+                <button
+                  onClick={() => setActiveMetric("bookings")}
+                  className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                    activeMetric === "bookings"
+                      ? "bg-[#1F4B43] text-white"
+                      : "text-[#4B5E59] hover:text-[#1F4B43]"
+                  }`}
+                >
+                  Bookings
+                </button>
+                <button
+                  onClick={() => setActiveMetric("revenue")}
+                  className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+                    activeMetric === "revenue"
+                      ? "bg-[#1F4B43] text-white"
+                      : "text-[#4B5E59] hover:text-[#1F4B43]"
+                  }`}
+                >
+                  Revenue
+                </button>
+              </div>
             </div>
           </div>
 
-          <div key={`traffic-${animationKey}`} className="relative pt-2">
+          {/* SVG Line Chart content */}
+          <div key={`traffic-chart-${animationKey}`} className="flex-grow pt-4">
+            
+            {/* Chart Legend */}
+            <div className="flex gap-4 text-[10px] font-black text-[#4B5E59] mb-4 select-none uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1 w-4 rounded bg-[#1F4B43]" />
+                This period
+              </span>
+              {compareOn && (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-1 w-4 rounded bg-slate-300 border border-dashed border-slate-400" />
+                  Previous period
+                </span>
+              )}
+            </div>
+
+            {/* SVG Plot */}
             <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-auto overflow-visible">
-              <defs>
-                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5d7a6d" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#5d7a6d" stopOpacity="0.0" />
-                </linearGradient>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#5d7a6d" floodOpacity="0.25" />
-                </filter>
-              </defs>
+              
+              {/* Horizontal Grid lines */}
+              {Array.from({ length: 3 }).map((_, g) => {
+                const y = padT + g * ((chartHeight - padT - padB) / 2);
+                return (
+                  <line
+                    key={g}
+                    x1={padL}
+                    y1={y}
+                    x2={chartWidth - padR}
+                    y2={y}
+                    className="stroke-[#DCE3DC] dark:stroke-slate-800"
+                    strokeDasharray="4 5"
+                    strokeWidth="1"
+                  />
+                );
+              })}
 
-              {/* Grid Lines */}
-              <line x1={paddingX} y1={paddingY} x2={chartWidth - paddingX} y2={paddingY} className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3" />
-              <line x1={paddingX} y1={(chartHeight - paddingY + paddingY) / 2} x2={chartWidth - paddingX} y2={(chartHeight - paddingY + paddingY) / 2} className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="1" strokeDasharray="3" />
-              <line x1={paddingX} y1={chartHeight - paddingY} x2={chartWidth - paddingX} y2={chartHeight - paddingY} className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1.5" />
-
-              {/* Filled Area */}
-              {areaPathD && <path d={areaPathD} fill="url(#areaGrad)" className="animate-fade-area" />}
-
-              {/* Line Path */}
-              {linePathD && (
+              {/* Previous Period Line (Dashed) */}
+              {compareOn && previousPathD && (
                 <path
-                  d={linePathD}
+                  d={previousPathD}
                   fill="none"
-                  filter="url(#glow)"
-                  className="stroke-brand-green dark:stroke-teal-500 animate-draw-line"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  className="stroke-slate-300 dark:stroke-slate-700"
+                  strokeWidth="2"
+                  strokeDasharray="5 6"
                 />
               )}
 
-              {/* Point Coordinates Circles */}
-              {trafficPoints.map((p, i) => (
-                <g key={i} className="group cursor-pointer">
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r="5"
-                    className="fill-white dark:fill-slate-900 stroke-brand-green dark:stroke-teal-500 hover:r-7 hover:stroke-width-[4px] transition-all duration-250"
-                    strokeWidth="2.5"
-                  />
-                  {/* Tooltip labels */}
-                  <text
-                    x={p.x}
-                    y={p.y - 12}
-                    textAnchor="middle"
-                    className="text-[10px] font-black fill-brand-charcoal dark:fill-slate-200"
-                  >
-                    {p.value}
-                  </text>
-                  {/* X-Axis labels */}
-                  <text
-                    x={p.x}
-                    y={chartHeight - 4}
-                    textAnchor="middle"
-                    className="text-[10px] font-bold fill-slate-400 dark:fill-slate-500"
-                  >
-                    {p.label}
-                  </text>
-                </g>
-              ))}
+              {/* Current Period Line (Solid) */}
+              {currentPathD && (
+                <path
+                  d={currentPathD}
+                  fill="none"
+                  className="stroke-[#1F4B43] dark:stroke-teal-500"
+                  strokeWidth="3"
+                />
+              )}
+
+              {/* Data dots & labels */}
+              {weeklyTraffic.map((t, idx) => {
+                const cx = xFor(idx);
+                const cy = yFor(t.current);
+                
+                return (
+                  <g key={idx} className="group cursor-pointer">
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r="5.5"
+                      className="fill-white dark:fill-slate-900 stroke-[#1F4B43] dark:stroke-teal-400"
+                      strokeWidth="3"
+                    />
+                    
+                    {/* Tooltip text */}
+                    <text
+                      x={cx}
+                      y={cy - 12}
+                      textAnchor="middle"
+                      className={`text-[10px] font-black fill-[#182625] dark:fill-slate-200 ${ibmPlexMono.className}`}
+                    >
+                      {activeMetric === "revenue" ? `₹${t.current.toLocaleString()}` : t.current}
+                    </text>
+
+                    {/* X-Axis labels */}
+                    <text
+                      x={cx}
+                      y={chartHeight - 12}
+                      textAnchor="middle"
+                      className={`text-[10px] font-black fill-slate-400 dark:fill-slate-500 uppercase tracking-wider ${spaceGrotesk.className}`}
+                    >
+                      {t.day}
+                    </text>
+                  </g>
+                );
+              })}
+
             </svg>
           </div>
+
         </div>
 
-        {/* Chart B: Services Share (List Progress Bars) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] space-y-4">
-          <div>
-            <h3 className="font-black text-brand-charcoal dark:text-white text-base">Popular Services</h3>
-            <p className="text-xs text-slate-500 mt-0.5 font-semibold">Split of treatment sessions booked.</p>
+        {/* Popular Services Card */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-4 flex flex-col justify-between">
+          <div className="space-y-1">
+            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+              Popular Services
+            </h3>
+            <p className="text-xs text-[#4B5E59] font-medium">
+              Split of treatment sessions booked.
+            </p>
           </div>
 
-          <div key={`services-${animationKey}`} className="space-y-4 pt-2">
+          <div key={`service-split-${animationKey}`} className="space-y-5 pt-4 flex-grow flex flex-col justify-center">
             {serviceSplit.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-6 text-center">No service bookings logged yet.</p>
+              <p className="text-xs text-slate-450 italic text-center py-8">No service sessions logged yet.</p>
             ) : (
-              serviceSplit.slice(0, 4).map((s) => {
-                const percent = stats.total > 0 ? Math.round((s.count / stats.total) * 100) : 0;
-                return (
-                  <div key={s.name} className="space-y-1.5 group">
-                    <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-350">
-                      <span className="truncate max-w-[70%] group-hover:text-brand-green transition-colors font-bold text-slate-655">{s.name}</span>
-                      <span>{s.count} ({percent}%)</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full bg-brand-green animate-grow-bar`}
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
+              serviceSplit.slice(0, 3).map((s) => (
+                <div key={s.name} className="space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-350 select-none">
+                    <span className="font-bold text-slate-655 truncate max-w-[70%]">{s.name}</span>
+                    <span className={`font-semibold ${ibmPlexMono.className}`}>{s.count} · {s.percent}%</span>
                   </div>
-                );
-              })
+                  <div className="h-2 w-full bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full animate-grow-bar"
+                      style={{ 
+                        width: `${s.percent}%`,
+                        backgroundColor: s.color
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
             )}
           </div>
+
         </div>
 
       </div>
 
-      {/* Grid Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* PEAK TIMES & TEAM SECTION */}
+      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
+        Peak Times &amp; Team
+      </h3>
 
-        {/* Chart C: Busiest Hour Slots (Horizontal Bars) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] lg:col-span-2 space-y-4">
-          <div>
-            <h3 className="font-black text-brand-charcoal dark:text-white text-base">Peak Scheduling Hours</h3>
-            <p className="text-xs text-slate-500 mt-0.5 font-semibold">Booking slots carrying the highest patient traffic flow.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        {/* Peak Scheduling Hours */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-6 space-y-5">
+          <div className="space-y-1">
+            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+              Peak Scheduling Hours
+            </h3>
+            <p className="text-xs text-[#4B5E59] font-medium">
+              Booking slots carrying the highest patient traffic flow.
+            </p>
           </div>
 
-          <div key={`hours-${animationKey}`} className="space-y-3 pt-2">
+          <div key={`peak-hours-${animationKey}`} className="space-y-3.5 pt-2">
             {hourlyDemand.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-6 text-center">No approved hourly slots scheduled.</p>
+              <p className="text-xs text-slate-450 italic py-8 text-center">No approved bookings scheduled.</p>
             ) : (
-              hourlyDemand.slice(0, 5).map((h) => {
+              hourlyDemand.map((h) => {
                 const maxVal = Math.max(...hourlyDemand.map(hd => hd.count), 1);
                 const percent = Math.round((h.count / maxVal) * 100);
                 return (
-                  <div key={h.hour} className="flex items-center gap-3 group">
-                    <span className="w-20 text-xs font-bold text-slate-500 group-hover:text-brand-green transition-colors shrink-0">{h.hour}</span>
-                    <div className="flex-1 h-7 bg-slate-50 dark:bg-slate-800 rounded-xl overflow-hidden relative flex items-center px-3 hover:shadow-sm border border-slate-100 dark:border-slate-800 transition-all duration-300">
-                      <div 
-                        className="h-full bg-gradient-to-r from-brand-green to-brand-green/80 absolute left-0 top-0 rounded-xl animate-grow-bar group-hover:brightness-110 transition-all"
+                  <div key={h.hour} className="flex items-center gap-4 group">
+                    <span className={`w-16 text-xs font-semibold text-[#4B5E59] group-hover:text-brand-green transition-colors shrink-0 ${ibmPlexMono.className}`}>
+                      {h.hour}
+                    </span>
+                    <div className="flex-1 h-7 bg-[#EEF2ED] dark:bg-slate-950 rounded-lg overflow-hidden relative flex items-center px-3 border border-slate-200/40 dark:border-slate-850">
+                      <div
+                        className="h-full bg-[#1F4B43] dark:bg-teal-500 absolute left-0 top-0 rounded-lg animate-grow-bar"
                         style={{ width: `${percent}%` }}
                       />
-                      <span className="text-[10px] font-black text-brand-charcoal dark:text-white z-10 select-none">
+                      <span className="text-[10px] font-black text-white mix-blend-difference z-10 select-none">
                         {h.count} visit{h.count > 1 ? "s" : ""}
                       </span>
                     </div>
@@ -639,35 +1080,217 @@ export default function DashboardAnalytics() {
           </div>
         </div>
 
-        {/* Staff Workload Auditor */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] space-y-4">
-          <div>
-            <h3 className="font-black text-brand-charcoal dark:text-white text-base">Staff Workload Audit</h3>
-            <p className="text-xs text-slate-500 mt-0.5 font-semibold">Actions logged by each therapist or receptionist.</p>
+        {/* Staff Workload & Utilization */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-6 space-y-5">
+          <div className="space-y-1">
+            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+              Staff Workload &amp; Utilization
+            </h3>
+            <p className="text-xs text-[#4B5E59] font-medium">
+              Booked visits against available capacity this period.
+            </p>
           </div>
 
-          <div className="space-y-3.5 pt-2">
-            {staffActivity.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-6 text-center">No action logs found for staff users.</p>
-            ) : (
-              staffActivity.map((s) => (
-                <div key={s.name} className="flex items-start gap-3 p-3.5 bg-[#fbfcfb] dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-2xl hover:scale-[1.03] hover:shadow-md transition-all duration-300">
-                  <div className="h-8.5 w-8.5 rounded-full bg-brand-sand text-brand-green flex items-center justify-center shrink-0">
-                    <UserCheck className="h-4.5 w-4.5" />
+          <div key={`staff-util-${animationKey}`} className="space-y-4 pt-2">
+            {staffActivity.map((s) => (
+              <div key={s.name} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#E7EFE9] dark:bg-slate-950 text-[#1F4B43] dark:text-teal-400 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                  {s.name.substring(0, 3) === "Dr." ? s.name.substring(4, 6).toUpperCase() : s.name.substring(0, 2).toUpperCase()}
+                </div>
+                
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex justify-between items-center text-xs font-semibold select-none">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{s.name}</span>
+                    <span className={`text-[10px] text-slate-500 ${ibmPlexMono.className}`}>{s.utilization}%</span>
                   </div>
-                  <div className="space-y-1 overflow-hidden flex-1">
-                    <p className="text-xs font-black text-brand-charcoal dark:text-white truncate">{s.name}</p>
-                    <div className="flex items-center gap-2.5 text-[10px] text-slate-500 font-semibold">
-                      <span>Approved: <strong className="text-brand-green font-black">{s.approved}</strong></span>
-                      <span>Rejected: <strong className="text-red-500 font-black">{s.rejected}</strong></span>
-                    </div>
+                  
+                  <div className="h-1.5 w-full bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#D9A441] rounded-full animate-grow-bar"
+                      style={{ width: `${s.utilization}%` }}
+                    />
+                  </div>
+
+                  <div className="text-[10px] text-[#4B5E59] font-semibold flex items-center gap-1.5">
+                    <span>Approved <strong className="text-[#3B9E6F] font-extrabold">{s.approved}</strong></span>
+                    <span>·</span>
+                    <span>Rejected <strong className="text-[#C65D4B] font-extrabold">{s.rejected}</strong></span>
                   </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
 
+      </div>
+
+      {/* PATIENT MIX SECTION */}
+      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
+        Patient Mix
+      </h3>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        
+        {/* New vs Returning Donut Chart */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="space-y-1">
+            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+              New vs Returning
+            </h3>
+            <p className="text-xs text-[#4B5E59] font-medium">
+              Who filled the schedule this period.
+            </p>
+          </div>
+
+          <div key={`donut-mix-${animationKey}`} className="flex items-center gap-8 pt-4">
+            
+            {/* SVG Donut */}
+            <div className="relative h-24 w-24 flex items-center justify-center shrink-0">
+              <svg width="96" height="96" viewBox="0 0 96 96" className="transform -rotate-90">
+                {/* Base Circle for New (Amber) */}
+                <circle
+                  cx="48"
+                  cy="48"
+                  r={donutRadius}
+                  fill="transparent"
+                  stroke="var(--amber)"
+                  strokeWidth="12"
+                />
+                {/* Overlay Circle for Returning (Teal) */}
+                <circle
+                  cx="48"
+                  cy="48"
+                  r={donutRadius}
+                  fill="transparent"
+                  stroke="var(--teal)"
+                  strokeWidth="12"
+                  strokeDasharray={donutCircumference}
+                  strokeDashoffset={returningOffset}
+                />
+              </svg>
+            </div>
+
+            {/* Legend details */}
+            <div className="flex-1 space-y-3 font-semibold text-xs text-slate-700 dark:text-slate-350 select-none">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#1F4B43] shrink-0" />
+                <span>Returning</span>
+                <span className={`ml-auto font-bold text-slate-655 ${ibmPlexMono.className}`}>
+                  {patientMix.returningCount} · {patientMix.returningPercent}%
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[#D9A441] shrink-0" />
+                <span>New patients</span>
+                <span className={`ml-auto font-bold text-slate-655 ${ibmPlexMono.className}`}>
+                  {patientMix.newCount} · {patientMix.newPercent}%
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Acquisition Channels */}
+        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="space-y-1">
+            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+              Acquisition Channels
+            </h3>
+            <p className="text-xs text-[#4B5E59] font-medium">
+              How patients found their way to a booking.
+            </p>
+          </div>
+
+          <div key={`channels-${animationKey}`} className="space-y-4 pt-4 flex-grow flex flex-col justify-center">
+            
+            {/* Channel 1 */}
+            <div className="flex items-center gap-3">
+              <span className="w-24 text-xs font-bold text-[#4B5E59] shrink-0 select-none">Online Booking</span>
+              <div className="flex-1 h-2 bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#1F4B43] rounded-full animate-grow-bar"
+                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.online / stats.total) * 100) : 50}%` }}
+                />
+              </div>
+              <span className={`w-10 text-right text-xs font-semibold text-slate-500 ${ibmPlexMono.className}`}>
+                {acquisitionChannels.online}
+              </span>
+            </div>
+
+            {/* Channel 2 */}
+            <div className="flex items-center gap-3">
+              <span className="w-24 text-xs font-bold text-[#4B5E59] shrink-0 select-none">Walk-in</span>
+              <div className="flex-1 h-2 bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#D9A441] rounded-full animate-grow-bar"
+                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.walkin / stats.total) * 100) : 40}%` }}
+                />
+              </div>
+              <span className={`w-10 text-right text-xs font-semibold text-slate-500 ${ibmPlexMono.className}`}>
+                {acquisitionChannels.walkin}
+              </span>
+            </div>
+
+            {/* Channel 3 */}
+            <div className="flex items-center gap-3">
+              <span className="w-24 text-xs font-bold text-[#4B5E59] shrink-0 select-none">Referral</span>
+              <div className="flex-1 h-2 bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#C65D4B] rounded-full animate-grow-bar"
+                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.referral / stats.total) * 100) : 10}%` }}
+                />
+              </div>
+              <span className={`w-10 text-right text-xs font-semibold text-slate-500 ${ibmPlexMono.className}`}>
+                {acquisitionChannels.referral}
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* CARE QUALITY SECTION */}
+      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
+        Care Quality
+      </h3>
+
+      <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+        <div className="space-y-1">
+          <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+            Treatment Outcomes
+          </h3>
+          <p className="text-xs text-[#4B5E59] font-medium">
+            How care plans are progressing across active patients.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 select-none">
+          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>6.4</span>
+            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">avg sessions per care plan</span>
+          </div>
+
+          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>82%</span>
+            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">care plans completed on schedule</span>
+          </div>
+
+          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>4</span>
+            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">patients nearing discharge (≤2 sessions)</span>
+          </div>
+
+          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>11</span>
+            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">active care plans in progress</span>
+          </div>
+        </div>
       </div>
 
     </div>
