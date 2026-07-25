@@ -372,6 +372,11 @@ function WalkInBookingContent() {
         });
       }
 
+      const bookingDate = formData.date;
+      const bookingService = formData.serviceId;
+      const patientName = formData.patientName;
+      const patientEmail = formData.patientEmail;
+
       // Reset Form State
       setFormData({
         patientName: "",
@@ -383,29 +388,50 @@ function WalkInBookingContent() {
         notes: "",
       });
 
+      // Date comparison logic
+      const todayStr = getTodayDateString(); // YYYY-MM-DD
+      const isFuture = bookingDate > todayStr;
+      
+      const formatToDDMMYYYY = (d: string) => {
+        const parts = d.split("-");
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return d;
+      };
+      
+      const formattedBookingDate = formatToDDMMYYYY(bookingDate);
+
       // Automate Patient Profile Integration
       if (patientType === "new") {
         try {
           await createPatient({
-            name: formData.patientName,
-            email: formData.patientEmail,
+            name: patientName,
+            email: patientEmail,
             phone: fullPhone,
-            treatmentPlan: formData.serviceId,
+            treatmentPlan: bookingService,
             status: "active",
-            lastVisit: formData.date
+            lastVisit: isFuture ? "N/A" : formattedBookingDate,
+            upcoming: isFuture ? formattedBookingDate : "Pending Schedule"
           });
         } catch (patientErr) {
           console.error("Failed to register new patient profile: ", patientErr);
         }
       } else if (selectedPatient && selectedPatient.id) {
         try {
-          await updatePatient(selectedPatient.id, {
-            lastVisit: formData.date,
+          const updateData: any = {
             status: "active",
-            treatmentPlan: formData.serviceId
-          });
+            treatmentPlan: bookingService
+          };
+          if (isFuture) {
+            updateData.upcoming = formattedBookingDate;
+          } else {
+            updateData.lastVisit = formattedBookingDate;
+            updateData.upcoming = "Pending Schedule";
+          }
+          await updatePatient(selectedPatient.id, updateData);
         } catch (patientErr) {
-          console.error("Failed to update existing patient last visit: ", patientErr);
+          console.error("Failed to update existing patient: ", patientErr);
         }
       }
 

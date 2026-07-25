@@ -491,6 +491,12 @@ export default function DaySnapshot() {
       }
       await batch.commit();
 
+      const bookingDate = selectedDate; // YYYY-MM-DD
+      const bookingService = patientForm.serviceId;
+      const patientName = patientForm.patientName;
+      const patientPhone = patientForm.patientPhone;
+      const patientEmail = patientForm.patientEmail;
+
       setIsBookForPatientOpen(false);
       // Reset form
       setPatientForm({
@@ -501,29 +507,54 @@ export default function DaySnapshot() {
         notes: "",
       });
 
+      // Date comparison logic
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${year}-${month}-${day}`; // YYYY-MM-DD
+      const isFuture = bookingDate > todayStr;
+      
+      const formatToDDMMYYYY = (d: string) => {
+        const parts = d.split("-");
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return d;
+      };
+      
+      const formattedBookingDate = formatToDDMMYYYY(bookingDate);
+
       // Automate Patient Profile Integration
       if (patientType === "new") {
         try {
           await createPatient({
-            name: patientForm.patientName,
-            email: patientForm.patientEmail,
-            phone: patientForm.patientPhone,
-            treatmentPlan: patientForm.serviceId,
+            name: patientName,
+            email: patientEmail,
+            phone: patientPhone,
+            treatmentPlan: bookingService,
             status: "active",
-            lastVisit: selectedDate
+            lastVisit: isFuture ? "N/A" : formattedBookingDate,
+            upcoming: isFuture ? formattedBookingDate : "Pending Schedule"
           });
         } catch (patientErr) {
           console.error("Failed to automatically register new patient profile: ", patientErr);
         }
       } else if (selectedPatient && selectedPatient.id) {
         try {
-          await updatePatient(selectedPatient.id, {
-            lastVisit: selectedDate,
+          const updateData: any = {
             status: "active",
-            treatmentPlan: patientForm.serviceId
-          });
+            treatmentPlan: bookingService
+          };
+          if (isFuture) {
+            updateData.upcoming = formattedBookingDate;
+          } else {
+            updateData.lastVisit = formattedBookingDate;
+            updateData.upcoming = "Pending Schedule";
+          }
+          await updatePatient(selectedPatient.id, updateData);
         } catch (patientErr) {
-          console.error("Failed to update existing patient last visit: ", patientErr);
+          console.error("Failed to update existing patient: ", patientErr);
         }
       }
 
