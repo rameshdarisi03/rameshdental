@@ -839,7 +839,7 @@ export default function DaySnapshot() {
             <span>Available</span>
           </div>
           <div className="flex items-center gap-2 font-bold text-slate-500">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#1b3d2f]" />
+            <span className="h-2.5 w-2.5 rounded-full border-2 border-emerald-500 bg-emerald-50" />
             <span>Booked</span>
           </div>
           <div className="flex items-center gap-2 font-bold text-slate-500">
@@ -877,71 +877,51 @@ export default function DaySnapshot() {
               cardClasses += "ring-4 ring-brand-green border-brand-green ";
             }
 
-            if (isPast) {
-              // Completed / Past Slots (Gray Archived)
-              cardClasses += "bg-[#f8fafc]/60 dark:bg-slate-900/10 border-slate-205 dark:border-slate-800/50 opacity-65 cursor-not-allowed hover:scale-100 hover:shadow-none";
-              
-              // Get patient name if appointment, or just label
-              const label = slotState.type === "appointment" 
-                ? slotState.data.patientName 
-                : (slotState.type === "blocked" ? `Blocked: ${slotState.reason}` : "Completed Slot");
-                
-              detailNode = (
-                <div className="h-full flex flex-col justify-between text-slate-450 dark:text-slate-500">
-                  <div className="flex justify-between items-center text-[10px] font-black tracking-wider">
-                    <span>{slot}</span>
-                    <span className="bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[8px] tracking-widest uppercase">ARCHIVED</span>
-                  </div>
-                  <div className="space-y-1 py-1">
-                    <div className="flex items-center gap-1.5 text-xs font-black">
-                      <History className="h-3.5 w-3.5 text-slate-400" />
-                      <span>Completed Slot</span>
-                    </div>
-                    <div className="text-[10px] font-extrabold">{label}</div>
-                  </div>
-                </div>
-              );
-
-            } else if (slotState.type === "appointment") {
-              // Booked / Active appointment
+            if (slotState.type === "appointment") {
+              // Booked appointment (Approved, Pending, or Rejected)
               const app = slotState.data;
               const isPending = app.status === "pending";
               const isApproved = app.status === "approved";
+              const isRejected = app.status === "rejected";
               
               // Initials avatar
-              const initials = app.patientName
-                ? app.patientName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-                : "PT";
+              const initials = (app.patientName || "Patient")
+                .trim()
+                .split(/\s+/)
+                .map((n) => n[0] || "")
+                .join("")
+                .slice(0, 2)
+                .toUpperCase() || "PT";
 
               if (isApproved) {
-                // Deep green gradient background card
-                cardClasses += "bg-gradient-to-br from-[#1b3d2f] to-[#122b21] border-transparent text-white shadow-md shadow-brand-green/10";
+                // Approved Slot (Clean white/light-slate background, green accents)
+                cardClasses += "bg-white dark:bg-slate-900 border-emerald-500/35 hover:border-emerald-500/50 shadow-sm text-slate-700 dark:text-slate-200";
                 
                 detailNode = (
                   <div className="h-full flex flex-col justify-between gap-3 w-full">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400">
                       <span className="text-[10px] font-extrabold tracking-wider">{slot}</span>
                       {app.patientId ? (
-                        <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">{app.patientId}</span>
+                        <span className="bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">{app.patientId}</span>
                       ) : (
-                        <span className="bg-white/10 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">GPC-BOOK</span>
+                        <span className="bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">APPROVED</span>
                       )}
                     </div>
                     
                     <div className="flex items-center gap-3 py-1">
-                      <div className="h-10 w-10 rounded-full bg-[#f3ece7] dark:bg-slate-800 border border-white/20 text-[#1b3d2f] dark:text-white flex items-center justify-center font-black text-xs shrink-0 select-none shadow-inner">
+                      <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 text-emerald-600 dark:text-emerald-450 flex items-center justify-center font-black text-xs shrink-0 select-none shadow-sm">
                         {initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-extrabold text-sm truncate leading-tight">{app.patientName}</p>
-                        <p className="text-[10px] text-slate-300 font-bold truncate mt-0.5">{app.serviceId}</p>
+                        <p className="font-extrabold text-sm truncate text-brand-charcoal dark:text-white leading-tight">{app.patientName}</p>
+                        <p className="text-[10px] text-slate-400 font-bold truncate mt-0.5">{app.serviceId}</p>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-2 border-t border-white/10 select-none">
-                      <span className="inline-flex items-center gap-1 bg-[#10b981]/25 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-emerald-300">
-                        <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                        Checked In
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800 select-none">
+                      <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-emerald-600 dark:text-emerald-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Approved
                       </span>
                       
                       <button 
@@ -950,7 +930,7 @@ export default function DaySnapshot() {
                           e.stopPropagation();
                           window.open(`/dashboard/patients/${app.patientId || ""}`, "_blank");
                         }}
-                        className="p-1 rounded-lg hover:bg-white/10 text-emerald-300 transition-colors"
+                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-brand-green transition-colors"
                         title="Clinical Profile"
                       >
                         <FileText className="h-4 w-4" />
@@ -958,8 +938,43 @@ export default function DaySnapshot() {
                     </div>
                   </div>
                 );
+              } else if (isRejected) {
+                // Rejected Slot (Soft red card styling)
+                cardClasses += "bg-red-50/60 dark:bg-red-955/10 border-red-200/50 dark:border-red-800 text-slate-700 dark:text-slate-200";
+                
+                detailNode = (
+                  <div className="h-full flex flex-col justify-between gap-3 w-full">
+                    <div className="flex justify-between items-center text-red-500">
+                      <span className="text-[10px] font-extrabold tracking-wider">{slot}</span>
+                      <span className="bg-red-100/50 dark:bg-red-950/20 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider">REJECTED</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 py-1">
+                      <div className="h-10 w-10 rounded-full bg-red-100/30 dark:bg-red-900/30 text-red-500 flex items-center justify-center font-black text-xs shrink-0 select-none shadow-sm">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-extrabold text-sm truncate text-brand-charcoal dark:text-white leading-tight">{app.patientName}</p>
+                        <p className="text-[10px] text-slate-400 font-bold truncate mt-0.5">{app.serviceId}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800 select-none">
+                      <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-950/20 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-red-650 dark:text-red-405">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                        Rejected
+                      </span>
+                      
+                      {app.notes && (
+                        <span className="text-[9px] font-bold text-red-500/80 truncate max-w-[50%] italic" title={app.notes}>
+                          Reason: {app.notes}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
               } else {
-                // Pending / Rescheduled Slot (White background, similar styling to Arthur Milton in mockup)
+                // Pending / Rescheduled Slot (White background, amber details)
                 cardClasses += "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-200";
                 
                 detailNode = (
@@ -993,7 +1008,7 @@ export default function DaySnapshot() {
                         type="button" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          let cleanPhone = app.patientPhone.replace(/\D/g, "");
+                          let cleanPhone = (app.patientPhone || "").replace(/\D/g, "");
                           if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.replace(/^0+/, "");
                           if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
                           window.open(`https://wa.me/${cleanPhone}`, "_blank");
@@ -1015,7 +1030,7 @@ export default function DaySnapshot() {
               
               if (isLunch) {
                 // Light blue themed blocker card
-                cardClasses += "bg-blue-50/60 dark:bg-blue-950/10 border-blue-200/50 dark:border-blue-800 text-slate-700 dark:text-slate-205";
+                cardClasses += "bg-blue-50/60 dark:bg-blue-955/10 border-blue-205 dark:border-blue-800 text-slate-700 dark:text-slate-205";
                 detailNode = (
                   <div className="h-full flex flex-col justify-between py-0.5 w-full">
                     <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">{slot}</span>
@@ -1073,49 +1088,61 @@ export default function DaySnapshot() {
               }
 
             } else {
-              // Free Available Slot (Quick Book button design)
-              cardClasses += "border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/10 hover:border-[#10b981]/50 hover:shadow-md hover:shadow-emerald-500/5";
-              
-              detailNode = (
-                <div className="h-full flex flex-col justify-between w-full">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">{slot}</span>
-                    <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-wider">
-                      AVAILABLE
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    </span>
+              // Free Slot
+              if (isPast) {
+                // Completed / Past / Expired Slots (Grayed out)
+                cardClasses += "bg-[#f8fafc]/60 dark:bg-slate-900/10 border-slate-200 dark:border-slate-800/50 opacity-65 cursor-not-allowed hover:scale-100 hover:shadow-none";
+                
+                detailNode = (
+                  <div className="h-full flex flex-col justify-between text-slate-450 dark:text-slate-500 w-full">
+                    <div className="flex justify-between items-center text-[10px] font-black tracking-wider">
+                      <span>{slot}</span>
+                      <span className="bg-slate-200/60 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[8px] tracking-widest uppercase">PAST SLOT</span>
+                    </div>
+                    <div className="space-y-1 py-1">
+                      <div className="flex items-center gap-1.5 text-xs font-black">
+                        <History className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Completed Slot</span>
+                      </div>
+                      <div className="text-[10px] font-extrabold">Time passed / Not booked</div>
+                    </div>
                   </div>
+                );
+              } else {
+                // Free Available Slot (Clean grid display, no quick book button)
+                cardClasses += "border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/10 hover:border-[#10b981]/50 hover:shadow-md hover:shadow-emerald-500/5";
+                
+                detailNode = (
+                  <div className="h-full flex flex-col justify-between w-full">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-extrabold text-slate-400 tracking-wider">{slot}</span>
+                      <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-wider">
+                        AVAILABLE
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      </span>
+                    </div>
 
-                  <div className="space-y-0.5 py-1">
-                    <h4 className="text-xs font-black text-brand-charcoal dark:text-white leading-tight">Open for Booking</h4>
-                    <p className="text-[10px] text-slate-400 font-semibold truncate">General Assessment Window</p>
-                  </div>
+                    <div className="space-y-0.5 py-1">
+                      <h4 className="text-xs font-black text-brand-charcoal dark:text-white leading-tight">Open for Booking</h4>
+                      <p className="text-[10px] text-slate-400 font-semibold truncate">General Assessment Window</p>
+                    </div>
 
-                  <div className="flex gap-2 items-center select-none pt-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSlots([slot]);
-                        setIsBookForPatientOpen(true);
-                      }}
-                      className="flex-1 bg-brand-green hover:bg-brand-green-hover text-white py-2 px-3 text-[10px] font-black rounded-xl transition-all shadow-sm cursor-pointer"
-                    >
-                      Quick Book
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setContextMenu({ visible: true, x: e.clientX, y: e.clientY, slot });
-                      }}
-                      className="p-1.5 border border-slate-200/60 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-400 hover:text-brand-green transition-colors cursor-pointer"
-                    >
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex justify-between items-center pt-1 text-[10px] text-slate-400/80 font-bold select-none border-t border-slate-100 dark:border-slate-850">
+                      <span className="italic">Click cell to select slot</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setContextMenu({ visible: true, x: e.clientX, y: e.clientY, slot });
+                        }}
+                        className="p-1 border border-slate-105 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-400 hover:text-brand-green transition-colors cursor-pointer"
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
+                );
+              }
             }
 
             return (
