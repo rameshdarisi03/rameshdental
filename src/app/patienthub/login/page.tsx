@@ -10,7 +10,7 @@ import {
   createUserWithEmailAndPassword 
 } from "firebase/auth";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
-import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft } from "lucide-react";
+import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function LoginPage() {
@@ -45,8 +45,37 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // PWA Native Install Prompt handling
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
   // Pending Google Account state for linking
   const [pendingGoogle, setPendingGoogle] = useState<PendingGoogleUser | null>(null);
+
+  useEffect(() => {
+    // Listen for browser PWA install trigger
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   useEffect(() => {
     if (errorParam === "not_registered") {
@@ -250,12 +279,13 @@ function LoginContent() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat relative"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat relative gap-6"
       style={{ backgroundImage: "url('/images/hero-bg-opt.webp')" }}
     >
       {/* Subtle overlay for contrast */}
       <div className="absolute inset-0 bg-slate-950/15 dark:bg-slate-950/40 pointer-events-none" />
 
+      {/* Main Login Card */}
       <div className="w-full max-w-md space-y-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-8 sm:p-10 rounded-3xl shadow-2xl relative z-10 select-none animate-fade-in">
         
         {/* Scenario: Pending Google Account Registration */}
@@ -295,8 +325,8 @@ function LoginContent() {
                     required
                     value={activationCode}
                     onChange={(e) => setActivationCode(e.target.value)}
-                    placeholder="GPC-XXXXX"
-                    className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100 font-black tracking-widest"
+                    placeholder="8-Character Code"
+                    className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100 font-black tracking-widest uppercase"
                   />
                 </div>
               </div>
@@ -375,8 +405,8 @@ function LoginContent() {
                       required
                       value={activationCode}
                       onChange={(e) => setActivationCode(e.target.value)}
-                      placeholder="GPC-XXXXX"
-                      className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100 font-black tracking-widest"
+                      placeholder="8-Character Code"
+                      className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100 font-black tracking-widest uppercase"
                     />
                   </div>
                 </div>
@@ -444,6 +474,42 @@ function LoginContent() {
         )}
 
       </div>
+
+      {/* Catchy PWA Install App & QR Code Banner Card */}
+      <div className="w-full max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-2xl relative z-10 select-none animate-fade-in flex flex-col sm:flex-row items-center gap-5">
+        <div className="bg-white p-2.5 rounded-2xl shadow-inner border border-slate-100 shrink-0">
+          <img 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgait-physio-clinic-v1.vercel.app%2Fpatienthub%2Flogin&color=1b3d2f&bgcolor=ffffff" 
+            alt="Scan QR Code to install Patient Hub app"
+            className="w-24 h-24 rounded-lg object-contain"
+          />
+        </div>
+        <div className="space-y-2 text-center sm:text-left flex-1">
+          <div className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+            <Smartphone className="h-3 w-3" />
+            <span>Install Mobile App</span>
+          </div>
+          <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Get Patient Hub on Your Phone</h3>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+            Scan QR code with your phone camera or tap below to add Patient Hub to your home screen.
+          </p>
+          
+          {isInstallable ? (
+            <button
+              onClick={handleInstallClick}
+              className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full sm:w-auto mt-1"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Install App
+            </button>
+          ) : (
+            <p className="text-[9px] text-slate-400 font-extrabold italic pt-0.5">
+              Tip: On iOS Safari tap Share → Add to Home Screen
+            </p>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
