@@ -12,7 +12,8 @@ import {
   Loader2, 
   Dumbbell, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  ArrowLeft
 } from "lucide-react";
 import { 
   ExerciseItem, 
@@ -205,33 +206,43 @@ export default function ExercisePrescriberModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 w-full max-w-7xl rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-[#f8fafc] dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in">
+      
+      {/* Top Navigation Bar with Back Button & Centered Search */}
+      <div className="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-slate-900 shadow-xs shrink-0">
         
-        {/* Top Navigation Bar & Search */}
-        <div className="px-6 py-4 border-b border-slate-150 dark:border-slate-800 flex items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/50">
-          <div className="flex items-center gap-3 flex-1 max-w-lg">
-            <div className="relative w-full">
-              <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search clinical exercises..."
-                className="w-full pl-10 pr-4 py-2 text-xs font-semibold rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-white outline-none focus:border-brand-green transition-colors"
-              />
-            </div>
-          </div>
+        {/* Back Button */}
+        <button
+          onClick={onClose}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Profile</span>
+        </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="h-9 w-9 rounded-full bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        {/* Centered Unclipped Search Bar */}
+        <div className="flex-1 max-w-xl mx-auto relative">
+          <Search className="absolute left-4 top-3 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search clinical exercises by title, muscle, or region..."
+            className="w-full pl-11 pr-4 py-2.5 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green dark:focus:border-teal-500 shadow-inner transition-colors"
+          />
         </div>
+
+        {/* Close Button */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onClose}
+            className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            title="Close Prescriber Session"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
 
         {/* Main Content Body */}
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
@@ -525,7 +536,6 @@ export default function ExercisePrescriberModal({
 
         </div>
 
-      </div>
     </div>
   );
 }
