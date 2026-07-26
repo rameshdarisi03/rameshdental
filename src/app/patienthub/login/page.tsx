@@ -59,6 +59,12 @@ function LoginContent() {
     setMounted(true);
     if (typeof window !== "undefined") {
       setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+      
+      // If the prompt already fired and was captured globally in RootLayout
+      if ((window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+        setIsInstallable(true);
+      }
     }
 
     // Listen for browser PWA install trigger
@@ -66,6 +72,9 @@ function LoginContent() {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsInstallable(true);
+      if (typeof window !== "undefined") {
+        (window as any).deferredPrompt = e;
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -105,7 +114,7 @@ function LoginContent() {
       );
     } else {
       setInstallInstructions(
-        "To install on Desktop: Click the 'Install App' icon (square with arrow) at the right side of Chrome/Edge address bar, or click three dots menu → Cast, save, and share → Install."
+        "To install on Desktop: Click the 'Install App' icon (square with arrow) at the right side of your Chrome or Edge address bar. \n\nNote: If the install icon is not showing, the app might already be installed on your computer! Please search your Windows Start Menu or macOS Applications list for 'Gait Physio Clinic'."
       );
     }
   };
