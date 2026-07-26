@@ -45,12 +45,25 @@ export interface PatientPrescription {
   updatedAt?: Timestamp;
 }
 
-// Extract YouTube ID from various YouTube URL formats
+// Extract YouTube ID from various YouTube URL formats (watch, shorts, embed, mobile links)
 export function extractYoutubeId(url: string): string {
   if (!url) return "";
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : url.trim();
+  const cleanUrl = url.trim();
+  
+  // Handles standard 11 character ID directly
+  if (cleanUrl.length === 11 && !cleanUrl.includes("/") && !cleanUrl.includes(".")) {
+    return cleanUrl;
+  }
+
+  // Regular expressions for youtube links, shorts, embeds, and mobile links
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = cleanUrl.match(regExp);
+  
+  if (match && match[1]) {
+    return match[1];
+  }
+  
+  return cleanUrl;
 }
 
 // Seed default exercises if collection is empty

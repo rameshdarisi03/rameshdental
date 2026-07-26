@@ -12,7 +12,8 @@ import {
   ExternalLink,
   CheckCircle2,
   MoreVertical,
-  Pencil
+  Pencil,
+  Play
 } from "lucide-react";
 import { 
   ExerciseItem, 
@@ -46,6 +47,9 @@ export default function ExerciseLibraryAdminPage() {
 
   // Dropdown menu state
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Video Player Modal State
+  const [playingVideo, setPlayingVideo] = useState<ExerciseItem | null>(null);
 
   // Modal State for adding new exercise
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -293,12 +297,22 @@ export default function ExerciseLibraryAdminPage() {
             >
               <div>
                 {/* YouTube Video Preview Frame */}
-                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 mb-3">
+                <div 
+                  onClick={() => setPlayingVideo(ex)}
+                  className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 mb-3 cursor-pointer group/thumb"
+                  title="Click to play video"
+                >
                   <img
                     src={`https://img.youtube.com/vi/${ex.youtubeId}/mqdefault.jpg`}
                     alt={ex.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
                   />
+                  {/* Play Button Overlay */}
+                  <div className="absolute inset-0 bg-slate-950/20 group-hover/thumb:bg-slate-950/40 transition-colors flex items-center justify-center">
+                    <div className="h-11 w-11 rounded-full bg-brand-green/90 text-white flex items-center justify-center shadow-lg group-hover/thumb:scale-110 transition-transform">
+                      <Play className="h-5 w-5 fill-current ml-0.5" />
+                    </div>
+                  </div>
                   <span className="absolute bottom-2 right-2 bg-slate-950/80 text-white text-[10px] font-black px-2 py-0.5 rounded-md backdrop-blur-sm">
                     {ex.duration}
                   </span>
@@ -642,6 +656,38 @@ export default function ExerciseLibraryAdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      {playingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl space-y-4 p-4 sm:p-6 relative">
+            <div className="flex items-center justify-between px-2">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">
+                  {playingVideo.category}
+                </span>
+                <h3 className="text-lg font-black text-white">{playingVideo.title}</h3>
+              </div>
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="h-9 w-9 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-inner">
+              <iframe
+                src={`https://www.youtube.com/embed/${playingVideo.youtubeId}?autoplay=1`}
+                title={playingVideo.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
           </div>
         </div>
       )}
