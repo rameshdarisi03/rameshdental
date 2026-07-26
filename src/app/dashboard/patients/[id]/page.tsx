@@ -448,6 +448,34 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                 <p className="text-[9px] font-extrabold uppercase text-slate-400">Primary Therapist</p>
                 <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.therapistName || defaultTherapist}</p>
               </div>
+
+              {/* Patient Hub Portal Status / Activation Code */}
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
+                <p className="text-[9px] font-extrabold uppercase text-slate-400">Patient Hub Portal</p>
+                {patient.activated ? (
+                  <div className="flex items-center gap-1.5 mt-1 text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>Active Profile</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <p className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono tracking-wider bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg">
+                      {patient.activationCode || "N/A"}
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (patient.activationCode) {
+                          navigator.clipboard.writeText(patient.activationCode);
+                          alert("Portal activation code copied to clipboard!");
+                        }
+                      }}
+                      className="text-[10px] font-black text-brand-green hover:underline cursor-pointer border-0 bg-transparent"
+                    >
+                      Copy Code
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

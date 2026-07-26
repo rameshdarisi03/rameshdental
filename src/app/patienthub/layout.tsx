@@ -17,7 +17,7 @@ import {
   Settings, 
   Loader2 
 } from "lucide-react";
-
+import { FEATURES } from "@/lib/features";
 export default function PatientHubLayout({
   children,
 }: {
@@ -41,6 +41,12 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
+    // If the Patient Hub is deactivated, redirect users immediately back to home
+    if (!FEATURES.enablePatientHub) {
+      router.push("/");
+      return;
+    }
+
     // Skip checks for the login page
     if (pathname === "/patienthub/login") {
       setCheckingAuth(false);

@@ -473,6 +473,18 @@ export default function PatientsPage() {
                             <p className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase mt-0.5">
                               {patient.id}
                             </p>
+                            <p className="text-[9px] font-black uppercase mt-1 leading-none">
+                              {patient.activated ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full">
+                                  <span className="h-1 w-1 rounded-full bg-emerald-500" />
+                                  Portal Active
+                                </span>
+                              ) : (
+                                <span className="text-slate-450 dark:text-slate-450 inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full select-all font-mono">
+                                  Code: {patient.activationCode || "N/A"}
+                                </span>
+                              )}
+                            </p>
                           </div>
                         </div>
                       </td>

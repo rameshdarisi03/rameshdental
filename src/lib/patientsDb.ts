@@ -30,6 +30,9 @@ export interface Patient {
   upcoming?: string;         // DD-MM-YYYY or string representation
   reminders?: string[];      // clinical provider reminders
   attendanceRate?: number;   // attendance reliability percentage
+  activationCode?: string;   // portal activation code, format: "GPC-XXXXX"
+  activated?: boolean;       // whether patient portal account is registered
+  authUid?: string;          // Firebase auth UID link
   createdAt: Timestamp;
 }
 
@@ -53,6 +56,16 @@ export interface MedicalRecordFile {
   webViewLink?: string;
   downloadLink?: string;
   createdAt: Timestamp;
+}
+
+// Helper to generate a 5-digit uppercase alphanumeric activation code segment (excluding confusing chars)
+function generateActivationCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "GPC-";
+  for (let i = 0; i < 5; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }
 
 // Generate a random, unique patient ID (e.g. GPC-12005)
@@ -84,6 +97,8 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     const newPatient: Patient = {
       ...patientData,
       id: patientId,
+      activationCode: patientData.activationCode || generateActivationCode(),
+      activated: patientData.activated || false,
       createdAt: Timestamp.now(),
     };
 

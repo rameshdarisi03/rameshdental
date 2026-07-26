@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { FEATURES } from "@/lib/features";
 
 export default function PWARegistry() {
   useEffect(() => {
+    if (!FEATURES.enablePatientHub) return;
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker
