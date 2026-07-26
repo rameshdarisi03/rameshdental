@@ -129,7 +129,7 @@ export default function ExercisePrescriberModal({
           youtubeUrl: ex.youtubeUrl,
           youtubeId: ex.youtubeId,
           sets: ex.defaultSets || 3,
-          repsOrHold: ex.defaultReps || "10 reps",
+          repsOrHold: (parseInt(ex.defaultReps) || 10).toString(),
           category: ex.category,
           tags: ex.tags
         }
@@ -473,10 +473,11 @@ export default function ExercisePrescriberModal({
                             REPS / HOLD
                           </label>
                           <input
-                            type="text"
+                            type="number"
+                            min="1"
+                            max="100"
                             value={item.repsOrHold}
-                            onChange={(e) => updateTrayItem(item.exerciseId, "repsOrHold", e.target.value)}
-                            placeholder="10 reps"
+                            onChange={(e) => updateTrayItem(item.exerciseId, "repsOrHold", parseInt(e.target.value) || 10)}
                             className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </div>

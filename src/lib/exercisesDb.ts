@@ -63,7 +63,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Shoulder",
     tags: ["SHOULDER", "MOBILITY"],
     defaultSets: 3,
-    defaultReps: "10 reps"
+    defaultReps: "10"
   },
   {
     title: "Dead Bug (Level 1)",
@@ -73,7 +73,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Core Stability",
     tags: ["CORE", "LUMBAR"],
     defaultSets: 3,
-    defaultReps: "10 reps"
+    defaultReps: "10"
   },
   {
     title: "Single Leg Bridge",
@@ -83,7 +83,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Hip",
     tags: ["HIP", "STRENGTH"],
     defaultSets: 3,
-    defaultReps: "10 reps"
+    defaultReps: "10"
   },
   {
     title: "Banded Monster Walk",
@@ -93,7 +93,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Hip",
     tags: ["HIP", "RESISTANCE"],
     defaultSets: 3,
-    defaultReps: "12 reps"
+    defaultReps: "12"
   },
   {
     title: "Eccentric Calf Raise",
@@ -103,7 +103,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Ankle & Foot",
     tags: ["ANKLE", "ECCENTRIC"],
     defaultSets: 3,
-    defaultReps: "15 reps"
+    defaultReps: "15"
   },
   {
     title: "Chin Tucks (Supine)",
@@ -113,7 +113,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Cervical (Neck)",
     tags: ["CERVICAL", "POSTURE"],
     defaultSets: 3,
-    defaultReps: "10 holds x 5 sec"
+    defaultReps: "10"
   },
   {
     title: "Scapular Retractions",
@@ -123,7 +123,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Upper Back",
     tags: ["UPPER BACK", "POSTURE"],
     defaultSets: 3,
-    defaultReps: "10 reps"
+    defaultReps: "10"
   },
   {
     title: "Isometric Cervical Flexion",
@@ -133,7 +133,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Cervical (Neck)",
     tags: ["CERVICAL", "ISOMETRIC"],
     defaultSets: 3,
-    defaultReps: "5 holds x 10 sec"
+    defaultReps: "10"
   },
   {
     title: "Biceps Curl Stretch & Control",
@@ -143,7 +143,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Biceps",
     tags: ["BICEPS", "STRENGTH"],
     defaultSets: 3,
-    defaultReps: "12 reps"
+    defaultReps: "12"
   },
   {
     title: "Hamstring Wall Stretch",
@@ -153,7 +153,7 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
     category: "Hamstrings",
     tags: ["HAMSTRINGS", "FLEXIBILITY"],
     defaultSets: 3,
-    defaultReps: "30 sec hold"
+    defaultReps: "10"
   }
 ];
 
