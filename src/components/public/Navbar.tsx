@@ -35,8 +35,10 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
-  // If we are in the dashboard or patienthub, or not mounted on the client, we don't render the public Navbar
-  if (!mounted || pathname?.startsWith("/dashboard") || pathname?.startsWith("/patienthub")) {
+  // If we are in the staff dashboard or authenticated patient hub subroutes, we don't render the public Navbar.
+  // We STILL render the public Navbar on the login page /patienthub/login.
+  const isPortalSubroute = pathname?.startsWith("/dashboard") || (pathname?.startsWith("/patienthub") && pathname !== "/patienthub/login");
+  if (!mounted || isPortalSubroute) {
     return null;
   }
 

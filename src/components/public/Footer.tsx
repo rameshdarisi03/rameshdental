@@ -13,8 +13,10 @@ export default function Footer() {
     setMounted(true);
   }, []);
 
-  // If we are in the dashboard or patienthub, or not mounted on the client, we don't render the public Footer
-  if (!mounted || pathname?.startsWith("/dashboard") || pathname?.startsWith("/patienthub")) {
+  // If we are in the staff dashboard or authenticated patient hub subroutes, we don't render the public Footer.
+  // We STILL render the public Footer on the login page /patienthub/login.
+  const isPortalSubroute = pathname?.startsWith("/dashboard") || (pathname?.startsWith("/patienthub") && pathname !== "/patienthub/login");
+  if (!mounted || isPortalSubroute) {
     return null;
   }
 
