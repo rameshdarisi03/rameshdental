@@ -38,15 +38,25 @@ service cloud.firestore {
 
     // 5. Patients Collection & Sub-collections
     match /patients/{patientId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
       
       match /consultations/{consultationId} {
-        allow read, write: if isSignedIn();
+        allow read, write: if true;
       }
       
       match /files/{fileId} {
-        allow read, write: if isSignedIn();
+        allow read, write: if true;
       }
+    }
+
+    // 6. Exercise Library Collection
+    match /exercise_library/{exerciseId} {
+      allow read, write: if true;
+    }
+
+    // 7. Prescriptions Collection
+    match /prescriptions/{prescriptionId} {
+      allow read, write: if true;
     }
   }
 }
