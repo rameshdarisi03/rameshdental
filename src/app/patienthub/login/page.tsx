@@ -149,46 +149,82 @@ function LoginContent() {
 
     try {
       if (isSignUp) {
-        // Sign Up Mode: Check Activation Code
+        // Sign Up Mode:
         if (!activationCode) {
           setError("Activation code is required for initial sign-up.");
           setLoading(false);
           return;
         }
 
-        const q = query(collection(db, "patients"), where("activationCode", "==", activationCode.trim().toUpperCase()));
-        const snap = await getDocs(q);
-
-        if (snap.empty) {
-          setError("Invalid activation code. Please contact the front desk to get a valid code.");
-          setLoading(false);
-          return;
-        }
-
-        const patientDoc = snap.docs[0];
-
-        // Create Firebase credentials
+        // 1. Create the Firebase Auth account first to get authenticated state
         const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        
-        // Link and activate patient record
-        await updateDoc(doc(db, "patients", patientDoc.id), {
-          email: email.trim(),
-          authUid: cred.user.uid,
-          activated: true,
-          activationCode: "" // clear activation code
-        });
-      } else {
-        // Sign In Mode: Check if patient account is linked and authenticated
-        const q = query(collection(db, "patients"), where("email", "==", email.trim()));
-        const snap = await getDocs(q);
 
-        if (snap.empty) {
-          setError("This email address is not registered. Sign up with an activation code first.");
-          setLoading(false);
-          return;
+        // 2. Query Firestore now that we are authenticated
+        try {
+          const q = query(
+            collection(db, "patients"), 
+            where("activationCode", "==", activationCode.trim().toUpperCase())
+          );
+          const snap = await getDocs(q);
+
+          if (snap.empty) {
+            // Invalid activation code: delete the newly created auth user to prevent orphaned accounts
+            if (auth.currentUser) {
+              await auth.currentUser.delete();
+            }
+            await auth.signOut();
+            setError("Invalid activation code. Please contact the front desk to get a valid code.");
+            setLoading(false);
+            return;
+          }
+
+          const patientDoc = snap.docs[0];
+
+          // Link and activate patient record
+          await updateDoc(doc(db, "patients", patientDoc.id), {
+            email: email.trim(),
+            authUid: cred.user.uid,
+            activated: true,
+            activationCode: "" // clear activation code
+          });
+        } catch (dbErr: any) {
+          console.error("Database linking error during signup:", dbErr);
+          if (auth.currentUser) {
+            await auth.currentUser.delete();
+          }
+          await auth.signOut();
+          throw dbErr;
         }
+      } else {
+        // Sign In Mode:
+        // 1. Authenticate first
+        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
 
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        // 2. Query Firestore now that we are authenticated
+        try {
+          const q = query(collection(db, "patients"), where("email", "==", email.trim()));
+          const snap = await getDocs(q);
+
+          if (snap.empty) {
+            // Logged in but has no patient chart: logout immediately
+            await auth.signOut();
+            setError("This email address is not registered as a patient. Sign up with an activation code first.");
+            setLoading(false);
+            return;
+          }
+          
+          // Sync authUid just in case it wasn't set
+          const patientDoc = snap.docs[0];
+          if (!patientDoc.data().authUid) {
+            await updateDoc(doc(db, "patients", patientDoc.id), {
+              authUid: cred.user.uid
+            });
+          }
+        } catch (dbErr: any) {
+          console.error("Database lookup error during signin:", dbErr);
+          await auth.signOut();
+          throw dbErr;
+        }
       }
       
       router.push("/patienthub/dashboard");
@@ -196,7 +232,7 @@ function LoginContent() {
       console.error("Email authentication failed:", err);
       if (err.code === "auth/email-already-in-use") {
         setError("This email is already registered in our system. Try signing in.");
-      } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+      } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
         setError("Invalid email or password. Please verify and try again.");
       } else {
         setError(err.message || "Authentication failed.");

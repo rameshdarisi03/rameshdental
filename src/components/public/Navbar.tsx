@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Activity, Phone, Moon, Sun } from "lucide-react";
+import { FEATURES } from "@/lib/features";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,6 +49,7 @@ export default function Navbar() {
     { name: "Articles", href: "/articles" },
     { name: "FAQ", href: "/faq" },
     { name: "Locate Us", href: "/locate-us" },
+    ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/patienthub/login" }] : [])
   ];
 
   const isActive = (href: string) => {
