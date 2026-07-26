@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { Patient } from "@/lib/patientsDb";
-import { getPatientPrescription, PatientPrescription } from "@/lib/exercisesDb";
+import { getPatientPrescription, getExerciseLibrary, extractYoutubeId, PatientPrescription } from "@/lib/exercisesDb";
 import Link from "next/link";
 import { 
   Calendar, 
@@ -75,17 +74,25 @@ export default function DashboardPage() {
             setPatient(matched);
             localStorage.setItem("gpc_patient", JSON.stringify(matched));
 
-            // Fetch active prescribed exercises
+            // Fetch active prescribed exercises and cross-reference live library
             const rxData = await getPatientPrescription(matched.id);
+            const liveLibrary = await getExerciseLibrary();
+            const libMap = new Map(liveLibrary.map((item) => [item.id, item]));
+
             if (rxData && rxData.exercises && rxData.exercises.length > 0) {
               setPrescription(rxData);
-              const mapped: DisplayExercise[] = rxData.exercises.map((ex) => ({
-                title: ex.title,
-                description: `${ex.sets} sets × ${ex.repsOrHold}`,
-                duration: "2 mins",
-                youtubeId: ex.youtubeId,
-                tags: ex.tags || [ex.category]
-              }));
+              const mapped: DisplayExercise[] = rxData.exercises.map((ex) => {
+                const liveItem = libMap.get(ex.exerciseId) || 
+                  liveLibrary.find((l) => l.title.toLowerCase().trim() === ex.title.toLowerCase().trim() || l.id === ex.exerciseId);
+                const freshYtId = extractYoutubeId(liveItem?.youtubeId || ex.youtubeId || ex.youtubeUrl);
+                return {
+                  title: liveItem?.title || ex.title,
+                  description: `${ex.sets} sets × ${ex.repsOrHold}`,
+                  duration: liveItem?.duration || "2 mins",
+                  youtubeId: freshYtId,
+                  tags: ex.tags || [ex.category]
+                };
+              });
               setExercises(mapped);
             }
           }

@@ -90,8 +90,8 @@ const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
   },
   {
     title: "Single Leg Bridge",
-    youtubeUrl: "https://www.youtube.com/watch?v=A8vN0U4z-80",
-    youtubeId: "A8vN0U4z-80",
+    youtubeUrl: "https://www.youtube.com/watch?v=0k5G6F0mY7g",
+    youtubeId: "0k5G6F0mY7g",
     duration: "0:30",
     category: "Hip",
     tags: ["HIP", "STRENGTH"],
