@@ -212,13 +212,49 @@ export async function deleteExerciseFromLibrary(id: string): Promise<void> {
   await deleteDoc(docRef);
 }
 
-// Update an existing exercise in library
+// Update an existing exercise in library and immediately propagate changes to all active patient prescriptions
 export async function updateExerciseInLibrary(
   id: string,
   updatedFields: Partial<Omit<ExerciseItem, "id">>
 ): Promise<void> {
   const docRef = doc(db, "exercise_library", id);
   await updateDoc(docRef, updatedFields);
+
+  // Propagate updated YouTube link, title, and metadata to all patient prescriptions in real time
+  try {
+    const prescriptionsRef = collection(db, "prescriptions");
+    const snap = await getDocs(prescriptionsRef);
+
+    for (const docSnap of snap.docs) {
+      const pData = docSnap.data() as PatientPrescription;
+      if (!pData.exercises || !Array.isArray(pData.exercises)) continue;
+
+      let hasUpdated = false;
+      const updatedExercises = pData.exercises.map((exItem) => {
+        if (exItem.exerciseId === id) {
+          hasUpdated = true;
+          return {
+            ...exItem,
+            title: updatedFields.title ?? exItem.title,
+            youtubeUrl: updatedFields.youtubeUrl ?? exItem.youtubeUrl,
+            youtubeId: updatedFields.youtubeId ?? exItem.youtubeId,
+            category: updatedFields.category ?? exItem.category,
+            tags: updatedFields.tags ?? exItem.tags
+          };
+        }
+        return exItem;
+      });
+
+      if (hasUpdated) {
+        await updateDoc(doc(db, "prescriptions", docSnap.id), {
+          exercises: updatedExercises,
+          updatedAt: Timestamp.now()
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error syncing exercise update to patient prescriptions:", err);
+  }
 }
 
 // Fetch active prescription for a patient
