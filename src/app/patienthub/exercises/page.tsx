@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Patient } from "@/lib/patientsDb";
+import { getPatientPrescription, PatientPrescription } from "@/lib/exercisesDb";
 import { 
   Play, 
   ChevronRight, 
@@ -13,10 +14,12 @@ import {
   Clock, 
   Dumbbell,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Sparkles,
+  FileText
 } from "lucide-react";
 
-interface Exercise {
+interface DisplayExercise {
   title: string;
   description: string;
   duration: string;
@@ -24,27 +27,27 @@ interface Exercise {
   tags: string[];
 }
 
-const DEFAULT_EXERCISES: Exercise[] = [
+const DEFAULT_EXERCISES: DisplayExercise[] = [
   {
     title: "Cervical Chin Tucks",
     description: "3 sets of 10 reps",
-    duration: "5 mins",
-    youtubeId: "wD7V2F3eRns",
-    tags: ["Neck", "Posture", "Alignment"]
+    duration: "0:38",
+    youtubeId: "3R1tA4S0y4k",
+    tags: ["CERVICAL", "POSTURE"]
   },
   {
     title: "Scapular Retractions",
-    description: "2 sets of 15 reps",
-    duration: "8 mins",
-    youtubeId: "vN4Jc0qK-j4",
-    tags: ["Shoulder", "Strength", "Stability"]
+    description: "3 sets of 10 reps",
+    duration: "0:42",
+    youtubeId: "4Yv-pQ2m1Wk",
+    tags: ["UPPER BACK", "POSTURE"]
   },
   {
-    title: "Isometric Lateral Flexion",
-    description: "3 sets of 10s holds",
-    duration: "6 mins",
-    youtubeId: "5p3dO5H6T1U",
-    tags: ["Cervical", "Mobility", "Stretching"]
+    title: "Wall Slides with Foam Roller",
+    description: "3 sets of 10 reps",
+    duration: "0:45",
+    youtubeId: "wD7V2F3eRns",
+    tags: ["SHOULDER", "MOBILITY"]
   }
 ];
 
@@ -67,7 +70,8 @@ function ExercisesContent() {
   const videoParam = searchParams.get("video");
 
   const [patient, setPatient] = useState<Patient | null>(null);
-  const [exercises, setExercises] = useState<Exercise[]>(DEFAULT_EXERCISES);
+  const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
+  const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
   const [activeVideo, setActiveVideo] = useState<string>(DEFAULT_EXERCISES[0].youtubeId);
   const [loading, setLoading] = useState(true);
 
@@ -87,6 +91,27 @@ function ExercisesContent() {
             const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as Patient;
             setPatient(matched);
             localStorage.setItem("gpc_patient", JSON.stringify(matched));
+
+            // Fetch active prescription assigned by therapist
+            const rxData = await getPatientPrescription(matched.id);
+            if (rxData && rxData.exercises && rxData.exercises.length > 0) {
+              setPrescription(rxData);
+              const mapped: DisplayExercise[] = rxData.exercises.map((ex) => ({
+                title: ex.title,
+                description: `${ex.sets} sets × ${ex.repsOrHold}`,
+                duration: "2-3 mins",
+                youtubeId: ex.youtubeId,
+                tags: ex.tags || [ex.category]
+              }));
+              setExercises(mapped);
+              if (videoParam) {
+                setActiveVideo(videoParam);
+              } else {
+                setActiveVideo(mapped[0].youtubeId);
+              }
+            } else if (videoParam) {
+              setActiveVideo(videoParam);
+            }
           }
         } catch (err) {
           console.error("Failed to load exercises for patient:", err);
@@ -96,143 +121,135 @@ function ExercisesContent() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [videoParam]);
 
-  // Update active video if query param changes
-  useEffect(() => {
-    if (videoParam) {
-      setActiveVideo(videoParam);
-    } else if (exercises.length > 0) {
-      setActiveVideo(exercises[0].youtubeId);
-    }
-  }, [videoParam, exercises]);
-
-  const activeExercise = exercises.find((ex) => ex.youtubeId === activeVideo) || exercises[0];
+  const activeExerciseObj = exercises.find(e => e.youtubeId === activeVideo) || exercises[0];
 
   return (
-    <div className="space-y-6 pb-12 select-none">
-      
-      {/* Header and Back navigation */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.push("/patienthub/dashboard")}
-          className="p-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl text-slate-500 hover:text-brand-green transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Prescribed Exercises</h1>
-          <p className="text-xs text-slate-450 font-bold mt-0.5">Assigned by: Dr. Sarah Jenkins</p>
-        </div>
-      </div>
-
-      {/* Main split viewport: Active player on left, routines list on right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 px-4 py-6 sm:px-6 lg:px-8 pb-24 animate-fade-in">
+      <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* Left Side: Video Player block */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="aspect-video w-full bg-slate-950 rounded-3xl overflow-hidden shadow-md border border-slate-200/50 dark:border-slate-800">
+        {/* Top Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => router.push("/patienthub/dashboard")}
+              className="h-9 w-9 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-green transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div>
+              <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                Home Exercise Routine
+              </h1>
+              <p className="text-[11px] font-bold text-slate-500">
+                {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Standard Mobility Routine"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-teal-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+            <Dumbbell className="h-3.5 w-3.5" />
+            <span>{exercises.length} Exercises</span>
+          </div>
+        </div>
+
+        {/* Therapist Notes Banner (If prescribed) */}
+        {prescription && prescription.generalNotes && (
+          <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/60 p-4 rounded-2xl flex items-start gap-3 text-xs text-sky-900 dark:text-sky-300 font-semibold shadow-xs">
+            <FileText className="h-5 w-5 text-sky-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-black uppercase tracking-wider text-[10px] text-sky-700 dark:text-sky-400 block">
+                Therapist Guidance & Notes
+              </span>
+              <p className="leading-relaxed">{prescription.generalNotes}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Video Player Display Container */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-xl space-y-4 overflow-hidden">
+          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 shadow-inner">
             <iframe
-              width="100%"
-              height="100%"
               src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0`}
-              title={activeExercise?.title || "Exercise Demonstration Video"}
-              frameBorder="0"
+              title={activeExerciseObj?.title || "Exercise Video"}
+              className="w-full h-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="w-full h-full"
             />
           </div>
 
-          {/* Active Exercise meta details card */}
-          {activeExercise && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-3">
-              <div className="flex justify-between items-start">
-                <h2 className="text-lg font-black text-brand-charcoal dark:text-white leading-tight">
-                  {activeExercise.title}
-                </h2>
-                <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/20 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle className="h-3 w-3" />
-                  Prescribed Routine
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4 text-xs font-bold text-slate-450 uppercase tracking-wide">
-                <span className="flex items-center gap-1"><Dumbbell className="h-3.5 w-3.5 text-brand-green" /> {activeExercise.description}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-brand-green" /> {activeExercise.duration}</span>
-              </div>
-
-              <div className="border-t border-slate-100 dark:border-slate-850 pt-3 mt-2 text-xs text-slate-500 leading-relaxed font-semibold">
-                Perform this exercise slowly and with controlled breathing. If you experience sharp pain, stop immediately and contact your physical therapist at Gait Physio Clinic.
-              </div>
+          {/* Video Title & Meta */}
+          <div className="p-2 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                {activeExerciseObj?.title}
+              </h2>
+              <span className="bg-brand-sand/60 dark:bg-brand-green/20 text-brand-green dark:text-teal-300 px-3 py-1 rounded-full text-xs font-black">
+                {activeExerciseObj?.description}
+              </span>
             </div>
-          )}
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {activeExerciseObj?.tags.map((tag) => (
+                <span 
+                  key={tag}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Right Side: Exercises Sidebar list selector */}
-        <div className="space-y-4">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Exercise Playlist</h3>
-          
-          <div className="space-y-3">
-            {exercises.map((ex) => {
+        {/* Playlist Selector List */}
+        <div className="space-y-3 pt-2">
+          <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+            Prescribed Routine Exercises
+          </h3>
+
+          <div className="space-y-2.5">
+            {exercises.map((ex, index) => {
               const isActive = ex.youtubeId === activeVideo;
               return (
-                <button
-                  key={ex.title}
-                  onClick={() => router.push(`/patienthub/exercises?video=${ex.youtubeId}`)}
-                  className={`w-full text-left flex gap-3 p-3 rounded-2xl border transition-all cursor-pointer shadow-sm ${
-                    isActive 
-                      ? "bg-emerald-50/40 dark:bg-emerald-950/15 border-brand-green/45 text-brand-green dark:text-emerald-400"
-                      : "bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                <div
+                  key={ex.youtubeId + index}
+                  onClick={() => setActiveVideo(ex.youtubeId)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                    isActive
+                      ? "bg-white dark:bg-slate-900 border-brand-green shadow-md ring-2 ring-brand-green/10"
+                      : "bg-white/60 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800/60 hover:bg-white dark:hover:bg-slate-900"
                   }`}
                 >
-                  {/* Miniature Thumbnail */}
-                  <div className="relative h-14 w-20 bg-slate-100 rounded-xl overflow-hidden shrink-0">
-                    <img 
-                      src={`https://img.youtube.com/vi/${ex.youtubeId}/mqdefault.jpg`}
-                      alt={ex.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <Play className="h-4 w-4 text-white fill-current" />
+                  <div className="flex items-center gap-3.5">
+                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 font-black text-xs ${
+                      isActive 
+                        ? "bg-brand-green text-white" 
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}>
+                      {isActive ? <Play className="h-4 w-4 fill-current ml-0.5" /> : index + 1}
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug">
+                        {ex.title}
+                      </h4>
+                      <p className="text-[10px] font-bold text-slate-500 mt-0.5">
+                        {ex.description}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
-                    <p className={`text-xs font-black truncate leading-tight ${isActive ? "text-brand-green dark:text-emerald-400" : "text-slate-700 dark:text-slate-200"}`}>
-                      {ex.title}
-                    </p>
-                    <p className="text-[10px] text-slate-450 font-bold">{ex.description}</p>
-                    
-                    {/* Tags */}
-                    <div className="flex gap-1">
-                      {ex.tags.slice(0, 1).map((t) => (
-                        <span key={t} className="text-[8px] font-black uppercase tracking-widest text-slate-400">
-                          #{t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <ChevronRight className="h-4 w-4 text-slate-400 shrink-0 self-center" />
-                </button>
+                  <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? "text-brand-green translate-x-1" : "text-slate-400"}`} />
+                </div>
               );
             })}
-          </div>
-
-          {/* Help notice widget */}
-          <div className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800 text-[10px] text-slate-500 font-bold leading-relaxed space-y-1.5">
-            <div className="flex items-center gap-1.5 uppercase tracking-wider text-slate-450">
-              <HelpCircle className="h-3.5 w-3.5 text-slate-400" />
-              <span>Instructions</span>
-            </div>
-            <p>Complete 2 sessions daily (morning and evening). Maintain proper posture alignment as taught by your GPC therapist.</p>
           </div>
         </div>
 
       </div>
-
     </div>
   );
 }

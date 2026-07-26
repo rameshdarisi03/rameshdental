@@ -25,8 +25,10 @@ import {
   BellRing,
   Phone,
   Mail,
-  UserCheck
+  UserCheck,
+  Dumbbell
 } from "lucide-react";
+import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
 import { 
   getPatientById, 
   getConsultations, 
@@ -82,6 +84,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [error, setError] = useState("");
 
   const [activeTab, setActiveTab] = useState<"timeline" | "files">("timeline");
+  const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
 
   // New consultation log / upload form states
   const [notes, setNotes] = useState("");
@@ -361,7 +364,15 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        <div className="flex items-center gap-3 self-start md:self-center">
+        <div className="flex items-center gap-3 flex-wrap self-start md:self-center">
+          <button
+            onClick={() => setIsPrescriberOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all shadow-md cursor-pointer"
+          >
+            <Dumbbell className="h-4.5 w-4.5" />
+            Prescribe Exercises
+          </button>
+
           {patient.googleDriveFolderId ? (
             <a
               href={`https://drive.google.com/drive/folders/${patient.googleDriveFolderId}`}
@@ -812,6 +823,21 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
       </div>
+
+      {/* Exercise Prescriber Modal */}
+      {patient && (
+        <ExercisePrescriberModal
+          isOpen={isPrescriberOpen}
+          onClose={() => setIsPrescriberOpen(false)}
+          patientId={patient.id}
+          patientName={patient.name}
+          pid={patient.id}
+          lastSeen={patient.lastVisit || "Today"}
+          onPrescriptionSaved={() => {
+            loadPatientDetails();
+          }}
+        />
+      )}
 
     </div>
   );

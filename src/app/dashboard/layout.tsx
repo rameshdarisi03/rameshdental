@@ -18,7 +18,8 @@ import {
   Settings,
   Globe,
   BarChart3,
-  PlusCircle
+  PlusCircle,
+  Dumbbell
 } from "lucide-react";
 
 interface UserProfile {
@@ -75,6 +76,7 @@ export default function DashboardLayout({
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, role: "admin" },
     { name: "Staff Management", href: "/dashboard/staff", icon: UserCheck, role: "admin" },
     { name: "Settings", href: "/dashboard/settings", icon: Settings, role: "admin" },
+    { name: "Exercise Library", href: "/dashboard/exercises", icon: Dumbbell, role: "all" },
   ];
 
   const isActive = (href: string) => {
