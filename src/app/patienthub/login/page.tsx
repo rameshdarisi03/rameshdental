@@ -49,6 +49,7 @@ function LoginContent() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const [installInstructions, setInstallInstructions] = useState<string | null>(null);
 
   // Pending Google Account state for linking
@@ -56,6 +57,9 @@ function LoginContent() {
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined") {
+      setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+    }
 
     // Listen for browser PWA install trigger
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -504,7 +508,7 @@ function LoginContent() {
       </div>
 
       {/* Catchy Dual PWA Install App (Mobile & Desktop) Banner Hub */}
-      {mounted && (
+      {mounted && !isStandalone && (
         <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10 select-none animate-fade-in">
           
           {/* Card 1: Mobile App Setup (QR Code + Install Mobile Button) */}
