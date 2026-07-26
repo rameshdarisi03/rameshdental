@@ -10,13 +10,16 @@ import {
   Loader2, 
   X, 
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  MoreVertical,
+  Pencil
 } from "lucide-react";
 import { 
   ExerciseItem, 
   getExerciseLibrary, 
   addExerciseToLibrary, 
   deleteExerciseFromLibrary, 
+  updateExerciseInLibrary,
   extractYoutubeId 
 } from "@/lib/exercisesDb";
 
@@ -41,6 +44,9 @@ export default function ExerciseLibraryAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  // Dropdown menu state
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
   // Modal State for adding new exercise
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -49,11 +55,27 @@ export default function ExerciseLibraryAdminPage() {
   const [duration, setDuration] = useState("1:00");
   const [tagsInput, setTagsInput] = useState("STRENGTH, MOBILITY");
   const [defaultSets, setDefaultSets] = useState(3);
-  const [defaultReps, setDefaultReps] = useState("10 reps");
+  const [defaultReps, setDefaultReps] = useState("10");
   const [saving, setSaving] = useState(false);
+
+  // Modal State for editing exercise
+  const [editingExercise, setEditingExercise] = useState<ExerciseItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editYoutubeUrl, setEditYoutubeUrl] = useState("");
+  const [editCategory, setEditCategory] = useState("Shoulder");
+  const [editDuration, setEditDuration] = useState("1:00");
+  const [editTagsInput, setEditTagsInput] = useState("STRENGTH, MOBILITY");
+  const [editDefaultSets, setEditDefaultSets] = useState(3);
+  const [editDefaultReps, setEditDefaultReps] = useState("10");
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     loadExercises();
+
+    // Close menu when clicking outside
+    const handleGlobalClick = () => setOpenMenuId(null);
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
   }, []);
 
   const loadExercises = async () => {
@@ -88,7 +110,7 @@ export default function ExerciseLibraryAdminPage() {
         category,
         tags,
         defaultSets: Number(defaultSets) || 3,
-        defaultReps: defaultReps || "10 reps"
+        defaultReps: defaultReps || "10"
       });
 
       setExercises([newItem, ...exercises]);
@@ -103,6 +125,59 @@ export default function ExerciseLibraryAdminPage() {
       console.error("Error adding exercise:", err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOpenEditModal = (ex: ExerciseItem) => {
+    setEditingExercise(ex);
+    setEditTitle(ex.title);
+    setEditYoutubeUrl(ex.youtubeUrl || `https://www.youtube.com/watch?v=${ex.youtubeId}`);
+    setEditCategory(ex.category);
+    setEditDuration(ex.duration);
+    setEditTagsInput((ex.tags || []).join(", "));
+    setEditDefaultSets(ex.defaultSets || 3);
+    setEditDefaultReps(ex.defaultReps || "10");
+  };
+
+  const handleUpdateExercise = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingExercise || !editTitle || !editYoutubeUrl) return;
+
+    setUpdating(true);
+    try {
+      const youtubeId = extractYoutubeId(editYoutubeUrl);
+      const tags = editTagsInput
+        .split(",")
+        .map((t) => t.trim().toUpperCase())
+        .filter(Boolean);
+
+      const updatedPayload = {
+        title: editTitle,
+        youtubeUrl: editYoutubeUrl,
+        youtubeId,
+        duration: editDuration || "1:00",
+        category: editCategory,
+        tags,
+        defaultSets: Number(editDefaultSets) || 3,
+        defaultReps: editDefaultReps || "10"
+      };
+
+      await updateExerciseInLibrary(editingExercise.id, updatedPayload);
+
+      setExercises(
+        exercises.map((item) => {
+          if (item.id === editingExercise.id) {
+            return { ...item, ...updatedPayload };
+          }
+          return item;
+        })
+      );
+
+      setEditingExercise(null);
+    } catch (err) {
+      console.error("Error updating exercise:", err);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -163,7 +238,7 @@ export default function ExerciseLibraryAdminPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search exercises by title, category, or tags (e.g. Shoulder, Core, Mobility)..."
-            className="w-full pl-11 pr-4 py-3 text-xs font-bold rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white outline-none focus:border-brand-green transition-colors shadow-inner"
+            className="w-full pl-11 pr-4 py-3 text-xs font-bold rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green transition-colors shadow-inner"
           />
         </div>
 
@@ -265,16 +340,46 @@ export default function ExerciseLibraryAdminPage() {
                 </div>
               </div>
 
-              {/* Bottom Action Footer */}
-              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              {/* Bottom Action Footer with Three-Dots Menu Button */}
+              <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between relative">
                 <span className="text-[10px] font-bold text-slate-400">ID: {ex.youtubeId}</span>
-                <button
-                  onClick={() => handleDeleteExercise(ex.id)}
-                  className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
-                  title="Delete exercise from library"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                
+                {/* Three Dots Button */}
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => setOpenMenuId(openMenuId === ex.id ? null : ex.id)}
+                    className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    title="Options"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+
+                  {/* Dropdown Menu Popup */}
+                  {openMenuId === ex.id && (
+                    <div className="absolute right-0 bottom-8 z-30 w-44 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 space-y-1 animate-fade-in">
+                      <button
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          handleOpenEditModal(ex);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-left cursor-pointer"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-brand-green" />
+                        Edit Link & Details
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          handleDeleteExercise(ex.id);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-colors text-left cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        Remove Exercise
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -384,7 +489,7 @@ export default function ExerciseLibraryAdminPage() {
                     type="text"
                     value={defaultReps}
                     onChange={(e) => setDefaultReps(e.target.value)}
-                    placeholder="10 reps"
+                    placeholder="10"
                     className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                   />
                 </div>
@@ -410,6 +515,138 @@ export default function ExerciseLibraryAdminPage() {
                   className="w-full flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Save to Exercise Library"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Exercise Modal */}
+      {editingExercise && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative">
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center">
+                  <Pencil className="h-5 w-5" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">Edit Exercise Details</h3>
+              </div>
+              <button
+                onClick={() => setEditingExercise(null)}
+                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateExercise} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                  Exercise Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                  YouTube Video Link or ID
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editYoutubeUrl}
+                  onChange={(e) => setEditYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Anatomical Category
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Duration (MM:SS)
+                  </label>
+                  <input
+                    type="text"
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Default Sets
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editDefaultSets}
+                    onChange={(e) => setEditDefaultSets(Number(e.target.value))}
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Default Reps / Hold
+                  </label>
+                  <input
+                    type="text"
+                    value={editDefaultReps}
+                    onChange={(e) => setEditDefaultReps(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                  Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={editTagsInput}
+                  onChange={(e) => setEditTagsInput(e.target.value)}
+                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                />
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="w-full flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {updating ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Save Changes"}
                 </button>
               </div>
             </form>

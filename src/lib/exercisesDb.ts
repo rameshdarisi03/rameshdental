@@ -212,6 +212,15 @@ export async function deleteExerciseFromLibrary(id: string): Promise<void> {
   await deleteDoc(docRef);
 }
 
+// Update an existing exercise in library
+export async function updateExerciseInLibrary(
+  id: string,
+  updatedFields: Partial<Omit<ExerciseItem, "id">>
+): Promise<void> {
+  const docRef = doc(db, "exercise_library", id);
+  await updateDoc(docRef, updatedFields);
+}
+
 // Fetch active prescription for a patient
 export async function getPatientPrescription(patientId: string): Promise<PatientPrescription | null> {
   try {
