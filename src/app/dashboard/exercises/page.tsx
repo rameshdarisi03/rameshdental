@@ -152,20 +152,23 @@ export default function ExerciseLibraryAdminPage() {
         </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+      {/* Filter & Search Bar Container */}
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+        
+        {/* Top Row: Full Width Search Input */}
+        <div className="relative w-full">
+          <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search exercises by title, region, or tags..."
-            className="w-full pl-10 pr-4 py-2 text-xs font-semibold rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-800 dark:text-white outline-none focus:border-brand-green"
+            placeholder="Search exercises by title, category, or tags (e.g. Shoulder, Core, Mobility)..."
+            className="w-full pl-11 pr-4 py-3 text-xs font-bold rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white outline-none focus:border-brand-green transition-colors shadow-inner"
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+        {/* Second Row: Category Filter Pills below Search Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
           <button
             onClick={() => setSelectedCategory("All")}
             className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
