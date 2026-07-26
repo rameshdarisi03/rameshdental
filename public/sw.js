@@ -1,4 +1,4 @@
-const CACHE_NAME = "gpc-patient-hub-v3";
+const CACHE_NAME = "gpc-patient-hub-v4";
 const ASSETS_TO_CACHE = [
   "/logo-icon.svg",
   "/manifest.json"
@@ -28,8 +28,15 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  // Only handle GET requests and ignore Firebase/Firestore API requests
-  if (e.request.method !== "GET" || e.request.url.includes("firestore.googleapis.com") || e.request.url.includes("identitytoolkit.googleapis.com")) {
+  // Only handle GET requests
+  if (e.request.method !== "GET") {
+    return;
+  }
+
+  // Bypass all cross-origin requests (Firebase Auth, APIs, Firestore, third-party CDNs)
+  // The service worker should only intercept and cache resources on our own domain
+  const isSameOrigin = e.request.url.startsWith(self.location.origin);
+  if (!isSameOrigin) {
     return;
   }
 
