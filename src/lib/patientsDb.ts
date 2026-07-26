@@ -58,12 +58,14 @@ export interface MedicalRecordFile {
   createdAt: Timestamp;
 }
 
-// Helper to generate a 5-digit uppercase alphanumeric activation code segment (excluding confusing chars)
+// Helper to generate a cryptographically secure 8-character alphanumeric activation code (excluding confusing chars)
 function generateActivationCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "GPC-";
-  for (let i = 0; i < 5; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  const crypto = require("crypto");
+  const bytes = crypto.randomBytes(8);
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return code;
 }
