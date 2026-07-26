@@ -104,8 +104,14 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center min-h-[80vh] px-4 py-12 sm:px-6 lg:px-8 bg-brand-bg dark:bg-slate-950">
-      <div className="w-full max-w-md space-y-8 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] relative overflow-hidden animate-fade-in">
+    <div 
+      className="flex flex-1 flex-col items-center justify-center min-h-[85vh] px-4 py-12 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: "url('/images/hero-bg-opt.webp')" }}
+    >
+      {/* Subtle overlay for contrast */}
+      <div className="absolute inset-0 bg-slate-950/15 dark:bg-slate-950/40 pointer-events-none" />
+      
+      <div className="w-full max-w-md space-y-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-8 sm:p-10 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl relative z-10 overflow-hidden animate-fade-in">
         
         {/* Header Branding */}
         <div className="text-center space-y-2">

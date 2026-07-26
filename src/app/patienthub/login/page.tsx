@@ -249,8 +249,14 @@ function LoginContent() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-[#f8fafc] dark:bg-slate-950">
-      <div className="w-full max-w-md space-y-8 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-8 sm:p-10 rounded-3xl shadow-xl select-none">
+    <div 
+      className="min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: "url('/images/hero-bg-opt.webp')" }}
+    >
+      {/* Subtle overlay for contrast */}
+      <div className="absolute inset-0 bg-slate-950/15 dark:bg-slate-950/40 pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-8 sm:p-10 rounded-3xl shadow-2xl relative z-10 select-none animate-fade-in">
         
         {/* Scenario: Pending Google Account Registration */}
         {pendingGoogle ? (
