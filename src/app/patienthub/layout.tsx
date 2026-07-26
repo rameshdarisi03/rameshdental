@@ -102,7 +102,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
   // Render clean children directly during auth check for login page
   if (pathname === "/patienthub/login") {
-    return <div className="min-h-screen bg-slate-50 dark:bg-slate-950">{children}</div>;
+    return <div className="min-h-screen">{children}</div>;
   }
 
   if (checkingAuth) {

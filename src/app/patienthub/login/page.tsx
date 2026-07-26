@@ -48,11 +48,15 @@ function LoginContent() {
   // PWA Native Install Prompt handling
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [installInstructions, setInstallInstructions] = useState<string | null>(null);
 
   // Pending Google Account state for linking
   const [pendingGoogle, setPendingGoogle] = useState<PendingGoogleUser | null>(null);
 
   useEffect(() => {
+    setMounted(true);
+
     // Listen for browser PWA install trigger
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -68,13 +72,38 @@ function LoginContent() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setIsInstallable(false);
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          setIsInstallable(false);
+        }
+        setDeferredPrompt(null);
+        return;
+      } catch (err) {
+        console.error("Error triggering install prompt:", err);
+      }
     }
-    setDeferredPrompt(null);
+
+    // Fallback: If browser doesn't trigger beforeinstallprompt (e.g. iOS Safari, Chrome on iOS, or already installed)
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isAndroid = /android/.test(ua);
+
+    if (isIOS) {
+      setInstallInstructions(
+        "To install on iOS: Tap the 'Share' button (square icon with up arrow) at the bottom of Safari, scroll down, and select 'Add to Home Screen'."
+      );
+    } else if (isAndroid) {
+      setInstallInstructions(
+        "To install on Android: Tap the three vertical dots menu icon in Chrome (top right), then select 'Add to Home screen' or 'Install app'."
+      );
+    } else {
+      setInstallInstructions(
+        "To install on Desktop: Click the 'Install App' icon (square with arrow) at the right side of Chrome/Edge address bar, or click three dots menu → Cast, save, and share → Install."
+      );
+    }
   };
 
   useEffect(() => {
@@ -472,81 +501,105 @@ function LoginContent() {
             </div>
           </>
         )}
-
       </div>
 
       {/* Catchy Dual PWA Install App (Mobile & Desktop) Banner Hub */}
-      <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10 select-none animate-fade-in">
-        
-        {/* Card 1: Mobile App Setup (QR Code + Install Mobile Button) */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-white p-2 rounded-2xl shadow-inner border border-slate-150 shrink-0">
-              <img 
-                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgait-physio-clinic-v1.vercel.app%2Fpatienthub%2Flogin&color=1b3d2f&bgcolor=ffffff" 
-                alt="Scan QR Code for Mobile App"
-                className="w-20 h-20 rounded-lg object-contain"
-              />
-            </div>
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-                <Smartphone className="h-3 w-3" />
-                <span>Mobile App</span>
+      {mounted && (
+        <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10 select-none animate-fade-in">
+          
+          {/* Card 1: Mobile App Setup (QR Code + Install Mobile Button) */}
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-2 rounded-2xl shadow-inner border border-slate-150 shrink-0">
+                <img 
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgait-physio-clinic-v1.vercel.app%2Fpatienthub%2Flogin&color=1b3d2f&bgcolor=ffffff" 
+                  alt="Scan QR Code for Mobile App"
+                  className="w-20 h-20 rounded-lg object-contain"
+                />
               </div>
-              <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Mobile Installation</h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
-                Scan QR code with phone camera or tap button below.
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                  <Smartphone className="h-3 w-3" />
+                  <span>Mobile App</span>
+                </div>
+                <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Mobile Installation</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
+                  Scan QR code with phone camera or tap button below.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                onClick={handleInstallClick}
+                className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Install Mobile App
+              </button>
+              <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
+                iOS Safari: Tap Share → Add to Home Screen
               </p>
             </div>
           </div>
 
-          <div className="pt-1">
-            <button
-              onClick={handleInstallClick}
-              className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Install Mobile App
-            </button>
-            <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
-              iOS Safari: Tap Share → Add to Home Screen
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2: Desktop App Setup (Monitor Icon + Install Desktop Button) */}
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="h-20 w-20 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0 border border-brand-green/20">
-              <Monitor className="h-10 w-10" />
-            </div>
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-                <Monitor className="h-3 w-3" />
-                <span>Desktop App</span>
+          {/* Card 2: Desktop App Setup (Monitor Icon + Install Desktop Button) */}
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-20 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0 border border-brand-green/20">
+                <Monitor className="h-10 w-10" />
               </div>
-              <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Desktop Installation</h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
-                Run Patient Hub natively on Windows PC or macOS desktop.
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                  <Monitor className="h-3 w-3" />
+                  <span>Desktop App</span>
+                </div>
+                <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Desktop Installation</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
+                  Run Patient Hub natively on Windows PC or macOS desktop.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                onClick={handleInstallClick}
+                className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Install Desktop App
+              </button>
+              <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
+                Chrome/Edge: Click Install in address bar
               </p>
             </div>
           </div>
 
-          <div className="pt-1">
-            <button
-              onClick={handleInstallClick}
-              className="inline-flex items-center justify-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Install Desktop App
-            </button>
-            <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
-              Chrome/Edge: Click Install in address bar
+        </div>
+      )}
+
+      {/* PWA Help Overlay Modal */}
+      {installInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 relative">
+            <div className="flex items-center gap-2 text-brand-green dark:text-emerald-400">
+              <Smartphone className="h-5 w-5" />
+              <h4 className="text-sm font-black uppercase tracking-wider">PWA Installation Help</h4>
+            </div>
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
+              {installInstructions}
             </p>
+            <div className="pt-2">
+              <button
+                onClick={() => setInstallInstructions(null)}
+                className="w-full bg-slate-100 dark:bg-slate-850 hover:bg-brand-green hover:text-white dark:hover:bg-brand-green text-slate-800 dark:text-white py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Got It
+              </button>
+            </div>
           </div>
         </div>
-
-      </div>
+      )}
 
     </div>
   );
