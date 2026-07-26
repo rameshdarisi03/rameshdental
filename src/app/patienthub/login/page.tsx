@@ -10,7 +10,7 @@ import {
   createUserWithEmailAndPassword 
 } from "firebase/auth";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
-import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode } from "lucide-react";
+import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode, Monitor } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function LoginPage() {
@@ -475,39 +475,77 @@ function LoginContent() {
 
       </div>
 
-      {/* Catchy PWA Install App & QR Code Banner Card */}
-      <div className="w-full max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-2xl relative z-10 select-none animate-fade-in flex flex-col sm:flex-row items-center gap-5">
-        <div className="bg-white p-2.5 rounded-2xl shadow-inner border border-slate-100 shrink-0">
-          <img 
-            src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgait-physio-clinic-v1.vercel.app%2Fpatienthub%2Flogin&color=1b3d2f&bgcolor=ffffff" 
-            alt="Scan QR Code to install Patient Hub app"
-            className="w-24 h-24 rounded-lg object-contain"
-          />
-        </div>
-        <div className="space-y-2 text-center sm:text-left flex-1">
-          <div className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-            <Smartphone className="h-3 w-3" />
-            <span>Install Mobile App</span>
+      {/* Catchy Dual PWA Install App (Mobile & Desktop) Banner Hub */}
+      <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10 select-none animate-fade-in">
+        
+        {/* Card 1: Mobile App Setup (QR Code + Install Mobile Button) */}
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-white p-2 rounded-2xl shadow-inner border border-slate-150 shrink-0">
+              <img 
+                src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgait-physio-clinic-v1.vercel.app%2Fpatienthub%2Flogin&color=1b3d2f&bgcolor=ffffff" 
+                alt="Scan QR Code for Mobile App"
+                className="w-20 h-20 rounded-lg object-contain"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                <Smartphone className="h-3 w-3" />
+                <span>Mobile App</span>
+              </div>
+              <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Mobile Installation</h3>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
+                Scan QR code with phone camera or tap button below.
+              </p>
+            </div>
           </div>
-          <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">Get Patient Hub on Your Phone</h3>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
-            Scan QR code with your phone camera or tap below to add Patient Hub to your home screen.
-          </p>
-          
-          {isInstallable ? (
+
+          <div className="pt-1">
             <button
               onClick={handleInstallClick}
-              className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full sm:w-auto mt-1"
+              className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
             >
               <Download className="h-3.5 w-3.5" />
-              Install App
+              Install Mobile App
             </button>
-          ) : (
-            <p className="text-[9px] text-slate-400 font-extrabold italic pt-0.5">
-              Tip: On iOS Safari tap Share → Add to Home Screen
+            <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
+              iOS Safari: Tap Share → Add to Home Screen
             </p>
-          )}
+          </div>
         </div>
+
+        {/* Card 2: Desktop App Setup (Monitor Icon + Install Desktop Button) */}
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="h-20 w-20 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0 border border-brand-green/20">
+              <Monitor className="h-10 w-10" />
+            </div>
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                <Monitor className="h-3 w-3" />
+                <span>Desktop App</span>
+              </div>
+              <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Desktop Installation</h3>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
+                Run Patient Hub natively on Windows PC or macOS desktop.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-1">
+            <button
+              onClick={handleInstallClick}
+              className="inline-flex items-center justify-center gap-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Install Desktop App
+            </button>
+            <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
+              Chrome/Edge: Click Install in address bar
+            </p>
+          </div>
+        </div>
+
       </div>
 
     </div>
