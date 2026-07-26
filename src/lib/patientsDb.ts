@@ -61,11 +61,25 @@ export interface MedicalRecordFile {
 // Helper to generate a cryptographically secure 8-character alphanumeric activation code (excluding confusing chars)
 function generateActivationCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const crypto = require("crypto");
-  const bytes = crypto.randomBytes(8);
   let code = "";
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(bytes[i] % chars.length);
+  if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
+    const bytes = new Uint8Array(8);
+    window.crypto.getRandomValues(bytes);
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(bytes[i] % chars.length);
+    }
+  } else {
+    try {
+      const crypto = require("crypto");
+      const bytes = crypto.randomBytes(8);
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(bytes[i] % chars.length);
+      }
+    } catch {
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    }
   }
   return code;
 }
