@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="gpcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b3d2f" />
+      <stop offset="100%" stop-color="#10261d" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#gpcGrad)" />
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#f3ece7" stroke-width="6" stroke-dasharray="10 15" opacity="0.4" />
+  
+  <!-- Stylized posture/gait wave path -->
+  <path d="M 140,320 C 180,220 220,180 256,256 C 290,320 330,300 372,192" 
+        fill="none" stroke="#10b981" stroke-width="24" stroke-linecap="round" />
+  
+  <path d="M 140,320 C 180,220 220,180 256,256 C 290,320 330,300 372,192" 
+        fill="none" stroke="#f3ece7" stroke-width="12" stroke-linecap="round" opacity="0.9" />
+
+  <!-- Footprint / leaf dot accents representing stability and step -->
+  <circle cx="256" cy="256" r="18" fill="#10b981" />
+  <circle cx="372" cy="192" r="22" fill="#f3ece7" />
+  <circle cx="140" cy="320" r="22" fill="#10b981" />
+</svg>

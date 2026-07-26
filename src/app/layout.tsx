@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 import FloatingSocials from "@/components/public/FloatingSocials";
+import PWARegistry from "@/components/PWARegistry";
 
 export default function RootLayout({
   children,
@@ -34,6 +35,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#1b3d2f" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -47,6 +52,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+        <PWARegistry />
         <Navbar />
         <main className="flex-grow flex flex-col">{children}</main>
         <FloatingSocials />

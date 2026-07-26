@@ -1,0 +1,31 @@
+{
+  "name": "Gait Physio Patient Hub",
+  "short_name": "Patient Hub",
+  "description": "Premium patient recovery dashboard and exercise tracker for Gait Physio Clinic",
+  "start_url": "/patienthub/dashboard",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1b3d2f",
+  "orientation": "portrait",
+  "scope": "/patienthub",
+  "icons": [
+    {
+      "src": "/logo-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

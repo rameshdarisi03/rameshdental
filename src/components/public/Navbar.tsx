@@ -34,8 +34,8 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
-  // If we are in the dashboard or not mounted on the client, we don't render the public Navbar
-  if (!mounted || pathname?.startsWith("/dashboard")) {
+  // If we are in the dashboard or patienthub, or not mounted on the client, we don't render the public Navbar
+  if (!mounted || pathname?.startsWith("/dashboard") || pathname?.startsWith("/patienthub")) {
     return null;
   }
 
