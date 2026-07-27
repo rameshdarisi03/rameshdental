@@ -408,58 +408,73 @@ export default function ClinicalBillingPage() {
     }
   };
 
-  // Robust Print / PDF function
-  const handlePrint = () => {
+  // 100% Pixel-Perfect Print Function (Canvas-to-Print Engine)
+  const handlePrint = async () => {
     const previewEl = document.getElementById("invoice-preview");
     if (!previewEl) {
       window.print();
       return;
     }
 
-    const printWin = window.open("", "_blank", "width=850,height=950");
-    if (!printWin) {
+    try {
+      setSubmitting(true);
+      const canvas = await html2canvas(previewEl, {
+        scale: 3, // Ultra crisp 300 DPI rendering
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const printWin = window.open("", "_blank", "width=850,height=950");
+      if (!printWin) {
+        window.print();
+        return;
+      }
+
+      printWin.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Invoice #${currentInvNumber} - Gait Physio Clinic</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                background: #ffffff;
+              }
+              img {
+                width: 100%;
+                max-width: 750px;
+                height: auto;
+              }
+              @media print {
+                body { padding: 0; }
+                img { width: 100%; max-width: 100%; }
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${imgData}" alt="Invoice ${currentInvNumber}" />
+            <script>
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 400);
+            </script>
+          </body>
+        </html>
+      `);
+      printWin.document.close();
+    } catch (err) {
+      console.error("Print canvas rendering error:", err);
       window.print();
-      return;
+    } finally {
+      setSubmitting(false);
     }
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Invoice #${currentInvNumber} - Gait Physio Clinic</title>
-          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-            body { 
-              font-family: 'Inter', sans-serif; 
-              padding: 24px; 
-              background: #ffffff; 
-              color: #000000; 
-              -webkit-print-color-adjust: exact; 
-              print-color-adjust: exact; 
-            }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="max-w-2xl mx-auto border border-slate-200 p-8 rounded-2xl shadow-none">
-            ${previewEl.innerHTML}
-          </div>
-          <script>
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 500);
-          </script>
-        </body>
-      </html>
-    `;
-
-    printWin.document.open();
-    printWin.document.write(htmlContent);
-    printWin.document.close();
   };
 
   // WhatsApp pre-formatted share link
