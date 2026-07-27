@@ -15,7 +15,8 @@ import {
   LogOut, 
   Bell, 
   Settings, 
-  Loader2 
+  Loader2,
+  Receipt
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 export default function PatientHubLayout({
@@ -179,7 +180,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
                   : "text-slate-500 hover:text-brand-green"
               }`}
             >
-              Profile
+              Profile & Billing
             </Link>
           </nav>
 

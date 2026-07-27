@@ -16,7 +16,10 @@ import {
   Key, 
   BellRing,
   Moon,
-  Sun
+  Sun,
+  Folder,
+  FileText,
+  Receipt
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -168,6 +171,41 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Patient Isolated Medical Records & Drive Vault */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Folder className="h-5 w-5 text-brand-green dark:text-teal-400" />
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+              Medical Scans & Records Vault
+            </h3>
+          </div>
+          <span className="text-[9px] font-black bg-brand-green/10 text-brand-green dark:text-teal-400 px-2.5 py-0.5 rounded-full uppercase">
+            Isolated Folder
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-500 font-bold leading-relaxed">
+          Your clinical records, X-rays, MRI scans, and consultation summaries are encrypted and stored in your private dedicated folder.
+        </p>
+
+        {patient?.googleDriveFolderId ? (
+          <a
+            href={`https://drive.google.com/drive/folders/${patient.googleDriveFolderId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+          >
+            <Folder className="h-4 w-4 text-brand-green" />
+            Open Private Medical Records Vault →
+          </a>
+        ) : (
+          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl text-center text-xs font-bold text-slate-400">
+            No medical scans attached to your record yet.
+          </div>
+        )}
       </div>
 
       {/* Preferences & Settings */}

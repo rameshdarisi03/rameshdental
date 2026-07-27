@@ -340,24 +340,22 @@ export default function ClinicalBillingPage() {
       {/* Printable Area Styling */}
       <style jsx global>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          #invoice-preview, #invoice-preview * {
-            visibility: visible;
-          }
-          #invoice-preview {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 24px;
-            box-shadow: none !important;
-            border: none !important;
-          }
           .no-print {
             display: none !important;
+          }
+          body {
+            background: white !important;
+            color: black !important;
+          }
+          #invoice-preview {
+            position: relative !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 16px !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
           }
         }
       `}</style>
@@ -597,22 +595,13 @@ export default function ClinicalBillingPage() {
                 <div className="space-y-2">
                   {items.map((item) => (
                     <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-slate-50/60 dark:bg-slate-950/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-850">
-                      <div className="col-span-6">
+                      <div className="col-span-8">
                         <input
                           type="text"
                           value={item.description}
                           onChange={(e) => handleUpdateItem(item.id, "description", e.target.value)}
                           placeholder="Treatment or Service Description..."
                           className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => handleUpdateItem(item.id, "quantity", e.target.value)}
-                          className="w-full text-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
                         />
                       </div>
                       <div className="col-span-3">
@@ -622,6 +611,7 @@ export default function ClinicalBillingPage() {
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(e) => handleUpdateItem(item.id, "unitPrice", e.target.value)}
+                          placeholder="Amount ($)"
                           className="w-full text-right rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
                         />
                       </div>
@@ -735,7 +725,7 @@ export default function ClinicalBillingPage() {
             <div className="p-4 bg-slate-900 text-white flex items-center justify-between select-none">
               <span className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-emerald-400">
                 <Sparkles className="h-4 w-4 text-emerald-400" />
-                Live Paper Preview
+                PREVIEW
               </span>
               <div className="flex gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
@@ -799,7 +789,6 @@ export default function ClinicalBillingPage() {
                     <thead>
                       <tr className="border-b-2 border-[#2d5a4c] text-[10px] font-black uppercase tracking-wider text-slate-700">
                         <th className="py-2">Service Description</th>
-                        <th className="py-2 text-center">Qty</th>
                         <th className="py-2 text-right">Amount</th>
                       </tr>
                     </thead>
@@ -809,7 +798,6 @@ export default function ClinicalBillingPage() {
                           <td className="py-2.5">
                             <p className="text-xs font-bold text-slate-800">{item.description || "Service Item"}</p>
                           </td>
-                          <td className="py-2.5 text-center text-xs font-bold text-slate-600">{item.quantity}</td>
                           <td className="py-2.5 text-right text-xs font-black text-slate-900">${(item.amount || 0).toFixed(2)}</td>
                         </tr>
                       ))}
