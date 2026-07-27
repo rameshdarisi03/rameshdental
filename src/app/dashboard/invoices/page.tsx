@@ -38,7 +38,8 @@ import {
   Sparkles, 
   Loader2, 
   ArrowLeft,
-  MessageSquare
+  MessageSquare,
+  Mail
 } from "lucide-react";
 
 export default function ClinicalBillingPage() {
@@ -95,10 +96,7 @@ export default function ClinicalBillingPage() {
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
     setServiceDate(todayStr);
-
-    const due = new Date();
-    due.setDate(due.getDate() + 14);
-    setDueDate(due.toISOString().split("T")[0]);
+    setDueDate(todayStr);
   }, []);
 
   // Subscribe to real-time invoices & load patients
@@ -250,6 +248,9 @@ export default function ClinicalBillingPage() {
     setPatientPid("");
     setPatientEmail("");
     setPatientPhone("");
+    const todayStr = new Date().toISOString().split("T")[0];
+    setServiceDate(todayStr);
+    setDueDate(todayStr);
     setItems([{ id: Date.now().toString(), description: "Initial Physiotherapy Assessment", quantity: 1, unitPrice: 120, amount: 120 }]);
     setTaxRate(0);
     setDiscount(0);
@@ -842,7 +843,10 @@ export default function ClinicalBillingPage() {
                   <input
                     type="date"
                     value={serviceDate}
-                    onChange={(e) => setServiceDate(e.target.value)}
+                    onChange={(e) => {
+                      setServiceDate(e.target.value);
+                      setDueDate(e.target.value);
+                    }}
                     className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-[#2d5a4c]"
                   />
                 </div>
@@ -1147,11 +1151,12 @@ export default function ClinicalBillingPage() {
             <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800 flex justify-center items-center gap-3 no-print">
               <button
                 type="button"
-                onClick={handlePrint}
+                onClick={() => alert(`Email Integration Placeholder:\n\nThis will send Invoice #${currentInvNumber} to the patient's registered email address: ${patientEmail || "(No email address entered)"} using the Resend API once configured.`)}
                 className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                title={patientEmail ? `Send to ${patientEmail}` : "No email address configured"}
               >
-                <Printer className="h-4 w-4 text-[#2d5a4c]" />
-                Print
+                <Mail className="h-4 w-4 text-[#2d5a4c]" />
+                Email
               </button>
 
               <button
