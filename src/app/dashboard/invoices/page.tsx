@@ -258,6 +258,165 @@ export default function ClinicalBillingPage() {
     setActionError("");
   };
 
+  // Generate professional, vector-based PDF document using jsPDF (no HTML2Canvas, 100% resilient to CSS lab/oklch parser issues)
+  const buildInvoicePdfDocument = (inv: {
+    invoiceNumber: string;
+    patientId: string;
+    patientName: string;
+    patientEmail: string;
+    patientPhone: string;
+    therapistName: string;
+    serviceDate: string;
+    dueDate: string;
+    items: InvoiceItem[];
+    subtotal: number;
+    taxRate: number;
+    taxAmount: number;
+    discount: number;
+    totalAmount: number;
+    paymentMethod: string;
+    notes?: string;
+  }) => {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const brandColor = [45, 90, 76]; // #2d5a4c
+    const textDark = [30, 41, 59]; // slate-800
+    const textMuted = [100, 116, 139]; // slate-500
+
+    // GPC logo header box
+    pdf.setFillColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.roundedRect(16, 16, 14, 14, 2, 2, "F");
+    
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("GPC", 19, 25);
+
+    // Clinic text
+    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.setFontSize(14);
+    pdf.text("Gait Physio Clinic", 34, 21);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text("123 Clinical Wellness Way, Sector 4", 34, 26);
+    pdf.text("Bangalore, KA 560001 • +91 92066 51295", 34, 30);
+
+    // Invoice Title & Metadata
+    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.text("INVOICE", 145, 21);
+    
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text(`Invoice #: ${inv.invoiceNumber}`, 145, 26);
+    pdf.text(`Date: ${inv.serviceDate}`, 145, 30);
+
+    // Divider line
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.4);
+    pdf.line(16, 36, 194, 36);
+
+    // Bill To & Status
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("BILL TO PATIENT:", 16, 44);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(inv.patientName, 16, 49);
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text(inv.patientId || "PID: ----", 16, 53);
+    if (inv.patientPhone) {
+      pdf.text(inv.patientPhone, 16, 57);
+    }
+
+    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("PAYMENT STATUS:", 145, 44);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.text("UNPAID / DRAFT", 145, 49);
+
+    // Green Divider
+    pdf.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.setLineWidth(0.8);
+    pdf.line(16, 64, 194, 64);
+
+    // Table Headers
+    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("Service Description", 18, 71);
+    pdf.text("Amount", 175, 71, { align: "right" });
+
+    // Divider under header
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.4);
+    pdf.line(16, 74, 194, 74);
+
+    // Table Items
+    let currentY = 82;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    
+    inv.items.forEach((item: any) => {
+      pdf.text(item.description || "Service Item", 18, currentY);
+      pdf.text(`$${(item.amount || 0).toFixed(2)}`, 175, currentY, { align: "right" });
+      
+      // thin line under item
+      pdf.setDrawColor(241, 245, 249);
+      pdf.line(16, currentY + 3, 194, currentY + 3);
+      currentY += 10;
+    });
+
+    // Summary section
+    currentY += 2;
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text("Subtotal:", 135, currentY);
+    pdf.text(`$${inv.subtotal.toFixed(2)}`, 175, currentY, { align: "right" });
+
+    if (inv.taxRate > 0) {
+      currentY += 6;
+      pdf.text(`Tax (${inv.taxRate}%):`, 135, currentY);
+      pdf.text(`$${inv.taxAmount.toFixed(2)}`, 175, currentY, { align: "right" });
+    }
+
+    if (inv.discount > 0) {
+      currentY += 6;
+      pdf.text("Discount:", 135, currentY);
+      pdf.text(`-$${inv.discount.toFixed(2)}`, 175, currentY, { align: "right" });
+    }
+
+    // Total Amount Due Box
+    currentY += 8;
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(130, currentY - 5, 64, 8, "F");
+    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("Total Amount Due:", 132, currentY);
+    pdf.text(`$${inv.totalAmount.toFixed(2)}`, 175, currentY, { align: "right" });
+
+    // Footer Note
+    currentY += 24;
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(8);
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text(
+      `Please include Invoice ID #${inv.invoiceNumber} in all payments. Thank you for choosing Gait Physio Clinic!`,
+      105,
+      currentY,
+      { align: "center" }
+    );
+
+    return pdf;
+  };
+
   // Submit & Finalize Invoice (Saves to Firestore & Uploads PDF Copy to Patient's Google Drive)
   const handleSaveInvoice = async (targetStatus: "paid" | "pending") => {
     if (!patientName.trim()) {
@@ -274,8 +433,7 @@ export default function ClinicalBillingPage() {
     setActionSuccess("");
 
     try {
-      // 1. Create Invoice in Firestore
-      const newInvId = await createInvoice({
+      const invoiceData = {
         invoiceNumber: currentInvNumber,
         patientId: patientPid || "GPC-GUEST",
         patientName: patientName.trim(),
@@ -294,7 +452,10 @@ export default function ClinicalBillingPage() {
         status: targetStatus,
         paymentMethod: paymentMethod,
         notes: notes.trim(),
-      });
+      };
+
+      // 1. Create Invoice in Firestore
+      const newInvId = await createInvoice(invoiceData);
 
       // 2. Automatically generate PDF Blob & upload copy to Patient's Google Drive
       const selectedP = patients.find(
@@ -304,41 +465,21 @@ export default function ClinicalBillingPage() {
 
       if (driveFolderId) {
         try {
-          const previewEl = document.getElementById("invoice-preview");
-          if (previewEl) {
-            const canvas = await html2canvas(previewEl, {
-              scale: 2,
-              useCORS: true,
-              backgroundColor: "#ffffff",
-              logging: false,
-            });
+          const pdf = buildInvoicePdfDocument(invoiceData);
+          const pdfBlob = pdf.output("blob");
+          const pdfFile = new File([pdfBlob], `${currentInvNumber}_Invoice.pdf`, {
+            type: "application/pdf",
+          });
 
-            const imgData = canvas.toDataURL("image/png");
-            const pdf = new jsPDF({
-              orientation: "portrait",
-              unit: "mm",
-              format: "a4",
-            });
+          const driveFormData = new FormData();
+          driveFormData.append("file", pdfFile);
+          driveFormData.append("parentFolderId", driveFolderId);
+          driveFormData.append("date", serviceDate || new Date().toISOString().split("T")[0]);
 
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-            const pdfBlob = pdf.output("blob");
-            const pdfFile = new File([pdfBlob], `${currentInvNumber}_${patientName.replace(/\s+/g, "_")}.pdf`, {
-              type: "application/pdf",
-            });
-
-            const driveFormData = new FormData();
-            driveFormData.append("file", pdfFile);
-            driveFormData.append("parentFolderId", driveFolderId);
-            driveFormData.append("date", serviceDate || new Date().toISOString().split("T")[0]);
-
-            await fetch("/api/drive/upload", {
-              method: "POST",
-              body: driveFormData,
-            });
-          }
+          await fetch("/api/drive/upload", {
+            method: "POST",
+            body: driveFormData,
+          });
         } catch (driveErr) {
           console.warn("Google Drive invoice PDF archiving warning:", driveErr);
         }
@@ -354,35 +495,32 @@ export default function ClinicalBillingPage() {
     }
   };
 
-  // Pixel-Perfect PDF Download Handler
+  // Pixel-Perfect PDF Download Handler (Using reliable jsPDF vector drawing)
   const handleDownloadPdf = async () => {
-    const previewEl = document.getElementById("invoice-preview");
-    if (!previewEl) return;
-
     try {
       setSubmitting(true);
       setActionError("");
       setActionSuccess("");
 
-      const canvas = await html2canvas(previewEl, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
+      const pdf = buildInvoicePdfDocument({
+        invoiceNumber: currentInvNumber,
+        patientId: patientPid || "GPC-GUEST",
+        patientName: patientName.trim(),
+        patientEmail: patientEmail.trim(),
+        patientPhone: patientPhone.trim(),
+        therapistName: therapistName,
+        serviceDate: serviceDate || new Date().toISOString().split("T")[0],
+        dueDate: dueDate || new Date().toISOString().split("T")[0],
+        items: items,
+        subtotal: subtotal,
+        taxRate: taxRate,
+        taxAmount: taxAmount,
+        discount: discount,
+        totalAmount: totalAmount,
+        paymentMethod: paymentMethod,
+        notes: notes.trim(),
       });
 
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       const fileName = `${currentInvNumber}_${patientName ? patientName.replace(/[^a-zA-Z0-9]/g, "_") : "Invoice"}.pdf`;
       pdf.save(fileName);
       setActionSuccess(`Downloaded ${fileName} successfully!`);
@@ -415,9 +553,66 @@ export default function ClinicalBillingPage() {
     }
   };
 
-  // Direct Native Print Function (0 Popup Blocker Delays)
+  // Direct Native Print Function via clean isolated iframe (0 Popup Blocker Delays, 0 blank page css conflicts)
   const handlePrint = () => {
-    window.print();
+    const previewEl = document.getElementById("invoice-preview");
+    if (!previewEl) return;
+
+    // Create a temporary hidden iframe
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "absolute";
+    iframe.style.width = "0px";
+    iframe.style.height = "0px";
+    iframe.style.border = "none";
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    // Write clean HTML content with style tags
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice #${currentInvNumber}</title>
+          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+            body { 
+              font-family: 'Inter', sans-serif; 
+              padding: 40px; 
+              background: #ffffff; 
+              color: #000000;
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+            }
+            .bg-\\[\\#2d5a4c\\] { background-color: #2d5a4c !important; }
+            .text-\\[\\#2d5a4c\\] { color: #2d5a4c !important; }
+            .border-\\[\\#2d5a4c\\] { border-color: #2d5a4c !important; }
+            .invoice-watermark { display: none !important; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="max-w-2xl mx-auto border border-slate-200 p-8 rounded-2xl">
+            ${previewEl.innerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              window.focus();
+              window.print();
+              setTimeout(function() {
+                window.parent.document.body.removeChild(iframe);
+              }, 1000);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    doc.close();
   };
 
   // WhatsApp pre-formatted share link
