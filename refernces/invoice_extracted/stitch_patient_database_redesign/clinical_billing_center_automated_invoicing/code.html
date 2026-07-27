@@ -1,0 +1,513 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ClinicFlow Billing - GPC Portal</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ba1a1a",
+                    "on-tertiary-container": "#c3c5c7",
+                    "on-secondary-fixed-variant": "#005227",
+                    "primary-container": "#2d5a4c",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "outline": "#717975",
+                    "secondary": "#006d36",
+                    "background": "#f8f9ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "surface-bright": "#f8f9ff",
+                    "primary": "#134235",
+                    "inverse-on-surface": "#eaf1ff",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "secondary-fixed-dim": "#4de082",
+                    "on-primary-container": "#a0cfbe",
+                    "tertiary-container": "#4f5254",
+                    "outline-variant": "#c0c8c3",
+                    "primary-fixed": "#bcedda",
+                    "on-tertiary-fixed": "#191c1e",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-surface": "#0b1c30",
+                    "on-primary-fixed": "#002118",
+                    "on-primary-fixed-variant": "#214f41",
+                    "on-error": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "surface-variant": "#d3e4fe",
+                    "error-container": "#ffdad6",
+                    "on-secondary-fixed": "#00210c",
+                    "surface-container-low": "#eff4ff",
+                    "surface-container": "#e5eeff",
+                    "primary-fixed-dim": "#a1d1bf",
+                    "on-primary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#383b3d",
+                    "on-secondary": "#ffffff",
+                    "surface": "#f8f9ff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#007439",
+                    "surface-container-high": "#dce9ff",
+                    "secondary-fixed": "#6dfe9c",
+                    "inverse-primary": "#a1d1bf",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#404945",
+                    "inverse-surface": "#213145",
+                    "surface-tint": "#3a6758",
+                    "secondary-container": "#6dfe9c",
+                    "surface-dim": "#cbdbf5"
+            },
+            "borderRadius": {
+                    "DEFAULT": "4px",
+                    "lg": "4px",
+                    "xl": "8px",
+                    "full": "12px"
+            },
+            "spacing": {
+                    "baseline": "4px",
+                    "md": "16px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "xs": "4px",
+                    "gutter": "16px",
+                    "container-margin": "24px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "headline-sm": ["Manrope"],
+                    "body-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-md": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "body-md": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .invoice-stamp {
+            transform: rotate(-15deg);
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c0c8c3;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #717975;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen flex">
+<!-- SideNavBar Shell -->
+<aside class="w-[240px] h-screen fixed left-0 top-0 bg-surface border-r border-outline-variant flex flex-col py-md px-sm z-50">
+<div class="px-md mb-xl flex items-center gap-sm">
+<div class="w-8 h-8 bg-primary-container rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-[20px]">medical_services</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">PhysioCore</h1>
+<p class="text-[10px] font-label-sm text-on-surface-variant uppercase tracking-wider">Billing Portal</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container font-semibold rounded-lg" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-md text-label-md">Invoices</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Patients</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Payments</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all duration-200" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-md px-sm">
+<button class="w-full flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all duration-200">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+<button class="w-full flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all duration-200">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] flex-1 flex flex-col">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-lg w-full sticky top-0 z-40 bg-surface border-b border-outline-variant h-16">
+<div class="flex items-center gap-lg">
+<h2 class="font-headline-md text-headline-md font-bold text-primary">ClinicFlow Billing</h2>
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="bg-surface-container-lowest border border-outline-variant rounded-full pl-10 pr-4 py-1.5 text-body-sm w-64 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Search invoices or patients..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-sm cursor-pointer hover:bg-surface-container-low p-1 rounded-lg transition-colors">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A professional headshot of a female clinic administrator in her 40s, wearing business attire, photographed in a brightly lit modern clinical office with soft bokeh background. The aesthetic is clean, medical, and professional with soft natural lighting and a neutral color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_t1mdjvIxp2kYQnfO2P7f_Lhrs6fMxpxlGQJV7YWd0_JlLj1Edc-RQhh6ssrpc-P9NFXuzBJgf_OL7WAIgCpd6t6z_X5oY2B8CM-G0PFhXXUwnXHf3cQdavfh2-0fJo_V6LjBLWK7bgTocVCu_MWhU2Gi75F5mau4sCZArR8v6dXpK09RhcVFKXx0xkSpI1evM5rNKIHVPYHfRCqWDYMlUMfbZNGPuGUgCl_bG80Nqm7yqNzj5Iv_aGpKIcY0wPXas8jGHlwEsRlk">
+<div class="text-left">
+<p class="font-label-md text-label-md text-on-surface leading-tight">Admin Sarah</p>
+<p class="text-[10px] font-label-sm text-on-surface-variant">Billing Lead</p>
+</div>
+</div>
+</div>
+</header>
+<div class="p-lg space-y-lg">
+<!-- Dashboard Stats Row -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-lg">
+<div class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl flex items-center gap-md">
+<div class="p-3 bg-secondary-container rounded-lg text-on-secondary-container">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm text-label-sm uppercase">Unpaid Invoices</p>
+<h3 class="text-headline-sm font-headline-sm font-bold">24</h3>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl flex items-center gap-md">
+<div class="p-3 bg-primary-container rounded-lg text-on-primary-container">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm text-label-sm uppercase">Revenue (MTD)</p>
+<h3 class="text-headline-sm font-headline-sm font-bold">$12,450.00</h3>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl flex items-center gap-md">
+<div class="p-3 bg-tertiary-fixed rounded-lg text-on-tertiary-fixed">
+<span class="material-symbols-outlined">hourglass_empty</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm text-label-sm uppercase">Pending Claims</p>
+<h3 class="text-headline-sm font-headline-sm font-bold">12</h3>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-lg rounded-xl flex items-center gap-md">
+<div class="p-3 bg-error-container rounded-lg text-on-error-container">
+<span class="material-symbols-outlined">error</span>
+</div>
+<div>
+<p class="text-on-surface-variant font-label-sm text-label-sm uppercase">Overdue</p>
+<h3 class="text-headline-sm font-headline-sm font-bold">5</h3>
+</div>
+</div>
+</div>
+<!-- Main Interactive Section: Create New Invoice & Preview -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-lg items-start">
+<!-- Invoice Form (Bento Style) -->
+<div class="xl:col-span-7 space-y-lg">
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+<div class="p-lg border-b border-outline-variant flex items-center justify-between bg-surface-container-low/50">
+<div class="flex items-center gap-sm text-primary">
+<span class="material-symbols-outlined">add_circle</span>
+<h3 class="font-headline-sm text-headline-sm font-bold">Create New Invoice</h3>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant bg-surface border border-outline-variant px-2 py-1 rounded">INV-SEQ-8821</span>
+</div>
+<div class="p-lg grid grid-cols-1 md:grid-cols-2 gap-lg">
+<div class="space-y-xs">
+<label class="text-label-md font-label-md text-on-surface-variant">Patient Name</label>
+<div class="relative">
+<input class="w-full bg-white border border-outline-variant px-md py-sm rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-body-md" id="patient-name" placeholder="Search patient..." type="text">
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+</div>
+</div>
+<div class="space-y-xs">
+<label class="text-label-md font-label-md text-on-surface-variant">Service Date</label>
+<input class="w-full bg-white border border-outline-variant px-md py-sm rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-body-md" id="service-date" type="date">
+</div>
+<div class="md:col-span-2 flex items-center justify-between border-b border-outline-variant pb-xs mb-xs">
+    <h4 class="text-label-md font-bold text-on-surface uppercase tracking-wide">Billing Breakdown</h4>
+    <button class="text-primary hover:bg-surface-container-low p-1 rounded-full transition-colors flex items-center">
+        <span class="material-symbols-outlined text-[20px]">add_circle_outline</span>
+    </button>
+</div>
+<div class="md:col-span-2 grid grid-cols-1 md:grid-cols-12 gap-md items-end">
+    <div class="md:col-span-8 space-y-xs">
+        <label class="text-label-md font-label-md text-on-surface-variant">Description</label>
+        <input type="text" placeholder="e.g. Initial Consultation" class="w-full bg-white border border-outline-variant px-md py-sm rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-body-md">
+    </div>
+    <div class="md:col-span-4 space-y-xs">
+        <label class="text-label-md font-label-md text-on-surface-variant">Amount ($)</label>
+        <input type="number" placeholder="0.00" class="w-full bg-white border border-outline-variant px-md py-sm rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-body-md">
+    </div>
+</div>
+<div class="md:col-span-2 space-y-xs">
+<label class="text-label-md font-label-md text-on-surface-variant">Notes / Diagnosis Codes (Optional)</label>
+<textarea class="w-full bg-white border border-outline-variant px-md py-sm rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-body-md resize-none" placeholder="Add internal notes or billing codes..." rows="2"></textarea>
+</div>
+</div>
+<div class="p-lg bg-surface-container-low/30 flex justify-end gap-md">
+<button class="px-lg py-sm text-primary font-semibold hover:bg-surface-container transition-colors rounded">Discard</button>
+<button class="px-lg py-sm bg-primary text-on-primary font-bold rounded shadow-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-sm">
+<span class="material-symbols-outlined text-[20px]">send</span>
+                                Finalize &amp; Send
+                            </button>
+</div>
+</section>
+<!-- Recent Invoices Table (Dense) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+<div class="p-md border-b border-outline-variant flex items-center justify-between">
+<h3 class="font-label-md text-label-md font-bold text-on-surface uppercase tracking-wide">Recent Invoices</h3>
+<button class="text-primary text-label-md font-semibold hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low">
+<tr>
+<th class="px-md py-2 text-label-sm font-label-sm text-on-surface-variant border-b border-outline-variant">ID</th>
+<th class="px-md py-2 text-label-sm font-label-sm text-on-surface-variant border-b border-outline-variant">Patient</th>
+<th class="px-md py-2 text-label-sm font-label-sm text-on-surface-variant border-b border-outline-variant">Date</th>
+<th class="px-md py-2 text-label-sm font-label-sm text-on-surface-variant border-b border-outline-variant">Amount</th>
+<th class="px-md py-2 text-label-sm font-label-sm text-on-surface-variant border-b border-outline-variant">Status</th>
+<th class="px-md py-2 text-label-sm font-label-sm text-on-surface-variant border-b border-outline-variant"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-lowest/50 transition-colors">
+<td class="px-md py-2 font-label-sm text-label-sm text-primary">#INV-8722</td>
+<td class="px-md py-2">
+<div class="font-label-md text-label-md text-on-surface">Jameson, Robert</div>
+<div class="text-[10px] text-on-surface-variant">PID: GPC-1102</div>
+</td>
+<td class="px-md py-2 text-body-sm">Oct 24, 2023</td>
+<td class="px-md py-2 font-semibold text-body-sm">$120.00</td>
+<td class="px-md py-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] text-[10px] font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-[#166534]"></span> Paid
+                                            </span>
+</td>
+<td class="px-md py-2 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors text-[20px]">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest/50 transition-colors">
+<td class="px-md py-2 font-label-sm text-label-sm text-primary">#INV-8721</td>
+<td class="px-md py-2">
+<div class="font-label-md text-label-md text-on-surface">Chen, Wei</div>
+<div class="text-[10px] text-on-surface-variant">PID: GPC-0944</div>
+</td>
+<td class="px-md py-2 text-body-sm">Oct 23, 2023</td>
+<td class="px-md py-2 font-semibold text-body-sm">$85.00</td>
+<td class="px-md py-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#FEF9C3] text-[#854D0E] text-[10px] font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-[#854D0E]"></span> Pending
+                                            </span>
+</td>
+<td class="px-md py-2 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors text-[20px]">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest/50 transition-colors">
+<td class="px-md py-2 font-label-sm text-label-sm text-primary">#INV-8720</td>
+<td class="px-md py-2">
+<div class="font-label-md text-label-md text-on-surface">Smithe, Helena</div>
+<div class="text-[10px] text-on-surface-variant">PID: GPC-2217</div>
+</td>
+<td class="px-md py-2 text-body-sm">Oct 21, 2023</td>
+<td class="px-md py-2 font-semibold text-body-sm">$110.00</td>
+<td class="px-md py-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error-container text-on-error-container text-[10px] font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Overdue
+                                            </span>
+</td>
+<td class="px-md py-2 text-right">
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors text-[20px]">more_vert</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Live Preview Window -->
+<div class="xl:col-span-5 sticky top-[80px]">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl overflow-hidden min-h-[600px] flex flex-col relative">
+<div class="p-md bg-tertiary-container text-white flex items-center justify-between">
+<span class="font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                                Automated Preview
+                            </span>
+<div class="flex gap-2">
+<div class="w-3 h-3 rounded-full bg-white/20"></div>
+<div class="w-3 h-3 rounded-full bg-white/20"></div>
+<div class="w-3 h-3 rounded-full bg-white/20"></div>
+</div>
+</div>
+<!-- Invoice Paper Content -->
+<div class="flex-1 p-xl flex flex-col relative" id="invoice-preview">
+<!-- Background Stamp -->
+<div class="absolute inset-0 flex items-center justify-center invoice-stamp select-none">
+<span class="border-8 border-primary text-primary font-bold text-6xl p-4 rounded-xl opacity-20 uppercase">Generated Automatically</span>
+</div>
+<div class="flex justify-between items-start mb-xl relative z-10">
+<div>
+<div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-sm">
+<span class="material-symbols-outlined text-white text-[32px]">health_metrics</span>
+</div>
+<h4 class="font-bold text-primary text-lg">PhysioCore Clinic</h4>
+<p class="text-[10px] text-on-surface-variant leading-tight">122 Medical Drive, Suite 400<br>Healthcare Heights, NY 10012</p>
+</div>
+<div class="text-right">
+<h2 class="text-2xl font-bold text-on-surface mb-xs uppercase tracking-tighter">Invoice</h2>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Invoice ID: <span class="font-bold text-primary">#INV-8821</span></p>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Issued: <span id="preview-date" class="">2026-07-27</span></p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-lg mb-xl relative z-10 border-t border-b border-outline-variant py-lg">
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase mb-xs">Bill To:</p>
+<p class="font-bold text-body-lg text-primary" id="preview-patient">Waiting for selection...</p>
+<p class="text-label-sm text-on-surface-variant" id="preview-pid">PID: ----</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase mb-xs">Status:</p>
+<p class="font-bold text-secondary text-body-lg">DRAFT / UNPAID</p>
+</div>
+</div>
+<div class="flex-1 relative z-10">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b-2 border-primary">
+<th class="py-2 text-label-sm font-bold uppercase text-on-surface">Description</th>
+<th class="py-2 text-label-sm font-bold uppercase text-on-surface text-right">Price</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr>
+<td class="py-lg">
+<p class="font-bold text-body-md" id="preview-service">Professional Services</p>
+<p class="text-body-sm text-on-surface-variant">Standard outpatient treatment session provided by Physiocore Specialist.</p>
+</td>
+<td class="py-lg font-bold text-body-md text-right" id="preview-amount">$0.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-xl pt-lg border-t border-outline-variant relative z-10">
+<div class="flex justify-between mb-xs">
+<span class="text-body-sm text-on-surface-variant">Subtotal</span>
+<span class="text-body-sm font-bold" id="preview-subtotal">$0.00</span>
+</div>
+<div class="flex justify-between mb-xs">
+<span class="text-body-sm text-on-surface-variant">Tax (0%)</span>
+<span class="text-body-sm font-bold">$0.00</span>
+</div>
+<div class="flex justify-between py-md border-t-2 border-primary mt-md">
+<span class="font-bold text-on-surface">Total Amount Due</span>
+<span class="font-bold text-xl text-primary" id="preview-total">$0.00</span>
+</div>
+<p class="mt-xl text-[10px] text-center text-on-surface-variant italic">Please include Invoice ID in all payment communications. Payments are due within 14 business days.</p>
+</div>
+</div>
+<div class="p-md bg-surface-container-low border-t border-outline-variant flex justify-center gap-md">
+<button class="p-2 bg-white border border-outline-variant rounded hover:bg-surface-container-lowest transition-colors flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span class="text-label-sm font-bold uppercase">PDF</span>
+</button>
+<button class="p-2 bg-white border border-outline-variant rounded hover:bg-surface-container-lowest transition-colors flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">print</span>
+<span class="text-label-sm font-bold uppercase">Print</span>
+</button>
+<button class="p-2 bg-white border border-outline-variant rounded hover:bg-surface-container-lowest transition-colors flex items-center gap-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span class="text-label-sm font-bold uppercase">Share</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple reactive logic for the invoice preview
+        const patientInput = document.getElementById('patient-name');
+        const dateInput = document.getElementById('service-date');
+        const typeInput = document.getElementById('treatment-type');
+        const amountInput = document.getElementById('invoice-amount');
+
+        const previewPatient = document.getElementById('preview-patient');
+        const previewDate = document.getElementById('preview-date');
+        const previewService = document.getElementById('preview-service');
+        const previewAmount = document.getElementById('preview-amount');
+        const previewSubtotal = document.getElementById('preview-subtotal');
+        const previewTotal = document.getElementById('preview-total');
+        const previewPid = document.getElementById('preview-pid');
+
+        const updatePreview = () => {
+            previewPatient.innerText = patientInput.value || "Waiting for selection...";
+            previewDate.innerText = dateInput.value || "-- / -- / ----";
+            previewService.innerText = typeInput.value || "Professional Services";
+            
+            const amt = parseFloat(amountInput.value) || 0;
+            const formattedAmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amt);
+            
+            previewAmount.innerText = formattedAmt;
+            previewSubtotal.innerText = formattedAmt;
+            previewTotal.innerText = formattedAmt;
+
+            if (patientInput.value.length > 3) {
+                previewPid.innerText = "PID: GPC-" + Math.floor(1000 + Math.random() * 9000);
+            } else {
+                previewPid.innerText = "PID: ----";
+            }
+        };
+
+        patientInput.addEventListener('input', updatePreview);
+        dateInput.addEventListener('input', updatePreview);
+        amountInput.addEventListener('input', updatePreview);
+        
+        typeInput.addEventListener('change', () => {
+            const selectedOption = typeInput.options[typeInput.selectedIndex];
+            const price = selectedOption.getAttribute('data-price');
+            if (price) {
+                amountInput.value = price;
+            }
+            updatePreview();
+        });
+
+        // Initialize with current date
+        dateInput.valueAsDate = new Date();
+        updatePreview();
+    </script>
+
+
+</body></html>

@@ -58,5 +58,10 @@ service cloud.firestore {
     match /prescriptions/{prescriptionId} {
       allow read, write: if true;
     }
+
+    // 8. Invoices Collection (MODULAR_INVOICING)
+    match /invoices/{invoiceId} {
+      allow read, write: if true;
+    }
   }
 }

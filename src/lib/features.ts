@@ -4,4 +4,5 @@
  */
 export const FEATURES = {
   enablePatientHub: true, // Set to false to completely deactivate the Patient Hub portal and PWA capabilities
+  enableModularInvoicing: true, // Set to false to deactivate the MODULAR_INVOICING billing center
 };

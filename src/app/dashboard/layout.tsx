@@ -19,8 +19,10 @@ import {
   Globe,
   BarChart3,
   PlusCircle,
-  Dumbbell
+  Dumbbell,
+  Receipt
 } from "lucide-react";
+import { FEATURES } from "@/lib/features";
 
 interface UserProfile {
   uid: string;
@@ -77,6 +79,9 @@ export default function DashboardLayout({
     { name: "Staff Management", href: "/dashboard/staff", icon: UserCheck, role: "admin" },
     { name: "Settings", href: "/dashboard/settings", icon: Settings, role: "admin" },
     { name: "Exercise Library", href: "/dashboard/exercises", icon: Dumbbell, role: "all" },
+    ...(FEATURES.enableModularInvoicing
+      ? [{ name: "Invoices & Billing", href: "/dashboard/invoices", icon: Receipt, role: "all" }]
+      : []),
   ];
 
   const isActive = (href: string) => {

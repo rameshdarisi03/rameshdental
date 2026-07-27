@@ -699,6 +699,16 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               >
                 Medical Scans & Files ({files.length})
               </button>
+              <button
+                onClick={() => setActiveTab("invoices")}
+                className={`pb-4 text-xs font-black relative transition-all ${
+                  activeTab === "invoices"
+                    ? "text-brand-green border-b-2 border-brand-green"
+                    : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
+                }`}
+              >
+                Invoices & Billing
+              </button>
             </div>
           </div>
 
@@ -914,6 +924,43 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 3: Invoices & Billing */}
+          {activeTab === "invoices" && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Patient Billing History
+                  </h3>
+                  <p className="text-xs text-slate-400 font-bold mt-0.5">
+                    Generate & manage billing statements for {patient.name}
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/invoices`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Invoice
+                </Link>
+              </div>
+
+              <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                <Receipt className="h-10 w-10 text-[#2d5a4c] mx-auto mb-3" />
+                <h4 className="text-sm font-black text-slate-800 dark:text-white">Clinical Billing Hub Active</h4>
+                <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1 mb-4">
+                  All invoices generated for {patient.name} automatically sync to their Patient Hub portal in real time.
+                </p>
+                <Link
+                  href="/dashboard/invoices"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-[#2d5a4c] dark:text-emerald-400 hover:underline"
+                >
+                  Open Billing Center & Issue Statement →
+                </Link>
+              </div>
             </div>
           )}
 

@@ -16,8 +16,11 @@ import {
   Clock, 
   ArrowRight,
   TrendingUp,
-  Dumbbell
+  Dumbbell,
+  Receipt,
+  Download
 } from "lucide-react";
+import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
 
 interface DisplayExercise {
   title: string;
@@ -55,7 +58,32 @@ export default function DashboardPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
   const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
+  const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let invUnsub = () => {};
+
+    const localData = localStorage.getItem("gpc_patient");
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      setPatient(parsed);
+      setLoading(false);
+      if (parsed.email) {
+        invUnsub = subscribePatientInvoices(parsed.email, setPatientInvoices);
+      }
+    }
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user && user.email) {
+        invUnsub = subscribePatientInvoices(user.email, setPatientInvoices);
+      }
+    });
+
+    return () => {
+      invUnsub();
+    };
+  }, []);
 
   useEffect(() => {
     const localData = localStorage.getItem("gpc_patient");
@@ -235,6 +263,70 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Billing Statements & Receipts Section */}
+      {patientInvoices.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-brand-green dark:text-teal-400">
+                Billing & Digital Receipts
+              </span>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                Clinical Invoices ({patientInvoices.length})
+              </h2>
+            </div>
+            <span className="text-xs font-black bg-brand-green/10 text-brand-green dark:text-teal-400 px-3 py-1 rounded-full">
+              Real-time Sync
+            </span>
+          </div>
+
+          <div className="space-y-2.5 pt-1">
+            {patientInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-850 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-brand-green/10 text-brand-green dark:text-teal-400 rounded-xl">
+                    <Receipt className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                      Invoice #{inv.invoiceNumber}
+                    </h4>
+                    <p className="text-[10px] font-bold text-slate-400">
+                      Service Date: {inv.serviceDate} • Attending: {inv.therapistName}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-4">
+                  <span className="text-sm font-black text-slate-900 dark:text-white">
+                    ${(inv.totalAmount || 0).toFixed(2)}
+                  </span>
+                  
+                  {inv.status === "paid" && (
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-black uppercase">
+                      PAID
+                    </span>
+                  )}
+                  {inv.status === "pending" && (
+                    <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-black uppercase">
+                      UNPAID
+                    </span>
+                  )}
+                  {inv.status === "overdue" && (
+                    <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 text-[10px] font-black uppercase">
+                      OVERDUE
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Prescribed Home Exercises Routine Section */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
