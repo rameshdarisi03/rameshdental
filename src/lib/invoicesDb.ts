@@ -70,16 +70,28 @@ export function generateInvoiceNumber(): string {
  * Subscribe to all invoices in real-time
  */
 export function subscribeInvoices(callback: (invoices: Invoice[]) => void) {
-  const q = query(collection(db, INVOICES_COLLECTION), orderBy("createdAt", "desc"));
-  return onSnapshot(q, (snapshot) => {
-    const list: Invoice[] = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as Invoice));
-    callback(list);
-  }, (err) => {
-    console.error("Invoices real-time subscription error:", err);
-  });
+  const q = query(collection(db, INVOICES_COLLECTION));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: Invoice[] = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      } as Invoice));
+      
+      // Sort in memory by createdAt or fallback date
+      list.sort((a, b) => {
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || Date.now());
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || Date.now());
+        return timeB - timeA;
+      });
+
+      callback(list);
+    },
+    (err) => {
+      console.error("Error subscribing to invoices:", err);
+    }
+  );
 }
 
 /**
@@ -87,7 +99,7 @@ export function subscribeInvoices(callback: (invoices: Invoice[]) => void) {
  */
 export async function getInvoices(): Promise<Invoice[]> {
   try {
-    const q = query(collection(db, INVOICES_COLLECTION), orderBy("createdAt", "desc"));
+    const q = query(collection(db, INVOICES_COLLECTION));
     const snap = await getDocs(q);
     return snap.docs.map((docSnap) => ({
       id: docSnap.id,

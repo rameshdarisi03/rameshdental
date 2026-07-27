@@ -361,9 +361,13 @@ export default function ClinicalBillingPage() {
 
     try {
       setSubmitting(true);
+      setActionError("");
+      setActionSuccess("");
+
       const canvas = await html2canvas(previewEl, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
@@ -379,9 +383,12 @@ export default function ClinicalBillingPage() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${currentInvNumber}_${patientName || "Invoice"}.pdf`);
-    } catch (err) {
+      const fileName = `${currentInvNumber}_${patientName ? patientName.replace(/[^a-zA-Z0-9]/g, "_") : "Invoice"}.pdf`;
+      pdf.save(fileName);
+      setActionSuccess(`Downloaded ${fileName} successfully!`);
+    } catch (err: any) {
       console.error("PDF generation failed:", err);
+      setActionError(`PDF export error: ${err.message || "Failed to generate PDF"}`);
     } finally {
       setSubmitting(false);
     }
@@ -419,8 +426,9 @@ export default function ClinicalBillingPage() {
     try {
       setSubmitting(true);
       const canvas = await html2canvas(previewEl, {
-        scale: 3, // Ultra crisp 300 DPI rendering
+        scale: 2, // Crisp 200 DPI rendering
         useCORS: true,
+        allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
@@ -458,13 +466,7 @@ export default function ClinicalBillingPage() {
             </style>
           </head>
           <body>
-            <img src="${imgData}" alt="Invoice ${currentInvNumber}" />
-            <script>
-              setTimeout(() => {
-                window.print();
-                window.close();
-              }, 400);
-            </script>
+            <img src="${imgData}" alt="Invoice ${currentInvNumber}" onload="window.focus(); setTimeout(function() { window.print(); window.close(); }, 350);" />
           </body>
         </html>
       `);
