@@ -415,68 +415,9 @@ export default function ClinicalBillingPage() {
     }
   };
 
-  // 100% Pixel-Perfect Print Function (Canvas-to-Print Engine)
-  const handlePrint = async () => {
-    const previewEl = document.getElementById("invoice-preview");
-    if (!previewEl) {
-      window.print();
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const canvas = await html2canvas(previewEl, {
-        scale: 2, // Crisp 200 DPI rendering
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const printWin = window.open("", "_blank", "width=850,height=950");
-      if (!printWin) {
-        window.print();
-        return;
-      }
-
-      printWin.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Invoice #${currentInvNumber} - Gait Physio Clinic</title>
-            <style>
-              body {
-                margin: 0;
-                padding: 20px;
-                display: flex;
-                justify-content: center;
-                align-items: flex-start;
-                background: #ffffff;
-              }
-              img {
-                width: 100%;
-                max-width: 750px;
-                height: auto;
-              }
-              @media print {
-                body { padding: 0; }
-                img { width: 100%; max-width: 100%; }
-              }
-            </style>
-          </head>
-          <body>
-            <img src="${imgData}" alt="Invoice ${currentInvNumber}" onload="window.focus(); setTimeout(function() { window.print(); window.close(); }, 350);" />
-          </body>
-        </html>
-      `);
-      printWin.document.close();
-    } catch (err) {
-      console.error("Print canvas rendering error:", err);
-      window.print();
-    } finally {
-      setSubmitting(false);
-    }
+  // Direct Native Print Function (0 Popup Blocker Delays)
+  const handlePrint = () => {
+    window.print();
   };
 
   // WhatsApp pre-formatted share link
@@ -506,15 +447,24 @@ export default function ClinicalBillingPage() {
           }
           #invoice-preview {
             display: block !important;
-            position: static !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
             width: 100% !important;
-            max-width: 800px !important;
-            margin: 0 auto !important;
+            max-width: 100% !important;
+            margin: 0 !important;
             padding: 24px !important;
             box-shadow: none !important;
             border: none !important;
             background: white !important;
             color: black !important;
+            z-index: 999999 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       `}</style>
