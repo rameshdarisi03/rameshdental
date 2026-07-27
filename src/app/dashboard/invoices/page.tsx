@@ -120,12 +120,14 @@ export default function ClinicalBillingPage() {
     return () => unsubscribe();
   }, []);
 
-  // Filtered patients for autocomplete
+  // Filtered patients for autocomplete (matches Name, PID, or Mobile Phone Number)
   const filteredPatients = useMemo(() => {
     if (!patientSearchText.trim()) return patients;
     const q = patientSearchText.toLowerCase();
     return patients.filter(
-      (p) => p.name.toLowerCase().includes(q) || (p.customId && p.customId.toLowerCase().includes(q))
+      (p) => p.name.toLowerCase().includes(q) || 
+             (p.customId && p.customId.toLowerCase().includes(q)) ||
+             (p.phone && p.phone.toLowerCase().includes(q))
     );
   }, [patients, patientSearchText]);
 
@@ -221,7 +223,7 @@ export default function ClinicalBillingPage() {
     return { unpaidCount, unpaidTotal, revenueMtd, pendingCount, overdueCount };
   }, [invoices]);
 
-  // Filtered invoices table list
+  // Filtered invoices table list (matches Invoice #, Patient Name, PID, or Mobile Phone Number)
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
       if (statusFilter !== "all" && inv.status !== statusFilter) return false;
@@ -230,7 +232,8 @@ export default function ClinicalBillingPage() {
         const matchesInv = inv.invoiceNumber.toLowerCase().includes(q);
         const matchesPatient = inv.patientName.toLowerCase().includes(q);
         const matchesPid = inv.patientId.toLowerCase().includes(q);
-        return matchesInv || matchesPatient || matchesPid;
+        const matchesPhone = inv.patientPhone && inv.patientPhone.toLowerCase().includes(q);
+        return matchesInv || matchesPatient || matchesPid || matchesPhone;
       }
       return true;
     });
@@ -321,9 +324,58 @@ export default function ClinicalBillingPage() {
     }
   };
 
-  // Print function
+  // Robust Print / PDF function
   const handlePrint = () => {
-    window.print();
+    const previewEl = document.getElementById("invoice-preview");
+    if (!previewEl) {
+      window.print();
+      return;
+    }
+
+    const printWin = window.open("", "_blank", "width=850,height=950");
+    if (!printWin) {
+      window.print();
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice #${currentInvNumber} - Gait Physio Clinic</title>
+          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+            body { 
+              font-family: 'Inter', sans-serif; 
+              padding: 24px; 
+              background: #ffffff; 
+              color: #000000; 
+              -webkit-print-color-adjust: exact; 
+              print-color-adjust: exact; 
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="max-w-2xl mx-auto border border-slate-200 p-8 rounded-2xl shadow-none">
+            ${previewEl.innerHTML}
+          </div>
+          <script>
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 500);
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWin.document.open();
+    printWin.document.write(htmlContent);
+    printWin.document.close();
   };
 
   // WhatsApp pre-formatted share link
@@ -340,22 +392,28 @@ export default function ClinicalBillingPage() {
       {/* Printable Area Styling */}
       <style jsx global>{`
         @media print {
-          .no-print {
+          nav, header, footer, aside, .no-print {
             display: none !important;
           }
-          body {
+          body, main {
             background: white !important;
             color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
           }
           #invoice-preview {
-            position: relative !important;
+            display: block !important;
+            position: static !important;
             width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 16px !important;
+            max-width: 800px !important;
+            margin: 0 auto !important;
+            padding: 24px !important;
             box-shadow: none !important;
             border: none !important;
             background: white !important;
+            color: black !important;
           }
         }
       `}</style>
