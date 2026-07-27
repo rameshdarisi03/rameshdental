@@ -99,13 +99,25 @@ export async function getInvoices(): Promise<Invoice[]> {
   }
 }
 
+function sanitizeFirestoreData<T extends object>(obj: T): T {
+  const clean: any = {};
+  Object.keys(obj).forEach((key) => {
+    const val = (obj as any)[key];
+    if (val !== undefined) {
+      clean[key] = val;
+    }
+  });
+  return clean;
+}
+
 /**
  * Create a new Invoice in Firestore
  */
 export async function createInvoice(invoiceData: Omit<Invoice, "id" | "createdAt" | "updatedAt">): Promise<string> {
   try {
+    const sanitized = sanitizeFirestoreData(invoiceData);
     const docRef = await addDoc(collection(db, INVOICES_COLLECTION), {
-      ...invoiceData,
+      ...sanitized,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

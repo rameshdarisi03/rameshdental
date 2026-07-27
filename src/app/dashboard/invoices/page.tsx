@@ -14,6 +14,8 @@ import {
 } from "@/lib/invoicesDb";
 import { getPatients, Patient } from "@/lib/patientsDb";
 import { FEATURES } from "@/lib/features";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { 
   Receipt, 
   Plus, 
@@ -256,7 +258,7 @@ export default function ClinicalBillingPage() {
     setActionError("");
   };
 
-  // Submit & Save Invoice
+  // Submit & Finalize Invoice (Saves to Firestore & Uploads PDF Copy to Patient's Google Drive)
   const handleSaveInvoice = async (targetStatus: "paid" | "pending") => {
     if (!patientName.trim()) {
       setActionError("Please enter or select a patient name.");
@@ -272,7 +274,8 @@ export default function ClinicalBillingPage() {
     setActionSuccess("");
 
     try {
-      await createInvoice({
+      // 1. Create Invoice in Firestore
+      const newInvId = await createInvoice({
         invoiceNumber: currentInvNumber,
         patientId: patientPid || "GPC-GUEST",
         patientName: patientName.trim(),
@@ -293,11 +296,92 @@ export default function ClinicalBillingPage() {
         notes: notes.trim(),
       });
 
-      setActionSuccess(`Invoice ${currentInvNumber} saved successfully as ${targetStatus.toUpperCase()}!`);
+      // 2. Automatically generate PDF Blob & upload copy to Patient's Google Drive
+      const selectedP = patients.find(
+        (p) => p.id === selectedPatientId || p.name.toLowerCase() === patientName.toLowerCase()
+      );
+      const driveFolderId = selectedP?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
+
+      if (driveFolderId) {
+        try {
+          const previewEl = document.getElementById("invoice-preview");
+          if (previewEl) {
+            const canvas = await html2canvas(previewEl, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+              logging: false,
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+            const pdf = new jsPDF({
+              orientation: "portrait",
+              unit: "mm",
+              format: "a4",
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+            const pdfBlob = pdf.output("blob");
+            const pdfFile = new File([pdfBlob], `${currentInvNumber}_${patientName.replace(/\s+/g, "_")}.pdf`, {
+              type: "application/pdf",
+            });
+
+            const driveFormData = new FormData();
+            driveFormData.append("file", pdfFile);
+            driveFormData.append("parentFolderId", driveFolderId);
+            driveFormData.append("date", serviceDate || new Date().toISOString().split("T")[0]);
+
+            await fetch("/api/drive/upload", {
+              method: "POST",
+              body: driveFormData,
+            });
+          }
+        } catch (driveErr) {
+          console.warn("Google Drive invoice PDF archiving warning:", driveErr);
+        }
+      }
+
+      setActionSuccess(`Invoice ${currentInvNumber} finalized, saved, and archived to Google Drive!`);
       handleResetForm();
     } catch (err: any) {
-      console.error("Error saving invoice:", err);
-      setActionError(err.message || "Failed to create invoice.");
+      console.error("Error finalizing invoice:", err);
+      setActionError(err.message || "Failed to finalize invoice.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Pixel-Perfect PDF Download Handler
+  const handleDownloadPdf = async () => {
+    const previewEl = document.getElementById("invoice-preview");
+    if (!previewEl) return;
+
+    try {
+      setSubmitting(true);
+      const canvas = await html2canvas(previewEl, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${currentInvNumber}_${patientName || "Invoice"}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
     } finally {
       setSubmitting(false);
     }
@@ -767,7 +851,7 @@ export default function ClinicalBillingPage() {
                   className="px-6 py-2.5 rounded-2xl bg-[#2d5a4c] hover:bg-[#23473c] text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Finalize & Mark Paid
+                  FINALIZE
                 </button>
               </div>
             </div>
@@ -796,8 +880,8 @@ export default function ClinicalBillingPage() {
             <div id="invoice-preview" className="flex-1 p-6 flex flex-col justify-between bg-white text-slate-900 relative">
               
               {/* Background Watermark Stamp */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.06] -rotate-12">
-                <span className="border-8 border-[#2d5a4c] text-[#2d5a4c] font-black text-6xl px-8 py-4 rounded-3xl uppercase tracking-widest">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.03] -rotate-12 invoice-watermark">
+                <span className="border-2 border-[#2d5a4c] text-[#2d5a4c] font-black text-5xl px-6 py-3 rounded-2xl uppercase tracking-widest">
                   GAIT PHYSIO
                 </span>
               </div>
@@ -905,7 +989,16 @@ export default function ClinicalBillingPage() {
                 className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
               >
                 <Printer className="h-4 w-4 text-[#2d5a4c]" />
-                Print / PDF
+                Print
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+              >
+                <Download className="h-4 w-4 text-[#2d5a4c]" />
+                Download PDF
               </button>
 
               {patientPhone && (
