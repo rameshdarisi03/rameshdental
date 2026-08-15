@@ -373,21 +373,25 @@ export default function Home() {
     },
   ];
 
-  const [activeReviewIndex, setActiveReviewIndex] = useState(0);
+  const [reviewPage, setReviewPage] = useState(0);
+  const [isReviewHovered, setIsReviewHovered] = useState(false);
+  const totalReviewPages = Math.ceil(googleReviews.length / 2);
 
+  // Auto-slide every 3.5 seconds (pauses when user hovers over the cards)
   useEffect(() => {
+    if (isReviewHovered) return;
     const timer = setInterval(() => {
-      setActiveReviewIndex((prev) => (prev + 1) % googleReviews.length);
-    }, 7000);
+      setReviewPage((prev) => (prev + 1) % totalReviewPages);
+    }, 3500);
     return () => clearInterval(timer);
-  }, [googleReviews.length]);
+  }, [isReviewHovered, totalReviewPages]);
 
   const handlePrevReview = () => {
-    setActiveReviewIndex((prev) => (prev === 0 ? googleReviews.length - 1 : prev - 1));
+    setReviewPage((prev) => (prev === 0 ? totalReviewPages - 1 : prev - 1));
   };
 
   const handleNextReview = () => {
-    setActiveReviewIndex((prev) => (prev + 1) % googleReviews.length);
+    setReviewPage((prev) => (prev + 1) % totalReviewPages);
   };
 
   // Viewport Scroll Entrance Reveal hook
@@ -1096,34 +1100,42 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 3-Card Carousel Container */}
-          <div className="relative">
-            {/* Nav Arrows */}
-            <div className="hidden sm:flex justify-end items-center gap-2 mb-4">
-              <button
-                onClick={handlePrevReview}
-                className="p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green transition-all shadow-sm active:scale-95 cursor-pointer"
-                aria-label="Previous reviews"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleNextReview}
-                className="p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green transition-all shadow-sm active:scale-95 cursor-pointer"
-                aria-label="Next reviews"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {/* 2-Card Carousel Track with Side Navigation Arrows */}
+          <div 
+            className="relative px-2 sm:px-12"
+            onMouseEnter={() => setIsReviewHovered(true)}
+            onMouseLeave={() => setIsReviewHovered(false)}
+          >
+            {/* Left Nav Arrow Button (Beside Slide) */}
+            <button
+              onClick={handlePrevReview}
+              className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
+              aria-label="Previous review page"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
-            {/* 3 Grid Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[0, 1, 2].map((offset) => {
-                const review = googleReviews[(activeReviewIndex + offset) % googleReviews.length];
+            {/* Right Nav Arrow Button (Beside Slide) */}
+            <button
+              onClick={handleNextReview}
+              className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
+              aria-label="Next review page"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+
+            {/* 2 Side-by-Side Review Cards */}
+            <div 
+              key={reviewPage}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-swap"
+            >
+              {[0, 1].map((offset) => {
+                const reviewIndex = (reviewPage * 2 + offset) % googleReviews.length;
+                const review = googleReviews[reviewIndex];
                 return (
                   <div
-                    key={review.name + offset}
-                    className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.18)] hover:-translate-y-1 transition-all duration-300 reveal-on-scroll group"
+                    key={review.name + reviewIndex}
+                    className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 sm:p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.18)] hover:-translate-y-1 transition-all duration-300 group"
                   >
                     <div className="space-y-4">
                       {/* Reviewer Header */}
@@ -1143,7 +1155,7 @@ export default function Home() {
                         </div>
 
                         {/* Google Logo Icon */}
-                        <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800">
+                        <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 shrink-0">
                           <svg viewBox="0 0 24 24" className="h-4 w-4">
                             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
                             <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
@@ -1191,22 +1203,20 @@ export default function Home() {
               })}
             </div>
 
-            {/* Mobile Nav Buttons */}
-            <div className="flex sm:hidden justify-center items-center gap-4 mt-6">
-              <button
-                onClick={handlePrevReview}
-                className="p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm"
-                aria-label="Previous review"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleNextReview}
-                className="p-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm"
-                aria-label="Next review"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
+            {/* Pagination Dots (3 Pairs) */}
+            <div className="flex justify-center gap-2 pt-6">
+              {Array.from({ length: totalReviewPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setReviewPage(i)}
+                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    reviewPage === i
+                      ? "bg-brand-green w-8"
+                      : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"
+                  }`}
+                  aria-label={`Go to slide pair ${i + 1}`}
+                />
+              ))}
             </div>
           </div>
 

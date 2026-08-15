@@ -69,6 +69,17 @@ body {
   }
 }
 
+@keyframes fadeSwap {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-word {
   opacity: 0;
   animation: revealWord 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -77,6 +88,10 @@ body {
 .animate-fade-in-up {
   opacity: 0;
   animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-swap {
+  animation: fadeSwap 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-float,
