@@ -1,12 +1,5 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export default function LocateUsRedirect() {
-  const router = useRouter();
-  useEffect(() => {
-    router.replace("/#locate-us");
-  }, [router]);
-  return null;
+  redirect("/#locate-us");
 }
