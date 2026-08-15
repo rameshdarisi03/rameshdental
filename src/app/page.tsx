@@ -749,7 +749,7 @@ export default function Home() {
             <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3.5 py-1.5 rounded-full inline-block">
               Clinic Programs
             </span>
-            <h2 className="font-serif-heading text-3xl sm:text-5xl font-semibold tracking-tight text-brand-charcoal dark:text-white">
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
               Specialized Physiotherapy Programs
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
@@ -779,7 +779,7 @@ export default function Home() {
                   <svc.icon className="h-5 w-5" />
                 </div>
                 
-                <h3 className="font-serif-heading text-xl font-semibold text-brand-green dark:text-teal-300 mb-3 group-hover:text-brand-green-hover transition-colors">
+                <h3 className="text-lg sm:text-xl font-black text-brand-green dark:text-teal-400 mb-3 group-hover:text-brand-green-hover transition-colors">
                   {svc.title}
                 </h3>
                 
@@ -1051,7 +1051,7 @@ export default function Home() {
                   100% Real Google Reviews
                 </span>
               </div>
-              <h2 className="font-serif-heading text-3xl sm:text-5xl font-semibold tracking-tight text-brand-charcoal dark:text-white">
+              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
                 Stories of Recovery & Mobility
               </h2>
               <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-normal leading-relaxed">
