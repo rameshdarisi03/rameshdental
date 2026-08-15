@@ -122,56 +122,42 @@ export default function Home() {
       title: "Musculoskeletal (Orthopaedic) Rehab",
       slug: "musculoskeletal",
       desc: "Treats bones, joints, ligaments, and muscles. It resolves conditions like back pain, arthritis, sciatica, and scoliosis.",
-      conditions: ["Back Pain", "Arthritis", "Sciatica", "Scoliosis"],
       image: "/images/services/musculoskeletal.webp",
     },
     {
       title: "Post-Surgical Rehabilitation",
       slug: "post-surgical",
       desc: "Restores mobility and strength after operations. Common focus areas include joint replacements, ACL reconstructions, and fracture repairs.",
-      conditions: ["Joint Replacements", "ACL Reconstruction", "Fracture Repairs"],
       image: "/images/services/postsurgical.webp",
     },
     {
       title: "Neurological Rehabilitation",
       slug: "neurological",
       desc: "Retrains the nervous system after injury. It improves balance and mobility for stroke, Parkinson's disease, and spinal cord injuries.",
-      conditions: ["Stroke Recovery", "Parkinson's", "Spinal Cord Injury"],
       image: "/images/services/neurological.webp",
     },
     {
       title: "Sports Injury Management",
       slug: "sports-injury",
       desc: "Focuses on athletic recovery and prevention. It treats sprains, strains, rotator cuff tears, and tennis elbow.",
-      conditions: ["Sprains & Strains", "Rotator Cuff Tears", "Tennis Elbow"],
       image: "/images/services/sports.webp",
     },
     {
       title: "Cardiopulmonary Physiotherapy",
       slug: "cardiopulmonary",
       desc: "Improves heart and lung function. It benefits individuals recovering from heart attacks, bypass surgeries, or managing COPD.",
-      conditions: ["Heart Recovery", "Bypass Surgery", "COPD Management"],
       image: "/images/services/cardiopulmonary.webp",
-    },
-    {
-      title: "Pediatric Physiotherapy",
-      slug: "pediatric",
-      desc: "Supports physical development in children. It treats cerebral palsy, developmental delays, and congenital conditions.",
-      conditions: ["Cerebral Palsy", "Developmental Delay", "Congenital Issues"],
-      image: "/images/services/pediatric.webp",
     },
     {
       title: "Geriatric Physiotherapy",
       slug: "geriatric",
       desc: "Addresses age-related mobility issues. It focuses on fall prevention, arthritis management, and maintaining independence.",
-      conditions: ["Fall Prevention", "Arthritis Care", "Mobility Enhancement"],
       image: "/images/services/geriatric.webp",
     },
     {
       title: "Pelvic Floor Rehab",
       slug: "pelvic-floor",
       desc: "Strengthens pelvic muscles. It treats urinary incontinence, pelvic pain, and aids in pre- and post-pregnancy recovery.",
-      conditions: ["Urinary Incontinence", "Pelvic Pain", "Pregnancy Rehab"],
       image: "/images/services/pelvic.webp",
     },
   ];
@@ -632,211 +618,95 @@ export default function Home() {
       <section id="services" className="py-20 bg-brand-bg dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
           
-          <div className="max-w-3xl space-y-3 reveal-on-scroll">
+          <div className="max-w-3xl space-y-2 reveal-on-scroll">
             <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-brand-green dark:text-teal-400 block">
               HEALING ELEVATED
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white tracking-tight">
               Our Comprehensive Services
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
-              We combine clinical excellence with biophilic design principles to create a sanctuary where physical recovery feels as natural as breathing. Explore our range of evidence-based treatments tailored to your unique journey.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {treatmentList.map((t) => (
-              <Link
-                key={t.title}
-                href={`/services/${t.slug}`}
-                className="group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll"
-              >
-                <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img
-                    src={t.image}
-                    alt={t.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                
-                <div className="p-5 flex flex-col flex-grow space-y-4">
-                  <h3 className="text-sm font-black text-brand-charcoal dark:text-white group-hover:text-brand-green dark:group-hover:text-teal-400 transition-colors duration-250 leading-tight">
-                    {t.title}
-                  </h3>
+          <div className="space-y-6">
+            {/* Top Row: 4 Services */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {treatmentList.slice(0, 4).map((t, idx) => (
+                <Link
+                  key={t.title}
+                  href={`/services/${t.slug}`}
+                  className={`group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll ${
+                    idx === 0 ? "" : idx === 1 ? "delay-75" : idx === 2 ? "delay-150" : "delay-225"
+                  }`}
+                >
+                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <img
+                      src={t.image}
+                      alt={t.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
                   
-                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal flex-grow">
-                    {t.desc}
-                  </p>
-
-                  <div className="border-t border-slate-200/50 dark:border-slate-800/60 pt-4 mt-auto space-y-4">
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
-                        Commonly Treated:
+                  <div className="p-5 flex flex-col flex-grow justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-black text-brand-charcoal dark:text-white group-hover:text-brand-green dark:group-hover:text-teal-400 transition-colors duration-250 leading-tight">
+                        {t.title}
+                      </h3>
+                      
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
+                        {t.desc}
                       </p>
-                      <div className="flex flex-wrap gap-1">
-                        {t.conditions.map((c) => (
-                          <span
-                            key={c}
-                            className="inline-flex items-center rounded-md bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 px-2 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-405"
-                          >
-                            {c}
-                          </span>
-                        ))}
-                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-1.5 pt-1 text-[11px] font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors duration-200">
+
+                    <div className="flex items-center gap-1.5 pt-3 text-[11px] font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors duration-200 border-t border-slate-200/50 dark:border-slate-800/60">
                       <span>Read More</span>
                       <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* Conditions We Treat Section (Matching New Screenshot 2x2 layout) */}
-      <section className="py-20 bg-brand-bg dark:bg-slate-950">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-          
-          <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
-              What We Treat
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
-              Conditions we treat at home.
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* Condition 1 */}
-            <div className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-brand-charcoal/60 p-8 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.14)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll space-y-5">
-              <div className="flex justify-between items-start">
-                <div className="h-11 w-11 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green dark:text-teal-300">
-                  <Activity className="h-5 w-5" />
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">01 — STROKE REHAB</span>
-              </div>
-              <h3 className="text-lg font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors">Stroke rehabilitation</h3>
-              <ul className="space-y-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed pl-1 font-medium">
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Bed-to-stand, walking,</strong> and stairs retrained directly at home.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Neuro-physiotherapy</strong> aligned with your neurologist's plan.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Daily-living retraining</strong> for dressing, cooking, and routines.</span>
-                </li>
-              </ul>
-              <div className="pt-2">
-                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
-                  <span>Stroke rehab details</span>
-                  <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </a>
-              </div>
+                </Link>
+              ))}
             </div>
 
-            {/* Condition 2 */}
-            <div className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-brand-charcoal/60 p-8 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.14)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll delay-100 space-y-5">
-              <div className="flex justify-between items-start">
-                <div className="h-11 w-11 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green dark:text-teal-300">
-                  <Users className="h-5 w-5" />
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">02 — ELDERLY PHYSIO</span>
-              </div>
-              <h3 className="text-lg font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors">Elderly care & falls prevention</h3>
-              <ul className="space-y-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed pl-1 font-medium">
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Falls prevention</strong> assessed in your actual home environment.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Fortnightly reviews</strong> of balance, strength, and joint mobility.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Pain management</strong> without the strain of daily commutes.</span>
-                </li>
-              </ul>
-              <div className="pt-2">
-                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
-                  <span>Elderly home physio details</span>
-                  <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </a>
-              </div>
-            </div>
+            {/* Bottom Row: 3 Services (Centered) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto gap-6">
+              {treatmentList.slice(4).map((t, idx) => (
+                <Link
+                  key={t.title}
+                  href={`/services/${t.slug}`}
+                  className={`group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll ${
+                    idx === 0 ? "" : idx === 1 ? "delay-75" : "delay-150"
+                  }`}
+                >
+                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <img
+                      src={t.image}
+                      alt={t.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  
+                  <div className="p-5 flex flex-col flex-grow justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-black text-brand-charcoal dark:text-white group-hover:text-brand-green dark:group-hover:text-teal-400 transition-colors duration-250 leading-tight">
+                        {t.title}
+                      </h3>
+                      
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
+                        {t.desc}
+                      </p>
+                    </div>
 
-            {/* Condition 3 */}
-            <div className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-brand-charcoal/60 p-8 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.14)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll space-y-5">
-              <div className="flex justify-between items-start">
-                <div className="h-11 w-11 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green dark:text-teal-300">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">03 — POST-SURGERY RECOVERY</span>
-              </div>
-              <h3 className="text-lg font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors">Post-surgery recovery</h3>
-              <ul className="space-y-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed pl-1 font-medium">
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Knee, hip, and ACL</strong> reconstruction recovery protocols.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Swelling management</strong> to address pain before complications.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Functional walking</strong> and safe range of motion restored.</span>
-                </li>
-              </ul>
-              <div className="pt-2">
-                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
-                  <span>Post-surgery details</span>
-                  <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </a>
-              </div>
-            </div>
-
-            {/* Condition 4 */}
-            <div className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-brand-charcoal/60 p-8 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.14)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll delay-100 space-y-5">
-              <div className="flex justify-between items-start">
-                <div className="h-11 w-11 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green dark:text-teal-300">
-                  <Award className="h-5 w-5" />
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider">04 — ORTHOPAEDIC & PAEDIATRIC</span>
-              </div>
-              <h3 className="text-lg font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors">Orthopaedic & paediatric care</h3>
-              <ul className="space-y-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed pl-1 font-medium">
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Back, neck, & joint</strong> relief for sciatica, sprains, and sports injuries.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Ergonomic setups</strong> tailored directly to your real desk and bed.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-1.5" />
-                  <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Paediatric therapy</strong> for developmental delays and neuro needs.</span>
-                </li>
-              </ul>
-              <div className="pt-2">
-                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
-                  <span>Paediatric & ortho details</span>
-                  <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </a>
-              </div>
+                    <div className="flex items-center gap-1.5 pt-3 text-[11px] font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors duration-200 border-t border-slate-200/50 dark:border-slate-800/60">
+                      <span>Read More</span>
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
+
         </div>
       </section>
 
@@ -910,16 +780,10 @@ export default function Home() {
       <section id="team" className="py-20 bg-brand-bg dark:bg-slate-955 relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
           
-          <div className="text-center max-w-3xl mx-auto space-y-4 mb-16 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
-              Our Specialists
-            </span>
+          <div className="text-center max-w-3xl mx-auto mb-14 reveal-on-scroll">
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
               Meet Our Specialists
             </h2>
-            <p className="text-base text-slate-650 dark:text-slate-455">
-              Providing specialized physical therapy, clinical gait analysis, and personalized rehabilitation programs built on trust and compassion.
-            </p>
           </div>
 
           <div className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 hidden lg:block">
