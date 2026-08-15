@@ -45,22 +45,52 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "About Us", href: "/about" },
-    { name: "Services", href: "/services" },
-    { name: "Team", href: "/team" },
-    { name: "Gallery", href: "/gallery" },
+    { name: "Home", href: "/#home" },
+    { name: "Services", href: "/#services" },
+    { name: "Team", href: "/#team" },
+    { name: "Gallery", href: "/#gallery" },
     { name: "Articles", href: "/articles" },
-    { name: "FAQ", href: "/faq" },
-    { name: "Locate Us", href: "/locate-us" },
+    { name: "FAQ", href: "/#faq" },
+    { name: "Locate Us", href: "/#locate-us" },
     ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/patienthub/login" }] : [])
   ];
 
+  const [activeSection, setActiveSection] = useState("home");
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const handleScroll = () => {
+      const sections = ["home", "services", "team", "gallery", "faq", "locate-us"];
+      const scrollPosition = window.scrollY + 200; // offset for navbar height
+
+      for (const section of sections) {
+        const el = document.getElementById(section);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            setActiveSection(section);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
+
   const isActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/";
+    if (pathname !== "/") {
+      return pathname === href.split("#")[0];
     }
-    return pathname?.startsWith(href);
+    if (href.includes("#")) {
+      const hash = href.split("#")[1];
+      return activeSection === hash;
+    }
+    return pathname === href;
   };
 
   return (

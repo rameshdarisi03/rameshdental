@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { 
   Activity, 
@@ -17,8 +17,25 @@ import {
   Sparkles,
   Phone,
   CalendarCheck,
-  Users
+  Users,
+  HeartPulse,
+  Smartphone,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Mail,
+  Clock,
+  Navigation,
+  Loader2
 } from "lucide-react";
+import { Great_Vibes } from "next/font/google";
+import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
+
+const signatureFont = Great_Vibes({
+  subsets: ["latin"],
+  weight: "400",
+});
 
 // Viewport-Triggered rolling number counter for trust stats
 function ScrollTriggeredCounter({ 
@@ -104,6 +121,210 @@ export default function Home() {
       highlight: false,
     },
   ];
+
+  // Integrated Treatments data
+  const treatmentList = [
+    {
+      title: "Musculoskeletal (Orthopaedic) Rehab",
+      slug: "musculoskeletal",
+      desc: "Treats bones, joints, ligaments, and muscles. It resolves conditions like back pain, arthritis, sciatica, and scoliosis.",
+      conditions: ["Back Pain", "Arthritis", "Sciatica", "Scoliosis"],
+      image: "/images/services/musculoskeletal.webp",
+    },
+    {
+      title: "Post-Surgical Rehabilitation",
+      slug: "post-surgical",
+      desc: "Restores mobility and strength after operations. Common focus areas include joint replacements, ACL reconstructions, and fracture repairs.",
+      conditions: ["Joint Replacements", "ACL Reconstruction", "Fracture Repairs"],
+      image: "/images/services/postsurgical.webp",
+    },
+    {
+      title: "Neurological Rehabilitation",
+      slug: "neurological",
+      desc: "Retrains the nervous system after injury. It improves balance and mobility for stroke, Parkinson's disease, and spinal cord injuries.",
+      conditions: ["Stroke Recovery", "Parkinson's", "Spinal Cord Injury"],
+      image: "/images/services/neurological.webp",
+    },
+    {
+      title: "Sports Injury Management",
+      slug: "sports-injury",
+      desc: "Focuses on athletic recovery and prevention. It treats sprains, strains, rotator cuff tears, and tennis elbow.",
+      conditions: ["Sprains & Strains", "Rotator Cuff Tears", "Tennis Elbow"],
+      image: "/images/services/sports.webp",
+    },
+    {
+      title: "Cardiopulmonary Physiotherapy",
+      slug: "cardiopulmonary",
+      desc: "Improves heart and lung function. It benefits individuals recovering from heart attacks, bypass surgeries, or managing COPD.",
+      conditions: ["Heart Recovery", "Bypass Surgery", "COPD Management"],
+      image: "/images/services/cardiopulmonary.webp",
+    },
+    {
+      title: "Pediatric Physiotherapy",
+      slug: "pediatric",
+      desc: "Supports physical development in children. It treats cerebral palsy, developmental delays, and congenital conditions.",
+      conditions: ["Cerebral Palsy", "Developmental Delay", "Congenital Issues"],
+      image: "/images/services/pediatric.webp",
+    },
+    {
+      title: "Geriatric Physiotherapy",
+      slug: "geriatric",
+      desc: "Addresses age-related mobility issues. It focuses on fall prevention, arthritis management, and maintaining independence.",
+      conditions: ["Fall Prevention", "Arthritis Care", "Mobility Enhancement"],
+      image: "/images/services/geriatric.webp",
+    },
+    {
+      title: "Pelvic Floor Rehab",
+      slug: "pelvic-floor",
+      desc: "Strengthens pelvic muscles. It treats urinary incontinence, pelvic pain, and aids in pre- and post-pregnancy recovery.",
+      conditions: ["Urinary Incontinence", "Pelvic Pain", "Pregnancy Rehab"],
+      image: "/images/services/pelvic.webp",
+    },
+  ];
+
+  // Integrated Specialists/Team data
+  interface TherapistProfile {
+    name: string;
+    role: string;
+    image: string;
+    years: string;
+    headline: string;
+    desc: string;
+    quote: string;
+    signature: string;
+  }
+
+  const therapistProfiles: TherapistProfile[] = [
+    {
+      name: "Dr. Kinnera, BPT, MPT",
+      role: "Senior Physiotherapist & Clinical Director",
+      image: "/images/dr-kinnera-portrait.jpg",
+      years: "12+",
+      headline: "Passionate About Providing Expert Care And Support",
+      desc: "Behind every successful recovery is a physiotherapist's passion for care, relentless support, and expert guidance. Dr. Kinnera is committed to resolving underlying biomechanical dysfunctions, relieving acute and chronic pain, and helping you achieve long-term physical health.",
+      quote: "True Healing Comes From More Than Treatments—It's Built On Trust, Patience, And Compassion, Reflected In Each Small Victory And Ongoing Encouragement.",
+      signature: "Dr. Kinnera",
+    },
+    {
+      name: "Dr. Rohan, BPT, MPT",
+      role: "Lead Physiotherapist & Spine Rehabilitation Specialist",
+      image: "/images/dr-rohan-portrait.jpg",
+      years: "8+",
+      headline: "Empowering Movement And Rebuilding Structural Resilience",
+      desc: "Dedicated to helping patients reclaim their physical strength, Dr. Rohan combines evidence-based spinal care with manual therapy techniques. He focuses on restoring spinal function, correcting posture, and designing custom rehabilitation protocols for fast, sustainable recovery.",
+      quote: "Rehabilitation Is About Reconnecting With Your Body's Potential, Reclaiming What Was Lost, And Walking Forward With Strength And Renewed Confidence.",
+      signature: "Dr. Rohan",
+    }
+  ];
+
+  const [teamIndex, setTeamIndex] = useState(0);
+
+  const nextTeamSlide = useCallback(() => {
+    setTeamIndex((prev) => (prev + 1) % therapistProfiles.length);
+  }, [therapistProfiles.length]);
+
+  const prevTeamSlide = useCallback(() => {
+    setTeamIndex((prev) => (prev - 1 + therapistProfiles.length) % therapistProfiles.length);
+  }, [therapistProfiles.length]);
+
+  // Autoplay for team slider
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextTeamSlide();
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [nextTeamSlide]);
+
+  // Integrated Gallery data
+  const galleryItems = [
+    {
+      title: "Digital Gait Treadmill & Capture Lab",
+      desc: "Our high-speed camera system and force plate treadmill to record step strikes.",
+      icon: Activity,
+      gradient: "from-brand-green/20 to-brand-sand/40",
+    },
+    {
+      title: "Orthopedic Rehabilitation Gym",
+      desc: "Kettlebells, balance pads, and resistance stations for functional recovery.",
+      icon: Zap,
+      gradient: "from-brand-green/25 to-brand-bg",
+    },
+    {
+      title: "Private Consult & Treatment Rooms",
+      desc: "Hygienic, quiet private suites for manual joint manipulation and consultations.",
+      icon: ShieldCheck,
+      gradient: "from-brand-sand/50 to-brand-green/15",
+    },
+    {
+      title: "Foot Scanner & Orthotics Lab",
+      desc: "High-resolution 3D foot scanners to design custom arch insoles.",
+      icon: Sparkles,
+      gradient: "from-brand-bg to-brand-sand/65",
+    },
+    {
+      title: "Dry Needling & Laser Care Suite",
+      desc: "Clean treatment spaces for dry needling and target electrotherapy.",
+      icon: HeartPulse,
+      gradient: "from-brand-green/15 to-brand-sand/35",
+    },
+    {
+      title: "Digital Client Analytics Station",
+      desc: "Where therapists review biomechanical metrics alongside our patients.",
+      icon: Smartphone,
+      gradient: "from-brand-sand/60 to-brand-bg",
+    },
+  ];
+
+  // Integrated FAQ data
+  const faqs = [
+    {
+      q: "Do I need a doctor's referral to get physiotherapy?",
+      a: "No, a referral is not required to visit us. You can book an appointment directly. However, if you plan to claim treatments under specific insurance policies, your provider might require a doctor's referral. We suggest checking with your insurance provider.",
+    },
+    {
+      q: "What is Digital Gait Analysis, and how should I prepare?",
+      a: "Digital Gait Analysis measures your walking or running biomechanics on a pressure-mapped treadmill. Please wear comfortable athletic clothing and bring the running or walking shoes you use most frequently so we can scan your standard stride.",
+    },
+    {
+      q: "What should I wear to my physiotherapy sessions?",
+      a: "Wear loose, comfortable clothing that allows easy movement. If we are examining your knees, ankles, or feet, shorts are highly recommended. For shoulder, neck, or back assessments, a tank top or loose t-shirt is ideal.",
+    },
+    {
+      q: "How long does a typical physiotherapy session last?",
+      a: "Your initial assessment will take approximately 45 to 60 minutes, which includes a clinical examination, diagnostic scans (such as gait or posture analysis if required), and your first treatment. Follow-up sessions usually take 30 to 45 minutes.",
+    },
+    {
+      q: "How does the online appointment booking confirmation work?",
+      a: "When you select a slot online, your appointment status is saved as 'Pending'. Our clinic staff reviews the slot against the day's schedule. Once approved, you will receive a confirmation message directly on your WhatsApp number with the appointment details.",
+    },
+    {
+      q: "Do you offer treatment plans for chronic back pain?",
+      a: "Yes, chronic spine issues are one of our core specializations. We compile diagnostic posture scans, utilize manual therapy, electrotherapy, dry needling, and design core-strengthening programs to deliver long-term spinal stability.",
+    },
+  ];
+
+  const [faqOpenIndex, setFaqOpenIndex] = useState<number | null>(null);
+  const toggleFAQ = (index: number) => {
+    setFaqOpenIndex(faqOpenIndex === index ? null : index);
+  };
+
+  // Integrated Clinic Config data
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
+  const [clinicLoading, setClinicLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const fetched = await getClinicConfig();
+        setClinicConfig(fetched);
+      } catch (err) {
+        console.error("Error loading clinic settings config:", err);
+      } finally {
+        setClinicLoading(false);
+      }
+    }
+    loadConfig();
+  }, []);
 
   const testimonials = [
     {
@@ -204,6 +425,22 @@ export default function Home() {
           from { opacity: 0; transform: scale(0.98) translateY(5px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes float-badge {
+          0%, 100% { transform: translateY(-50%) translateY(0px) scale(1); }
+          50% { transform: translateY(-50%) translateY(-6px) scale(1.03); }
+        }
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in-left {
+          from { opacity: 0; transform: translateX(-30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fade-in-right {
+          from { opacity: 0; transform: translateX(30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
         .animate-blob-1 {
           animation: floatBlob 14s ease-in-out infinite;
         }
@@ -220,6 +457,21 @@ export default function Home() {
         .animate-fade-swap {
           animation: fadeSwap 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+        .animate-float-badge {
+          animation: float-badge 3s ease-in-out infinite;
+        }
+        .animate-fade-in-up {
+          opacity: 0;
+          animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-fade-in-left {
+          opacity: 0;
+          animation: fade-in-left 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-fade-in-right {
+          opacity: 0;
+          animation: fade-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
         .reveal-on-scroll {
           opacity: 0;
           transform: translateY(25px);
@@ -232,10 +484,11 @@ export default function Home() {
         .delay-100 { transition-delay: 100ms; }
         .delay-200 { transition-delay: 200ms; }
         .delay-300 { transition-delay: 300ms; }
+        .delay-400 { transition-delay: 400ms; }
       `}</style>
 
       {/* Hero Section: Panoramic Background & Styled Therapist Frame */}
-      <section className="relative overflow-hidden py-24 sm:py-32 text-brand-charcoal bg-brand-bg">
+      <section id="home" className="relative overflow-hidden py-24 sm:py-32 text-brand-charcoal bg-brand-bg">
         {/* Panoramic Background (Crisp and rich visibility) */}
         <div 
           className="absolute inset-0 bg-cover bg-center filter blur-[0.5px] scale-[1.01] opacity-100" 
@@ -381,7 +634,76 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Services / Treatments Section */}
+      <section id="services" className="py-20 bg-brand-bg dark:bg-slate-950">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
+          
+          <div className="max-w-3xl space-y-3 reveal-on-scroll">
+            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-brand-green dark:text-teal-400 block">
+              HEALING ELEVATED
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white tracking-tight">
+              Our Comprehensive Services
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
+              We combine clinical excellence with biophilic design principles to create a sanctuary where physical recovery feels as natural as breathing. Explore our range of evidence-based treatments tailored to your unique journey.
+            </p>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {treatmentList.map((t) => (
+              <Link
+                key={t.title}
+                href={`/services/${t.slug}`}
+                className="group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll"
+              >
+                <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                  <img
+                    src={t.image}
+                    alt={t.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                
+                <div className="p-5 flex flex-col flex-grow space-y-4">
+                  <h3 className="text-sm font-black text-brand-charcoal dark:text-white group-hover:text-brand-green dark:group-hover:text-teal-400 transition-colors duration-250 leading-tight">
+                    {t.title}
+                  </h3>
+                  
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal flex-grow">
+                    {t.desc}
+                  </p>
+
+                  <div className="border-t border-slate-200/50 dark:border-slate-800/60 pt-4 mt-auto space-y-4">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                        Commonly Treated:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {t.conditions.map((c) => (
+                          <span
+                            key={c}
+                            className="inline-flex items-center rounded-md bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 px-2 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-405"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5 pt-1 text-[11px] font-black text-brand-green dark:text-teal-400 group-hover:text-brand-green-hover transition-colors duration-200">
+                      <span>Read More</span>
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+        </div>
+      </section>
 
       {/* Conditions We Treat Section (Matching New Screenshot 2x2 layout) */}
       <section className="py-20 bg-brand-bg dark:bg-slate-950">
@@ -590,6 +912,239 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Our Specialists / Team Section */}
+      <section id="team" className="py-20 bg-brand-bg dark:bg-slate-955 relative overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-4 mb-16 reveal-on-scroll">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+              Our Specialists
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
+              Meet Our Specialists
+            </h2>
+            <p className="text-base text-slate-650 dark:text-slate-455">
+              Providing specialized physical therapy, clinical gait analysis, and personalized rehabilitation programs built on trust and compassion.
+            </p>
+          </div>
+
+          <div className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 hidden lg:block">
+            <button
+              onClick={prevTeamSlide}
+              className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
+              title="Previous Specialist"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="absolute top-1/2 -translate-y-1/2 -right-4 z-20 hidden lg:block">
+            <button
+              onClick={nextTeamSlide}
+              className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
+              title="Next Specialist"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div key={teamIndex} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full">
+            <div className="lg:col-span-5 relative animate-fade-in-left">
+              <div className="relative max-w-md mx-auto">
+                <img
+                  src={therapistProfiles[teamIndex].image}
+                  alt={`${therapistProfiles[teamIndex].name} Standing in GPC Clinic`}
+                  className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.25)] border-4 border-white dark:border-slate-900 transition-all duration-300"
+                />
+                <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-[#1b3d2f] text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
+                  <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{therapistProfiles[teamIndex].years}</span>
+                  <span className="text-[7.5px] font-black uppercase tracking-wider mt-1.5 leading-tight">
+                    Years of<br />Expertise
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-7 space-y-6">
+              <div className="flex items-center gap-2 text-brand-green dark:text-teal-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest animate-fade-in-up">
+                <span className="h-[2px] w-8 bg-brand-green dark:bg-teal-400 rounded-full"></span>
+                OUR TRUSTED SUPPORT
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white leading-tight animate-fade-in-up delay-100">
+                {therapistProfiles[teamIndex].headline.includes("Providing") ? (
+                  <>
+                    Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
+                  </>
+                ) : (
+                  <>
+                    Empowering Movement And <span className="text-brand-green dark:text-teal-400">Rebuilding Structural</span> Resilience
+                  </>
+                )}
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal animate-fade-in-up delay-200">
+                {therapistProfiles[teamIndex].desc}
+              </p>
+
+              <div className="border-l-4 border-brand-green dark:border-teal-500 bg-[#f0f4f2]/60 dark:bg-brand-green/5 p-4 sm:p-5 rounded-r-2xl italic text-[11px] sm:text-xs font-normal text-slate-655 dark:text-slate-350 leading-relaxed animate-fade-in-up delay-300">
+                "{therapistProfiles[teamIndex].quote}"
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-6 pt-6 border-t border-slate-200/60 dark:border-slate-800 animate-fade-in-up delay-400">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={therapistProfiles[teamIndex].image}
+                    alt={`${therapistProfiles[teamIndex].name} Profile Icon`}
+                    className="w-12 h-12 rounded-full object-cover border border-brand-green/20 ring-4 ring-brand-green/5 shrink-0"
+                  />
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none block mb-1">
+                      {therapistProfiles[teamIndex].role}
+                    </span>
+                    <h4 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
+                      {therapistProfiles[teamIndex].name}
+                    </h4>
+                  </div>
+                </div>
+
+                <div className={`${signatureFont.className} text-4xl sm:text-5xl text-brand-green dark:text-teal-400 font-medium select-none pr-4 rotate-[-3deg] transform origin-center tracking-wide`}>
+                  {therapistProfiles[teamIndex].signature}
+                </div>
+              </div>
+
+              <div className="pt-2 animate-fade-in-up delay-400">
+                <Link
+                  href="/book"
+                  className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                  <span>Request Booking</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 pt-12">
+            <button
+              onClick={prevTeamSlide}
+              className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="flex gap-2">
+              {therapistProfiles.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setTeamIndex(idx)}
+                  className={`h-2.5 rounded-full transition-all duration-350 cursor-pointer ${idx === teamIndex ? "bg-brand-green w-6" : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"}`}
+                  title={`View Specialist ${idx + 1}`}
+                />
+              ))}
+            </div>
+            <button
+              onClick={nextTeamSlide}
+              className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Clinic Gallery Section */}
+      <section id="gallery" className="py-20 bg-[#f4f7f5] dark:bg-slate-950">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+          
+          <div className="text-center max-w-2xl mx-auto space-y-4 reveal-on-scroll">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+              Clinic Gallery
+            </span>
+            <h2 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
+              Our Facility & Technology
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">
+              We maintain a sanitised, fully equipped environment with clinical tools designed for diagnostic precision and patient recovery.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {galleryItems.map((item) => (
+              <div
+                key={item.title}
+                className="overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col group shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll"
+              >
+                <div className={`h-56 bg-gradient-to-br ${item.gradient} flex flex-col items-center justify-center border-b border-slate-100 dark:border-slate-855 p-6 relative overflow-hidden`}>
+                  <item.icon className="h-16 w-16 text-brand-green dark:text-teal-400 z-10 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-white/20 dark:bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                
+                <div className="p-6 space-y-2 flex-grow">
+                  <h3 className="text-base font-black text-brand-charcoal dark:text-white group-hover:text-brand-green transition-colors">{item.title}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                    {item.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* FAQ Accordion Section */}
+      <section id="faq" className="py-20 bg-brand-bg dark:bg-slate-955">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          <div className="text-center max-w-xl mx-auto space-y-4 reveal-on-scroll">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+              Common Questions
+            </span>
+            <h2 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
+              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 92066 51295.
+            </p>
+          </div>
+
+          <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-850 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] reveal-on-scroll">
+            {faqs.map((faq, index) => {
+              const isOpen = faqOpenIndex === index;
+              return (
+                <div key={index} className="w-full">
+                  <button
+                    onClick={() => toggleFAQ(index)}
+                    className="flex w-full items-center justify-between p-6 text-left focus:outline-none hover:bg-brand-bg/40 dark:hover:bg-slate-900/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <HelpCircle className="h-5 w-5 text-brand-green dark:text-teal-400 shrink-0" />
+                      <span className="font-bold text-brand-charcoal dark:text-white text-sm sm:text-base group-hover:text-brand-green">
+                        {faq.q}
+                      </span>
+                    </div>
+                    {isOpen ? (
+                      <ChevronUp className="h-5 w-5 text-slate-400 shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-slate-400 shrink-0" />
+                    )}
+                  </button>
+                  
+                  {isOpen && (
+                    <div className="p-6 pt-0 bg-[#fafcfb] dark:bg-slate-900">
+                      <p className="text-xs text-slate-500 dark:text-slate-350 leading-relaxed pl-8 font-semibold">
+                        {faq.a}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      </section>
+
       {/* Google Reviews Testimonials Carousel (Matching New Screenshot) */}
       <section className="bg-slate-50 dark:bg-slate-955 py-20 overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-8 reveal-on-scroll">
@@ -695,6 +1250,150 @@ export default function Home() {
               <ArrowRight className="ml-1 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Locate Us Section */}
+      <section id="locate-us" className="py-20 bg-[#f4f7f5] dark:bg-slate-950">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+              Find Our Clinic
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
+              Locate Us
+            </h2>
+            <p className="text-base text-slate-655 dark:text-slate-400">
+              Get directions, contact details, operating hours, and maps location to reach Gait Physio Clinic.
+            </p>
+          </div>
+
+          {clinicLoading ? (
+            <div className="flex h-96 items-center justify-center text-slate-550 text-xs font-semibold">
+              <Loader2 className="h-6 w-6 animate-spin text-brand-green mr-2" />
+              <span>Loading clinic location information...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+              
+              {/* Left side: Clinic Details */}
+              <div className="lg:col-span-5 space-y-8 reveal-on-scroll">
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-black text-brand-charcoal dark:text-white">Get In Touch</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                    Feel free to contact us with any booking questions, corporate tie-ups, or follow-ups. Our reception is available to assist you during business hours.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Address */}
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Clinic Location</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-455 leading-relaxed mt-1 font-semibold">
+                        {clinicConfig.address || DEFAULT_CLINIC_CONFIG.address}
+                      </p>
+                      {clinicConfig.landmark && (
+                        <p className="text-xs font-black text-brand-green dark:text-teal-400 mt-1">
+                          Landmark: {clinicConfig.landmark}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Phone Number</h4>
+                      <a
+                        href={`tel:${(clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone)?.replace(/\s+/g, "")}`}
+                        className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
+                      >
+                        {clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone}
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Email Address</h4>
+                      <a
+                        href={`mailto:${clinicConfig.email || DEFAULT_CLINIC_CONFIG.email}`}
+                        className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
+                      >
+                        {clinicConfig.email || DEFAULT_CLINIC_CONFIG.email}
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div className="flex gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Working Hours</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed mt-1 font-semibold whitespace-pre-line">
+                        {clinicConfig.operationalHoursText || DEFAULT_CLINIC_CONFIG.operationalHoursText}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side: Dynamic Map Frame */}
+              <div className="lg:col-span-7 flex flex-col gap-6 w-full reveal-on-scroll">
+                <div className="h-[450px] w-full rounded-3xl border border-slate-250/85 dark:border-slate-800 bg-white dark:bg-slate-955 relative overflow-hidden shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)]">
+                  {clinicConfig.googleMapsEmbed ? (
+                    <iframe
+                      src={clinicConfig.googleMapsEmbed}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900">
+                      <div className="h-16 w-16 rounded-full bg-brand-sand/85 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0 animate-bounce mb-4">
+                        <MapPin className="h-8 w-8" />
+                      </div>
+                      <h3 className="font-black text-brand-charcoal dark:text-white">Gait Physio Clinic Bangalore</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-450 max-w-sm font-semibold mt-1">
+                        Map configuration is incomplete. Update maps embed details in settings config.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-center">
+                  <a
+                    href={clinicConfig.googleMapsLink || DEFAULT_CLINIC_CONFIG.googleMapsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    Open in Google Maps
+                  </a>
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
       </section>
 
