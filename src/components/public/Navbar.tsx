@@ -30,29 +30,20 @@ export default function Navbar() {
     }
   };
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
   const isPortalSubroute = pathname?.startsWith("/dashboard") || (pathname?.startsWith("/patienthub") && pathname !== "/patienthub/login");
   if (isPortalSubroute) {
     return null;
   }
 
   const navLinks = [
-    { name: "Home", href: "/#home" },
-    { name: "Services", href: "/#services" },
-    { name: "Team", href: "/#team" },
-    { name: "Gallery", href: "/#gallery" },
-    { name: "Articles", href: "/articles" },
-    { name: "FAQ", href: "/#faq" },
-    { name: "Locate Us", href: "/#locate-us" },
-    ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/patienthub/login" }] : [])
+    { name: "Home", href: "/#home", hash: "#home" },
+    { name: "Services", href: "/#services", hash: "#services" },
+    { name: "Team", href: "/#team", hash: "#team" },
+    { name: "Gallery", href: "/#gallery", hash: "#gallery" },
+    { name: "Articles", href: "/articles", hash: "" },
+    { name: "FAQ", href: "/#faq", hash: "#faq" },
+    { name: "Locate Us", href: "/#locate-us", hash: "#locate-us" },
+    ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/patienthub/login", hash: "" }] : [])
   ];
 
   const [activeSection, setActiveSection] = useState("home");
@@ -82,15 +73,14 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
 
-  const isActive = (href: string) => {
-    if (pathname !== "/") {
-      return pathname === href.split("#")[0];
+  const isActive = (link: { href: string; hash?: string }) => {
+    if (pathname === "/") {
+      if (link.hash) {
+        return activeSection === link.hash.replace("#", "");
+      }
+      return false;
     }
-    if (href.includes("#")) {
-      const hash = href.split("#")[1];
-      return activeSection === hash;
-    }
-    return pathname === href;
+    return pathname === link.href;
   };
 
   return (
@@ -106,19 +96,22 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-brand-green dark:hover:text-brand-green/80 ${
-                isActive(link.href)
-                  ? "text-brand-green dark:text-teal-400 font-semibold"
-                  : "text-slate-600 dark:text-slate-300"
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const targetHref = pathname === "/" && link.hash ? link.hash : link.href;
+            return (
+              <a
+                key={link.name}
+                href={targetHref}
+                className={`text-sm font-medium transition-colors hover:text-brand-green dark:hover:text-brand-green/80 ${
+                  isActive(link)
+                    ? "text-brand-green dark:text-teal-400 font-semibold"
+                    : "text-slate-600 dark:text-slate-300"
+                }`}
+              >
+                {link.name}
+              </a>
+            );
+          })}
         </nav>
 
         {/* CTA & Mobile Toggle */}
@@ -180,20 +173,23 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {isOpen && (
         <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-4 space-y-2 shadow-inner">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              onClick={() => setIsOpen(false)}
-              className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors ${
-                isActive(link.href)
-                  ? "bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-400"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const targetHref = pathname === "/" && link.hash ? link.hash : link.href;
+            return (
+              <a
+                key={link.name}
+                href={targetHref}
+                onClick={() => setIsOpen(false)}
+                className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors ${
+                  isActive(link)
+                    ? "bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-400"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+                }`}
+              >
+                {link.name}
+              </a>
+            );
+          })}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-900">
             <Link
               href="/book"

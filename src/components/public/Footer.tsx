@@ -8,21 +8,20 @@ import { Activity, Phone, Mail, MapPin, Clock } from "lucide-react";
 export default function Footer() {
   const pathname = usePathname();
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
   const isPortalSubroute = pathname?.startsWith("/dashboard") || (pathname?.startsWith("/patienthub") && pathname !== "/patienthub/login");
   if (isPortalSubroute) {
     return null;
   }
 
   const currentYear = new Date().getFullYear();
+
+  const footerLinks = [
+    { name: "Services", href: "/#services", hash: "#services" },
+    { name: "Our Team", href: "/#team", hash: "#team" },
+    { name: "Clinic Gallery", href: "/#gallery", hash: "#gallery" },
+    { name: "Patient FAQs", href: "/#faq", hash: "#faq" },
+    { name: "Locate Us", href: "/#locate-us", hash: "#locate-us" },
+  ];
 
   return (
     <footer className="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 mt-auto">
@@ -47,22 +46,19 @@ export default function Footer() {
               Explore
             </h3>
             <ul className="space-y-2">
-              {[
-                { name: "About Us", href: "/about" },
-                { name: "Services", href: "/services" },
-                { name: "Our Team", href: "/team" },
-                { name: "Clinic Gallery", href: "/gallery" },
-                { name: "Patient FAQs", href: "/faq" },
-              ].map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-slate-600 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green/80 transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
+              {footerLinks.map((link) => {
+                const targetHref = pathname === "/" && link.hash ? link.hash : link.href;
+                return (
+                  <li key={link.name}>
+                    <a
+                      href={targetHref}
+                      className="text-sm text-slate-600 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green/80 transition-colors"
+                    >
+                      {link.name}
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 

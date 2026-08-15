@@ -29,13 +29,7 @@ import {
   Navigation,
   Loader2
 } from "lucide-react";
-import { Great_Vibes } from "next/font/google";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
-
-const signatureFont = Great_Vibes({
-  subsets: ["latin"],
-  weight: "400",
-});
 
 // Viewport-Triggered rolling number counter for trust stats
 function ScrollTriggeredCounter({ 
@@ -567,12 +561,12 @@ export default function Home() {
                   Book Free Consultation
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-                <Link
-                  href="/services"
+                <a
+                  href="#services"
                   className="inline-flex items-center justify-center rounded-full border border-brand-green text-brand-green hover:bg-brand-green/5 bg-white/40 backdrop-blur-sm px-8 py-4 text-base font-bold transition-all active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
                 >
                   Our Services
-                </Link>
+                </a>
               </div>
             </div>
             
@@ -743,10 +737,10 @@ export default function Home() {
                 </li>
               </ul>
               <div className="pt-2">
-                <Link href="/services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
+                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
                   <span>Stroke rehab details</span>
                   <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </Link>
+                </a>
               </div>
             </div>
 
@@ -774,10 +768,10 @@ export default function Home() {
                 </li>
               </ul>
               <div className="pt-2">
-                <Link href="/services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
+                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
                   <span>Elderly home physio details</span>
                   <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </Link>
+                </a>
               </div>
             </div>
 
@@ -805,10 +799,10 @@ export default function Home() {
                 </li>
               </ul>
               <div className="pt-2">
-                <Link href="/services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
+                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
                   <span>Post-surgery details</span>
                   <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </Link>
+                </a>
               </div>
             </div>
 
@@ -836,10 +830,10 @@ export default function Home() {
                 </li>
               </ul>
               <div className="pt-2">
-                <Link href="/services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
+                <a href="#services" className="text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline inline-flex items-center gap-1 group/btn">
                   <span>Paediatric & ortho details</span>
                   <ArrowRight className="h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </Link>
+                </a>
               </div>
             </div>
           </div>
@@ -899,13 +893,13 @@ export default function Home() {
                   )}
                 </p>
                 
-                <Link
-                  href="/services"
+                <a
+                  href="#services"
                   className="inline-flex items-center text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline group/btn"
                 >
                   <span>Learn more</span>
                   <ArrowRight className="ml-1 h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </Link>
+                </a>
               </div>
             ))}
           </div>
@@ -1007,7 +1001,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className={`${signatureFont.className} text-4xl sm:text-5xl text-brand-green dark:text-teal-400 font-medium select-none pr-4 rotate-[-3deg] transform origin-center tracking-wide`}>
+                <div className="font-[family-name:var(--font-signature)] text-4xl sm:text-5xl text-brand-green dark:text-teal-400 font-medium select-none pr-4 rotate-[-3deg] transform origin-center tracking-wide">
                   {therapistProfiles[teamIndex].signature}
                 </div>
               </div>
@@ -1269,131 +1263,124 @@ export default function Home() {
             </p>
           </div>
 
-          {clinicLoading ? (
-            <div className="flex h-96 items-center justify-center text-slate-550 text-xs font-semibold">
-              <Loader2 className="h-6 w-6 animate-spin text-brand-green mr-2" />
-              <span>Loading clinic location information...</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-              
-              {/* Left side: Clinic Details */}
-              <div className="lg:col-span-5 space-y-8 reveal-on-scroll">
-                <div className="space-y-4">
-                  <h2 className="text-2xl font-black text-brand-charcoal dark:text-white">Get In Touch</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                    Feel free to contact us with any booking questions, corporate tie-ups, or follow-ups. Our reception is available to assist you during business hours.
-                  </p>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            
+            {/* Left side: Clinic Details */}
+            <div className="lg:col-span-5 space-y-8 reveal-on-scroll">
+              <div className="space-y-4">
+                <h2 className="text-2xl font-black text-brand-charcoal dark:text-white">Get In Touch</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                  Feel free to contact us with any booking questions, corporate tie-ups, or follow-ups. Our reception is available to assist you during business hours.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Address */}
+                <div className="flex gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Clinic Location</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-455 leading-relaxed mt-1 font-semibold">
+                      {clinicConfig.address || DEFAULT_CLINIC_CONFIG.address}
+                    </p>
+                    {clinicConfig.landmark && (
+                      <p className="text-xs font-black text-brand-green dark:text-teal-400 mt-1">
+                        Landmark: {clinicConfig.landmark}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-6">
-                  {/* Address */}
-                  <div className="flex gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Clinic Location</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-455 leading-relaxed mt-1 font-semibold">
-                        {clinicConfig.address || DEFAULT_CLINIC_CONFIG.address}
-                      </p>
-                      {clinicConfig.landmark && (
-                        <p className="text-xs font-black text-brand-green dark:text-teal-400 mt-1">
-                          Landmark: {clinicConfig.landmark}
-                        </p>
-                      )}
-                    </div>
+                {/* Phone */}
+                <div className="flex gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                    <Phone className="h-5 w-5" />
                   </div>
-
-                  {/* Phone */}
-                  <div className="flex gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
-                      <Phone className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Phone Number</h4>
-                      <a
-                        href={`tel:${(clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone)?.replace(/\s+/g, "")}`}
-                        className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
-                      >
-                        {clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone}
-                      </a>
-                    </div>
+                  <div>
+                    <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Phone Number</h4>
+                    <a
+                      href={`tel:${(clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone)?.replace(/\s+/g, "")}`}
+                      className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
+                    >
+                      {clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone}
+                    </a>
                   </div>
+                </div>
 
-                  {/* Email */}
-                  <div className="flex gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
-                      <Mail className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Email Address</h4>
-                      <a
-                        href={`mailto:${clinicConfig.email || DEFAULT_CLINIC_CONFIG.email}`}
-                        className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
-                      >
-                        {clinicConfig.email || DEFAULT_CLINIC_CONFIG.email}
-                      </a>
-                    </div>
+                {/* Email */}
+                <div className="flex gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                    <Mail className="h-5 w-5" />
                   </div>
+                  <div>
+                    <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Email Address</h4>
+                    <a
+                      href={`mailto:${clinicConfig.email || DEFAULT_CLINIC_CONFIG.email}`}
+                      className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
+                    >
+                      {clinicConfig.email || DEFAULT_CLINIC_CONFIG.email}
+                    </a>
+                  </div>
+                </div>
 
-                  {/* Hours */}
-                  <div className="flex gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Working Hours</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed mt-1 font-semibold whitespace-pre-line">
-                        {clinicConfig.operationalHoursText || DEFAULT_CLINIC_CONFIG.operationalHoursText}
-                      </p>
-                    </div>
+                {/* Hours */}
+                <div className="flex gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Working Hours</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed mt-1 font-semibold whitespace-pre-line">
+                      {clinicConfig.operationalHoursText || DEFAULT_CLINIC_CONFIG.operationalHoursText}
+                    </p>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Right side: Dynamic Map Frame */}
-              <div className="lg:col-span-7 flex flex-col gap-6 w-full reveal-on-scroll">
-                <div className="h-[450px] w-full rounded-3xl border border-slate-250/85 dark:border-slate-800 bg-white dark:bg-slate-955 relative overflow-hidden shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)]">
-                  {clinicConfig.googleMapsEmbed ? (
-                    <iframe
-                      src={clinicConfig.googleMapsEmbed}
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen={true}
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="absolute inset-0 w-full h-full"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900">
-                      <div className="h-16 w-16 rounded-full bg-brand-sand/85 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0 animate-bounce mb-4">
-                        <MapPin className="h-8 w-8" />
-                      </div>
-                      <h3 className="font-black text-brand-charcoal dark:text-white">Gait Physio Clinic Bangalore</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-450 max-w-sm font-semibold mt-1">
-                        Map configuration is incomplete. Update maps embed details in settings config.
-                      </p>
+            {/* Right side: Dynamic Map Frame */}
+            <div className="lg:col-span-7 flex flex-col gap-6 w-full reveal-on-scroll">
+              <div className="h-[450px] w-full rounded-3xl border border-slate-250/85 dark:border-slate-800 bg-white dark:bg-slate-955 relative overflow-hidden shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)]">
+                {clinicConfig.googleMapsEmbed ? (
+                  <iframe
+                    src={clinicConfig.googleMapsEmbed}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen={true}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="absolute inset-0 w-full h-full"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900">
+                    <div className="h-16 w-16 rounded-full bg-brand-sand/85 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0 animate-bounce mb-4">
+                      <MapPin className="h-8 w-8" />
                     </div>
-                  )}
-                </div>
-
-                <div className="flex justify-center">
-                  <a
-                    href={clinicConfig.googleMapsLink || DEFAULT_CLINIC_CONFIG.googleMapsLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
-                  >
-                    <Navigation className="h-4 w-4" />
-                    Open in Google Maps
-                  </a>
-                </div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white">Gait Physio Clinic Bangalore</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-450 max-w-sm font-semibold mt-1">
+                      Map configuration is incomplete. Update maps embed details in settings config.
+                    </p>
+                  </div>
+                )}
               </div>
 
+              <div className="flex justify-center">
+                <a
+                  href={clinicConfig.googleMapsLink || DEFAULT_CLINIC_CONFIG.googleMapsLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Navigation className="h-4 w-4" />
+                  Open in Google Maps
+                </a>
+              </div>
             </div>
-          )}
+
+          </div>
         </div>
       </section>
 
@@ -1417,12 +1404,12 @@ export default function Home() {
             >
               Book Online Now
             </Link>
-            <Link
-              href="/locate-us"
+            <a
+              href="#locate-us"
               className="inline-flex items-center justify-center rounded-full border border-white/30 bg-transparent px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all active:scale-95"
             >
               Locate Us
-            </Link>
+            </a>
           </div>
         </div>
       </section>

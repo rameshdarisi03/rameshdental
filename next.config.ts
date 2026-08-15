@@ -14,27 +14,27 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/services",
-        destination: "/#services",
+        destination: "/",
         permanent: false,
       },
       {
         source: "/team",
-        destination: "/#team",
+        destination: "/",
         permanent: false,
       },
       {
         source: "/gallery",
-        destination: "/#gallery",
+        destination: "/",
         permanent: false,
       },
       {
         source: "/faq",
-        destination: "/#faq",
+        destination: "/",
         permanent: false,
       },
       {
         source: "/locate-us",
-        destination: "/#locate-us",
+        destination: "/",
         permanent: false,
       },
     ];
