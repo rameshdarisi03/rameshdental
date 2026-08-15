@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Great_Vibes } from "next/font/google";
+import { Geist, Geist_Mono, Great_Vibes, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/public/Navbar";
 import Footer from "@/components/public/Footer";
@@ -20,6 +20,12 @@ const signatureFont = Great_Vibes({
   weight: "400",
 });
 
+const serifFont = Playfair_Display({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Gait Physio Clinic | Premium Physiotherapy & Gait Analysis",
   description: "Experience specialized physiotherapy, gait analysis, posture correction, and rehabilitation at Gait Physio Clinic. Book your appointment online today.",
@@ -38,7 +44,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${signatureFont.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${signatureFont.variable} ${serifFont.variable} h-full antialiased`}
     >
       <head>
         <link rel="manifest" href="/manifest.json" />

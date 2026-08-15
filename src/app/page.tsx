@@ -709,18 +709,17 @@ export default function Home() {
 
         </div>
       </section>
-
       {/* Specialized Care Programs Section */}
       <section className="py-20 bg-[#f4f7f5] dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3.5 py-1.5 rounded-full inline-block">
               Clinic Programs
             </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
+            <h2 className="font-serif-heading text-3xl sm:text-5xl font-semibold tracking-tight text-brand-charcoal dark:text-white">
               Specialized Physiotherapy Programs
             </h2>
-            <p className="text-base text-slate-600 dark:text-slate-450">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
               We leverage diagnostic tools, manual therapy, and clinical biomechanics to resolve the root cause of your physical limitations.
             </p>
           </div>
@@ -747,19 +746,19 @@ export default function Home() {
                   <svc.icon className="h-5 w-5" />
                 </div>
                 
-                <h3 className="text-lg font-black text-brand-green dark:text-teal-400 mb-3 group-hover:text-brand-green-hover transition-colors">
+                <h3 className="font-serif-heading text-xl font-semibold text-brand-green dark:text-teal-300 mb-3 group-hover:text-brand-green-hover transition-colors">
                   {svc.title}
                 </h3>
                 
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6 font-medium">
+                <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed mb-6 font-normal">
                   {index === 0 && (
-                    <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Identify posture imbalances,</strong> movement flaws, and pressure distribution using digital treadmills.</span>
+                    <span><strong className="text-brand-charcoal dark:text-white font-bold">Identify posture imbalances,</strong> movement flaws, and pressure distribution using digital treadmills.</span>
                   )}
                   {index === 1 && (
-                    <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Fast-track recovery</strong> from sprains, tears, and sports injuries under the guidance of specialists.</span>
+                    <span><strong className="text-brand-charcoal dark:text-white font-bold">Fast-track recovery</strong> from sprains, tears, and sports injuries under the guidance of specialists.</span>
                   )}
                   {index === 2 && (
-                    <span><strong className="text-brand-charcoal dark:text-white font-extrabold">Effective therapy</strong> for persistent back pain, neck strain, sciatica, and joint disorders.</span>
+                    <span><strong className="text-brand-charcoal dark:text-white font-bold">Effective therapy</strong> for persistent back pain, neck strain, sciatica, and joint disorders.</span>
                   )}
                 </p>
                 
