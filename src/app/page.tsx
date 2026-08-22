@@ -982,61 +982,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ Accordion Section */}
-      <section id="faq" className="py-20 bg-brand-bg dark:bg-slate-955">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
-          
-          <div className="text-center max-w-xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
-              Common Questions
-            </span>
-            <h2 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
-              Frequently Asked Questions
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
-              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 92066 51295.
-            </p>
-          </div>
-
-          <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-850 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] reveal-on-scroll">
-            {faqs.map((faq, index) => {
-              const isOpen = faqOpenIndex === index;
-              return (
-                <div key={index} className="w-full">
-                  <button
-                    onClick={() => toggleFAQ(index)}
-                    className="flex w-full items-center justify-between p-6 text-left focus:outline-none hover:bg-brand-bg/40 dark:hover:bg-slate-900/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <HelpCircle className="h-5 w-5 text-brand-green dark:text-teal-400 shrink-0" />
-                      <span className="font-bold text-brand-charcoal dark:text-white text-sm sm:text-base group-hover:text-brand-green">
-                        {faq.q}
-                      </span>
-                    </div>
-                    {isOpen ? (
-                      <ChevronUp className="h-5 w-5 text-slate-400 shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-slate-400 shrink-0" />
-                    )}
-                  </button>
-                  
-                  {isOpen && (
-                    <div className="p-6 pt-0 bg-[#fafcfb] dark:bg-slate-900">
-                      <p className="text-xs text-slate-500 dark:text-slate-350 leading-relaxed pl-8 font-semibold">
-                        {faq.a}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      </section>
-
-      {/* Real Google Reviews Showcase */}
-      <section className="bg-[#faf8f5] dark:bg-slate-955 py-24 overflow-hidden relative border-y border-slate-200/60 dark:border-slate-850">
+      {/* Real Google Reviews Showcase (Patient Stories) */}
+      <section id="testimonials" className="bg-[#faf8f5] dark:bg-slate-955 py-24 overflow-hidden relative border-y border-slate-200/60 dark:border-slate-850">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           
           {/* Header Row: Title & Official Google Rating Trust Summary */}
@@ -1231,6 +1178,59 @@ export default function Home() {
               <span>Read all 117+ Reviews on Google</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
+          </div>
+
+        </div>
+      </section>
+
+      {/* FAQ Accordion Section */}
+      <section id="faq" className="py-20 bg-brand-bg dark:bg-slate-950">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          <div className="text-center max-w-xl mx-auto space-y-4 reveal-on-scroll">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+              Common Questions
+            </span>
+            <h2 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
+              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 92066 51295.
+            </p>
+          </div>
+
+          <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-850 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] reveal-on-scroll">
+            {faqs.map((faq, index) => {
+              const isOpen = faqOpenIndex === index;
+              return (
+                <div key={index} className="w-full">
+                  <button
+                    onClick={() => toggleFAQ(index)}
+                    className="flex w-full items-center justify-between p-6 text-left focus:outline-none hover:bg-brand-bg/40 dark:hover:bg-slate-900/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <HelpCircle className="h-5 w-5 text-brand-green dark:text-teal-400 shrink-0" />
+                      <span className="font-bold text-brand-charcoal dark:text-white text-sm sm:text-base group-hover:text-brand-green">
+                        {faq.q}
+                      </span>
+                    </div>
+                    {isOpen ? (
+                      <ChevronUp className="h-5 w-5 text-slate-400 shrink-0" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-slate-400 shrink-0" />
+                    )}
+                  </button>
+                  
+                  {isOpen && (
+                    <div className="p-6 pt-0 bg-[#fafcfb] dark:bg-slate-900">
+                      <p className="text-xs text-slate-500 dark:text-slate-350 leading-relaxed pl-8 font-semibold">
+                        {faq.a}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
         </div>

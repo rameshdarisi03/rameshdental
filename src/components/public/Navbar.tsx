@@ -52,7 +52,7 @@ export default function Navbar() {
     if (pathname !== "/") return;
 
     const handleScroll = () => {
-      const sections = ["home", "services", "team", "gallery", "faq", "locate-us"];
+      const sections = ["home", "services", "team", "gallery", "testimonials", "faq", "locate-us"];
       const scrollPosition = window.scrollY + 200; // offset for navbar height
 
       for (const section of sections) {
