@@ -531,7 +531,20 @@ export async function toggleExerciseDailyCompletion(
     } catch {}
   }
 
-  // 4. Save to Firestore root collection
+  // 4. Primary Persistence: Save directly inside patient profile document in 'patients' collection
+  try {
+    const patientDocRef = doc(db, "patients", cleanId);
+    await setDoc(patientDocRef, {
+      workoutProgress: {
+        dailyLogs: currentLogs,
+        lastUpdated: Timestamp.now()
+      }
+    }, { merge: true });
+  } catch (err) {
+    console.warn("Could not save workoutProgress directly to patient doc:", err);
+  }
+
+  // 5. Secondary Persistence: Save to root exercise_progress collection
   try {
     await setDoc(progressDocRef, {
       patientId: cleanId,
@@ -539,17 +552,8 @@ export async function toggleExerciseDailyCompletion(
       lastUpdated: Timestamp.now()
     }, { merge: true });
   } catch (err) {
-    console.error("Failed to write to exercise_progress collection:", err);
+    console.warn("Failed to write to exercise_progress collection:", err);
   }
-
-  // 5. Try syncing to patient subcollection as backup
-  try {
-    const subDocRef = doc(db, "patients", cleanId, "exerciseProgress", "current");
-    await setDoc(subDocRef, {
-      dailyLogs: currentLogs,
-      lastUpdated: Timestamp.now()
-    }, { merge: true });
-  } catch {}
 
   return {
     completed: !isAlreadyDone,
@@ -577,6 +581,14 @@ export async function markPatientDayComplete(
   }
 
   try {
+    const patientDoc = await getDoc(doc(db, "patients", cleanId));
+    if (patientDoc.exists()) {
+      const pData = patientDoc.data();
+      currentLogs = { ...currentLogs, ...(pData.workoutProgress?.dailyLogs || pData.dailyLogs || {}) };
+    }
+  } catch {}
+
+  try {
     const snap = await getDoc(progressDocRef);
     if (snap.exists()) {
       currentLogs = { ...currentLogs, ...(snap.data().dailyLogs || {}) };
@@ -599,6 +611,19 @@ export async function markPatientDayComplete(
     } catch {}
   }
 
+  // 1. Save directly inside patient profile doc
+  try {
+    await setDoc(doc(db, "patients", cleanId), {
+      workoutProgress: {
+        dailyLogs: currentLogs,
+        lastUpdated: Timestamp.now()
+      }
+    }, { merge: true });
+  } catch (err) {
+    console.warn("Failed to write workout progress to patient doc:", err);
+  }
+
+  // 2. Save to exercise_progress collection
   try {
     await setDoc(progressDocRef, {
       patientId: cleanId,
@@ -690,70 +715,43 @@ export function subscribePatientWorkoutProgress(
     } catch {}
   }
 
-  // 2. Listen to Firestore root collection
-  const progressDocRef = doc(db, "exercise_progress", cleanId);
-
-  return onSnapshot(progressDocRef, (snap) => {
-    let dailyLogs: Record<string, DailyWorkoutLog> = {};
-    if (snap.exists()) {
-      dailyLogs = snap.data().dailyLogs || snap.data().logs || {};
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(dailyLogs));
-        } catch {}
-      }
-      callback(calculateMetrics(dailyLogs));
-    } else {
-      // Subcollection backup check
-      const subDocRef = doc(db, "patients", cleanId, "exerciseProgress", "current");
-      getDoc(subDocRef).then((subSnap) => {
-        if (subSnap.exists()) {
-          dailyLogs = subSnap.data().dailyLogs || subSnap.data().logs || {};
-          if (typeof window !== "undefined") {
-            try {
-              localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(dailyLogs));
-            } catch {}
-          }
-          callback(calculateMetrics(dailyLogs));
-        } else {
-          if (typeof window !== "undefined") {
-            try {
-              const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
-              if (cached) dailyLogs = JSON.parse(cached);
-            } catch {}
-          }
-          callback(calculateMetrics(dailyLogs));
-        }
-      }).catch(() => {
+  // 2. Primary Listener: Listen to patient's document directly (guaranteed permissions)
+  const patientDocRef = doc(db, "patients", cleanId);
+  const unsubPatient = onSnapshot(patientDocRef, (pSnap) => {
+    if (pSnap.exists()) {
+      const pData = pSnap.data();
+      const logs = pData.workoutProgress?.dailyLogs || pData.dailyLogs;
+      if (logs && Object.keys(logs).length > 0) {
         if (typeof window !== "undefined") {
           try {
-            const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
-            if (cached) dailyLogs = JSON.parse(cached);
+            localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(logs));
           } catch {}
         }
-        callback(calculateMetrics(dailyLogs));
-      });
+        callback(calculateMetrics(logs));
+      }
     }
   }, (err) => {
-    console.warn("Firestore snapshot on exercise_progress failed, checking subcollection and cache:", err);
-    const subDocRef = doc(db, "patients", cleanId, "exerciseProgress", "current");
-    getDoc(subDocRef).then((subSnap) => {
-      if (subSnap.exists()) {
-        const subLogs = subSnap.data().dailyLogs || subSnap.data().logs || {};
-        callback(calculateMetrics(subLogs));
-      } else if (typeof window !== "undefined") {
-        try {
-          const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
-          if (cached) callback(calculateMetrics(JSON.parse(cached)));
-        } catch {}
-      }
-    }).catch(() => {
+    console.warn("Snapshot on patients collection failed:", err);
+  });
+
+  // 3. Secondary Listener: Listen to root exercise_progress collection
+  const progressDocRef = doc(db, "exercise_progress", cleanId);
+  const unsubProgress = onSnapshot(progressDocRef, (snap) => {
+    if (snap.exists()) {
+      const logs = snap.data().dailyLogs || snap.data().logs || {};
       if (typeof window !== "undefined") {
         try {
-          const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
-          if (cached) callback(calculateMetrics(JSON.parse(cached)));
+          localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(logs));
         } catch {}
       }
-    });
+      callback(calculateMetrics(logs));
+    }
+  }, (err) => {
+    console.warn("Snapshot on exercise_progress collection failed:", err);
   });
+
+  return () => {
+    unsubPatient();
+    unsubProgress();
+  };
 }
