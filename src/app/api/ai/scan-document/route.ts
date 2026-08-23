@@ -91,6 +91,7 @@ const doctorPrescriptionSchema = {
       items: { type: Type.STRING },
     },
     rawVerbatimTranscript: { type: Type.STRING },
+    formattedSoapNote: { type: Type.STRING },
     summaryForRecord: { type: Type.STRING },
     confidenceScore: { type: Type.NUMBER },
   },
@@ -102,6 +103,7 @@ const doctorPrescriptionSchema = {
     "medicationsList",
     "providerRemindersAndAlerts",
     "rawVerbatimTranscript",
+    "formattedSoapNote",
     "summaryForRecord",
     "confidenceScore",
   ],
@@ -205,8 +207,8 @@ export async function POST(req: NextRequest) {
     const targetSchema = isPrescription ? doctorPrescriptionSchema : clinicalAssessmentSchema;
 
     const userPrompt = isPrescription
-      ? "Extract: 1. rawVerbatimTranscript (exact word-for-word text from the prescription), 2. doctor details, 3. diagnosis, 4. prescribed therapies, 5. precautions, 6. medications, 7. provider reminders, 8. summaryForRecord."
-      : "Extract: 1. rawVerbatimTranscript (exact word-for-word text from the case sheet), 2. patient details, 3. subjective complaints, 4. VAS pain score, 5. objective findings, 6. modalities, 7. exercises, 8. formattedSoapNote (full Subjective, Objective, Assessment, Plan note), 9. provider reminders.";
+      ? "Extract: 1. rawVerbatimTranscript (exact word-for-word text from the prescription formatted line-by-line), 2. doctor details, 3. diagnosis, 4. prescribed therapies, 5. precautions, 6. medications, 7. formattedSoapNote (full Subjective, Objective, Assessment, Plan note with double line spacing), 8. provider reminders, 9. summaryForRecord."
+      : "Extract: 1. rawVerbatimTranscript (exact word-for-word text from the case sheet formatted line-by-line), 2. patient details, 3. subjective complaints, 4. VAS pain score, 5. objective findings, 6. modalities, 7. exercises, 8. formattedSoapNote (full Subjective, Objective, Assessment, Plan note with double line spacing), 9. provider reminders.";
 
     // High-speed model cascade (gemini-3.1-flash-lite -> gemini-3.5-flash-lite -> gemini-3.6-flash)
     const modelsToAttempt = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash"];
@@ -281,8 +283,12 @@ export async function POST(req: NextRequest) {
         parsedData.rawVerbatimTranscript = formatVerbatim(parsedData.rawVerbatimTranscript);
       }
 
-      if (!isPrescription && (!parsedData.formattedSoapNote || parsedData.formattedSoapNote.trim() === "")) {
-        parsedData.formattedSoapNote = `Subjective: ${parsedData.subjectiveComplaints || "Clinical findings recorded"}\n\nObjective: ${parsedData.objectiveFindings?.specialTests || parsedData.objectiveFindings?.postureGait || "Physical examination and ROM completed"}\n\nAssessment: Physiotherapy Clinical Evaluation\n\nPlan: Modalities: ${parsedData.modalitiesAdministered || "Physical therapy modalities"}. Exercises: ${parsedData.exercisePrescriptions || "Active exercise protocol"}.`;
+      if (!parsedData.formattedSoapNote || parsedData.formattedSoapNote.trim() === "") {
+        if (isPrescription) {
+          parsedData.formattedSoapNote = `Subjective: Patient referred by ${parsedData.doctorName || "Doctor"} (${parsedData.hospitalOrClinic || "Hospital"}) with ${parsedData.diagnosis || "clinical condition"}.\n\nObjective: Medical prescription review completed. Medications prescribed: ${parsedData.medicationsList || "None recorded"}.\n\nAssessment: ${parsedData.diagnosis || "Physical therapy referral"}.\n\nPlan: Prescribed therapies: ${parsedData.prescribedTherapies || "Physical therapy rehabilitation"}. Precautions: ${parsedData.precautionsAndRestrictions || "Standard precautions"}.`;
+        } else {
+          parsedData.formattedSoapNote = `Subjective: ${parsedData.subjectiveComplaints || "Clinical findings recorded"}\n\nObjective: ${parsedData.objectiveFindings?.specialTests || parsedData.objectiveFindings?.postureGait || "Physical examination and ROM completed"}\n\nAssessment: Physiotherapy Clinical Evaluation\n\nPlan: Modalities: ${parsedData.modalitiesAdministered || "Physical therapy modalities"}. Exercises: ${parsedData.exercisePrescriptions || "Active exercise protocol"}.`;
+        }
       }
 
       return NextResponse.json(parsedData);

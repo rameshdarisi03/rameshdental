@@ -131,133 +131,181 @@ function ExercisesContent() {
     return () => unsubscribe();
   }, [videoParam]);
 
+  const [completedList, setCompletedList] = useState<string[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string>("ALL");
+
+  const toggleComplete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCompletedList(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
   const activeExerciseObj = exercises.find(e => e.youtubeId === activeVideo) || exercises[0];
 
+  const categories = ["ALL", "CERVICAL", "SHOULDER", "KNEE", "POSTURE", "MOBILITY"];
+  const filteredExercises = filterCategory === "ALL" 
+    ? exercises 
+    : exercises.filter(ex => ex.tags.some(t => t.toUpperCase().includes(filterCategory)));
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 px-4 py-6 sm:px-6 lg:px-8 pb-24 animate-fade-in">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        {/* Top Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => router.push("/patienthub/dashboard")}
-              className="h-9 w-9 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-green transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div>
-              <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                Home Exercise Routine
-              </h1>
-              <p className="text-[11px] font-bold text-slate-500">
-                {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Standard Mobility Routine"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-teal-400 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-            <Dumbbell className="h-3.5 w-3.5" />
-            <span>{exercises.length} Exercises</span>
+    <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in font-['Inter',sans-serif]">
+      
+      {/* 1. Top Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push("/patienthub/dashboard")}
+            className="h-10 w-10 rounded-2xl bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 flex items-center justify-center text-[#062e36] dark:text-slate-300 hover:text-[#f9ab55] transition-colors cursor-pointer shadow-xs"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              Prescribed Workouts
+            </h1>
+            <p className="text-xs text-[#41484A] dark:text-slate-300 font-medium mt-0.5">
+              {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Daily Physical Therapy Routine"}
+            </p>
           </div>
         </div>
 
-        {/* Therapist Notes Banner (If prescribed) */}
-        {prescription && prescription.generalNotes && (
-          <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/60 p-4 rounded-2xl flex items-start gap-3 text-xs text-sky-900 dark:text-sky-300 font-semibold shadow-xs">
-            <FileText className="h-5 w-5 text-sky-600 shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <span className="font-black uppercase tracking-wider text-[10px] text-sky-700 dark:text-sky-400 block">
-                Therapist Guidance & Notes
-              </span>
-              <p className="leading-relaxed">{prescription.generalNotes}</p>
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] border border-[#f9ab55]/30 text-xs font-bold">
+            <CheckCircle className="h-3.5 w-3.5" />
+            <span>{completedList.length} / {exercises.length} Done Today</span>
+          </span>
+        </div>
+      </div>
 
-        {/* Video Player Display Container */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 shadow-xl space-y-4 overflow-hidden">
-          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 shadow-inner">
-            <iframe
-              src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0`}
-              title={activeExerciseObj?.title || "Exercise Video"}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
+      {/* 2. Category Filter Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setFilterCategory(cat)}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              filterCategory === cat
+                ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-xs"
+                : "bg-white dark:bg-[#121a1d] text-[#41484A] dark:text-slate-300 border border-[#21444D]/10 dark:border-slate-800 hover:border-[#f9ab55]"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
-          {/* Video Title & Meta */}
-          <div className="p-2 space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                {activeExerciseObj?.title}
-              </h2>
-              <span className="bg-brand-sand/60 dark:bg-brand-green/20 text-brand-green dark:text-teal-300 px-3 py-1 rounded-full text-xs font-black">
-                {activeExerciseObj?.description}
-              </span>
-            </div>
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {activeExerciseObj?.tags.map((tag) => (
-                <span 
-                  key={tag}
-                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+      {/* 3. Therapist Guidance Banner */}
+      {prescription && prescription.generalNotes && (
+        <div className="bg-[#FFE5D4]/40 dark:bg-amber-950/20 border border-[#f9ab55]/40 p-4 rounded-2xl flex items-start gap-3 text-xs text-[#3e230b] dark:text-amber-200 font-medium shadow-xs">
+          <FileText className="h-5 w-5 text-[#8a5100] dark:text-[#f9ab55] shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold uppercase tracking-wider text-[10px] text-[#8a5100] dark:text-[#f9ab55] block">
+              Physiotherapist Instructions & Precautions
+            </span>
+            <p className="leading-relaxed">{prescription.generalNotes}</p>
           </div>
         </div>
+      )}
 
-        {/* Playlist Selector List */}
-        <div className="space-y-3 pt-2">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
-            Prescribed Routine Exercises
-          </h3>
+      {/* 4. Active Video Player Display */}
+      <div className="bg-[#062e36] text-white rounded-[28px] p-4 sm:p-6 shadow-xl space-y-4 overflow-hidden border border-white/10">
+        <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 shadow-inner">
+          <iframe
+            src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0`}
+            title={activeExerciseObj?.title || "Exercise Video"}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
 
-          <div className="space-y-2.5">
-            {exercises.map((ex, index) => {
-              const isActive = ex.youtubeId === activeVideo;
-              return (
-                <div
-                  key={ex.youtubeId + index}
-                  onClick={() => setActiveVideo(ex.youtubeId)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
-                    isActive
-                      ? "bg-white dark:bg-slate-900 border-brand-green shadow-md ring-2 ring-brand-green/10"
-                      : "bg-white/60 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800/60 hover:bg-white dark:hover:bg-slate-900"
-                  }`}
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 font-black text-xs ${
-                      isActive 
-                        ? "bg-brand-green text-white" 
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}>
-                      {isActive ? <Play className="h-4 w-4 fill-current ml-0.5" /> : index + 1}
-                    </div>
+        <div className="p-1 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              {activeExerciseObj?.title}
+            </h2>
+            <span className="bg-[#f9ab55] text-[#062e36] px-3 py-1 rounded-full text-xs font-bold">
+              {activeExerciseObj?.description}
+            </span>
+          </div>
 
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 dark:text-white leading-snug">
-                        {ex.title}
-                      </h4>
-                      <p className="text-[10px] font-bold text-slate-500 mt-0.5">
-                        {ex.description}
-                      </p>
-                    </div>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {activeExerciseObj?.tags.map((tag) => (
+              <span 
+                key={tag}
+                className="bg-white/10 text-slate-200 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Exercise Playlist Cards */}
+      <div className="space-y-3 pt-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 px-1">
+          Assigned Exercises ({filteredExercises.length})
+        </h3>
+
+        <div className="space-y-2.5">
+          {filteredExercises.map((ex, index) => {
+            const isActive = ex.youtubeId === activeVideo;
+            const isCompleted = completedList.includes(ex.youtubeId);
+
+            return (
+              <div
+                key={ex.youtubeId + index}
+                onClick={() => setActiveVideo(ex.youtubeId)}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                  isActive
+                    ? "bg-white dark:bg-[#121a1d] border-[#062e36] dark:border-[#f9ab55] shadow-md ring-2 ring-[#f9ab55]/20"
+                    : "bg-white dark:bg-[#121a1d] border-[#21444D]/10 dark:border-slate-800 hover:border-[#f9ab55]/50 shadow-xs"
+                }`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 font-bold text-xs transition-colors ${
+                    isActive 
+                      ? "bg-[#062e36] text-[#f9ab55]" 
+                      : "bg-[#FAF9F9] dark:bg-slate-900 text-[#062e36] dark:text-slate-300"
+                  }`}>
+                    {isActive ? <Play className="h-4 w-4 fill-current ml-0.5" /> : index + 1}
                   </div>
 
-                  <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? "text-brand-green translate-x-1" : "text-slate-400"}`} />
+                  <div>
+                    <h4 className="text-xs font-bold text-[#062e36] dark:text-white leading-snug">
+                      {ex.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                      {ex.description} • {ex.duration}
+                    </p>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={(e) => toggleComplete(ex.youtubeId, e)}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isCompleted
+                        ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-[#f9ab55]/20 hover:text-[#8a5100]"
+                    }`}
+                  >
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    <span>{isCompleted ? "Done" : "Mark Done"}</span>
+                  </button>
+
+                  <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? "text-[#f9ab55] translate-x-1" : "text-slate-400"}`} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
     </div>
   );
 }

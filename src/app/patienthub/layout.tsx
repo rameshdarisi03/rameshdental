@@ -108,10 +108,27 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
   if (checkingAuth) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="text-center space-y-3">
-          <Loader2 className="h-10 w-10 animate-spin text-brand-green mx-auto" />
-          <p className="text-xs text-slate-500 font-bold tracking-wider uppercase">Authenticating Patient Hub...</p>
+      <div className="flex h-screen w-screen items-center justify-center bg-[#062e36] text-white">
+        <div className="text-center space-y-4 animate-fade-in flex flex-col items-center">
+          <div className="relative">
+            <img 
+              src="/images/gait_physio_logo.png" 
+              alt="GaitPhysio Logo" 
+              className="h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(249,171,85,0.3)] animate-pulse"
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+              <span>Gait</span><span className="text-[#f9ab55]">Physio</span>
+            </h1>
+            <p className="text-[10px] text-[#f9ab55] font-black tracking-[0.25em] uppercase mt-1">
+              Patient Hub
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-slate-300/80 font-medium pt-2">
+            <Loader2 className="h-4 w-4 animate-spin text-[#f9ab55]" />
+            <span>Connecting to your care timeline...</span>
+          </div>
         </div>
       </div>
     );
@@ -127,143 +144,199 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
     .toUpperCase() || "PT";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col pb-20 md:pb-0">
-      {/* Top Header Navbar - visible on desktop/tablets */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 dark:border-slate-800/80 dark:bg-slate-900/95 backdrop-blur-sm select-none">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F9F9F7] dark:bg-[#121a1d] text-[#1A1C1B] dark:text-[#f1f0f1] flex flex-col pb-24 md:pb-8 font-['Inter',sans-serif]">
+      {/* Top Header Navbar */}
+      <header className="sticky top-0 z-40 w-full border-b border-[#21444D]/10 dark:border-slate-800 bg-[#F9F9F7]/90 dark:bg-[#062e36]/95 backdrop-blur-md select-none transition-colors">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           
           {/* Brand Logo Link */}
-          <Link href="/patienthub/dashboard" className="flex items-center gap-2 font-black text-brand-green dark:text-emerald-400">
-            <Activity className="h-6 w-6 text-brand-green" />
-            <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
-              Patient<span className="text-brand-green dark:text-emerald-400">Hub</span>
-            </span>
+          <Link href="/patienthub/dashboard" className="flex items-center gap-2.5 group">
+            <img 
+              src="/images/gait_physio_logo.png" 
+              alt="GaitPhysio" 
+              className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
+            />
+            <div className="flex flex-col">
+              <span className="text-base font-bold tracking-tight text-[#062e36] dark:text-white leading-none font-['Plus_Jakarta_Sans',sans-serif]">
+                Gait<span className="text-[#f9ab55]">Physio</span>
+              </span>
+              <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-0.5">
+                Patient Hub
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-1 bg-[#21444D]/5 dark:bg-white/5 p-1 rounded-full border border-[#21444D]/10 dark:border-white/10">
             <Link 
               href="/patienthub/dashboard" 
-              className={`text-sm font-black transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
                 pathname === "/patienthub/dashboard"
-                  ? "text-brand-green dark:text-emerald-400"
-                  : "text-slate-500 hover:text-brand-green"
+                  ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-sm"
+                  : "text-[#41484A] dark:text-slate-300 hover:text-[#062e36] dark:hover:text-white"
               }`}
             >
               Dashboard
             </Link>
             <Link 
-              href="/patienthub/appointments" 
-              className={`text-sm font-black transition-colors ${
-                pathname === "/patienthub/appointments"
-                  ? "text-brand-green dark:text-emerald-400"
-                  : "text-slate-500 hover:text-brand-green"
-              }`}
-            >
-              Appointments
-            </Link>
-            <Link 
               href="/patienthub/exercises" 
-              className={`text-sm font-black transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
                 pathname === "/patienthub/exercises"
-                  ? "text-brand-green dark:text-emerald-400"
-                  : "text-slate-500 hover:text-brand-green"
+                  ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-sm"
+                  : "text-[#41484A] dark:text-slate-300 hover:text-[#062e36] dark:hover:text-white"
               }`}
             >
               Exercises
             </Link>
             <Link 
-              href="/patienthub/profile" 
-              className={`text-sm font-black transition-colors ${
-                pathname === "/patienthub/profile"
-                  ? "text-brand-green dark:text-emerald-400"
-                  : "text-slate-500 hover:text-brand-green"
+              href="/patienthub/records" 
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                pathname === "/patienthub/records"
+                  ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-sm"
+                  : "text-[#41484A] dark:text-slate-300 hover:text-[#062e36] dark:hover:text-white"
               }`}
             >
-              Profile & Billing
+              Health Records
+            </Link>
+            <Link 
+              href="/patienthub/appointments" 
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                pathname === "/patienthub/appointments"
+                  ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-sm"
+                  : "text-[#41484A] dark:text-slate-300 hover:text-[#062e36] dark:hover:text-white"
+              }`}
+            >
+              Appointments
+            </Link>
+            <Link 
+              href="/patienthub/profile" 
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                pathname === "/patienthub/profile"
+                  ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-sm"
+                  : "text-[#41484A] dark:text-slate-300 hover:text-[#062e36] dark:hover:text-white"
+              }`}
+            >
+              Profile
             </Link>
           </nav>
 
           {/* Desktop Right Hand Toolbar */}
-          <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 transition-colors">
-              <Bell className="h-4.5 w-4.5" />
-            </button>
-            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-500 transition-colors">
-              <Settings className="h-4.5 w-4.5" />
-            </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/patienthub/profile"
+              className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
+            >
+              <div className="h-9 w-9 rounded-full bg-[#062e36] text-[#f9ab55] border border-[#f9ab55]/40 flex items-center justify-center font-bold text-xs shadow-sm">
+                {initials}
+              </div>
+              <div className="hidden sm:block text-left leading-tight">
+                <p className="text-xs font-bold text-[#062e36] dark:text-white truncate max-w-[120px]">
+                  {patientName}
+                </p>
+                <p className="text-[10px] text-[#8a5100] dark:text-[#f9ab55] font-semibold">
+                  Active Care
+                </p>
+              </div>
+            </Link>
+
             <button 
               onClick={handleLogout}
-              className="p-2 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-red-500 transition-colors"
+              className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full text-red-500 transition-colors"
               title="Logout"
             >
-              <LogOut className="h-4.5 w-4.5" />
+              <LogOut className="h-4 w-4" />
             </button>
-            
-            {/* User Initials Avatar */}
-            <div className="h-9 w-9 rounded-full bg-brand-green text-white dark:bg-emerald-500 dark:text-slate-950 flex items-center justify-center font-black text-xs shadow-inner">
-              {initials}
-            </div>
           </div>
 
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 pt-5 pb-6">
         {children}
       </main>
 
-      {/* Bottom Navigation Bar - visible on mobile screens only */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/80 dark:border-slate-800/85 backdrop-blur-md flex justify-around items-center h-16 select-none shadow-lg">
-        <Link 
-          href="/patienthub/dashboard" 
-          className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
-            pathname === "/patienthub/dashboard" 
-              ? "text-brand-green dark:text-emerald-400 font-extrabold" 
-              : "text-slate-450 hover:text-brand-green"
-          }`}
-        >
-          <Home className="h-5.5 w-5.5" />
-          <span className="text-[9px] tracking-wider uppercase font-black mt-1">Home</span>
-        </Link>
-        
-        <Link 
-          href="/patienthub/appointments" 
-          className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
-            pathname === "/patienthub/appointments" 
-              ? "text-brand-green dark:text-emerald-400 font-extrabold" 
-              : "text-slate-450 hover:text-brand-green"
-          }`}
-        >
-          <Calendar className="h-5.5 w-5.5" />
-          <span className="text-[9px] tracking-wider uppercase font-black mt-1">Calendar</span>
-        </Link>
+      {/* Tactile Glassmorphism Bottom Navigation Dock - Mobile */}
+      <div className="fixed bottom-3 left-0 right-0 z-40 md:hidden px-4 select-none pointer-events-none">
+        <nav className="max-w-md mx-auto pointer-events-auto bg-[#062e36]/95 dark:bg-[#121a1d]/95 backdrop-blur-xl border border-white/15 rounded-full shadow-[0_12px_32px_rgba(6,46,54,0.35)] flex justify-around items-center h-16 px-2">
+          
+          <Link 
+            href="/patienthub/dashboard" 
+            className={`flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all ${
+              pathname === "/patienthub/dashboard" 
+                ? "text-[#f9ab55] font-extrabold" 
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-[9px] tracking-wider uppercase font-black mt-0.5">Home</span>
+            {pathname === "/patienthub/dashboard" && (
+              <span className="w-1 h-1 bg-[#f9ab55] rounded-full mt-0.5 animate-pulse" />
+            )}
+          </Link>
+          
+          <Link 
+            href="/patienthub/exercises" 
+            className={`flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all ${
+              pathname === "/patienthub/exercises" 
+                ? "text-[#f9ab55] font-extrabold" 
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            <Dumbbell className="h-5 w-5" />
+            <span className="text-[9px] tracking-wider uppercase font-black mt-0.5">Workouts</span>
+            {pathname === "/patienthub/exercises" && (
+              <span className="w-1 h-1 bg-[#f9ab55] rounded-full mt-0.5 animate-pulse" />
+            )}
+          </Link>
 
-        <Link 
-          href="/patienthub/exercises" 
-          className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
-            pathname === "/patienthub/exercises" 
-              ? "text-brand-green dark:text-emerald-400 font-extrabold" 
-              : "text-slate-450 hover:text-brand-green"
-          }`}
-        >
-          <Dumbbell className="h-5.5 w-5.5" />
-          <span className="text-[9px] tracking-wider uppercase font-black mt-1">Workouts</span>
-        </Link>
+          <Link 
+            href="/patienthub/records" 
+            className={`flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all ${
+              pathname === "/patienthub/records" 
+                ? "text-[#f9ab55] font-extrabold" 
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            <Receipt className="h-5 w-5" />
+            <span className="text-[9px] tracking-wider uppercase font-black mt-0.5">Records</span>
+            {pathname === "/patienthub/records" && (
+              <span className="w-1 h-1 bg-[#f9ab55] rounded-full mt-0.5 animate-pulse" />
+            )}
+          </Link>
 
-        <Link 
-          href="/patienthub/profile" 
-          className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
-            pathname === "/patienthub/profile" 
-              ? "text-brand-green dark:text-emerald-400 font-extrabold" 
-              : "text-slate-450 hover:text-brand-green"
-          }`}
-        >
-          <User className="h-5.5 w-5.5" />
-          <span className="text-[9px] tracking-wider uppercase font-black mt-1">User</span>
-        </Link>
-      </nav>
+          <Link 
+            href="/patienthub/appointments" 
+            className={`flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all ${
+              pathname === "/patienthub/appointments" 
+                ? "text-[#f9ab55] font-extrabold" 
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            <Calendar className="h-5 w-5" />
+            <span className="text-[9px] tracking-wider uppercase font-black mt-0.5">Book</span>
+            {pathname === "/patienthub/appointments" && (
+              <span className="w-1 h-1 bg-[#f9ab55] rounded-full mt-0.5 animate-pulse" />
+            )}
+          </Link>
+
+          <Link 
+            href="/patienthub/profile" 
+            className={`flex flex-col items-center justify-center w-14 h-12 rounded-2xl transition-all ${
+              pathname === "/patienthub/profile" 
+                ? "text-[#f9ab55] font-extrabold" 
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            <User className="h-5 w-5" />
+            <span className="text-[9px] tracking-wider uppercase font-black mt-0.5">Profile</span>
+            {pathname === "/patienthub/profile" && (
+              <span className="w-1 h-1 bg-[#f9ab55] rounded-full mt-0.5 animate-pulse" />
+            )}
+          </Link>
+
+        </nav>
+      </div>
     </div>
   );
 }

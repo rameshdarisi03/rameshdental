@@ -101,94 +101,94 @@ export default function ProfilePage() {
     .toUpperCase() || "PT";
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-12 select-none">
+    <div className="max-w-2xl mx-auto space-y-6 pb-12 select-none font-['Inter',sans-serif]">
       
       {/* Profile Overview Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-sm text-center space-y-4">
+      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 sm:p-8 rounded-[28px] shadow-sm text-center space-y-4">
         {/* Large Initials Avatar */}
-        <div className="h-20 w-20 rounded-full bg-brand-green/10 text-brand-green dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center font-black text-2xl mx-auto border-4 border-slate-50 dark:border-slate-800 shadow-md">
+        <div className="h-20 w-20 rounded-full bg-[#062e36] text-[#f9ab55] border-4 border-[#f9ab55]/40 flex items-center justify-center font-bold text-2xl mx-auto shadow-md">
           {initials}
         </div>
         
         <div>
-          <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+          <h1 className="text-xl font-bold text-[#062e36] dark:text-white leading-tight font-['Plus_Jakarta_Sans',sans-serif]">
             {patientName}
           </h1>
-          <p className="text-xs text-slate-450 font-bold tracking-wider uppercase mt-1">
-            GPC ID: {patient?.id || "GPC-BOOK"}
+          <p className="text-xs text-[#8a5100] dark:text-[#f9ab55] font-extrabold tracking-wider uppercase mt-1">
+            Care ID: {patient?.id ? patient.id.slice(0, 10).toUpperCase() : "GPC-PATIENT"}
           </p>
         </div>
 
         {/* Plan of Care badge */}
-        <div className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full text-emerald-600 dark:text-emerald-400">
+        <div className="inline-flex items-center gap-1.5 bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] text-xs font-bold px-4 py-1.5 rounded-full border border-[#f9ab55]/30">
           <Activity className="h-3.5 w-3.5" />
-          <span>Active Plan: {patient?.treatmentPlan || "Cervical Spine Recovery"}</span>
+          <span>Active: {patient?.treatmentPlan || "Physiotherapy Rehabilitation"}</span>
         </div>
       </div>
 
       {/* Account Details Block */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Hub Account Details</h3>
+      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 px-1">Patient Profile Information</h3>
         
-        <div className="space-y-3.5">
-          <div className="flex items-center gap-3 py-1">
-            <span className="p-2 bg-slate-50 dark:bg-slate-950 text-slate-450 rounded-xl">
-              <User className="h-4.5 w-4.5" />
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 bg-[#FAF9F9] dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="p-2 bg-[#062e36]/10 text-[#062e36] dark:text-[#f9ab55] rounded-xl">
+              <User className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none mb-1">Full Name</p>
-              <p className="text-xs font-black text-slate-800 dark:text-slate-100">{patientName}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">Full Name</p>
+              <p className="text-xs font-bold text-[#062e36] dark:text-slate-100">{patientName}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-1">
-            <span className="p-2 bg-slate-50 dark:bg-slate-950 text-slate-450 rounded-xl">
-              <Mail className="h-4.5 w-4.5" />
+          <div className="flex items-center gap-3 p-3 bg-[#FAF9F9] dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="p-2 bg-[#062e36]/10 text-[#062e36] dark:text-[#f9ab55] rounded-xl">
+              <Mail className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none mb-1">Email Address</p>
-              <p className="text-xs font-black text-slate-800 dark:text-slate-100">{patient?.email || "No registered email"}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">Registered Email</p>
+              <p className="text-xs font-bold text-[#062e36] dark:text-slate-100">{patient?.email || "No email registered"}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-1">
-            <span className="p-2 bg-slate-50 dark:bg-slate-950 text-slate-450 rounded-xl">
-              <Phone className="h-4.5 w-4.5" />
+          <div className="flex items-center gap-3 p-3 bg-[#FAF9F9] dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="p-2 bg-[#062e36]/10 text-[#062e36] dark:text-[#f9ab55] rounded-xl">
+              <Phone className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none mb-1">Contact Phone</p>
-              <p className="text-xs font-black text-slate-800 dark:text-slate-100">{patient?.phone || "No registered phone"}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">Contact Phone</p>
+              <p className="text-xs font-bold text-[#062e36] dark:text-slate-100">{patient?.phone || "No phone registered"}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-1">
-            <span className="p-2 bg-slate-50 dark:bg-slate-950 text-slate-450 rounded-xl">
-              <ShieldCheck className="h-4.5 w-4.5" />
+          <div className="flex items-center gap-3 p-3 bg-[#FAF9F9] dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <ShieldCheck className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider leading-none mb-1">Portal Authentication</p>
-              <p className="text-xs font-black text-slate-850 dark:text-emerald-400">Firebase Secured Access</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-1">Security Status</p>
+              <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Firebase Encrypted Patient Record</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Patient Isolated Medical Records & Drive Vault */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Folder className="h-5 w-5 text-brand-green dark:text-teal-400" />
-            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-              Medical Scans & Records Vault
+            <Folder className="h-5 w-5 text-[#8a5100] dark:text-[#f9ab55]" />
+            <h3 className="text-sm font-bold text-[#062e36] dark:text-white uppercase tracking-wider font-['Plus_Jakarta_Sans',sans-serif]">
+              Google Drive Medical Vault
             </h3>
           </div>
-          <span className="text-[9px] font-black bg-brand-green/10 text-brand-green dark:text-teal-400 px-2.5 py-0.5 rounded-full uppercase">
+          <span className="text-[9px] font-bold bg-[#062e36]/10 text-[#062e36] dark:text-[#f9ab55] px-2.5 py-0.5 rounded-full uppercase">
             Isolated Folder
           </span>
         </div>
 
-        <p className="text-xs text-slate-500 font-bold leading-relaxed">
-          Your clinical records, X-rays, MRI scans, and consultation summaries are encrypted and stored in your private dedicated folder.
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+          Your diagnostic scans, X-rays, and clinical case sheets are backed up in your dedicated Google Drive patient repository.
         </p>
 
         {patient?.googleDriveFolderId ? (
@@ -196,56 +196,47 @@ export default function ProfilePage() {
             href={`https://drive.google.com/drive/folders/${patient.googleDriveFolderId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-100 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+            className="w-full inline-flex items-center justify-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white py-3 rounded-full text-xs font-bold transition-all cursor-pointer shadow-xs"
           >
-            <Folder className="h-4 w-4 text-brand-green" />
-            Open Private Medical Records Vault →
+            <Folder className="h-4 w-4 text-[#f9ab55]" />
+            <span>Open Google Drive Records Vault →</span>
           </a>
         ) : (
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl text-center text-xs font-bold text-slate-400">
-            No medical scans attached to your record yet.
+          <div className="p-3 bg-[#FAF9F9] dark:bg-slate-900 rounded-2xl text-center text-xs font-medium text-slate-400">
+            No external drive repository attached to this record yet.
           </div>
         )}
       </div>
 
       {/* Preferences & Settings */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
-        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Settings & Preferences</h3>
+      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 px-1">Settings & Assistance</h3>
 
         <div className="space-y-2">
           {/* Theme switcher option */}
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer border-0"
+            className="w-full flex items-center justify-between p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer border-0"
           >
-            <div className="flex items-center gap-3 text-slate-700 dark:text-slate-250">
-              {isDark ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5 text-slate-500" />}
-              <span className="text-xs font-black">Portal theme</span>
+            <div className="flex items-center gap-3 text-[#062e36] dark:text-slate-200">
+              {isDark ? <Sun className="h-4 w-4 text-[#f9ab55]" /> : <Moon className="h-4 w-4 text-slate-500" />}
+              <span className="text-xs font-bold">Portal Theme</span>
             </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isDark ? "Dark Mode" : "Light Mode"}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isDark ? "Dark Mode" : "Light Mode"}</span>
           </button>
-
-          {/* Dummy WhatsApp updates toggle */}
-          <div className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl">
-            <div className="flex items-center gap-3 text-slate-700 dark:text-slate-250">
-              <BellRing className="h-4.5 w-4.5 text-brand-green" />
-              <span className="text-xs font-black">WhatsApp Reminders</span>
-            </div>
-            <span className="text-[10px] font-black text-brand-green uppercase tracking-widest">Active</span>
-          </div>
 
           {/* Reset password reminder link */}
           <a
-            href="https://wa.me/919206651295?text=I%20would%20like%20to%20reset%20my%20Patient%20Hub%20portal%2520password"
+            href="https://wa.me/919206651295?text=I%20would%20like%20to%20request%20assistance%20with%20my%20Patient%20Hub%20portal"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-3 text-slate-700 dark:text-slate-250">
-              <Key className="h-4.5 w-4.5 text-slate-400" />
-              <span className="text-xs font-black">Request Password Reset</span>
+            <div className="flex items-center gap-3 text-[#062e36] dark:text-slate-200">
+              <Key className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-bold">Help Desk & Account Support</span>
             </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Support</span>
+            <span className="text-[10px] font-bold text-[#8a5100] dark:text-[#f9ab55] uppercase tracking-widest">WhatsApp</span>
           </a>
         </div>
       </div>
@@ -253,10 +244,10 @@ export default function ProfilePage() {
       {/* Log out primary trigger button */}
       <button
         onClick={handleLogout}
-        className="w-full inline-flex items-center justify-center gap-2 bg-red-650 hover:bg-red-600 text-white py-3.5 rounded-2xl text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer"
+        className="w-full inline-flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 py-3.5 rounded-full text-xs font-bold uppercase transition-all shadow-xs cursor-pointer border border-red-200/50"
       >
-        <LogOut className="h-4.5 w-4.5" />
-        Log Out Patient Hub
+        <LogOut className="h-4 w-4" />
+        <span>Log Out of Patient Hub</span>
       </button>
 
     </div>

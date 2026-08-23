@@ -143,248 +143,187 @@ export default function DashboardPage() {
   }
 
   const patientName = patient?.name?.split(" ")[0] || "Guest";
-  const planName = patient?.treatmentPlan || "Physiotherapy Recovery";
+  const planName = patient?.treatmentPlan || "Rehabilitation & Gait Therapy";
   const upcomingDate = patient?.upcoming || "No session scheduled";
 
-  const milestones = [
-    { name: "Pain Reduction", completed: true },
-    { name: "Mobility Range", completed: true },
-    { name: "Strength Restoration", completed: false }
-  ];
-
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-8 pb-24 space-y-8 animate-fade-in max-w-5xl mx-auto">
+    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12 font-['Inter',sans-serif]">
       
-      {/* Welcome Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* 1. Greeting & Recovery Momentum */}
+      <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">
-            Good day, {patientName}
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+            Welcome back, {patientName}.
           </h1>
-          <p className="text-sm text-slate-500 font-bold dark:text-slate-400 mt-1">
-            You're making steady progress in your {planName.toLowerCase()} plan.
+          <p className="text-xs sm:text-sm text-[#41484A] dark:text-slate-300 font-medium mt-1">
+            Your recovery program is active. Let&apos;s keep your progress moving forward.
           </p>
         </div>
 
-        {/* Quick Actions buttons */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f9ab55]/20 text-[#8a5100] dark:text-[#f9ab55] border border-[#f9ab55]/30 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-[#f9ab55] animate-ping" />
+            Active Care Plan
+          </span>
+        </div>
+      </section>
+
+      {/* 2. Hero Card: Upcoming Care Session */}
+      <section className="bg-[#062e36] text-white rounded-[28px] p-6 sm:p-7 shadow-[0_12px_32px_rgba(6,46,54,0.18)] relative overflow-hidden border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+        
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#21444D] border border-[#f9ab55]/40 flex items-center justify-center text-[#f9ab55] shrink-0 font-bold text-lg shadow-inner">
+            <Activity className="h-7 w-7" />
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block mb-1">
+              Next Care Appointment
+            </span>
+            <h3 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              {patient?.assignedTherapist || "Dr. Kinnera (Lead Physiotherapist)"}
+            </h3>
+            <p className="text-xs text-slate-300 font-medium mt-1 flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-[#f9ab55]" />
+              <span>{upcomingDate === "No session scheduled" ? "No active booking scheduled" : upcomingDate}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto relative z-10">
           <Link
             href="/patienthub/appointments"
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 bg-[#1b3d2f] hover:bg-[#122b21] text-white px-5 py-2.5 rounded-xl font-black text-xs shadow-md tracking-wider transition-transform hover:scale-102"
+            className="w-full sm:w-auto bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] font-bold text-xs px-6 py-3.5 rounded-full transition-all duration-200 shadow-md flex items-center justify-center gap-2 hover:scale-105 active:scale-95 cursor-pointer"
           >
             <Calendar className="h-4 w-4" />
-            Book Next Session
+            <span>{upcomingDate === "No session scheduled" ? "Book Visit Slot" : "Manage Booking"}</span>
           </Link>
-          
-          <a
-            href="https://wa.me/919206651295"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl font-black text-xs shadow-sm tracking-wider transition-colors"
-          >
-            <MessageSquare className="h-4 w-4 text-brand-green" />
-            Message Clinic
-          </a>
         </div>
-      </div>
+      </section>
 
-      {/* Overview stats layout: Next Session details and Recovery Progress Milestones */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Next Session Widget Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between select-none">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
-              <Clock className="h-3.5 w-3.5 text-brand-green" />
-              <span>Next Session</span>
-            </div>
-            
-            <div>
-              <p className="text-xl font-black text-brand-charcoal dark:text-white leading-tight">
-                {upcomingDate === "No session scheduled" ? "Schedule Next Visit" : upcomingDate}
-              </p>
-              <p className="text-xs text-slate-450 font-bold mt-1">
-                {upcomingDate === "No session scheduled" ? "No active upcoming booking found" : "Consultation & Rehab"}
-              </p>
-            </div>
-
-            {/* Doctor Info block */}
-            <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-850">
-              <div className="h-10 w-10 rounded-full bg-[#1b3d2f] text-white flex items-center justify-center font-black text-xs">
-                GPC
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-800 dark:text-white">Gait Physio Specialist</p>
-                <p className="text-[9px] text-slate-450 font-black uppercase tracking-wider">Clinical Care Team</p>
-              </div>
-            </div>
+      {/* 3. Quick Actions Bento Grid */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <Link 
+          href="/patienthub/appointments"
+          className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <Calendar className="h-5 w-5" />
           </div>
+          <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">Book Session</span>
+        </Link>
 
-          <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <span className="text-[11px] font-bold text-slate-400">Location: Clinic Branch</span>
-            <Link 
-              href="/patienthub/appointments" 
-              className="text-xs font-black text-brand-green dark:text-teal-400 hover:underline flex items-center gap-1"
-            >
-              View Slots <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
+        <Link 
+          href="/patienthub/records"
+          className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-[#062e36]/10 dark:bg-[#062e36] text-[#062e36] dark:text-[#f9ab55] flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <Receipt className="h-5 w-5" />
           </div>
-        </div>
+          <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">Health Records</span>
+        </Link>
 
-        {/* Milestones Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between select-none">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <TrendingUp className="h-3.5 w-3.5 text-brand-green" />
-                <span>Rehab Milestones</span>
-              </div>
-              <span className="text-[10px] font-black bg-brand-green/10 text-brand-green dark:text-teal-400 px-2 py-0.5 rounded-full">
-                66% Completed
-              </span>
-            </div>
-
-            <div className="space-y-2.5 pt-1">
-              {milestones.map((m, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-850">
-                  <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className={`h-4 w-4 ${m.completed ? "text-brand-green dark:text-teal-400" : "text-slate-300 dark:text-slate-700"}`} />
-                    <span className={`text-xs font-bold ${m.completed ? "text-slate-800 dark:text-slate-200" : "text-slate-400 line-through"}`}>
-                      {m.name}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-slate-400">
-                    {m.completed ? "Achieved" : "In Progress"}
-                  </span>
-                </div>
-              ))}
-            </div>
+        <Link 
+          href="/patienthub/exercises"
+          className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-[#21444D]/10 text-[#21444D] dark:text-teal-300 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <Dumbbell className="h-5 w-5" />
           </div>
-        </div>
+          <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">My Workouts</span>
+        </Link>
 
-      </div>
-
-      {/* Billing Statements & Receipts Section */}
-      {patientInvoices.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-brand-green dark:text-teal-400">
-                Billing & Digital Receipts
-              </span>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                Clinical Invoices ({patientInvoices.length})
-              </h2>
-            </div>
-            <span className="text-xs font-black bg-brand-green/10 text-brand-green dark:text-teal-400 px-3 py-1 rounded-full">
-              Real-time Sync
-            </span>
+        <a 
+          href="https://wa.me/919206651295"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <MessageSquare className="h-5 w-5" />
           </div>
+          <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">Care Concierge</span>
+        </a>
+      </section>
 
-          <div className="space-y-2.5 pt-1">
-            {patientInvoices.map((inv) => (
-              <div
-                key={inv.id}
-                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/40 dark:border-slate-850 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-brand-green/10 text-brand-green dark:text-teal-400 rounded-xl">
-                    <Receipt className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 dark:text-white">
-                      Invoice #{inv.invoiceNumber}
-                    </h4>
-                    <p className="text-[10px] font-bold text-slate-400">
-                      Service Date: {inv.serviceDate} • Attending: {inv.therapistName}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between sm:justify-end gap-4">
-                  <span className="text-sm font-black text-slate-900 dark:text-white">
-                    ${(inv.totalAmount || 0).toFixed(2)}
-                  </span>
-                  
-                  {inv.status === "paid" && (
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-black uppercase">
-                      PAID
-                    </span>
-                  )}
-                  {inv.status === "pending" && (
-                    <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-black uppercase">
-                      UNPAID
-                    </span>
-                  )}
-                  {inv.status === "overdue" && (
-                    <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 text-[10px] font-black uppercase">
-                      OVERDUE
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Prescribed Home Exercises Routine Section */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+      {/* 4. Today's Prescribed Routine & Recovery Progress */}
+      <section className="bg-white dark:bg-[#121a1d] border border-[#21444D]/10 dark:border-slate-800 rounded-[28px] p-6 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-brand-green dark:text-teal-400">
-              {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Assigned Care Plan"}
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55]">
+              {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Clinical Protocol"}
             </span>
-            <h2 className="text-xl font-black text-slate-900 dark:text-white">
-              Daily Exercise Routine
+            <h2 className="text-xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              Today&apos;s Prescribed Exercises
             </h2>
           </div>
 
           <Link
             href="/patienthub/exercises"
-            className="inline-flex items-center gap-1 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-xs"
           >
-            Start Routine <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            <span>Full Workout Plan</span>
+            <ArrowRight className="h-3.5 w-3.5 text-[#f9ab55]" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
           {exercises.map((ex, idx) => (
             <Link
               key={ex.youtubeId + idx}
               href={`/patienthub/exercises?video=${ex.youtubeId}`}
-              className="group border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3 bg-slate-50/50 dark:bg-slate-950 hover:bg-white dark:hover:bg-slate-900 hover:border-brand-green/40 hover:shadow-md transition-all flex flex-col justify-between"
+              className="group border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900 hover:border-[#f9ab55]/60 hover:shadow-md transition-all flex flex-col justify-between"
             >
               <div>
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 mb-3">
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 mb-3 shadow-xs">
                   <img
                     src={`https://img.youtube.com/vi/${ex.youtubeId}/mqdefault.jpg`}
                     alt={ex.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/10 transition-colors flex items-center justify-center">
-                    <div className="h-9 w-9 rounded-full bg-brand-green text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <div className="absolute inset-0 bg-slate-950/25 group-hover:bg-slate-950/15 transition-colors flex items-center justify-center">
+                    <div className="h-9 w-9 rounded-full bg-[#f9ab55] text-[#062e36] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                       <Play className="h-4 w-4 fill-current ml-0.5" />
                     </div>
                   </div>
                 </div>
 
-                <h3 className="text-xs font-black text-slate-900 dark:text-white leading-snug group-hover:text-brand-green transition-colors">
+                <h3 className="text-xs font-bold text-[#062e36] dark:text-white leading-snug group-hover:text-[#8a5100] dark:group-hover:text-[#f9ab55] transition-colors">
                   {ex.title}
                 </h3>
-                <p className="text-[10px] font-bold text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
                   Target: {ex.description}
                 </p>
               </div>
 
-              <div className="flex items-center gap-1 text-[9px] font-black uppercase text-brand-green dark:text-teal-400 pt-3">
-                <span>Play Demo</span>
+              <div className="flex items-center gap-1 text-[10px] font-bold text-[#8a5100] dark:text-[#f9ab55] pt-3">
+                <span>View Technique</span>
                 <ChevronRight className="h-3 w-3" />
               </div>
             </Link>
           ))}
         </div>
-      </div>
+      </section>
+
+      {/* 5. Clinical Provider Support Card */}
+      <section className="bg-gradient-to-br from-[#062e36] to-[#21444D] text-white rounded-[28px] p-6 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-[#f9ab55] shrink-0 font-bold">
+            <Activity className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">Gait Physio Clinic • Whitefield</h3>
+            <p className="text-xs text-slate-300 font-normal mt-0.5">Need assistance or wish to reschedule? We&apos;re here for you.</p>
+          </div>
+        </div>
+
+        <a
+          href="tel:+919206651295"
+          className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-5 py-2.5 rounded-full border border-white/20 transition-all shrink-0"
+        >
+          <span>Call Clinic Desk</span>
+        </a>
+      </section>
 
     </div>
   );

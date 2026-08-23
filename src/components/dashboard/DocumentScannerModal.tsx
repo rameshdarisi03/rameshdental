@@ -197,13 +197,18 @@ export default function DocumentScannerModal({
       const verbatimText = result.rawVerbatimTranscript || (result as any).rawClinicalTranscription || "";
       setEditedVerbatimText(verbatimText);
 
-      if (!isPrescriptionMode) {
-        const soapText = result.formattedSoapNote || 
-          `SUBJECTIVE:\n${result.subjectiveComplaints || "Patient assessment"}\n\nOBJECTIVE:\n${result.objectiveFindings?.specialTests || result.objectiveFindings?.postureGait || "ROM and tests evaluated"}\n\nASSESSMENT:\nPhysiotherapy Clinical Assessment\n\nPLAN:\n${result.modalitiesAdministered || ""}\n${result.exercisePrescriptions || ""}`;
-        setEditedSoapNote(soapText);
-      } else {
-        setEditedSummary(result.summaryForRecord || result.diagnosis || "");
+      let soapText = result.formattedSoapNote || "";
+      if (!soapText || soapText.trim() === "") {
+        if (isPrescriptionMode) {
+          const rx = result as DoctorPrescriptionResult;
+          soapText = `Subjective: Patient referred by ${rx.doctorName || "Doctor"} (${rx.hospitalOrClinic || "Hospital"}) for ${rx.diagnosis || "clinical rehabilitation"}.\n\nObjective: Medical prescription review completed. Medications: ${rx.medicationsList || "None recorded"}.\n\nAssessment: ${rx.diagnosis || "Physical therapy referral"}.\n\nPlan: Prescribed therapies: ${rx.prescribedTherapies || "Rehabilitation protocol"}. Precautions: ${rx.precautionsAndRestrictions || "Standard precautions"}.`;
+        } else {
+          const clin = result as ClinicalAssessmentResult;
+          soapText = `Subjective: ${clin.subjectiveComplaints || "Clinical findings recorded"}\n\nObjective: ${clin.objectiveFindings?.specialTests || clin.objectiveFindings?.postureGait || "Physical examination completed"}\n\nAssessment: Physiotherapy Clinical Evaluation\n\nPlan: Modalities: ${clin.modalitiesAdministered || "Physical therapy modalities"}. Exercises: ${clin.exercisePrescriptions || "Active exercise protocol"}.`;
+        }
       }
+      setEditedSoapNote(soapText);
+      setEditedSummary(soapText);
 
       if (result.providerRemindersAndAlerts && Array.isArray(result.providerRemindersAndAlerts)) {
         setSelectedAlerts(result.providerRemindersAndAlerts);

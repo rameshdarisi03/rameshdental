@@ -7,6 +7,16 @@
   --color-brand-sand: #efe6dd;
   --color-brand-charcoal: #1a2620;
   --color-brand-muted: #d8dbd9;
+
+  /* Midnight & Honey Wellness Palette */
+  --color-midnight-teal: #062e36;
+  --color-deep-teal: #21444d;
+  --color-honey-gold: #f9ab55;
+  --color-honey-gold-hover: #e5971a;
+  --color-cream-surface: #f9f9f7;
+  --color-soft-apricot: #ffe5d4;
+  --color-midnight-charcoal: #1a1c1b;
+  --color-teal-tint: #41636d;
 }
 
 :root {

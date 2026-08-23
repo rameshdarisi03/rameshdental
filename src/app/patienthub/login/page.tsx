@@ -320,55 +320,55 @@ function LoginContent() {
   }, [router]);
 
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-cover bg-center bg-no-repeat relative gap-6"
-      style={{ backgroundImage: "url('/images/hero-bg-opt.webp')" }}
-    >
-      {/* Subtle overlay for contrast */}
-      <div className="absolute inset-0 bg-slate-950/15 dark:bg-slate-950/40 pointer-events-none" />
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 sm:px-6 bg-[#F9F9F7] dark:bg-[#062e36] text-[#1A1C1B] dark:text-white relative gap-6 font-['Inter',sans-serif]">
+      {/* Background ambient lighting */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#21444D]/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#f9ab55]/10 rounded-full blur-3xl" />
+      </div>
 
       {/* Main Login Card */}
-      <div className="w-full max-w-md space-y-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-8 sm:p-10 rounded-3xl shadow-2xl relative z-10 select-none animate-fade-in">
+      <div className="w-full max-w-md bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-white/10 p-7 sm:p-9 rounded-[32px] shadow-[0_16px_48px_rgba(6,46,54,0.08)] relative z-10 select-none animate-fade-in">
         
         {/* Scenario: Pending Google Account Registration */}
         {pendingGoogle ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <button
               onClick={() => setPendingGoogle(null)}
-              className="flex items-center gap-1 text-xs font-black text-slate-500 hover:text-brand-green uppercase tracking-wider cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-bold text-[#8a5100] dark:text-[#f9ab55] hover:underline cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" /> Back to Login
             </button>
 
-            <div className="text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green dark:text-emerald-400 mb-4">
+            <div className="text-center space-y-2">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#062e36] text-[#f9ab55] shadow-md mb-1">
                 <KeyRound className="h-7 w-7" />
               </div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">Link Google Account</h2>
-              <p className="mt-1.5 text-xs text-slate-500 font-bold max-w-xs mx-auto leading-relaxed">
-                Enter the activation code sent to you by the clinic to link <span className="text-slate-800 dark:text-slate-200 font-black">{pendingGoogle.email}</span>.
+              <h2 className="text-xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">Link Google Account</h2>
+              <p className="text-xs text-[#41484A] dark:text-slate-300 leading-relaxed">
+                Enter your 8-character activation code to link <span className="font-bold text-[#062e36] dark:text-white">{pendingGoogle.email}</span>.
               </p>
             </div>
 
             {error && (
-              <div className="flex gap-2 bg-red-50 dark:bg-red-950/20 border border-red-200/50 p-4 rounded-2xl text-xs text-red-600 dark:text-red-400 font-semibold">
-                <ShieldAlert className="h-5.5 w-5.5 text-red-500 shrink-0" />
+              <div className="flex gap-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 p-3.5 rounded-2xl text-xs text-red-700 dark:text-red-300 font-medium">
+                <ShieldAlert className="h-5 w-5 text-red-500 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <form onSubmit={handleGoogleLinkActivation} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-400">Activation Code</label>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Activation Code</label>
                 <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={activationCode}
                     onChange={(e) => setActivationCode(e.target.value)}
-                    placeholder="8-Character Code"
-                    className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100 font-black tracking-widest uppercase"
+                    placeholder="e.g. GP8842X"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] font-black tracking-widest uppercase text-[#1A1C1B] dark:text-white transition-colors"
                   />
                 </div>
               </div>
@@ -376,12 +376,12 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer disabled:opacity-50"
+                className="flex w-full items-center justify-center bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] py-3.5 rounded-full text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer disabled:opacity-50"
               >
                 {loading ? (
-                  <Loader2 className="h-4.5 w-4.5 animate-spin mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
-                  "Verify & Link Account"
+                  "Verify & Connect Account"
                 )}
               </button>
             </form>
@@ -390,20 +390,28 @@ function LoginContent() {
           /* Scenario: Regular Login / Signup Form */
           <>
             {/* Brand Header */}
-            <div className="text-center">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-green/10 text-brand-green dark:text-emerald-400 mb-4">
-                <Activity className="h-7 w-7" />
+            <div className="text-center flex flex-col items-center space-y-2 mb-6">
+              <div className="relative">
+                <img 
+                  src="/images/gait_physio_logo.png" 
+                  alt="GaitPhysio Logo" 
+                  className="h-14 w-14 object-contain drop-shadow-[0_4px_16px_rgba(249,171,85,0.25)]"
+                />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white">GPC Patient Hub</h2>
-              <p className="mt-1.5 text-xs text-slate-500 font-bold uppercase tracking-wider">
-                {isSignUp ? "Register Portal Profile" : "Sign In to Your Portal"}
-              </p>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-[#062e36] dark:text-white flex items-center justify-center gap-1 font-['Plus_Jakarta_Sans',sans-serif]">
+                  <span>Gait</span><span className="text-[#f9ab55]">Physio</span>
+                </h1>
+                <p className="text-[10px] text-[#8a5100] dark:text-[#f9ab55] font-extrabold uppercase tracking-[0.2em] mt-0.5">
+                  Patient Hub
+                </p>
+              </div>
             </div>
 
             {/* Error Alert Box */}
             {error && (
-              <div className="flex gap-2 bg-red-50 dark:bg-red-950/20 border border-red-200/50 p-4 rounded-2xl text-xs text-red-600 dark:text-red-400 leading-relaxed font-semibold">
-                <ShieldAlert className="h-5.5 w-5.5 text-red-500 shrink-0" />
+              <div className="flex gap-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 p-3.5 rounded-2xl text-xs text-red-700 dark:text-red-300 font-medium mb-4">
+                <ShieldAlert className="h-5 w-5 text-red-500 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
@@ -413,73 +421,72 @@ function LoginContent() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-205 dark:border-slate-750 bg-white dark:bg-slate-850 px-4 py-3 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50 mb-5"
             >
-              {/* Google G Icon */}
-              <svg className="h-4.5 w-4.5" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path
                   fill="#EA4335"
                   d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.51 0-6.36-2.85-6.36-6.36s2.85-6.36 6.36-6.36c1.53 0 2.93.55 4.02 1.48l3.1-3.1C18.98 2.19 15.82 1 12.24 1 6.03 1 1 6.03 1 12.24s5.03 11.24 11.24 11.24c5.84 0 10.84-4.22 10.84-11.24 0-.76-.08-1.46-.22-1.96H12.24z"
                 />
               </svg>
-              Continue with Google
+              <span>Continue with Google</span>
             </button>
 
             {/* Divider */}
-            <div className="relative flex items-center justify-center">
+            <div className="relative flex items-center justify-center my-4">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200/80 dark:border-slate-800" />
               </div>
-              <span className="relative bg-white dark:bg-slate-900 px-3 text-[10px] font-black uppercase text-slate-400">OR</span>
+              <span className="relative bg-white dark:bg-[#121a1d] px-3 text-[10px] font-bold uppercase text-slate-400">OR EMAIL</span>
             </div>
 
             {/* Email Password Form */}
-            <form onSubmit={handleEmailAuth} className="space-y-4">
+            <form onSubmit={handleEmailAuth} className="space-y-3.5">
               
               {/* Activation Code Field (Only shown on signup) */}
               {isSignUp && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-400">Activation Code</label>
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Activation Code</label>
                   <div className="relative">
-                    <KeyRound className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                    <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                     <input
                       type="text"
                       required
                       value={activationCode}
                       onChange={(e) => setActivationCode(e.target.value)}
                       placeholder="8-Character Code"
-                      className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100 font-black tracking-widest uppercase"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] transition-colors text-slate-800 dark:text-slate-100 font-bold tracking-widest uppercase"
                     />
                   </div>
                 </div>
               )}
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-400">Registered Email</label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Registered Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@email.com"
-                    className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100"
+                    placeholder="patient@email.com"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] transition-colors text-slate-800 dark:text-slate-100"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-450 dark:text-slate-400">Password</label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-2xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green dark:focus:border-emerald-500 transition-colors text-slate-800 dark:text-slate-100"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] transition-colors text-slate-800 dark:text-slate-100"
                   />
                 </div>
               </div>
@@ -487,125 +494,75 @@ function LoginContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer disabled:opacity-50"
+                className="flex w-full items-center justify-center bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] py-3.5 rounded-full text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer disabled:opacity-50 mt-2"
               >
                 {loading ? (
-                  <Loader2 className="h-4.5 w-4.5 animate-spin mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : isSignUp ? (
-                  "Register Hub Profile"
+                  "Create Hub Account"
                 ) : (
-                  "Sign In to Hub"
+                  "Sign In to Care Portal"
                 )}
               </button>
             </form>
 
             {/* Toggle Mode Button */}
-            <div className="text-center pt-2">
+            <div className="text-center pt-3">
               <button
                 type="button"
                 onClick={() => {
                   setError("");
                   setIsSignUp(!isSignUp);
                 }}
-                className="text-xs font-black text-slate-500 hover:text-brand-green uppercase tracking-wider cursor-pointer"
+                className="text-xs font-bold text-[#8a5100] dark:text-[#f9ab55] hover:underline cursor-pointer"
               >
-                {isSignUp ? "Already have an account? Sign In" : "Need access? Register Password"}
+                {isSignUp ? "Already have an account? Sign In" : "First time visiting? Register with Code"}
               </button>
             </div>
           </>
         )}
       </div>
 
-      {/* Catchy Dual PWA Install App (Mobile & Desktop) Banner Hub */}
+      {/* PWA App Installation Hub */}
       {mounted && !isStandalone && (
-        <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10 select-none animate-fade-in">
-          
-          {/* Card 1: Mobile App Setup (QR Code + Install Mobile Button) */}
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="bg-white p-2 rounded-2xl shadow-inner border border-slate-150 shrink-0">
-                <img 
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https%3A%2F%2Fgait-physio-clinic-v1.vercel.app%2Fpatienthub%2Flogin&color=1b3d2f&bgcolor=ffffff" 
-                  alt="Scan QR Code for Mobile App"
-                  className="w-20 h-20 rounded-lg object-contain"
-                />
-              </div>
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-                  <Smartphone className="h-3 w-3" />
-                  <span>Mobile App</span>
-                </div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Mobile Installation</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
-                  Scan QR code with phone camera or tap button below.
-                </p>
-              </div>
+        <div className="w-full max-w-md bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-white/10 p-5 rounded-3xl shadow-sm flex items-center justify-between gap-4 z-10">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-[#062e36] text-[#f9ab55] flex items-center justify-center shrink-0">
+              <Smartphone className="h-5 w-5" />
             </div>
-
-            <div className="pt-1">
-              <button
-                onClick={handleInstallClick}
-                className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Install Mobile App
-              </button>
-              <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
-                iOS Safari: Tap Share → Add to Home Screen
+            <div>
+              <h3 className="text-xs font-bold text-[#062e36] dark:text-white">Install GaitPhysio App</h3>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                1-tap access on your home screen
               </p>
             </div>
           </div>
 
-          {/* Card 2: Desktop App Setup (Monitor Icon + Install Desktop Button) */}
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-xl flex flex-col justify-between space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0 border border-brand-green/20">
-                <Monitor className="h-10 w-10" />
-              </div>
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
-                  <Monitor className="h-3 w-3" />
-                  <span>Desktop App</span>
-                </div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white leading-tight">Desktop Installation</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold leading-normal">
-                  Run Patient Hub natively on Windows PC or macOS desktop.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-1">
-              <button
-                onClick={handleInstallClick}
-                className="inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer w-full"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Install Desktop App
-              </button>
-              <p className="text-[9px] text-slate-400 text-center font-extrabold italic pt-1.5">
-                Chrome/Edge: Click Install in address bar
-              </p>
-            </div>
-          </div>
-
+          <button
+            onClick={handleInstallClick}
+            className="inline-flex items-center gap-1.5 bg-[#062e36] dark:bg-[#f9ab55] text-white dark:text-[#062e36] px-4 py-2 rounded-full text-xs font-bold transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Install</span>
+          </button>
         </div>
       )}
 
       {/* PWA Help Overlay Modal */}
       {installInstructions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 relative">
-            <div className="flex items-center gap-2 text-brand-green dark:text-emerald-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062e36]/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 relative">
+            <div className="flex items-center gap-2 text-[#062e36] dark:text-[#f9ab55]">
               <Smartphone className="h-5 w-5" />
-              <h4 className="text-sm font-black uppercase tracking-wider">PWA Installation Help</h4>
+              <h4 className="text-sm font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans',sans-serif]">Installation Guide</h4>
             </div>
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               {installInstructions}
             </p>
             <div className="pt-2">
               <button
                 onClick={() => setInstallInstructions(null)}
-                className="w-full bg-slate-100 dark:bg-slate-850 hover:bg-brand-green hover:text-white dark:hover:bg-brand-green text-slate-800 dark:text-white py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                className="w-full bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Got It
               </button>
