@@ -72,6 +72,14 @@ export interface PatientWorkoutProgress {
   dailyLogs: Record<string, DailyWorkoutLog>;
 }
 
+// Helper function to return local date string in YYYY-MM-DD format (timezone-safe)
+export function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Extract YouTube ID from various YouTube URL formats (watch, shorts, embed, mobile links)
 export function extractYoutubeId(url: string): string {
   if (!url) return "";

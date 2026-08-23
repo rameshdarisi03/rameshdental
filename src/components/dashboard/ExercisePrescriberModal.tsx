@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { 
   X, 
   Search, 
@@ -73,6 +74,11 @@ export default function ExercisePrescriberModal({
   const [tray, setTray] = useState<PrescribedExercise[]>([]);
   const [generalNotes, setGeneralNotes] = useState("");
   const [durationDays, setDurationDays] = useState<number>(14);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -107,7 +113,7 @@ export default function ExercisePrescriberModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   // Filter exercises by category and search term
   const filteredLibrary = library.filter((ex) => {
@@ -210,8 +216,8 @@ export default function ExercisePrescriberModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-[#f8fafc] dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in">
       
       {/* Top Navigation Bar with Back Button & Centered Search */}
       <div className="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-slate-900 shadow-xs shrink-0">
@@ -367,7 +373,7 @@ export default function ExercisePrescriberModal({
                   return (
                     <div
                       key={ex.id}
-                      onClick={() => toggleSelectExercise(ex)}
+                      onClick={() => handleToggleExercise(ex)}
                       className={`group border rounded-2xl p-3 bg-white dark:bg-slate-950 transition-all cursor-pointer select-none relative flex flex-col justify-between ${
                         selected
                           ? "border-brand-green ring-2 ring-brand-green/20 dark:ring-emerald-500/20 shadow-md"
@@ -427,74 +433,78 @@ export default function ExercisePrescriberModal({
             )}
           </div>
 
-          {/* Right Sidebar: Prescription Tray Panel */}
-          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 p-6 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col justify-between overflow-y-auto">
-            <div className="space-y-6">
-              
-              {/* Header Badge */}
+          {/* Right Panel: Prescription Staging Tray & Send Session */}
+          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col justify-between shrink-0">
+            
+            {/* Tray Header & List */}
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
                   Prescription
                 </h3>
-                <span className="h-6 w-6 rounded-full bg-brand-green text-white font-black text-xs flex items-center justify-center">
+                <span className="h-6 w-6 rounded-full bg-brand-green text-white text-xs font-black flex items-center justify-center shadow-xs">
                   {tray.length}
                 </span>
               </div>
 
-              {/* Selected List */}
               {tray.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 space-y-2 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 text-slate-400">
                   <Sparkles className="h-8 w-8 mx-auto text-slate-300" />
                   <p className="text-xs font-semibold">
                     Select exercises from the library on the left to build the home prescription plan.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-1">
-                  {tray.map((item) => (
+                <div className="space-y-3">
+                  {tray.map((item, index) => (
                     <div
                       key={item.exerciseId}
-                      className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl space-y-3 shadow-xs relative"
+                      className="p-3.5 bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs space-y-2.5"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <h5 className="text-xs font-black text-slate-900 dark:text-white leading-tight">
-                          {item.title}
-                        </h5>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-brand-green dark:text-teal-400 block mb-0.5">
+                            Exercise #{index + 1}
+                          </span>
+                          <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                            {item.title}
+                          </h4>
+                        </div>
                         <button
                           onClick={() => removeFromTray(item.exerciseId)}
-                          className="text-slate-400 hover:text-red-500 p-0.5 rounded-lg transition-colors cursor-pointer"
+                          className="text-slate-400 hover:text-red-600 transition-colors p-1 rounded-lg"
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
 
-                      {/* Sets & Reps Inputs */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2 pt-1">
                         <div>
-                          <label className="block text-[9px] font-black uppercase text-slate-400 mb-1">
-                            SETS
+                          <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                            Sets
                           </label>
                           <input
                             type="number"
                             min="1"
-                            max="20"
                             value={item.sets}
-                            onChange={(e) => updateTrayItem(item.exerciseId, "sets", parseInt(e.target.value) || 1)}
-                            className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            onChange={(e) =>
+                              updateTrayItem(item.exerciseId, "sets", Number(e.target.value))
+                            }
+                            className="w-full px-2.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[9px] font-black uppercase text-slate-400 mb-1">
-                            REPS / HOLD
+                          <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                            Reps / Hold
                           </label>
                           <input
-                            type="number"
-                            min="1"
-                            max="100"
+                            type="text"
                             value={item.repsOrHold}
-                            onChange={(e) => updateTrayItem(item.exerciseId, "repsOrHold", parseInt(e.target.value) || 10)}
-                            className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            onChange={(e) =>
+                              updateTrayItem(item.exerciseId, "repsOrHold", e.target.value)
+                            }
+                            className="w-full px-2.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </div>
                       </div>
@@ -502,9 +512,12 @@ export default function ExercisePrescriberModal({
                   ))}
                 </div>
               )}
+            </div>
 
-              {/* Program Duration Selector */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            {/* Footer: Duration & Submit */}
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
+              
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     PROGRAM DURATION
@@ -515,54 +528,29 @@ export default function ExercisePrescriberModal({
                 </div>
 
                 <div className="grid grid-cols-4 gap-1.5">
-                  {[7, 14, 21, 30].map((days) => (
+                  {[
+                    { days: 7, label: "1 Week" },
+                    { days: 14, label: "2 Weeks" },
+                    { days: 21, label: "3 Weeks" },
+                    { days: 28, label: "4 Weeks" }
+                  ].map((preset) => (
                     <button
-                      key={days}
+                      key={preset.days}
                       type="button"
-                      onClick={() => setDurationDays(days)}
-                      className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                        durationDays === days
+                      onClick={() => setDurationDays(preset.days)}
+                      className={`py-2 px-1 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                        durationDays === preset.days
                           ? "bg-brand-green text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
                       }`}
                     >
-                      {days}D {days === 7 ? "(1W)" : days === 14 ? "(2W)" : days === 21 ? "(3W)" : "(1M)"}
+                      {preset.label}
                     </button>
                   ))}
                 </div>
-
-                <div className="flex items-center gap-2 pt-0.5">
-                  <span className="text-[10px] text-slate-400 font-bold">Custom:</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="180"
-                    value={durationDays}
-                    onChange={(e) => setDurationDays(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-18 px-2 py-1 text-xs font-black text-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  />
-                  <span className="text-xs font-bold text-slate-500">Days</span>
-                </div>
               </div>
 
-              {/* General Notes Field */}
-              <div className="space-y-1.5 pt-1">
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  GENERAL NOTES
-                </label>
-                <textarea
-                  rows={3}
-                  value={generalNotes}
-                  onChange={(e) => setGeneralNotes(e.target.value)}
-                  placeholder="e.g. Stop if pain exceeds 4/10. Perform twice daily after warm shower..."
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green transition-colors resize-none"
-                />
-              </div>
-
-            </div>
-
-            {/* Bottom Action CTA */}
-            <div className="pt-6 border-t border-slate-200 dark:border-slate-800 mt-6">
+              {/* Bottom Action CTA */}
               <button
                 onClick={handleSavePrescription}
                 disabled={saving || tray.length === 0}
@@ -578,11 +566,9 @@ export default function ExercisePrescriberModal({
                 )}
               </button>
             </div>
-
           </div>
-
         </div>
-
-    </div>
+    </div>,
+    document.body
   );
 }

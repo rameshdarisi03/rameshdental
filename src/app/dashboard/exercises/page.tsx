@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { 
   Dumbbell, 
   Plus, 
@@ -40,6 +41,7 @@ const CATEGORIES = [
 ];
 
 export default function ExerciseLibraryAdminPage() {
+  const [mounted, setMounted] = useState(false);
   const [exercises, setExercises] = useState<ExerciseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,6 +76,7 @@ export default function ExerciseLibraryAdminPage() {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     loadExercises();
 
     // Close menu when clicking outside
@@ -393,9 +396,9 @@ export default function ExerciseLibraryAdminPage() {
       )}
 
       {/* Add New Exercise Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative">
+      {mounted && isAddModalOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative my-auto">
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -428,17 +431,44 @@ export default function ExerciseLibraryAdminPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  YouTube Video Link or ID
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    YouTube Video Link or ID
+                  </label>
+                  <span className="text-[10px] font-bold text-brand-green dark:text-teal-400">
+                    Auto-detects Watch, Shorts, Embed & ID
+                  </span>
+                </div>
                 <input
                   type="text"
                   required
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
-                  placeholder="e.g. https://www.youtube.com/watch?v=wD7V2F3eRns"
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  placeholder="e.g. https://www.youtube.com/watch?v=wD7V2F3eRns or video ID"
+                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
                 />
+
+                {/* Live YouTube Validation & Preview Box */}
+                {youtubeUrl && (
+                  <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 animate-fade-in">
+                    <div className="relative aspect-video w-20 rounded-xl overflow-hidden bg-black shrink-0 border border-slate-200 dark:border-slate-800 shadow-inner">
+                      <img
+                        src={`https://img.youtube.com/vi/${extractYoutubeId(youtubeUrl)}/mqdefault.jpg`}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
+                        Video ID: <span className="font-mono text-brand-green dark:text-teal-400">{extractYoutubeId(youtubeUrl)}</span>
+                      </p>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3 inline" /> Thumbnail & player linked
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -525,13 +555,14 @@ export default function ExerciseLibraryAdminPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Exercise Modal */}
-      {editingExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative">
+      {mounted && editingExercise && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative my-auto">
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -563,17 +594,44 @@ export default function ExerciseLibraryAdminPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  YouTube Video Link or ID
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    YouTube Video Link or ID
+                  </label>
+                  <span className="text-[10px] font-bold text-brand-green dark:text-teal-400">
+                    Auto-detects Watch, Shorts, Embed & ID
+                  </span>
+                </div>
                 <input
                   type="text"
                   required
                   value={editYoutubeUrl}
                   onChange={(e) => setEditYoutubeUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
+                  placeholder="https://www.youtube.com/watch?v=... or ID"
                   className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
                 />
+
+                {/* Live YouTube Validation & Preview Box */}
+                {editYoutubeUrl && (
+                  <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 animate-fade-in">
+                    <div className="relative aspect-video w-20 rounded-xl overflow-hidden bg-black shrink-0 border border-slate-200 dark:border-slate-800 shadow-inner">
+                      <img
+                        src={`https://img.youtube.com/vi/${extractYoutubeId(editYoutubeUrl)}/mqdefault.jpg`}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
+                        Video ID: <span className="font-mono text-brand-green dark:text-teal-400">{extractYoutubeId(editYoutubeUrl)}</span>
+                      </p>
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3 inline" /> Thumbnail & player linked
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -657,13 +715,14 @@ export default function ExerciseLibraryAdminPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Video Player Modal */}
-      {playingVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl space-y-4 p-4 sm:p-6 relative">
+      {mounted && playingVideo && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl space-y-4 p-4 sm:p-6 relative my-auto">
             <div className="flex items-center justify-between px-2">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">
@@ -689,7 +748,8 @@ export default function ExerciseLibraryAdminPage() {
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

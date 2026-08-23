@@ -173,41 +173,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Patient Isolated Medical Records & Drive Vault */}
-      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Folder className="h-5 w-5 text-[#8a5100] dark:text-[#f9ab55]" />
-            <h3 className="text-sm font-bold text-[#062e36] dark:text-white uppercase tracking-wider font-['Plus_Jakarta_Sans',sans-serif]">
-              Google Drive Medical Vault
-            </h3>
-          </div>
-          <span className="text-[9px] font-bold bg-[#062e36]/10 text-[#062e36] dark:text-[#f9ab55] px-2.5 py-0.5 rounded-full uppercase">
-            Isolated Folder
-          </span>
-        </div>
-
-        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-          Your diagnostic scans, X-rays, and clinical case sheets are backed up in your dedicated Google Drive patient repository.
-        </p>
-
-        {patient?.googleDriveFolderId ? (
-          <a
-            href={`https://drive.google.com/drive/folders/${patient.googleDriveFolderId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white py-3 rounded-full text-xs font-bold transition-all cursor-pointer shadow-xs"
-          >
-            <Folder className="h-4 w-4 text-[#f9ab55]" />
-            <span>Open Google Drive Records Vault →</span>
-          </a>
-        ) : (
-          <div className="p-3 bg-[#FAF9F9] dark:bg-slate-900 rounded-2xl text-center text-xs font-medium text-slate-400">
-            No external drive repository attached to this record yet.
-          </div>
-        )}
-      </div>
-
       {/* Preferences & Settings */}
       <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 px-1">Settings & Assistance</h3>

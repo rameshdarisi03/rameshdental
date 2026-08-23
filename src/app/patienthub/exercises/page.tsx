@@ -8,10 +8,11 @@ import {
   getPatientPrescription, 
   getExerciseLibrary, 
   extractYoutubeId, 
-  PatientPrescription,
-  subscribePatientWorkoutProgress,
-  toggleExerciseDailyCompletion,
-  PatientWorkoutProgress
+  PatientPrescription, 
+  subscribePatientWorkoutProgress, 
+  toggleExerciseDailyCompletion, 
+  getLocalDateString, 
+  PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
 import { 
   Play, 
@@ -89,6 +90,7 @@ function ExercisesContent() {
   const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [localCompletedIds, setLocalCompletedIds] = useState<string[] | null>(null);
 
   useEffect(() => {
     let progUnsub = () => {};
@@ -136,12 +138,18 @@ function ExercisesContent() {
               }
 
               // Listen to workout progress in real-time
-              progUnsub = subscribePatientWorkoutProgress(matched.id, rxData, setProgress);
+              progUnsub = subscribePatientWorkoutProgress(matched.id, rxData, (newProg) => {
+                setProgress(newProg);
+                setLocalCompletedIds(null);
+              });
             } else {
               if (videoParam) {
                 setActiveVideo(extractYoutubeId(videoParam));
               }
-              progUnsub = subscribePatientWorkoutProgress(matched.id, null, setProgress);
+              progUnsub = subscribePatientWorkoutProgress(matched.id, null, (newProg) => {
+                setProgress(newProg);
+                setLocalCompletedIds(null);
+              });
             }
           }
         } catch (err) {
@@ -159,19 +167,29 @@ function ExercisesContent() {
 
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = getLocalDateString();
   const todayLog = progress?.dailyLogs?.[todayStr];
-  const completedIds = todayLog?.completedExerciseIds || [];
+  const serverCompletedIds = todayLog?.completedExerciseIds || [];
+  const completedIds = localCompletedIds !== null ? localCompletedIds : serverCompletedIds;
 
   const handleToggleComplete = async (exerciseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!patient?.id) return;
+
+    // Instant 0ms optimistic UI update
+    const isCurrentlyDone = completedIds.includes(exerciseId);
+    const nextCompleted = isCurrentlyDone
+      ? completedIds.filter(id => id !== exerciseId)
+      : [...completedIds, exerciseId];
+    setLocalCompletedIds(nextCompleted);
 
     setTogglingId(exerciseId);
     try {
       await toggleExerciseDailyCompletion(patient.id, exerciseId, exercises.length, todayStr);
     } catch (err) {
       console.error("Error saving exercise completion:", err);
+      // Rollback on failure
+      setLocalCompletedIds(serverCompletedIds);
     } finally {
       setTogglingId(null);
     }

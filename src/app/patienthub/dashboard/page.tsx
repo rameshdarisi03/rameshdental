@@ -24,7 +24,7 @@ import {
   ArrowRight,
   TrendingUp,
   Dumbbell,
-  Receipt,
+  FileText,
   Flame,
   CheckCircle,
   Sparkles
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
         >
           <div className="w-11 h-11 rounded-2xl bg-[#062e36]/10 dark:bg-[#062e36] text-[#062e36] dark:text-[#f9ab55] flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-            <Receipt className="h-5 w-5" />
+            <FileText className="h-5 w-5" />
           </div>
           <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">Health Records</span>
         </Link>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
           <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
             <MessageSquare className="h-5 w-5" />
           </div>
-          <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">Care Concierge</span>
+          <span className="text-xs font-bold text-[#1A1C1B] dark:text-slate-200 text-center">Connect with Doctor</span>
         </a>
       </section>
 
@@ -284,7 +284,7 @@ export default function DashboardPage() {
 
           <Link
             href="/patienthub/exercises"
-            className="inline-flex items-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs shrink-0"
+            className="hidden sm:inline-flex items-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs shrink-0"
           >
             <span>{isTodayDone ? "Review Workouts" : `Start Day ${currentDay} Routine`}</span>
             <ArrowRight className="h-3.5 w-3.5 text-[#f9ab55]" />
@@ -346,97 +346,49 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* 14-Day Beads Timeline */}
-          <div className="space-y-2 pt-1 border-t border-white/10">
+          {/* 14-Day Circular Beads Timeline */}
+          <div className="space-y-3 pt-1 border-t border-white/10">
             <div className="flex items-center justify-between text-[10px] text-slate-300 font-bold uppercase tracking-wider">
-              <span>Program Days Tracker</span>
+              <span>Program Days Roadmap</span>
               <span>Target Review: Day {duration}</span>
             </div>
 
-            <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5">
+            <div className="grid grid-cols-7 sm:grid-cols-14 gap-2">
               {Array.from({ length: Math.min(duration, 14) }).map((_, idx) => {
                 const dayNum = idx + 1;
                 const isPassed = dayNum < currentDay;
                 const isCurrent = dayNum === currentDay;
+                const isDone = isPassed || (isCurrent && isTodayDone);
 
                 return (
                   <div
                     key={dayNum}
-                    className={`h-9 rounded-xl flex flex-col items-center justify-center text-[10px] font-black transition-all ${
-                      isPassed
-                        ? "bg-emerald-500 text-white shadow-xs"
+                    className={`w-9 h-9 mx-auto rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                      isDone
+                        ? "bg-[#f9ab55] text-[#062e36] shadow-sm font-black"
                         : isCurrent
-                        ? isTodayDone
-                          ? "bg-emerald-500 text-white ring-2 ring-emerald-300"
-                          : "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/60 animate-pulse"
+                        ? "bg-white/20 text-[#f9ab55] ring-2 ring-[#f9ab55] animate-pulse"
                         : "bg-white/10 text-slate-300"
                     }`}
+                    title={`Day ${dayNum}`}
                   >
-                    <span>D{dayNum}</span>
-                    <span className="text-[8px]">
-                      {isPassed || (isCurrent && isTodayDone) ? "✓" : isCurrent ? "Today" : "•"}
-                    </span>
+                    {isDone ? "✓" : dayNum}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Quick CTA */}
-          <div className="pt-1 flex items-center justify-between">
-            <span className="text-xs text-slate-300 font-medium">
-              {exercises.length} prescribed exercises in this plan.
-            </span>
+          {/* Mobile Dedicated Line: Go to Workout Center */}
+          <div className="pt-2 sm:hidden">
             <Link
               href="/patienthub/exercises"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#f9ab55] hover:underline"
+              className="w-full flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-extrabold text-xs py-3 rounded-2xl shadow-sm transition-all uppercase tracking-wider"
             >
               <span>Go to Workout Center</span>
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-        </div>
-
-        {/* Prescribed Exercises Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-          {exercises.map((ex, idx) => (
-            <Link
-              key={ex.youtubeId + idx}
-              href={`/patienthub/exercises?video=${ex.youtubeId}`}
-              className="group border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-900 hover:border-[#f9ab55]/60 hover:shadow-md transition-all flex flex-col justify-between"
-            >
-              <div>
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 mb-3 shadow-xs">
-                  <img
-                    src={`https://img.youtube.com/vi/${ex.youtubeId}/mqdefault.jpg`}
-                    alt={ex.title}
-                    onError={(e) => {
-                      // Fallback clean placeholder if youtube thumb is restricted
-                      (e.target as HTMLElement).style.display = "none";
-                    }}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-slate-950/25 group-hover:bg-slate-950/15 transition-colors flex items-center justify-center">
-                    <div className="h-9 w-9 rounded-full bg-[#f9ab55] text-[#062e36] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <Play className="h-4 w-4 fill-current ml-0.5" />
-                    </div>
-                  </div>
-                </div>
-
-                <h3 className="text-xs font-bold text-[#062e36] dark:text-white leading-snug group-hover:text-[#8a5100] dark:group-hover:text-[#f9ab55] transition-colors">
-                  {ex.title}
-                </h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
-                  Target: {ex.description}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-1 text-[10px] font-bold text-[#8a5100] dark:text-[#f9ab55] pt-3">
-                <span>View Technique</span>
-                <ChevronRight className="h-3 w-3" />
-              </div>
-            </Link>
-          ))}
         </div>
       </section>
 

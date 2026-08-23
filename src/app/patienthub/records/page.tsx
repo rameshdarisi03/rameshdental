@@ -344,7 +344,7 @@ export default function RecordsPage() {
           }`}
         >
           <FileText className="h-4 w-4" />
-          <span>Consultations & Referrals</span>
+          <span>Consultations & Prescriptions</span>
           <span className="text-[10px] px-2 py-0.2 rounded-full bg-white/20 dark:bg-black/20 font-black">
             {consultations.length + medicalFiles.length}
           </span>

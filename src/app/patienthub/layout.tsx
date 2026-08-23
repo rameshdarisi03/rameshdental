@@ -16,7 +16,9 @@ import {
   Bell, 
   Settings, 
   Loader2,
-  Receipt
+  FileText,
+  Sun,
+  Moon
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 export default function PatientHubLayout({
@@ -40,6 +42,26 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDark(false);
+    } else {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDark(true);
+    }
+  };
 
   useEffect(() => {
     // If the Patient Hub is deactivated, redirect users immediately back to home
@@ -221,7 +243,20 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* Desktop Right Hand Toolbar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-[#21444D]/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? (
+                <Sun className="h-4.5 w-4.5 text-[#f9ab55] fill-[#f9ab55]" />
+              ) : (
+                <Moon className="h-4.5 w-4.5 text-slate-700 dark:text-slate-200 fill-current" />
+              )}
+            </button>
+
             <Link
               href="/patienthub/profile"
               className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
@@ -241,7 +276,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
             <button 
               onClick={handleLogout}
-              className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full text-red-500 transition-colors"
+              className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full text-red-500 transition-colors cursor-pointer"
               title="Logout"
             >
               <LogOut className="h-4 w-4" />
@@ -298,7 +333,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
                 : "text-slate-300 hover:text-white"
             }`}
           >
-            <Receipt className="h-5 w-5" />
+            <FileText className="h-5 w-5" />
             <span className="text-[9px] tracking-wider uppercase font-black mt-0.5">Records</span>
             {pathname === "/patienthub/records" && (
               <span className="w-1 h-1 bg-[#f9ab55] rounded-full mt-0.5 animate-pulse" />
