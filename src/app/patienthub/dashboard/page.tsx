@@ -194,7 +194,7 @@ export default function DashboardPage() {
     if (!patient?.id) return;
     setMarkingDay(true);
     try {
-      const allExIds = prescription?.exercises?.map(e => e.id) || [];
+      const allExIds = prescription?.exercises?.map((e: any) => e.exerciseId || e.id || e.youtubeId || e.title) || [];
       await markPatientDayComplete(patient.id, getLocalDateString(), allExIds, !isTodayDone);
     } catch (err) {
       console.error("Error toggling day complete:", err);

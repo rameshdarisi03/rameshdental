@@ -318,9 +318,13 @@ export async function updateExerciseInLibrary(
 
 // Fetch active prescription for a patient
 export async function getPatientPrescription(patientId: string): Promise<PatientPrescription | null> {
+  const cleanId = (patientId || "").trim().toUpperCase();
   try {
-    const docRef = doc(db, "prescriptions", patientId);
-    const snap = await getDoc(docRef);
+    const docRef = doc(db, "prescriptions", cleanId);
+    let snap = await getDoc(docRef);
+    if (!snap.exists() && patientId !== cleanId) {
+      snap = await getDoc(doc(db, "prescriptions", patientId));
+    }
     if (snap.exists()) {
       return snap.data() as PatientPrescription;
     }
@@ -336,12 +340,24 @@ export function subscribePatientPrescription(
   patientId: string,
   callback: (prescription: PatientPrescription | null) => void
 ): () => void {
-  const docRef = doc(db, "prescriptions", patientId);
+  const cleanId = (patientId || "").trim().toUpperCase();
+  const docRef = doc(db, "prescriptions", cleanId);
   return onSnapshot(docRef, (snap) => {
     if (snap.exists()) {
       callback(snap.data() as PatientPrescription);
     } else {
-      callback(null);
+      // Fallback try original casing
+      if (patientId !== cleanId) {
+        getDoc(doc(db, "prescriptions", patientId)).then((fallbackSnap) => {
+          if (fallbackSnap.exists()) {
+            callback(fallbackSnap.data() as PatientPrescription);
+          } else {
+            callback(null);
+          }
+        }).catch(() => callback(null));
+      } else {
+        callback(null);
+      }
     }
   }, (err) => {
     console.error("Error subscribing to patient prescription:", err);
@@ -372,7 +388,8 @@ export async function savePatientPrescription(
   durationDays: number = 14,
   customStartDate?: string
 ): Promise<void> {
-  const docRef = doc(db, "prescriptions", patientId);
+  const cleanId = (patientId || "").trim().toUpperCase();
+  const docRef = doc(db, "prescriptions", cleanId);
   const now = new Date();
   const dateFormatted = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   
@@ -390,7 +407,7 @@ export async function savePatientPrescription(
   const endDateStr = `${endYyyy}-${endMm}-${endDd}`;
   
   const payload: PatientPrescription = {
-    patientId,
+    patientId: cleanId,
     prescribedAt: Timestamp.now(),
     prescribedDateFormatted: dateFormatted,
     durationDays,
@@ -405,7 +422,7 @@ export async function savePatientPrescription(
 
   // 2. Also archive in patient's prescriptions history subcollection
   try {
-    const historyCol = collection(db, "patients", patientId, "prescriptions");
+    const historyCol = collection(db, "patients", cleanId, "prescriptions");
     await addDoc(historyCol, payload);
   } catch (historyErr) {
     console.warn("Could not archive prescription to patient subcollection:", historyErr);
