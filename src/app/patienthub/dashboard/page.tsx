@@ -9,6 +9,8 @@ import {
   subscribeExerciseLibrary,
   getExerciseLibrary, 
   extractYoutubeId, 
+  getProgramDayDateString,
+  getLocalDateString,
   PatientPrescription, 
   subscribePatientWorkoutProgress, 
   PatientWorkoutProgress 
@@ -380,9 +382,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-7 sm:grid-cols-14 gap-2">
               {Array.from({ length: Math.min(duration, 14) }).map((_, idx) => {
                 const dayNum = idx + 1;
-                const isPassed = dayNum < currentDay;
+                const startDate = prescription?.startDate || getLocalDateString();
+                const dayDateStr = getProgramDayDateString(startDate, idx);
+                const dayLog = progress?.dailyLogs?.[dayDateStr];
+                const isDone = dayLog?.isFullyCompleted === true;
                 const isCurrent = dayNum === currentDay;
-                const isDone = isPassed || (isCurrent && isTodayDone);
 
                 return (
                   <div
@@ -394,7 +398,7 @@ export default function DashboardPage() {
                         ? "bg-white/20 text-[#f9ab55] ring-2 ring-[#f9ab55] animate-pulse"
                         : "bg-white/10 text-slate-300"
                     }`}
-                    title={`Day ${dayNum}`}
+                    title={`Day ${dayNum} (${dayDateStr}): ${isDone ? "Completed" : isCurrent ? "Active Today" : "Pending"}`}
                   >
                     {isDone ? "✓" : dayNum}
                   </div>

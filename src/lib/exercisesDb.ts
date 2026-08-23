@@ -80,6 +80,16 @@ export function getLocalDateString(d: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+// Helper to calculate the specific YYYY-MM-DD date for a program day index (0 = Day 1)
+export function getProgramDayDateString(startDateStr: string, dayIndex: number): string {
+  if (!startDateStr) return getLocalDateString();
+  const parts = startDateStr.split("-").map(Number);
+  if (parts.length < 3 || isNaN(parts[0])) return getLocalDateString();
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  d.setDate(d.getDate() + dayIndex);
+  return getLocalDateString(d);
+}
+
 // Extract YouTube ID from various YouTube URL formats (watch, shorts, embed, mobile links)
 export function extractYoutubeId(url: string): string {
   if (!url) return "";

@@ -48,8 +48,11 @@ import {
   updatePatient 
 } from "@/lib/patientsDb";
 import { 
-  getPatientPrescription, 
+  getPatientPrescription,
+  subscribePatientPrescription,
   subscribePatientWorkoutProgress, 
+  getProgramDayDateString,
+  getLocalDateString,
   PatientPrescription, 
   PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
@@ -228,12 +231,15 @@ PLAN:
   };
 
   useEffect(() => {
+    let rxUnsub = () => {};
     let progUnsub = () => {};
 
     if (id) {
       loadPatientDetails();
-      getPatientPrescription(id).then((rx) => {
+
+      rxUnsub = subscribePatientPrescription(id, (rx) => {
         setActivePrescription(rx);
+        progUnsub();
         progUnsub = subscribePatientWorkoutProgress(id, rx, (p) => {
           setWorkoutProgress(p);
         });
@@ -256,6 +262,7 @@ PLAN:
     loadTherapists();
 
     return () => {
+      rxUnsub();
       progUnsub();
     };
   }, [id]);
@@ -1052,32 +1059,46 @@ PLAN:
                   </div>
                 </div>
 
-                {/* 14-Day Dot Adherence Matrix */}
+                {/* Compliance Matrix with Live Day Ticks */}
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
                     <span>Patient Compliance Matrix</span>
-                    <span>{workoutProgress?.completedDaysCount || 0} Done</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{workoutProgress?.completedDaysCount || 0} Days Completed</span>
                   </div>
-                  <div className="grid grid-cols-7 gap-1">
+                  <div className="grid grid-cols-7 gap-1.5">
                     {Array.from({ length: Math.min(activePrescription.durationDays || 14, 28) }).map((_, idx) => {
                       const dayNum = idx + 1;
-                      const isPassed = dayNum < (workoutProgress?.currentDayNumber || 1);
+                      const startDate = activePrescription.startDate || getLocalDateString();
+                      const dayDateStr = getProgramDayDateString(startDate, idx);
+                      const dayLog = workoutProgress?.dailyLogs?.[dayDateStr];
+                      const isDone = dayLog?.isFullyCompleted === true;
                       const isCurrent = dayNum === (workoutProgress?.currentDayNumber || 1);
-                      const isDone = isPassed || (isCurrent && workoutProgress?.todayIsCompleted);
+                      const isPassed = dayNum < (workoutProgress?.currentDayNumber || 1);
+                      const isMissed = isPassed && !isDone;
 
                       return (
                         <div
                           key={dayNum}
-                          className={`h-6 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${
+                          className={`h-7 rounded-xl flex items-center justify-center text-[10px] font-black transition-all shadow-xs ${
                             isDone
-                              ? "bg-emerald-500 text-white"
+                              ? "bg-emerald-500 text-white font-black shadow-xs"
                               : isCurrent
-                              ? "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/60 animate-pulse"
+                              ? "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/80 animate-pulse font-black"
+                              : isMissed
+                              ? "bg-rose-50 dark:bg-rose-950/30 text-rose-500 border border-rose-200 dark:border-rose-900/40"
                               : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                           }`}
-                          title={`Day ${dayNum}: ${isDone ? "Completed" : isCurrent ? "Active Today" : "Pending"}`}
+                          title={`Day ${dayNum} (${dayDateStr}): ${
+                            isDone 
+                              ? `Completed (${dayLog?.completedExerciseIds?.length || 0} exercises)` 
+                              : isCurrent 
+                              ? "Active Today" 
+                              : isMissed 
+                              ? "Incomplete / Skipped" 
+                              : "Scheduled"
+                          }`}
                         >
-                          {dayNum}
+                          {isDone ? "✓" : dayNum}
                         </div>
                       );
                     })}
