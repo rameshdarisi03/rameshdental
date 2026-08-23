@@ -33,7 +33,8 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
-  X
+  X,
+  Flame
 } from "lucide-react";
 import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
@@ -46,6 +47,12 @@ import {
   addMedicalRecordFile, 
   updatePatient 
 } from "@/lib/patientsDb";
+import { 
+  getPatientPrescription, 
+  subscribePatientWorkoutProgress, 
+  PatientPrescription, 
+  PatientWorkoutProgress 
+} from "@/lib/exercisesDb";
 import { getClinicConfig } from "@/lib/db";
 
 interface Patient {
@@ -154,6 +161,8 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
   const [activeTab, setActiveTab] = useState<"timeline" | "files">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
+  const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
+  const [workoutProgress, setWorkoutProgress] = useState<PatientWorkoutProgress | null>(null);
 
   // Gemini AI Document Scanner states
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -219,9 +228,18 @@ PLAN:
   };
 
   useEffect(() => {
+    let progUnsub = () => {};
+
     if (id) {
       loadPatientDetails();
+      getPatientPrescription(id).then((rx) => {
+        setActivePrescription(rx);
+        progUnsub = subscribePatientWorkoutProgress(id, rx, (p) => {
+          setWorkoutProgress(p);
+        });
+      });
     }
+
     async function loadTherapists() {
       try {
         const config = await getClinicConfig();
@@ -236,6 +254,10 @@ PLAN:
       }
     }
     loadTherapists();
+
+    return () => {
+      progUnsub();
+    };
   }, [id]);
 
   const defaultTherapist = enrolledTherapists[0] || "Dr. Sarah Jenkins";
@@ -262,14 +284,16 @@ PLAN:
       }
       setPatient(pData as Patient);
 
-      // Fetch timelines
-      const [cList, fList] = await Promise.all([
+      // Fetch timelines & prescription
+      const [cList, fList, rx] = await Promise.all([
         getConsultations(id),
-        getMedicalRecordFiles(id)
+        getMedicalRecordFiles(id),
+        getPatientPrescription(id)
       ]);
 
       setConsultations(cList as Consultation[]);
       setFiles(fList as MedicalFile[]);
+      setActivePrescription(rx);
     } catch (err: any) {
       console.error("Error loading patient details:", err);
       setError("An error occurred while fetching details.");
@@ -966,6 +990,128 @@ PLAN:
                 )}
               </button>
             </form>
+          </div>
+
+          {/* Card 4: Home Workout Adherence & Patient Compliance Matrix */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-black text-xs uppercase tracking-wider">
+                <Dumbbell className="h-4 w-4 text-brand-green dark:text-teal-400" />
+                <span>Home Workout Adherence</span>
+              </div>
+              <button
+                onClick={() => setIsPrescriberOpen(true)}
+                className="text-[10px] font-black text-brand-green dark:text-teal-400 hover:underline cursor-pointer"
+              >
+                {activePrescription ? "Adjust Plan" : "+ Prescribe"}
+              </button>
+            </div>
+
+            {activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0 ? (
+              <div className="space-y-3.5">
+                {/* Program Summary Header */}
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-900 dark:text-white">
+                      {activePrescription.durationDays || 14}-Day Care Protocol
+                    </span>
+                    <span className="text-[10px] font-black text-brand-green dark:text-teal-400 bg-brand-green/10 dark:bg-teal-950 px-2 py-0.5 rounded-md">
+                      Day {workoutProgress?.currentDayNumber || 1} of {activePrescription.durationDays || 14}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    Prescribed: {activePrescription.prescribedDateFormatted} • {activePrescription.exercises.length} Exercises
+                  </p>
+                </div>
+
+                {/* Adherence Score & Streak */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 p-3 rounded-2xl text-center">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                      Adherence
+                    </span>
+                    <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      {workoutProgress?.adherencePercent || 0}%
+                    </p>
+                    <p className="text-[8.5px] font-bold text-emerald-600/70 dark:text-emerald-400/70">
+                      {workoutProgress?.completedDaysCount || 0} of {activePrescription.durationDays || 14} Days Done
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 p-3 rounded-2xl text-center">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                      Active Streak
+                    </span>
+                    <p className="text-xl font-black text-amber-700 dark:text-amber-400 mt-0.5 flex items-center justify-center gap-1">
+                      <Flame className="h-4 w-4 fill-current text-orange-500" />
+                      <span>{workoutProgress?.streakDays || 0}d</span>
+                    </p>
+                    <p className="text-[8.5px] font-bold text-amber-600/70 dark:text-amber-400/70">
+                      Consecutive Log
+                    </p>
+                  </div>
+                </div>
+
+                {/* 14-Day Dot Adherence Matrix */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    <span>Patient Compliance Matrix</span>
+                    <span>{workoutProgress?.completedDaysCount || 0} Done</span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: Math.min(activePrescription.durationDays || 14, 28) }).map((_, idx) => {
+                      const dayNum = idx + 1;
+                      const isPassed = dayNum < (workoutProgress?.currentDayNumber || 1);
+                      const isCurrent = dayNum === (workoutProgress?.currentDayNumber || 1);
+                      const isDone = isPassed || (isCurrent && workoutProgress?.todayIsCompleted);
+
+                      return (
+                        <div
+                          key={dayNum}
+                          className={`h-6 rounded-lg flex items-center justify-center text-[9px] font-black transition-all ${
+                            isDone
+                              ? "bg-emerald-500 text-white"
+                              : isCurrent
+                              ? "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/60 animate-pulse"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                          }`}
+                          title={`Day ${dayNum}: ${isDone ? "Completed" : isCurrent ? "Active Today" : "Pending"}`}
+                        >
+                          {dayNum}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Prescribed List Preview */}
+                <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Assigned Routine:
+                  </p>
+                  {activePrescription.exercises.map((ex, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300">
+                      <span className="font-semibold truncate max-w-[180px]">{ex.title}</span>
+                      <span className="text-[10px] font-bold text-slate-400">{ex.sets}x{ex.repsOrHold}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                <Dumbbell className="h-6 w-6 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-400">
+                  No active home exercise plan prescribed.
+                </p>
+                <button
+                  onClick={() => setIsPrescriberOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-brand-green dark:text-teal-400 hover:underline cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Prescribe Exercise Routine
+                </button>
+              </div>
+            )}
           </div>
 
         </div>

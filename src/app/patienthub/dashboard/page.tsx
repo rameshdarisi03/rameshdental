@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { getPatientPrescription, getExerciseLibrary, extractYoutubeId, PatientPrescription } from "@/lib/exercisesDb";
+import { 
+  getPatientPrescription, 
+  getExerciseLibrary, 
+  extractYoutubeId, 
+  PatientPrescription,
+  subscribePatientWorkoutProgress,
+  PatientWorkoutProgress
+} from "@/lib/exercisesDb";
 import Link from "next/link";
 import { 
   Calendar, 
@@ -18,11 +25,14 @@ import {
   TrendingUp,
   Dumbbell,
   Receipt,
-  Download
+  Flame,
+  CheckCircle,
+  Sparkles
 } from "lucide-react";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
 
 interface DisplayExercise {
+  id?: string;
   title: string;
   description: string;
   duration: string;
@@ -55,14 +65,16 @@ const DEFAULT_EXERCISES: DisplayExercise[] = [
 ];
 
 export default function DashboardPage() {
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patient, setPatient] = useState<any | null>(null);
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
   const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
+  const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let invUnsub = () => {};
+    let progUnsub = () => {};
 
     const localData = localStorage.getItem("gpc_patient");
     if (localData) {
@@ -75,32 +87,18 @@ export default function DashboardPage() {
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user && user.email) {
-        invUnsub = subscribePatientInvoices(user.email, setPatientInvoices);
-      }
-    });
-
-    return () => {
-      invUnsub();
-    };
-  }, []);
-
-  useEffect(() => {
-    const localData = localStorage.getItem("gpc_patient");
-    if (localData) {
-      setPatient(JSON.parse(localData));
-      setLoading(false);
-    }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
           const q = query(collection(db, "patients"), where("email", "==", user.email));
           const snap = await getDocs(q);
           if (!snap.empty) {
-            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as Patient;
+            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
             setPatient(matched);
             localStorage.setItem("gpc_patient", JSON.stringify(matched));
+
+            if (matched.email) {
+              invUnsub = subscribePatientInvoices(matched.email, setPatientInvoices);
+            }
 
             // Fetch active prescribed exercises and cross-reference live library
             const rxData = await getPatientPrescription(matched.id);
@@ -114,6 +112,7 @@ export default function DashboardPage() {
                   liveLibrary.find((l) => l.title.toLowerCase().trim() === ex.title.toLowerCase().trim() || l.id === ex.exerciseId);
                 const freshYtId = extractYoutubeId(liveItem?.youtubeId || ex.youtubeId || ex.youtubeUrl);
                 return {
+                  id: ex.exerciseId,
                   title: liveItem?.title || ex.title,
                   description: `${ex.sets} sets × ${ex.repsOrHold}`,
                   duration: liveItem?.duration || "2 mins",
@@ -122,6 +121,11 @@ export default function DashboardPage() {
                 };
               });
               setExercises(mapped);
+
+              // Subscribe to real-time workout progress
+              progUnsub = subscribePatientWorkoutProgress(matched.id, rxData, setProgress);
+            } else {
+              progUnsub = subscribePatientWorkoutProgress(matched.id, null, setProgress);
             }
           }
         } catch (err) {
@@ -131,7 +135,11 @@ export default function DashboardPage() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      invUnsub();
+      progUnsub();
+    };
   }, []);
 
   if (loading) {
@@ -146,24 +154,38 @@ export default function DashboardPage() {
   const planName = patient?.treatmentPlan || "Rehabilitation & Gait Therapy";
   const upcomingDate = patient?.upcoming || "No session scheduled";
 
+  // Program timeline metrics
+  const duration = prescription?.durationDays || 14;
+  const currentDay = progress?.currentDayNumber || 1;
+  const completedDays = progress?.completedDaysCount || 0;
+  const streak = progress?.streakDays || 0;
+  const percentDone = Math.min(100, Math.round((completedDays / duration) * 100));
+  const isTodayDone = progress?.todayIsCompleted || false;
+
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pb-12 font-['Inter',sans-serif]">
       
       {/* 1. Greeting & Recovery Momentum */}
       <section className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
             Welcome back, {patientName}.
           </h1>
           <p className="text-xs sm:text-sm text-[#41484A] dark:text-slate-300 font-medium mt-1">
-            Your recovery program is active. Let&apos;s keep your progress moving forward.
+            Your recovery program is active. Let&apos;s keep your momentum going today.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {streak > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-400/30 text-xs font-bold shadow-xs">
+              <Flame className="h-3.5 w-3.5 fill-current text-orange-500" />
+              <span>{streak}-Day Streak</span>
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f9ab55]/20 text-[#8a5100] dark:text-[#f9ab55] border border-[#f9ab55]/30 text-xs font-bold">
             <span className="w-2 h-2 rounded-full bg-[#f9ab55] animate-ping" />
-            Active Care Plan
+            Active Plan
           </span>
         </div>
       </section>
@@ -246,27 +268,136 @@ export default function DashboardPage() {
         </a>
       </section>
 
-      {/* 4. Today's Prescribed Routine & Recovery Progress */}
-      <section className="bg-white dark:bg-[#121a1d] border border-[#21444D]/10 dark:border-slate-800 rounded-[28px] p-6 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      {/* 4. PRESCRIBED EXERCISES & PROGRESS ROADMAP */}
+      <section className="bg-white dark:bg-[#121a1d] border border-[#21444D]/10 dark:border-slate-800 rounded-[28px] p-6 shadow-sm space-y-6">
+        
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-4">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55]">
-              {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Clinical Protocol"}
+              {prescription ? `${duration}-Day Protocol • Started ${prescription.prescribedDateFormatted}` : "Clinical Protocol"}
             </span>
-            <h2 className="text-xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
-              Today&apos;s Prescribed Exercises
+            <h2 className="text-xl sm:text-2xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              Prescribed Exercises
             </h2>
           </div>
 
           <Link
             href="/patienthub/exercises"
-            className="inline-flex items-center gap-1.5 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-4 py-2 rounded-full transition-all shadow-xs"
+            className="inline-flex items-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs shrink-0"
           >
-            <span>Full Workout Plan</span>
+            <span>{isTodayDone ? "Review Workouts" : `Start Day ${currentDay} Routine`}</span>
             <ArrowRight className="h-3.5 w-3.5 text-[#f9ab55]" />
           </Link>
         </div>
 
+        {/* WORKOUT PROGRESS ROADMAP & STREAK CARD */}
+        <div className="bg-gradient-to-br from-[#062e36] to-[#21444D] text-white p-6 rounded-3xl shadow-md space-y-5 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-0.5 rounded-full bg-[#f9ab55] text-[#062e36] text-[10px] font-black uppercase tracking-wider">
+                  Day {currentDay} of {duration}
+                </span>
+                {isTodayDone && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase flex items-center gap-1 border border-emerald-400/30">
+                    <CheckCircle className="h-3 w-3" />
+                    Completed Today
+                  </span>
+                )}
+              </div>
+              <h3 className="text-lg font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                Recovery Journey Progress
+              </h3>
+              <p className="text-xs text-slate-300 font-medium">
+                {completedDays} of {duration} workout days completed ({percentDone}% of program).
+              </p>
+            </div>
+
+            {/* Circular Progress Indicator */}
+            <div className="flex items-center gap-3 bg-white/10 px-4 py-2.5 rounded-2xl border border-white/15 shrink-0">
+              <div className="relative w-12 h-12 flex items-center justify-center">
+                <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-white/20"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-[#f9ab55]"
+                    strokeDasharray={`${percentDone}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span className="absolute text-xs font-black text-[#f9ab55]">
+                  {percentDone}%
+                </span>
+              </div>
+              <div className="text-left leading-tight">
+                <p className="text-[11px] font-bold text-white">Program</p>
+                <p className="text-[9px] text-[#f9ab55] font-extrabold uppercase tracking-wider">Adherence</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 14-Day Beads Timeline */}
+          <div className="space-y-2 pt-1 border-t border-white/10">
+            <div className="flex items-center justify-between text-[10px] text-slate-300 font-bold uppercase tracking-wider">
+              <span>Program Days Tracker</span>
+              <span>Target Review: Day {duration}</span>
+            </div>
+
+            <div className="grid grid-cols-7 sm:grid-cols-14 gap-1.5">
+              {Array.from({ length: Math.min(duration, 14) }).map((_, idx) => {
+                const dayNum = idx + 1;
+                const isPassed = dayNum < currentDay;
+                const isCurrent = dayNum === currentDay;
+
+                return (
+                  <div
+                    key={dayNum}
+                    className={`h-9 rounded-xl flex flex-col items-center justify-center text-[10px] font-black transition-all ${
+                      isPassed
+                        ? "bg-emerald-500 text-white shadow-xs"
+                        : isCurrent
+                        ? isTodayDone
+                          ? "bg-emerald-500 text-white ring-2 ring-emerald-300"
+                          : "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/60 animate-pulse"
+                        : "bg-white/10 text-slate-300"
+                    }`}
+                  >
+                    <span>D{dayNum}</span>
+                    <span className="text-[8px]">
+                      {isPassed || (isCurrent && isTodayDone) ? "✓" : isCurrent ? "Today" : "•"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick CTA */}
+          <div className="pt-1 flex items-center justify-between">
+            <span className="text-xs text-slate-300 font-medium">
+              {exercises.length} prescribed exercises in this plan.
+            </span>
+            <Link
+              href="/patienthub/exercises"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#f9ab55] hover:underline"
+            >
+              <span>Go to Workout Center</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Prescribed Exercises Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
           {exercises.map((ex, idx) => (
             <Link
@@ -279,6 +410,10 @@ export default function DashboardPage() {
                   <img
                     src={`https://img.youtube.com/vi/${ex.youtubeId}/mqdefault.jpg`}
                     alt={ex.title}
+                    onError={(e) => {
+                      // Fallback clean placeholder if youtube thumb is restricted
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-slate-950/25 group-hover:bg-slate-950/15 transition-colors flex items-center justify-center">
@@ -328,3 +463,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

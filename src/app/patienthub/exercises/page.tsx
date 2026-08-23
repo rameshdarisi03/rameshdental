@@ -4,8 +4,15 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { Patient } from "@/lib/patientsDb";
-import { getPatientPrescription, getExerciseLibrary, extractYoutubeId, PatientPrescription } from "@/lib/exercisesDb";
+import { 
+  getPatientPrescription, 
+  getExerciseLibrary, 
+  extractYoutubeId, 
+  PatientPrescription,
+  subscribePatientWorkoutProgress,
+  toggleExerciseDailyCompletion,
+  PatientWorkoutProgress
+} from "@/lib/exercisesDb";
 import { 
   Play, 
   ChevronRight, 
@@ -16,10 +23,13 @@ import {
   CheckCircle,
   HelpCircle,
   Sparkles,
-  FileText
+  FileText,
+  ExternalLink,
+  Flame
 } from "lucide-react";
 
 interface DisplayExercise {
+  id: string;
   title: string;
   description: string;
   duration: string;
@@ -29,6 +39,7 @@ interface DisplayExercise {
 
 const DEFAULT_EXERCISES: DisplayExercise[] = [
   {
+    id: "ex_cervical_chin_tuck",
     title: "Cervical Chin Tucks",
     description: "3 sets of 10 reps",
     duration: "0:38",
@@ -36,6 +47,7 @@ const DEFAULT_EXERCISES: DisplayExercise[] = [
     tags: ["CERVICAL", "POSTURE"]
   },
   {
+    id: "ex_scapular_retraction",
     title: "Scapular Retractions",
     description: "3 sets of 10 reps",
     duration: "0:42",
@@ -43,6 +55,7 @@ const DEFAULT_EXERCISES: DisplayExercise[] = [
     tags: ["UPPER BACK", "POSTURE"]
   },
   {
+    id: "ex_wall_slides",
     title: "Wall Slides with Foam Roller",
     description: "3 sets of 10 reps",
     duration: "0:45",
@@ -69,14 +82,17 @@ function ExercisesContent() {
   
   const videoParam = searchParams.get("video");
 
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const [patient, setPatient] = useState<any | null>(null);
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
   const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
   const [activeVideo, setActiveVideo] = useState<string>(DEFAULT_EXERCISES[0].youtubeId);
+  const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load local cached info if exists
+    let progUnsub = () => {};
+
     const localData = localStorage.getItem("gpc_patient");
     if (localData) {
       setPatient(JSON.parse(localData));
@@ -88,7 +104,7 @@ function ExercisesContent() {
           const q = query(collection(db, "patients"), where("email", "==", user.email));
           const snap = await getDocs(q);
           if (!snap.empty) {
-            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as Patient;
+            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
             setPatient(matched);
             localStorage.setItem("gpc_patient", JSON.stringify(matched));
 
@@ -104,6 +120,7 @@ function ExercisesContent() {
                   liveLibrary.find((l) => l.title.toLowerCase().trim() === ex.title.toLowerCase().trim() || l.id === ex.exerciseId);
                 const freshYtId = extractYoutubeId(liveItem?.youtubeId || ex.youtubeId || ex.youtubeUrl);
                 return {
+                  id: ex.exerciseId || freshYtId,
                   title: liveItem?.title || ex.title,
                   description: `${ex.sets} sets × ${ex.repsOrHold}`,
                   duration: liveItem?.duration || "2-3 mins",
@@ -117,8 +134,14 @@ function ExercisesContent() {
               } else {
                 setActiveVideo(mapped[0].youtubeId);
               }
-            } else if (videoParam) {
-              setActiveVideo(extractYoutubeId(videoParam));
+
+              // Listen to workout progress in real-time
+              progUnsub = subscribePatientWorkoutProgress(matched.id, rxData, setProgress);
+            } else {
+              if (videoParam) {
+                setActiveVideo(extractYoutubeId(videoParam));
+              }
+              progUnsub = subscribePatientWorkoutProgress(matched.id, null, setProgress);
             }
           }
         } catch (err) {
@@ -128,17 +151,30 @@ function ExercisesContent() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      progUnsub();
+    };
   }, [videoParam]);
 
-  const [completedList, setCompletedList] = useState<string[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>("ALL");
 
-  const toggleComplete = (id: string, e: React.MouseEvent) => {
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayLog = progress?.dailyLogs?.[todayStr];
+  const completedIds = todayLog?.completedExerciseIds || [];
+
+  const handleToggleComplete = async (exerciseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setCompletedList(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
+    if (!patient?.id) return;
+
+    setTogglingId(exerciseId);
+    try {
+      await toggleExerciseDailyCompletion(patient.id, exerciseId, exercises.length, todayStr);
+    } catch (err) {
+      console.error("Error saving exercise completion:", err);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const activeExerciseObj = exercises.find(e => e.youtubeId === activeVideo) || exercises[0];
@@ -148,10 +184,13 @@ function ExercisesContent() {
     ? exercises 
     : exercises.filter(ex => ex.tags.some(t => t.toUpperCase().includes(filterCategory)));
 
+  const currentDay = progress?.currentDayNumber || 1;
+  const duration = prescription?.durationDays || 14;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in font-['Inter',sans-serif]">
       
-      {/* 1. Top Header */}
+      {/* 1. Top Header with Program Day Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
           <button 
@@ -161,19 +200,30 @@ function ExercisesContent() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#8a5100] dark:text-[#f9ab55] bg-[#f9ab55]/20 px-2 py-0.5 rounded-md">
+                Day {currentDay} of {duration}
+              </span>
+              <span className="text-xs text-slate-400 font-bold">
+                • {duration}-Day Recovery Plan
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif] mt-0.5">
               Prescribed Workouts
             </h1>
-            <p className="text-xs text-[#41484A] dark:text-slate-300 font-medium mt-0.5">
-              {prescription ? `Prescribed on ${prescription.prescribedDateFormatted}` : "Daily Physical Therapy Routine"}
-            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {progress?.streakDays && progress.streakDays > 0 ? (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-400/30 text-xs font-bold">
+              <Flame className="h-3.5 w-3.5 fill-current text-orange-500" />
+              <span>{progress.streakDays}d Streak</span>
+            </span>
+          ) : null}
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] border border-[#f9ab55]/30 text-xs font-bold">
             <CheckCircle className="h-3.5 w-3.5" />
-            <span>{completedList.length} / {exercises.length} Done Today</span>
+            <span>{completedIds.length} / {exercises.length} Done Today</span>
           </span>
         </div>
       </div>
@@ -209,11 +259,11 @@ function ExercisesContent() {
         </div>
       )}
 
-      {/* 4. Active Video Player Display */}
+      {/* 4. Active Video Player Display with Fallback Overlay */}
       <div className="bg-[#062e36] text-white rounded-[28px] p-4 sm:p-6 shadow-xl space-y-4 overflow-hidden border border-white/10">
         <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 shadow-inner">
           <iframe
-            src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0`}
+            src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0&enablejsapi=1`}
             title={activeExerciseObj?.title || "Exercise Video"}
             className="w-full h-full border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -226,9 +276,21 @@ function ExercisesContent() {
             <h2 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
               {activeExerciseObj?.title}
             </h2>
-            <span className="bg-[#f9ab55] text-[#062e36] px-3 py-1 rounded-full text-xs font-bold">
-              {activeExerciseObj?.description}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="bg-[#f9ab55] text-[#062e36] px-3 py-1 rounded-full text-xs font-bold">
+                {activeExerciseObj?.description}
+              </span>
+              <a
+                href={`https://www.youtube.com/watch?v=${activeVideo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/15 transition-colors"
+                title="Open in YouTube"
+              >
+                <span>Watch on YouTube</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-1.5 pt-1">
@@ -253,7 +315,8 @@ function ExercisesContent() {
         <div className="space-y-2.5">
           {filteredExercises.map((ex, index) => {
             const isActive = ex.youtubeId === activeVideo;
-            const isCompleted = completedList.includes(ex.youtubeId);
+            const isCompleted = completedIds.includes(ex.id) || completedIds.includes(ex.youtubeId);
+            const isToggling = togglingId === ex.id || togglingId === ex.youtubeId;
 
             return (
               <div
@@ -287,15 +350,20 @@ function ExercisesContent() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={(e) => toggleComplete(ex.youtubeId, e)}
+                    disabled={isToggling}
+                    onClick={(e) => handleToggleComplete(ex.id, e)}
                     className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
                       isCompleted
-                        ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-[#f9ab55]/20 hover:text-[#8a5100]"
+                        ? "bg-emerald-500 text-white shadow-xs"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#f9ab55]/20 hover:text-[#8a5100]"
                     }`}
                   >
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    <span>{isCompleted ? "Done" : "Mark Done"}</span>
+                    {isToggling ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-3.5 w-3.5" />
+                    )}
+                    <span>{isCompleted ? "Completed" : "Mark Done"}</span>
                   </button>
 
                   <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? "text-[#f9ab55] translate-x-1" : "text-slate-400"}`} />
@@ -309,3 +377,4 @@ function ExercisesContent() {
     </div>
   );
 }
+

@@ -30,6 +30,11 @@ export const metadata: Metadata = {
   title: "Gait Physio Clinic | Premium Physiotherapy & Gait Analysis",
   description: "Experience specialized physiotherapy, gait analysis, posture correction, and rehabilitation at Gait Physio Clinic. Book your appointment online today.",
   keywords: ["physiotherapy", "gait analysis", "posture correction", "sports injury rehab", "orthotics", "bangalore physiotherapy"],
+  icons: {
+    icon: "/images/gait_physio_logo.png",
+    shortcut: "/images/gait_physio_logo.png",
+    apple: "/images/gait_physio_logo.png",
+  },
 };
 
 import FloatingSocials from "@/components/public/FloatingSocials";

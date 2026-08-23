@@ -72,6 +72,7 @@ export default function ExercisePrescriberModal({
   // Active tray being edited by therapist
   const [tray, setTray] = useState<PrescribedExercise[]>([]);
   const [generalNotes, setGeneralNotes] = useState("");
+  const [durationDays, setDurationDays] = useState<number>(14);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,9 +94,11 @@ export default function ExercisePrescriberModal({
       if (existingPrescription && existingPrescription.exercises) {
         setTray(existingPrescription.exercises);
         setGeneralNotes(existingPrescription.generalNotes || "");
+        setDurationDays(existingPrescription.durationDays || 14);
       } else {
         setTray([]);
         setGeneralNotes("");
+        setDurationDays(14);
       }
     } catch (err) {
       console.error("Error loading prescriber data:", err);
@@ -118,21 +121,23 @@ export default function ExercisePrescriberModal({
 
   const isChecked = (exId: string) => tray.some((item) => item.exerciseId === exId);
 
-  const toggleSelectExercise = (ex: ExerciseItem) => {
-    if (isChecked(ex.id)) {
-      setTray(tray.filter((item) => item.exerciseId !== ex.id));
+  // Toggle selection
+  const handleToggleExercise = (item: ExerciseItem) => {
+    const exists = tray.find((t) => t.exerciseId === item.id);
+    if (exists) {
+      setTray(tray.filter((t) => t.exerciseId !== item.id));
     } else {
       setTray([
         ...tray,
         {
-          exerciseId: ex.id,
-          title: ex.title,
-          youtubeUrl: ex.youtubeUrl,
-          youtubeId: ex.youtubeId,
-          sets: ex.defaultSets || 3,
-          repsOrHold: (parseInt(ex.defaultReps) || 10).toString(),
-          category: ex.category,
-          tags: ex.tags
+          exerciseId: item.id,
+          title: item.title,
+          youtubeUrl: item.youtubeUrl,
+          youtubeId: item.youtubeId,
+          sets: item.defaultSets || 3,
+          repsOrHold: item.defaultReps || "10",
+          category: item.category,
+          tags: item.tags || []
         }
       ]);
     }
@@ -140,24 +145,24 @@ export default function ExercisePrescriberModal({
 
   const updateTrayItem = (exId: string, field: "sets" | "repsOrHold", value: any) => {
     setTray(
-      tray.map((item) => {
-        if (item.exerciseId === exId) {
-          return { ...item, [field]: value };
-        }
-        return item;
-      })
+      tray.map((t) => (t.exerciseId === exId ? { ...t, [field]: value } : t))
     );
   };
 
   const removeFromTray = (exId: string) => {
-    setTray(tray.filter((item) => item.exerciseId !== exId));
+    setTray(tray.filter((t) => t.exerciseId !== exId));
   };
 
-  // Re-prescribe all items from history
+  // Re-prescribe all previously prescribed exercises
   const handleReprescribeAll = () => {
     if (pastPrescription && pastPrescription.exercises) {
       setTray(pastPrescription.exercises);
-      setGeneralNotes(pastPrescription.generalNotes || "");
+      if (pastPrescription.generalNotes) {
+        setGeneralNotes(pastPrescription.generalNotes);
+      }
+      if (pastPrescription.durationDays) {
+        setDurationDays(pastPrescription.durationDays);
+      }
     }
   };
 
@@ -195,7 +200,7 @@ export default function ExercisePrescriberModal({
   const handleSavePrescription = async () => {
     setSaving(true);
     try {
-      await savePatientPrescription(patientId, tray, generalNotes);
+      await savePatientPrescription(patientId, tray, generalNotes, durationDays);
       if (onPrescriptionSaved) onPrescriptionSaved();
       onClose();
     } catch (err) {
@@ -498,8 +503,50 @@ export default function ExercisePrescriberModal({
                 </div>
               )}
 
+              {/* Program Duration Selector */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    PROGRAM DURATION
+                  </label>
+                  <span className="text-[10px] font-black text-brand-green dark:text-teal-400">
+                    Review: {new Date(Date.now() + durationDays * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[7, 14, 21, 30].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setDurationDays(days)}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        durationDays === days
+                          ? "bg-brand-green text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                      }`}
+                    >
+                      {days}D {days === 7 ? "(1W)" : days === 14 ? "(2W)" : days === 21 ? "(3W)" : "(1M)"}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-[10px] text-slate-400 font-bold">Custom:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={durationDays}
+                    onChange={(e) => setDurationDays(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-18 px-2 py-1 text-xs font-black text-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  />
+                  <span className="text-xs font-bold text-slate-500">Days</span>
+                </div>
+              </div>
+
               {/* General Notes Field */}
-              <div className="space-y-1.5 pt-2">
+              <div className="space-y-1.5 pt-1">
                 <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
                   GENERAL NOTES
                 </label>
@@ -526,7 +573,7 @@ export default function ExercisePrescriberModal({
                 ) : (
                   <>
                     <Send className="h-4 w-4" />
-                    Prescribe to Patient Hub
+                    Prescribe ({durationDays} Days) to Hub
                   </>
                 )}
               </button>

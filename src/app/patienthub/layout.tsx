@@ -119,7 +119,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
-              <span>Gait</span><span className="text-[#f9ab55]">Physio</span>
+              <span>Gait</span> <span className="text-emerald-400">Physio</span>
             </h1>
             <p className="text-[10px] text-[#f9ab55] font-black tracking-[0.25em] uppercase mt-1">
               Patient Hub
@@ -157,10 +157,10 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
               className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
             />
             <div className="flex flex-col">
-              <span className="text-base font-bold tracking-tight text-[#062e36] dark:text-white leading-none font-['Plus_Jakarta_Sans',sans-serif]">
-                Gait<span className="text-[#f9ab55]">Physio</span>
+              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-none">
+                Gait <span className="text-brand-green dark:text-teal-400">Physio</span>
               </span>
-              <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-0.5">
+              <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-1">
                 Patient Hub
               </span>
             </div>

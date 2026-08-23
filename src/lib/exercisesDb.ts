@@ -9,6 +9,7 @@ import {
   deleteDoc, 
   query, 
   orderBy, 
+  onSnapshot,
   Timestamp 
 } from "firebase/firestore";
 
@@ -40,9 +41,35 @@ export interface PatientPrescription {
   patientId: string;
   prescribedAt: Timestamp;
   prescribedDateFormatted: string;
+  durationDays?: number; // e.g. 7, 14, 21, 30
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
   exercises: PrescribedExercise[];
   generalNotes: string;
   updatedAt?: Timestamp;
+}
+
+export interface DailyWorkoutLog {
+  date: string; // YYYY-MM-DD
+  completedExerciseIds: string[];
+  totalExercises: number;
+  isFullyCompleted: boolean;
+  updatedAt: string;
+}
+
+export interface PatientWorkoutProgress {
+  patientId: string;
+  startDate: string;
+  durationDays: number;
+  endDate: string;
+  currentDayNumber: number; // 1-indexed (e.g. Day 3 of 14)
+  completedDaysCount: number;
+  adherencePercent: number;
+  streakDays: number;
+  todayCompletedCount: number;
+  todayTotalCount: number;
+  todayIsCompleted: boolean;
+  dailyLogs: Record<string, DailyWorkoutLog>;
 }
 
 // Extract YouTube ID from various YouTube URL formats (watch, shorts, embed, mobile links)
@@ -285,19 +312,38 @@ export async function getPatientPrescription(patientId: string): Promise<Patient
   }
 }
 
-// Save or update active prescription for a patient
+// Save or update active prescription for a patient with duration
 export async function savePatientPrescription(
   patientId: string, 
   exercises: PrescribedExercise[], 
-  generalNotes: string
+  generalNotes: string,
+  durationDays: number = 14,
+  customStartDate?: string
 ): Promise<void> {
   const docRef = doc(db, "prescriptions", patientId);
-  const dateFormatted = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const startDateStr = customStartDate || `${yyyy}-${mm}-${dd}`;
+
+  // Calculate end date
+  const endObj = new Date(now);
+  endObj.setDate(endObj.getDate() + durationDays);
+  const endYyyy = endObj.getFullYear();
+  const endMm = String(endObj.getMonth() + 1).padStart(2, "0");
+  const endDd = String(endObj.getDate()).padStart(2, "0");
+  const endDateStr = `${endYyyy}-${endMm}-${endDd}`;
   
   const payload: PatientPrescription = {
     patientId,
     prescribedAt: Timestamp.now(),
     prescribedDateFormatted: dateFormatted,
+    durationDays,
+    startDate: startDateStr,
+    endDate: endDateStr,
     exercises,
     generalNotes
   };
@@ -324,4 +370,129 @@ export async function removePrescribedExercise(patientId: string, exerciseIdToRe
       await updateDoc(docRef, { exercises: updated });
     }
   }
+}
+
+// Toggle an individual exercise completion for today or a specific date
+export async function toggleExerciseDailyCompletion(
+  patientId: string,
+  exerciseId: string,
+  totalExercisesCount: number,
+  targetDate?: string
+): Promise<{ completed: boolean; allDone: boolean }> {
+  const todayStr = targetDate || new Date().toISOString().split("T")[0];
+  const progressDocRef = doc(db, "patients", patientId, "exerciseProgress", "current");
+
+  const snap = await getDoc(progressDocRef);
+  let currentLogs: Record<string, DailyWorkoutLog> = {};
+
+  if (snap.exists()) {
+    const data = snap.data();
+    currentLogs = data.dailyLogs || {};
+  }
+
+  const todayLog = currentLogs[todayStr] || {
+    date: todayStr,
+    completedExerciseIds: [],
+    totalExercises: totalExercisesCount,
+    isFullyCompleted: false,
+    updatedAt: new Date().toISOString()
+  };
+
+  const isAlreadyDone = todayLog.completedExerciseIds.includes(exerciseId);
+  const updatedIds = isAlreadyDone
+    ? todayLog.completedExerciseIds.filter(id => id !== exerciseId)
+    : [...todayLog.completedExerciseIds, exerciseId];
+
+  const isFullyCompleted = updatedIds.length >= totalExercisesCount && totalExercisesCount > 0;
+
+  currentLogs[todayStr] = {
+    date: todayStr,
+    completedExerciseIds: updatedIds,
+    totalExercises: totalExercisesCount,
+    isFullyCompleted,
+    updatedAt: new Date().toISOString()
+  };
+
+  await setDoc(progressDocRef, {
+    dailyLogs: currentLogs,
+    lastUpdated: Timestamp.now()
+  }, { merge: true });
+
+  return {
+    completed: !isAlreadyDone,
+    allDone: isFullyCompleted
+  };
+}
+
+// Subscribe to patient's real-time workout progress
+export function subscribePatientWorkoutProgress(
+  patientId: string,
+  prescription: PatientPrescription | null,
+  callback: (progress: PatientWorkoutProgress) => void
+): () => void {
+  const progressDocRef = doc(db, "patients", patientId, "exerciseProgress", "current");
+
+  return onSnapshot(progressDocRef, (snap) => {
+    let dailyLogs: Record<string, DailyWorkoutLog> = {};
+    if (snap.exists()) {
+      dailyLogs = snap.data().dailyLogs || {};
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const duration = prescription?.durationDays || 14;
+    const startDate = prescription?.startDate || todayStr;
+    const endDate = prescription?.endDate || todayStr;
+    const totalExercises = prescription?.exercises?.length || 3;
+
+    // Calculate current day number in the program
+    const startMs = new Date(startDate).getTime();
+    const todayMs = new Date(todayStr).getTime();
+    const diffDays = Math.max(0, Math.floor((todayMs - startMs) / (1000 * 60 * 60 * 24)));
+    const currentDayNumber = Math.min(duration, diffDays + 1);
+
+    // Calculate completed days & streak
+    let completedDaysCount = 0;
+    Object.values(dailyLogs).forEach(log => {
+      if (log.isFullyCompleted) {
+        completedDaysCount++;
+      }
+    });
+
+    const adherencePercent = Math.min(100, Math.round((completedDaysCount / duration) * 100));
+
+    // Today's stats
+    const todayLog = dailyLogs[todayStr];
+    const todayCompletedCount = todayLog?.completedExerciseIds?.length || 0;
+    const todayIsCompleted = todayLog?.isFullyCompleted || false;
+
+    // Calculate active streak
+    let streakDays = 0;
+    const checkDate = new Date();
+    for (let i = 0; i < 60; i++) {
+      const dStr = checkDate.toISOString().split("T")[0];
+      const log = dailyLogs[dStr];
+      if (log && log.isFullyCompleted) {
+        streakDays++;
+      } else if (i > 0) {
+        // If yesterday was not completed, break streak
+        break;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    callback({
+      patientId,
+      startDate,
+      durationDays: duration,
+      endDate,
+      currentDayNumber,
+      completedDaysCount,
+      adherencePercent,
+      streakDays,
+      todayCompletedCount,
+      todayTotalCount: totalExercises,
+      todayIsCompleted,
+      dailyLogs
+    });
+  });
 }

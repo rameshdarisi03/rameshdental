@@ -399,8 +399,8 @@ function LoginContent() {
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#062e36] dark:text-white flex items-center justify-center gap-1 font-['Plus_Jakarta_Sans',sans-serif]">
-                  <span>Gait</span><span className="text-[#f9ab55]">Physio</span>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                  <span>Gait</span> <span className="text-brand-green dark:text-teal-400">Physio</span>
                 </h1>
                 <p className="text-[10px] text-[#8a5100] dark:text-[#f9ab55] font-extrabold uppercase tracking-[0.2em] mt-0.5">
                   Patient Hub
