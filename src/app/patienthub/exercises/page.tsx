@@ -14,7 +14,8 @@ import {
   subscribePatientWorkoutProgress, 
   toggleExerciseDailyCompletion, 
   getLocalDateString, 
-  PatientWorkoutProgress 
+  PatientWorkoutProgress,
+  markPatientDayComplete
 } from "@/lib/exercisesDb";
 import { 
   Play, 
@@ -226,6 +227,22 @@ function ExercisesContent() {
 
   const currentDay = progress?.currentDayNumber || 1;
   const duration = prescription?.durationDays || 14;
+  const isTodayDone = progress?.todayIsCompleted || false;
+
+  const [markingDay, setMarkingDay] = useState(false);
+
+  const handleToggleDayComplete = async () => {
+    if (!patient?.id) return;
+    setMarkingDay(true);
+    try {
+      const allExIds = exercises.map(e => e.id);
+      await markPatientDayComplete(patient.id, todayStr, allExIds, !isTodayDone);
+    } catch (err) {
+      console.error("Error toggling day complete:", err);
+    } finally {
+      setMarkingDay(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12 animate-fade-in font-['Inter',sans-serif]">
@@ -261,10 +278,24 @@ function ExercisesContent() {
               <span>{progress.streakDays}d Streak</span>
             </span>
           ) : null}
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] border border-[#f9ab55]/30 text-xs font-bold">
-            <CheckCircle className="h-3.5 w-3.5" />
-            <span>{completedIds.length} / {exercises.length} Done Today</span>
-          </span>
+          
+          <button
+            type="button"
+            disabled={markingDay}
+            onClick={handleToggleDayComplete}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+              isTodayDone
+                ? "bg-emerald-600 text-white"
+                : "bg-[#f9ab55] text-[#062e36] hover:bg-[#e09840]"
+            }`}
+          >
+            {markingDay ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle className="h-3.5 w-3.5" />
+            )}
+            <span>{isTodayDone ? "✓ Day Completed" : "Complete Day Routine"}</span>
+          </button>
         </div>
       </div>
 

@@ -499,7 +499,7 @@ export async function toggleExerciseDailyCompletion(
     date: todayStr,
     completedExerciseIds: updatedIds,
     totalExercises: totalExercisesCount,
-    isFullyCompleted,
+    isFullyCompleted: isFullyCompleted || updatedIds.length > 0,
     updatedAt: new Date().toISOString()
   };
 
@@ -532,8 +532,62 @@ export async function toggleExerciseDailyCompletion(
 
   return {
     completed: !isAlreadyDone,
-    allDone: isFullyCompleted
+    allDone: isFullyCompleted || updatedIds.length > 0
   };
+}
+
+// 1-Tap mark entire day routine completed / uncompleted
+export async function markPatientDayComplete(
+  patientId: string,
+  targetDate?: string,
+  exerciseIds: string[] = [],
+  forceComplete: boolean = true
+): Promise<{ success: boolean; isFullyCompleted: boolean }> {
+  const todayStr = targetDate || getLocalDateString();
+  const progressDocRef = doc(db, "exercise_progress", patientId);
+
+  let currentLogs: Record<string, DailyWorkoutLog> = {};
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+      if (cached) currentLogs = JSON.parse(cached);
+    } catch {}
+  }
+
+  try {
+    const snap = await getDoc(progressDocRef);
+    if (snap.exists()) {
+      currentLogs = { ...currentLogs, ...(snap.data().dailyLogs || {}) };
+    }
+  } catch (err) {
+    console.warn("Error fetching exercise_progress for day complete:", err);
+  }
+
+  currentLogs[todayStr] = {
+    date: todayStr,
+    completedExerciseIds: forceComplete ? (exerciseIds.length > 0 ? exerciseIds : ["all_done"]) : [],
+    totalExercises: exerciseIds.length || 1,
+    isFullyCompleted: forceComplete,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`gpc_workout_progress_${patientId}`, JSON.stringify(currentLogs));
+    } catch {}
+  }
+
+  try {
+    await setDoc(progressDocRef, {
+      patientId,
+      dailyLogs: currentLogs,
+      lastUpdated: Timestamp.now()
+    }, { merge: true });
+  } catch (err) {
+    console.error("Failed to write daily completion:", err);
+  }
+
+  return { success: true, isFullyCompleted: forceComplete };
 }
 
 // Subscribe to patient's real-time workout progress
@@ -558,7 +612,7 @@ export function subscribePatientWorkoutProgress(
     // Calculate completed days
     let completedDaysCount = 0;
     Object.values(dailyLogs).forEach(log => {
-      if (log.isFullyCompleted) {
+      if (log.isFullyCompleted || (log.completedExerciseIds && log.completedExerciseIds.length > 0)) {
         completedDaysCount++;
       }
     });
@@ -568,7 +622,7 @@ export function subscribePatientWorkoutProgress(
     // Today's stats
     const todayLog = dailyLogs[todayStr];
     const todayCompletedCount = todayLog?.completedExerciseIds?.length || 0;
-    const todayIsCompleted = todayLog?.isFullyCompleted || false;
+    const todayIsCompleted = todayLog?.isFullyCompleted === true || (todayLog?.completedExerciseIds && todayLog.completedExerciseIds.length > 0);
 
     // Calculate active streak
     let streakDays = 0;
@@ -576,7 +630,7 @@ export function subscribePatientWorkoutProgress(
     for (let i = 0; i < 60; i++) {
       const dStr = getLocalDateString(checkDate);
       const log = dailyLogs[dStr];
-      if (log && log.isFullyCompleted) {
+      if (log && (log.isFullyCompleted || (log.completedExerciseIds && log.completedExerciseIds.length > 0))) {
         streakDays++;
       } else if (i > 0) {
         break;

@@ -1358,7 +1358,7 @@ PLAN:
                       const startDate = activePrescription.startDate || getLocalDateString();
                       const dayDateStr = getProgramDayDateString(startDate, idx);
                       const dayLog = workoutProgress?.dailyLogs?.[dayDateStr];
-                      const isDone = dayLog?.isFullyCompleted === true;
+                      const isDone = dayLog?.isFullyCompleted === true || (dayLog?.completedExerciseIds && dayLog.completedExerciseIds.length > 0);
                       const isCurrent = dayNum === (workoutProgress?.currentDayNumber || 1);
                       const isPassed = dayNum < (workoutProgress?.currentDayNumber || 1);
                       const isMissed = isPassed && !isDone;
