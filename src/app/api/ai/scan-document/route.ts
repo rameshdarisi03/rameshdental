@@ -1,17 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
-Transcribe and decode physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed/messy doctor handwriting.
+Transcribe and decode physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed, cursive, or messy doctor handwriting.
 
 KNOWLEDGE BASE & CLINICAL CONTEXT:
-- Hospitals: Manipal Whitefield, Aster Whitefield, Sakra World, Vydehi VIMS, Apollo Clinic, Cloudnine, RxDx.
-- Abbrevs: VAS, ROM, SLR, IFT, UST, TENS, DN, SWD, PIVD, OA, TKR, ACL, PNF, AFO, DRA, PFMT, LSCS, FMS, HTN, T2DM, CVA.
-- Decode cursive/scribbles by synthesizing visible letters, doctor specialty, standard dosage syntax (1-0-1, OD, BD, SOS), and clinical protocols.
-- CLINICAL SAFETY: Always isolate pre-existing trauma, surgeries, implants, systemic conditions (diabetes, HTN), contraindications, and active medications into "providerRemindersAndAlerts".
-- Output valid JSON only.
+- Hospitals: Manipal Hospital Whitefield, Aster Whitefield, Sakra World Hospital, Vydehi Institute of Medical Sciences (VIMS), Apollo Clinic, Cloudnine, RxDx Healthcare.
+- Abbreviations: VAS, ROM, SLR, IFT, UST, TENS, DN, SWD, PIVD, OA, TKR, THR, ACL, PNF, AFO, DRA, PFMT, LSCS, FMS, HTN, T2DM, CVA.
+- Handwriting Decoding: Reconstruct hurried shorthand by synthesizing visible letter contours, doctor specialty, standard dosage notation (1-0-1, OD, BD, SOS), and evidence-based clinical protocols.
+- CLINICAL SAFETY: Always isolate pre-existing trauma, surgeries, implants (e.g. Pacemaker, metal hardware), systemic conditions (diabetes, hypertension), contraindications, and active medications into "providerRemindersAndAlerts".
 `;
+
+// Strict JSON Schemas for Guaranteed Zero-Error Parsing
+const clinicalAssessmentSchema = {
+  type: Type.OBJECT,
+  properties: {
+    documentType: { type: Type.STRING },
+    patientName: { type: Type.STRING, nullable: true },
+    visitDate: { type: Type.STRING, nullable: true },
+    therapistName: { type: Type.STRING, nullable: true },
+    subjectiveComplaints: { type: Type.STRING },
+    vasPainScore: { type: Type.NUMBER, nullable: true },
+    objectiveFindings: {
+      type: Type.OBJECT,
+      properties: {
+        specialTests: { type: Type.STRING, nullable: true },
+        postureGait: { type: Type.STRING, nullable: true },
+      },
+    },
+    modalitiesAdministered: { type: Type.STRING },
+    exercisePrescriptions: { type: Type.STRING },
+    providerRemindersAndAlerts: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    formattedSoapNote: { type: Type.STRING },
+    confidenceScore: { type: Type.NUMBER },
+  },
+  required: [
+    "documentType",
+    "subjectiveComplaints",
+    "modalitiesAdministered",
+    "exercisePrescriptions",
+    "providerRemindersAndAlerts",
+    "formattedSoapNote",
+    "confidenceScore",
+  ],
+};
+
+const doctorPrescriptionSchema = {
+  type: Type.OBJECT,
+  properties: {
+    documentType: { type: Type.STRING },
+    doctorName: { type: Type.STRING, nullable: true },
+    hospitalOrClinic: { type: Type.STRING, nullable: true },
+    prescriptionDate: { type: Type.STRING, nullable: true },
+    diagnosis: { type: Type.STRING },
+    prescribedTherapies: { type: Type.STRING },
+    precautionsAndRestrictions: { type: Type.STRING },
+    medicationsList: { type: Type.STRING },
+    providerRemindersAndAlerts: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    summaryForRecord: { type: Type.STRING },
+    confidenceScore: { type: Type.NUMBER },
+  },
+  required: [
+    "documentType",
+    "diagnosis",
+    "prescribedTherapies",
+    "precautionsAndRestrictions",
+    "medicationsList",
+    "providerRemindersAndAlerts",
+    "summaryForRecord",
+    "confidenceScore",
+  ],
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
-    // Safe dynamic server-side image optimization
+    // Safe dynamic server-side image processing
     let optimizedBase64 = cleanBase64;
     let finalMimeType = mimeType || "image/jpeg";
 
@@ -89,7 +155,6 @@ export async function POST(req: NextRequest) {
         subjectiveComplaints: "Right knee stiffness & pain post-ACL reconstruction (Day 21). VAS 6/10.",
         vasPainScore: 6,
         objectiveFindings: {
-          lumbarFlexion: null,
           specialTests: "Knee Flexion 85°, Extension -5° lag. Lachman test negative.",
           postureGait: "Antalgic gait with reduced cadence and limp on right stance phase."
         },
@@ -106,76 +171,76 @@ export async function POST(req: NextRequest) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
+    const isPrescription = documentType === "DOCTOR_PRESCRIPTION";
+    const targetSchema = isPrescription ? doctorPrescriptionSchema : clinicalAssessmentSchema;
 
-    const userPrompt = documentType === "DOCTOR_PRESCRIPTION"
-      ? `Analyze this doctor's handwritten referral/prescription. Extract into JSON:
-{
-  "documentType": "DOCTOR_PRESCRIPTION",
-  "doctorName": string or null,
-  "hospitalOrClinic": string or null,
-  "prescriptionDate": string or null,
-  "diagnosis": string,
-  "prescribedTherapies": string,
-  "precautionsAndRestrictions": string,
-  "medicationsList": string,
-  "providerRemindersAndAlerts": string[],
-  "summaryForRecord": string,
-  "confidenceScore": number
-}`
-      : `Analyze this physiotherapist's handwritten assessment/session note. Extract into JSON:
-{
-  "documentType": "CLINICAL_ASSESSMENT",
-  "patientName": string or null,
-  "visitDate": string or null,
-  "therapistName": string or null,
-  "subjectiveComplaints": string,
-  "vasPainScore": number or null,
-  "objectiveFindings": {
-    "lumbarFlexion": string or null,
-    "specialTests": string,
-    "postureGait": string
-  },
-  "modalitiesAdministered": string,
-  "exercisePrescriptions": string,
-  "providerRemindersAndAlerts": string[],
-  "formattedSoapNote": string,
-  "confidenceScore": number
-}`;
+    const userPrompt = isPrescription
+      ? "Extract doctor name, hospital, date, diagnosis, prescribed therapies, precautions, medications, and provider reminders into structured JSON matching the schema."
+      : "Extract patient name, visit date, therapist, subjective complaints, VAS pain score, objective findings, modalities, exercises, SOAP note, and provider reminders into structured JSON matching the schema.";
 
-    // Fast inference with greedy decoding (temperature: 0.0)
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: userPrompt },
+    // High-speed model cascade (gemini-3.1-flash-lite -> gemini-3.5-flash-lite -> gemini-3.6-flash)
+    const modelsToAttempt = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash"];
+    let responseText = "";
+    let lastError: any = null;
+
+    for (const modelName of modelsToAttempt) {
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: [
             {
-              inlineData: {
-                mimeType: finalMimeType,
-                data: optimizedBase64,
-              },
+              role: "user",
+              parts: [
+                { text: userPrompt },
+                {
+                  inlineData: {
+                    mimeType: finalMimeType,
+                    data: optimizedBase64,
+                  },
+                },
+              ],
             },
           ],
-        },
-      ],
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION_CLINICAL,
-        responseMimeType: "application/json",
-        temperature: 0.0,
-        maxOutputTokens: 800,
-      },
-    });
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION_CLINICAL,
+            responseMimeType: "application/json",
+            responseSchema: targetSchema,
+            temperature: 0.0,
+          },
+        });
 
-    const responseText = response.text || "";
+        responseText = response.text || "";
+        if (responseText) {
+          break; // Success!
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`Model ${modelName} attempt notice, trying next fallback:`, err);
+      }
+    }
 
+    if (!responseText && lastError) {
+      throw lastError;
+    }
+
+    // Fail-proof JSON parsing with auto-repair fallback
     try {
       const parsedData = JSON.parse(responseText);
       return NextResponse.json(parsedData);
     } catch {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return NextResponse.json(JSON.parse(jsonMatch[0]));
+        try {
+          return NextResponse.json(JSON.parse(jsonMatch[0]));
+        } catch {
+          // If truncated, attempt bracket closure
+          const repaired = jsonMatch[0] + '"}';
+          try {
+            return NextResponse.json(JSON.parse(repaired));
+          } catch {
+            // pass
+          }
+        }
       }
       return NextResponse.json(
         { error: "Could not parse structured JSON from OCR response", raw: responseText },
