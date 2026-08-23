@@ -89,16 +89,62 @@ export default function DocumentScannerModal({
 
   const isPrescriptionMode = documentType === "DOCTOR_PRESCRIPTION";
 
-  const handleFileSelect = (file: File) => {
+  const compressImageForOCR = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL("image/jpeg", 0.82);
+            resolve(compressed);
+          } else {
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (file: File) => {
     setError(null);
     setExtractedData(null);
     setSelectedFile(file);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedDataUrl = await compressImageForOCR(file);
+      setPreviewUrl(compressedDataUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleScan = async () => {

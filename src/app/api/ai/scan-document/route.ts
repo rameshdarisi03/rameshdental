@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import sharp from "sharp";
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
@@ -86,28 +85,32 @@ export async function POST(req: NextRequest) {
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
-    // Server-Side Image Processing with Sharp (Auto-rotate, Contrast normalization, Resize to optimal 1400px)
+    // Safe dynamic server-side image processing
     let optimizedBase64 = cleanBase64;
     let finalMimeType = mimeType || "image/jpeg";
 
     try {
+      // Dynamic import prevents module initialization failure on serverless runtimes
+      const sharpModule = await import("sharp");
+      const sharp = sharpModule.default || sharpModule;
       const inputBuffer = Buffer.from(cleanBase64, "base64");
       const processedBuffer = await sharp(inputBuffer)
-        .rotate() // Auto-orient based on smartphone EXIF orientation tags
+        .rotate()
         .resize({
           width: 1400,
           height: 1400,
           fit: "inside",
           withoutEnlargement: true,
         })
-        .normalize() // Enhances document contrast for handwriting clarity
+        .normalize()
         .jpeg({ quality: 82, progressive: true })
         .toBuffer();
 
       optimizedBase64 = processedBuffer.toString("base64");
       finalMimeType = "image/jpeg";
-    } catch (sharpErr) {
-      console.warn("Sharp image pre-processing fallback to original buffer:", sharpErr);
+    } catch {
+      // Gracefully use the original image payload if sharp native binary is not bundled
+      optimizedBase64 = cleanBase64;
     }
 
     const apiKey =
@@ -246,7 +249,10 @@ Extract into this exact JSON structure:
   } catch (error: any) {
     console.error("Gemini Document OCR Error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to process document with Gemini AI" },
+      { 
+        error: error?.message || "Failed to process document with Gemini AI",
+        details: String(error)
+      },
       { status: 500 }
     );
   }
