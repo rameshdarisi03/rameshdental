@@ -137,9 +137,27 @@ function LoginContent() {
       
       // 1. Look up patient matching email
       const q = query(collection(db, "patients"), where("email", "==", user.email));
-      const snap = await getDocs(q);
+      let matchedDoc: any = null;
+      if (!snap.empty) {
+        matchedDoc = snap.docs[0];
+      } else if (user.email) {
+        const q2 = query(collection(db, "patients"), where("email", "==", user.email.toLowerCase()));
+        const snap2 = await getDocs(q2);
+        if (!snap2.empty) matchedDoc = snap2.docs[0];
+      }
 
-      if (snap.empty) {
+      if (!matchedDoc && user.email) {
+        const allSnap = await getDocs(collection(db, "patients"));
+        const target = user.email.trim().toLowerCase();
+        for (const d of allSnap.docs) {
+          if (d.data().email?.trim().toLowerCase() === target) {
+            matchedDoc = d;
+            break;
+          }
+        }
+      }
+
+      if (!matchedDoc) {
         // Not registered - prompt them for Activation Code to link this Google login
         setPendingGoogle({
           email: user.email || "",
@@ -150,12 +168,19 @@ function LoginContent() {
         return;
       }
 
-      // Patient found - update UID link just in case
-      const patientDoc = snap.docs[0];
+      // Patient found - update UID link and save session
+      const patientDoc = matchedDoc;
+      const patientData = patientDoc.data();
+      const sessionObj = { ...patientData, id: patientDoc.id };
+
       await updateDoc(doc(db, "patients", patientDoc.id), {
         authUid: user.uid,
         activated: true
       });
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
+      }
 
       router.push("/patienthub/dashboard");
     } catch (err: any) {
@@ -180,24 +205,51 @@ function LoginContent() {
 
     try {
       // Find patient matching activation code
-      const q = query(collection(db, "patients"), where("activationCode", "==", activationCode.trim().toUpperCase()));
+      const cleanCode = activationCode.trim().toUpperCase();
+      let matchedDoc: any = null;
+      const q = query(collection(db, "patients"), where("activationCode", "==", cleanCode));
       const snap = await getDocs(q);
 
-      if (snap.empty) {
+      if (!snap.empty) {
+        matchedDoc = snap.docs[0];
+      } else {
+        const allSnap = await getDocs(collection(db, "patients"));
+        for (const d of allSnap.docs) {
+          const data = d.data();
+          if (data.activationCode?.trim().toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode) {
+            matchedDoc = d;
+            break;
+          }
+        }
+      }
+
+      if (!matchedDoc) {
         setError("Invalid activation code. Please check with your clinic receptionist.");
         setLoading(false);
         return;
       }
 
-      const patientDoc = snap.docs[0];
+      const patientDoc = matchedDoc;
+      const patientData = patientDoc.data();
+      const sessionObj = {
+        ...patientData,
+        id: patientDoc.id,
+        email: pendingGoogle.email.toLowerCase().trim(),
+        authUid: pendingGoogle.uid,
+        activated: true
+      };
       
       // Update patient doc to link Google account details
       await updateDoc(doc(db, "patients", patientDoc.id), {
-        email: pendingGoogle.email,
+        email: pendingGoogle.email.toLowerCase().trim(),
         authUid: pendingGoogle.uid,
         activated: true,
         activationCode: "" // clear code so it cannot be used again
       });
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
+      }
 
       router.push("/patienthub/dashboard");
     } catch (err: any) {
@@ -232,13 +284,28 @@ function LoginContent() {
 
         // 2. Query Firestore now that we are authenticated
         try {
+          const cleanCode = activationCode.trim().toUpperCase();
+          let matchedDoc: any = null;
           const q = query(
             collection(db, "patients"), 
-            where("activationCode", "==", activationCode.trim().toUpperCase())
+            where("activationCode", "==", cleanCode)
           );
           const snap = await getDocs(q);
 
-          if (snap.empty) {
+          if (!snap.empty) {
+            matchedDoc = snap.docs[0];
+          } else {
+            const allSnap = await getDocs(collection(db, "patients"));
+            for (const d of allSnap.docs) {
+              const data = d.data();
+              if (data.activationCode?.trim().toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode) {
+                matchedDoc = d;
+                break;
+              }
+            }
+          }
+
+          if (!matchedDoc) {
             // Invalid activation code: delete the newly created auth user to prevent orphaned accounts
             if (auth.currentUser) {
               await auth.currentUser.delete();
@@ -249,15 +316,27 @@ function LoginContent() {
             return;
           }
 
-          const patientDoc = snap.docs[0];
+          const patientDoc = matchedDoc;
+          const patientData = patientDoc.data();
+          const sessionObj = {
+            ...patientData,
+            id: patientDoc.id,
+            email: email.trim().toLowerCase(),
+            authUid: cred.user.uid,
+            activated: true
+          };
 
           // Link and activate patient record
           await updateDoc(doc(db, "patients", patientDoc.id), {
-            email: email.trim(),
+            email: email.trim().toLowerCase(),
             authUid: cred.user.uid,
             activated: true,
             activationCode: "" // clear activation code
           });
+
+          if (typeof window !== "undefined") {
+            localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
+          }
         } catch (dbErr: any) {
           console.error("Database linking error during signup:", dbErr);
           if (auth.currentUser) {
@@ -268,28 +347,49 @@ function LoginContent() {
         }
       } else {
         // Sign In Mode:
-        // 1. Authenticate first
         const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
 
-        // 2. Query Firestore now that we are authenticated
         try {
-          const q = query(collection(db, "patients"), where("email", "==", email.trim()));
-          const snap = await getDocs(q);
+          let matchedDoc: any = null;
+          const target = email.trim().toLowerCase();
+          const q1 = query(collection(db, "patients"), where("email", "==", email.trim()));
+          const snap1 = await getDocs(q1);
+          if (!snap1.empty) matchedDoc = snap1.docs[0];
 
-          if (snap.empty) {
-            // Logged in but has no patient chart: logout immediately
+          if (!matchedDoc) {
+            const q2 = query(collection(db, "patients"), where("email", "==", target));
+            const snap2 = await getDocs(q2);
+            if (!snap2.empty) matchedDoc = snap2.docs[0];
+          }
+
+          if (!matchedDoc) {
+            const allSnap = await getDocs(collection(db, "patients"));
+            for (const d of allSnap.docs) {
+              if (d.data().email?.trim().toLowerCase() === target) {
+                matchedDoc = d;
+                break;
+              }
+            }
+          }
+
+          if (!matchedDoc) {
             await auth.signOut();
             setError("This email address is not registered as a patient. Sign up with an activation code first.");
             setLoading(false);
             return;
           }
           
-          // Sync authUid just in case it wasn't set
-          const patientDoc = snap.docs[0];
+          const patientDoc = matchedDoc;
+          const sessionObj = { ...patientDoc.data(), id: patientDoc.id };
+
           if (!patientDoc.data().authUid) {
             await updateDoc(doc(db, "patients", patientDoc.id), {
               authUid: cred.user.uid
             });
+          }
+
+          if (typeof window !== "undefined") {
+            localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
           }
         } catch (dbErr: any) {
           console.error("Database lookup error during signin:", dbErr);
