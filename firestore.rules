@@ -40,11 +40,7 @@ service cloud.firestore {
     match /patients/{patientId} {
       allow read, write: if true;
       
-      match /consultations/{consultationId} {
-        allow read, write: if true;
-      }
-      
-      match /files/{fileId} {
+      match /{allSubcollections=**} {
         allow read, write: if true;
       }
     }
@@ -59,7 +55,12 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // 8. Invoices Collection (MODULAR_INVOICING)
+    // 8. Exercise Progress Tracking Collection
+    match /exercise_progress/{patientId} {
+      allow read, write: if true;
+    }
+
+    // 9. Invoices Collection (MODULAR_INVOICING)
     match /invoices/{invoiceId} {
       allow read, write: if true;
     }

@@ -387,15 +387,27 @@ export async function toggleExerciseDailyCompletion(
   totalExercisesCount: number,
   targetDate?: string
 ): Promise<{ completed: boolean; allDone: boolean }> {
-  const todayStr = targetDate || new Date().toISOString().split("T")[0];
-  const progressDocRef = doc(db, "patients", patientId, "exerciseProgress", "current");
-
-  const snap = await getDoc(progressDocRef);
+  const todayStr = targetDate || getLocalDateString();
+  
+  // 1. Read existing logs from LocalStorage cache first for instant sync
   let currentLogs: Record<string, DailyWorkoutLog> = {};
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+      if (cached) currentLogs = JSON.parse(cached);
+    } catch {}
+  }
 
-  if (snap.exists()) {
-    const data = snap.data();
-    currentLogs = data.dailyLogs || {};
+  // 2. Fetch latest from Firestore top-level collection
+  const progressDocRef = doc(db, "exercise_progress", patientId);
+  try {
+    const snap = await getDoc(progressDocRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      currentLogs = { ...currentLogs, ...(data.dailyLogs || {}) };
+    }
+  } catch (err) {
+    console.warn("Could not read exercise_progress from firestore, using cached state:", err);
   }
 
   const todayLog = currentLogs[todayStr] || {
@@ -421,10 +433,32 @@ export async function toggleExerciseDailyCompletion(
     updatedAt: new Date().toISOString()
   };
 
-  await setDoc(progressDocRef, {
-    dailyLogs: currentLogs,
-    lastUpdated: Timestamp.now()
-  }, { merge: true });
+  // 3. Immediately persist to LocalStorage
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`gpc_workout_progress_${patientId}`, JSON.stringify(currentLogs));
+    } catch {}
+  }
+
+  // 4. Save to Firestore root collection
+  try {
+    await setDoc(progressDocRef, {
+      patientId,
+      dailyLogs: currentLogs,
+      lastUpdated: Timestamp.now()
+    }, { merge: true });
+  } catch (err) {
+    console.error("Failed to write to exercise_progress collection:", err);
+  }
+
+  // 5. Try syncing to patient subcollection as backup
+  try {
+    const subDocRef = doc(db, "patients", patientId, "exerciseProgress", "current");
+    await setDoc(subDocRef, {
+      dailyLogs: currentLogs,
+      lastUpdated: Timestamp.now()
+    }, { merge: true });
+  } catch {}
 
   return {
     completed: !isAlreadyDone,
@@ -438,15 +472,8 @@ export function subscribePatientWorkoutProgress(
   prescription: PatientPrescription | null,
   callback: (progress: PatientWorkoutProgress) => void
 ): () => void {
-  const progressDocRef = doc(db, "patients", patientId, "exerciseProgress", "current");
-
-  return onSnapshot(progressDocRef, (snap) => {
-    let dailyLogs: Record<string, DailyWorkoutLog> = {};
-    if (snap.exists()) {
-      dailyLogs = snap.data().dailyLogs || {};
-    }
-
-    const todayStr = new Date().toISOString().split("T")[0];
+  const calculateMetrics = (dailyLogs: Record<string, DailyWorkoutLog>): PatientWorkoutProgress => {
+    const todayStr = getLocalDateString();
     const duration = prescription?.durationDays || 14;
     const startDate = prescription?.startDate || todayStr;
     const endDate = prescription?.endDate || todayStr;
@@ -458,7 +485,7 @@ export function subscribePatientWorkoutProgress(
     const diffDays = Math.max(0, Math.floor((todayMs - startMs) / (1000 * 60 * 60 * 24)));
     const currentDayNumber = Math.min(duration, diffDays + 1);
 
-    // Calculate completed days & streak
+    // Calculate completed days
     let completedDaysCount = 0;
     Object.values(dailyLogs).forEach(log => {
       if (log.isFullyCompleted) {
@@ -477,18 +504,17 @@ export function subscribePatientWorkoutProgress(
     let streakDays = 0;
     const checkDate = new Date();
     for (let i = 0; i < 60; i++) {
-      const dStr = checkDate.toISOString().split("T")[0];
+      const dStr = getLocalDateString(checkDate);
       const log = dailyLogs[dStr];
       if (log && log.isFullyCompleted) {
         streakDays++;
       } else if (i > 0) {
-        // If yesterday was not completed, break streak
         break;
       }
       checkDate.setDate(checkDate.getDate() - 1);
     }
 
-    callback({
+    return {
       patientId,
       startDate,
       durationDays: duration,
@@ -501,6 +527,48 @@ export function subscribePatientWorkoutProgress(
       todayTotalCount: totalExercises,
       todayIsCompleted,
       dailyLogs
-    });
+    };
+  };
+
+  // 1. Send immediate metrics from localStorage cache
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+      if (cached) {
+        callback(calculateMetrics(JSON.parse(cached)));
+      }
+    } catch {}
+  }
+
+  // 2. Listen to Firestore root collection
+  const progressDocRef = doc(db, "exercise_progress", patientId);
+
+  return onSnapshot(progressDocRef, (snap) => {
+    let dailyLogs: Record<string, DailyWorkoutLog> = {};
+    if (snap.exists()) {
+      dailyLogs = snap.data().dailyLogs || {};
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`gpc_workout_progress_${patientId}`, JSON.stringify(dailyLogs));
+        } catch {}
+      }
+    } else {
+      if (typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+          if (cached) dailyLogs = JSON.parse(cached);
+        } catch {}
+      }
+    }
+
+    callback(calculateMetrics(dailyLogs));
+  }, (err) => {
+    console.warn("Firestore snapshot on exercise_progress failed, keeping cached:", err);
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+        if (cached) callback(calculateMetrics(JSON.parse(cached)));
+      } catch {}
+    }
   });
 }
