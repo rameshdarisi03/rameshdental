@@ -54,6 +54,7 @@ import {
   subscribePatientWorkoutProgress, 
   getProgramDayDateString,
   getLocalDateString,
+  markPatientDayComplete,
   PatientPrescription, 
   PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
@@ -1293,12 +1294,29 @@ PLAN:
                 <Dumbbell className="h-4 w-4 text-brand-green dark:text-teal-400" />
                 <span>Home Workout Adherence</span>
               </div>
-              <button
-                onClick={() => setIsPrescriberOpen(true)}
-                className="text-[10px] font-black text-brand-green dark:text-teal-400 hover:underline cursor-pointer"
-              >
-                {activePrescription ? "Adjust Plan" : "+ Prescribe"}
-              </button>
+              <div className="flex items-center gap-2">
+                {activePrescription && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const todayStr = getLocalDateString();
+                      const allExIds = activePrescription.exercises.map(e => e.id || e.exerciseId || e.title);
+                      const isTodayDone = workoutProgress?.dailyLogs?.[todayStr]?.isFullyCompleted === true;
+                      await markPatientDayComplete(patient?.id || id, todayStr, allExIds, !isTodayDone);
+                    }}
+                    className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 transition-colors cursor-pointer"
+                    title="Click to toggle today's workout verification"
+                  >
+                    {workoutProgress?.todayIsCompleted ? "✓ Day 1 Verified" : "+ Mark Today Done"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsPrescriberOpen(true)}
+                  className="text-[10px] font-black text-brand-green dark:text-teal-400 hover:underline cursor-pointer"
+                >
+                  {activePrescription ? "Adjust Plan" : "+ Prescribe"}
+                </button>
+              </div>
             </div>
 
             {activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0 ? (
@@ -1349,7 +1367,7 @@ PLAN:
                 {/* Compliance Matrix with Live Day Ticks */}
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    <span>Patient Compliance Matrix</span>
+                    <span>Patient Compliance Matrix (Click day to toggle)</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold">{workoutProgress?.completedDaysCount || 0} Days Completed</span>
                   </div>
                   <div className="grid grid-cols-7 gap-1.5">
@@ -1364,29 +1382,38 @@ PLAN:
                       const isMissed = isPassed && !isDone;
 
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={dayNum}
-                          className={`h-7 rounded-xl flex items-center justify-center text-[10px] font-black transition-all shadow-xs ${
+                          onClick={async () => {
+                            try {
+                              const allExIds = activePrescription.exercises.map(e => e.id || e.exerciseId || e.title);
+                              await markPatientDayComplete(patient?.id || id, dayDateStr, allExIds, !isDone);
+                            } catch (err) {
+                              console.error("Error updating day completion:", err);
+                            }
+                          }}
+                          className={`h-7 rounded-xl flex items-center justify-center text-[10px] font-black transition-all shadow-xs cursor-pointer hover:scale-105 active:scale-95 ${
                             isDone
-                              ? "bg-emerald-500 text-white font-black shadow-xs"
+                              ? "bg-emerald-500 hover:bg-emerald-600 text-white font-black shadow-xs"
                               : isCurrent
-                              ? "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/80 animate-pulse font-black"
+                              ? "bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] ring-2 ring-[#f9ab55]/80 animate-pulse font-black"
                               : isMissed
-                              ? "bg-rose-50 dark:bg-rose-950/30 text-rose-500 border border-rose-200 dark:border-rose-900/40"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                              ? "bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-500 border border-rose-200 dark:border-rose-900/40"
+                              : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-400"
                           }`}
                           title={`Day ${dayNum} (${dayDateStr}): ${
                             isDone 
-                              ? `Completed (${dayLog?.completedExerciseIds?.length || 0} exercises)` 
+                              ? `Completed (Click to toggle)` 
                               : isCurrent 
-                              ? "Active Today" 
+                              ? "Active Today (Click to mark done)" 
                               : isMissed 
-                              ? "Incomplete / Skipped" 
+                              ? "Incomplete / Skipped (Click to verify)" 
                               : "Scheduled"
                           }`}
                         >
                           {isDone ? "✓" : dayNum}
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
