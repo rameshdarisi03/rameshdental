@@ -156,10 +156,29 @@ export async function getPatients(): Promise<Patient[]> {
 // Get single patient details
 export async function getPatientById(id: string): Promise<Patient | null> {
   try {
-    const docRef = doc(db, "patients", id);
-    const docSnap = await getDoc(docRef);
+    const cleanId = (id || "").trim();
+    let docSnap = await getDoc(doc(db, "patients", cleanId));
+    if (!docSnap.exists() && cleanId.toUpperCase() !== cleanId) {
+      docSnap = await getDoc(doc(db, "patients", cleanId.toUpperCase()));
+    }
+    if (!docSnap.exists() && cleanId.toLowerCase() !== cleanId) {
+      docSnap = await getDoc(doc(db, "patients", cleanId.toLowerCase()));
+    }
     if (docSnap.exists()) {
       return { id: docSnap.id, ...docSnap.data() } as Patient;
+    }
+    
+    // Scan fallback in case id was stored inside payload or case mismatch
+    const all = await getDocs(collection(db, "patients"));
+    for (const d of all.docs) {
+      const data = d.data();
+      if (
+        d.id.toLowerCase() === cleanId.toLowerCase() || 
+        data.id?.toLowerCase() === cleanId.toLowerCase() || 
+        data.activationCode?.toLowerCase() === cleanId.toLowerCase()
+      ) {
+        return { id: d.id, ...data } as Patient;
+      }
     }
     return null;
   } catch (error) {

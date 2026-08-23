@@ -83,21 +83,51 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const q = query(
-          collection(db, "patients"),
-          where("email", "==", firebaseUser.email)
-        );
-        const snap = await getDocs(q);
+        let matchedDoc: any = null;
 
-        if (snap.empty) {
+        // 1. Try exact email match
+        const q1 = query(collection(db, "patients"), where("email", "==", firebaseUser.email));
+        const snap1 = await getDocs(q1);
+        if (!snap1.empty) {
+          matchedDoc = snap1.docs[0];
+        }
+
+        // 2. Try lowercase email match
+        if (!matchedDoc && firebaseUser.email) {
+          const q2 = query(collection(db, "patients"), where("email", "==", firebaseUser.email.toLowerCase()));
+          const snap2 = await getDocs(q2);
+          if (!snap2.empty) matchedDoc = snap2.docs[0];
+        }
+
+        // 3. Try authUid match
+        if (!matchedDoc && firebaseUser.uid) {
+          const q3 = query(collection(db, "patients"), where("authUid", "==", firebaseUser.uid));
+          const snap3 = await getDocs(q3);
+          if (!snap3.empty) matchedDoc = snap3.docs[0];
+        }
+
+        // 4. Fallback scan all patients for case-insensitive trim
+        if (!matchedDoc && firebaseUser.email) {
+          const allSnap = await getDocs(collection(db, "patients"));
+          const target = firebaseUser.email.trim().toLowerCase();
+          for (const d of allSnap.docs) {
+            const emailVal = d.data().email;
+            if (emailVal && emailVal.trim().toLowerCase() === target) {
+              matchedDoc = d;
+              break;
+            }
+          }
+        }
+
+        if (!matchedDoc) {
           // Access Denied: Not registered as a patient
           await auth.signOut();
           router.push(`/patienthub/login?error=not_registered&email=${encodeURIComponent(firebaseUser.email || "")}`);
           return;
         }
 
-        const docData = snap.docs[0].data();
-        const matchedPatient = { id: snap.docs[0].id, ...docData } as Patient;
+        const docData = matchedDoc.data();
+        const matchedPatient = { ...docData, id: matchedDoc.id } as Patient;
         setPatient(matchedPatient);
         
         // Cache user info in localStorage for offline availability check

@@ -696,29 +696,64 @@ export function subscribePatientWorkoutProgress(
   return onSnapshot(progressDocRef, (snap) => {
     let dailyLogs: Record<string, DailyWorkoutLog> = {};
     if (snap.exists()) {
-      dailyLogs = snap.data().dailyLogs || {};
+      dailyLogs = snap.data().dailyLogs || snap.data().logs || {};
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(dailyLogs));
         } catch {}
       }
+      callback(calculateMetrics(dailyLogs));
     } else {
-      if (typeof window !== "undefined") {
+      // Subcollection backup check
+      const subDocRef = doc(db, "patients", cleanId, "exerciseProgress", "current");
+      getDoc(subDocRef).then((subSnap) => {
+        if (subSnap.exists()) {
+          dailyLogs = subSnap.data().dailyLogs || subSnap.data().logs || {};
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(dailyLogs));
+            } catch {}
+          }
+          callback(calculateMetrics(dailyLogs));
+        } else {
+          if (typeof window !== "undefined") {
+            try {
+              const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
+              if (cached) dailyLogs = JSON.parse(cached);
+            } catch {}
+          }
+          callback(calculateMetrics(dailyLogs));
+        }
+      }).catch(() => {
+        if (typeof window !== "undefined") {
+          try {
+            const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
+            if (cached) dailyLogs = JSON.parse(cached);
+          } catch {}
+        }
+        callback(calculateMetrics(dailyLogs));
+      });
+    }
+  }, (err) => {
+    console.warn("Firestore snapshot on exercise_progress failed, checking subcollection and cache:", err);
+    const subDocRef = doc(db, "patients", cleanId, "exerciseProgress", "current");
+    getDoc(subDocRef).then((subSnap) => {
+      if (subSnap.exists()) {
+        const subLogs = subSnap.data().dailyLogs || subSnap.data().logs || {};
+        callback(calculateMetrics(subLogs));
+      } else if (typeof window !== "undefined") {
         try {
-          const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
-          if (cached) dailyLogs = JSON.parse(cached);
+          const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
+          if (cached) callback(calculateMetrics(JSON.parse(cached)));
         } catch {}
       }
-    }
-
-    callback(calculateMetrics(dailyLogs));
-  }, (err) => {
-    console.warn("Firestore snapshot on exercise_progress failed, keeping cached:", err);
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
-        if (cached) callback(calculateMetrics(JSON.parse(cached)));
-      } catch {}
-    }
+    }).catch(() => {
+      if (typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
+          if (cached) callback(calculateMetrics(JSON.parse(cached)));
+        } catch {}
+      }
+    });
   });
 }

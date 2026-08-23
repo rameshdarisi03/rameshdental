@@ -146,10 +146,37 @@ export default function DashboardPage() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
-          const q = query(collection(db, "patients"), where("email", "==", user.email));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
+          let matchedDoc: any = null;
+          const q1 = query(collection(db, "patients"), where("email", "==", user.email));
+          const snap1 = await getDocs(q1);
+          if (!snap1.empty) matchedDoc = snap1.docs[0];
+
+          if (!matchedDoc && user.email) {
+            const q2 = query(collection(db, "patients"), where("email", "==", user.email.toLowerCase()));
+            const snap2 = await getDocs(q2);
+            if (!snap2.empty) matchedDoc = snap2.docs[0];
+          }
+
+          if (!matchedDoc && user.uid) {
+            const q3 = query(collection(db, "patients"), where("authUid", "==", user.uid));
+            const snap3 = await getDocs(q3);
+            if (!snap3.empty) matchedDoc = snap3.docs[0];
+          }
+
+          if (!matchedDoc && user.email) {
+            const allSnap = await getDocs(collection(db, "patients"));
+            const target = user.email.trim().toLowerCase();
+            for (const d of allSnap.docs) {
+              const pEmail = d.data().email;
+              if (pEmail && pEmail.trim().toLowerCase() === target) {
+                matchedDoc = d;
+                break;
+              }
+            }
+          }
+
+          if (matchedDoc) {
+            const matched = { ...matchedDoc.data(), id: matchedDoc.id } as any;
             setPatient(matched);
             localStorage.setItem("gpc_patient", JSON.stringify(matched));
             attachPatientListeners(matched);
