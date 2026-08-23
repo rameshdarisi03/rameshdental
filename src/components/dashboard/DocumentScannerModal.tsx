@@ -187,8 +187,10 @@ export default function DocumentScannerModal({
       const result: ScanResult = await response.json();
       setExtractedData(result);
 
-      if (result.documentType === "CLINICAL_ASSESSMENT") {
-        setEditedSoapNote(result.formattedSoapNote || result.subjectiveComplaints || "");
+      if (!isPrescriptionMode) {
+        const soapText = result.formattedSoapNote || 
+          `SUBJECTIVE:\n${result.subjectiveComplaints || "Patient assessment"}\n\nOBJECTIVE:\n${result.objectiveFindings?.specialTests || result.objectiveFindings?.postureGait || "ROM and tests evaluated"}\n\nASSESSMENT:\nPhysiotherapy Clinical Assessment\n\nPLAN:\n${result.modalitiesAdministered || ""}\n${result.exercisePrescriptions || ""}`;
+        setEditedSoapNote(soapText);
       } else {
         setEditedSummary(result.summaryForRecord || result.diagnosis || "");
       }

@@ -175,8 +175,8 @@ export async function POST(req: NextRequest) {
     const targetSchema = isPrescription ? doctorPrescriptionSchema : clinicalAssessmentSchema;
 
     const userPrompt = isPrescription
-      ? "Extract doctor name, hospital, date, diagnosis, prescribed therapies, precautions, medications, and provider reminders into structured JSON matching the schema."
-      : "Extract patient name, visit date, therapist, subjective complaints, VAS pain score, objective findings, modalities, exercises, SOAP note, and provider reminders into structured JSON matching the schema.";
+      ? "Extract doctor name, hospital, prescription date, diagnosis, prescribed physical therapies, precautions & contraindications, medications list, and provider reminders & safety alerts into structured JSON matching the schema. For summaryForRecord provide a complete, clear clinical summary."
+      : "Extract patient name, visit date, therapist name, subjective complaints, VAS pain score, objective findings, modalities administered, exercise prescriptions, and provider reminders into structured JSON matching the schema. For formattedSoapNote, construct a full, professional Subjective (S), Objective (O), Assessment (A), and Plan (P) clinical rehabilitation note.";
 
     // High-speed model cascade (gemini-3.1-flash-lite -> gemini-3.5-flash-lite -> gemini-3.6-flash)
     const modelsToAttempt = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash"];
@@ -226,17 +226,27 @@ export async function POST(req: NextRequest) {
     // Fail-proof JSON parsing with auto-repair fallback
     try {
       const parsedData = JSON.parse(responseText);
+      parsedData.documentType = documentType;
+
+      if (!isPrescription && (!parsedData.formattedSoapNote || parsedData.formattedSoapNote.trim() === "")) {
+        parsedData.formattedSoapNote = `SUBJECTIVE:\n${parsedData.subjectiveComplaints || "Clinical findings recorded"}\n\nOBJECTIVE:\n${parsedData.objectiveFindings?.specialTests || parsedData.objectiveFindings?.postureGait || "Physical examination and ROM completed"}\n\nASSESSMENT:\nPhysiotherapy Clinical Evaluation\n\nPLAN:\nModalities: ${parsedData.modalitiesAdministered || "Physical therapy modalities"}\nExercises: ${parsedData.exercisePrescriptions || "Active exercise protocol"}`;
+      }
+
       return NextResponse.json(parsedData);
     } catch {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          return NextResponse.json(JSON.parse(jsonMatch[0]));
+          const parsed = JSON.parse(jsonMatch[0]);
+          parsed.documentType = documentType;
+          return NextResponse.json(parsed);
         } catch {
           // If truncated, attempt bracket closure
           const repaired = jsonMatch[0] + '"}';
           try {
-            return NextResponse.json(JSON.parse(repaired));
+            const parsed = JSON.parse(repaired);
+            parsed.documentType = documentType;
+            return NextResponse.json(parsed);
           } catch {
             // pass
           }
