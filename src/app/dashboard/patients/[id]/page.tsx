@@ -1591,6 +1591,68 @@ PLAN:
                     />
                   </div>
 
+                  {/* Drag-and-drop / File upload & AI Scanner Box */}
+                  <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/30 dark:bg-slate-950/20 flex flex-col items-center justify-center gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-all">
+                    <div className="flex flex-col items-center text-center">
+                      <p className="text-[11px] font-black text-slate-600 dark:text-slate-300">
+                        {selectedFile ? `Attached file: ${selectedFile.name}` : "Attach physical case sheet, medical scan, or prescription"}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {selectedFile ? `File size: ${formatBytes(selectedFile.size)} • Will upload to Google Drive` : "Select an option below to transcribe handwriting or upload to Drive"}
+                      </p>
+                      {selectedFile && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFile(null)}
+                          className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer border border-red-200 dark:border-red-900"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Remove / Clear File</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-lg pt-1">
+                      {/* Option 1: AI Case Sheet Scanner */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScannerType("CLINICAL_ASSESSMENT");
+                          setScannerOpen(true);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-green/10 dark:bg-teal-500/20 hover:bg-brand-green hover:text-white text-brand-green dark:text-teal-300 border border-brand-green/30 px-4 py-2.5 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Scan Case Sheet (AI OCR)</span>
+                      </button>
+
+                      {/* Option 2: Choose File */}
+                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
+                        <Upload className="w-4 h-4 text-brand-green" />
+                        <span>Choose File</span>
+                        <input
+                          type="file"
+                          id="file-input"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+
+                      {/* Option 3: Camera Capture */}
+                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
+                        <Camera className="w-4 h-4 text-brand-green" />
+                        <span>Take Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Submit Button */}
                   <div className="flex items-center justify-end gap-3 pt-2">
                     <button
