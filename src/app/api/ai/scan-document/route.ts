@@ -5,9 +5,34 @@ const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
 Transcribe physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed, cursive, or messy doctor handwriting.
 
-INSTRUCTIONS:
-1. "rawVerbatimTranscript": Provide the EXACT word-for-word, line-by-line transcription of what is written on the physical document without paraphrasing.
-2. "formattedSoapNote": Format a standardized, professional SOAP note (Subjective, Objective, Assessment, Plan).
+FORMATTING REQUIREMENTS:
+1. "rawVerbatimTranscript": Format the EXACT word-for-word text from the physical paper into clean, organized line-by-line sections with clear line breaks:
+   Doctor: [Doctor Name & Specialty]
+   Hospital: [Hospital/Clinic Name]
+   Date: [Date]
+
+   Diagnosis:
+   • [Diagnosis item]
+
+   Advised Physio:
+   1) [Therapy item 1]
+   2) [Therapy item 2]
+
+   Precautions:
+   • [Precaution item]
+
+   Alerts:
+   • [Alert item]
+
+2. "formattedSoapNote": Format a standardized, clinical SOAP note with double line breaks between sections:
+   Subjective: [Patient presentation, history, symptoms, and pain description]
+
+   Objective: [Clinical examination findings, ROM, tests, and medical observations]
+
+   Assessment: [Diagnostic synthesis and clinical rehabilitation stage]
+
+   Plan: [Specific physical therapy protocol, modalities, exercise prescriptions, frequency, precautions, and contraindication alerts]
+
 3. "providerRemindersAndAlerts": Isolate all pre-existing conditions, implants (e.g. Pacemaker), past surgeries, trauma, allergies, and contraindications.
 `;
 
@@ -228,13 +253,36 @@ export async function POST(req: NextRequest) {
       throw lastError;
     }
 
+    function formatVerbatim(raw?: string): string {
+      if (!raw) return "";
+      return raw
+        .replace(/(Doctor:)/gi, "\n$1")
+        .replace(/(Hospital:)/gi, "\n$1")
+        .replace(/(Date:)/gi, "\n$1")
+        .replace(/(Diagnosis:)/gi, "\n\nDiagnosis:\n")
+        .replace(/(Advised Physio:)/gi, "\n\nAdvised Physio:\n")
+        .replace(/(Precautions:)/gi, "\n\nPrecautions:\n")
+        .replace(/(Alerts:)/gi, "\n\nAlerts:\n")
+        .replace(/(1\)|1\.)/g, "\n1)")
+        .replace(/(2\)|2\.)/g, "\n2)")
+        .replace(/(3\)|3\.)/g, "\n3)")
+        .replace(/(4\)|4\.)/g, "\n4)")
+        .replace(/(5\)|5\.)/g, "\n5)")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    }
+
     // Fail-proof JSON parsing with auto-repair fallback
     try {
       const parsedData = JSON.parse(responseText);
       parsedData.documentType = documentType;
 
+      if (parsedData.rawVerbatimTranscript) {
+        parsedData.rawVerbatimTranscript = formatVerbatim(parsedData.rawVerbatimTranscript);
+      }
+
       if (!isPrescription && (!parsedData.formattedSoapNote || parsedData.formattedSoapNote.trim() === "")) {
-        parsedData.formattedSoapNote = `SUBJECTIVE:\n${parsedData.subjectiveComplaints || "Clinical findings recorded"}\n\nOBJECTIVE:\n${parsedData.objectiveFindings?.specialTests || parsedData.objectiveFindings?.postureGait || "Physical examination and ROM completed"}\n\nASSESSMENT:\nPhysiotherapy Clinical Evaluation\n\nPLAN:\nModalities: ${parsedData.modalitiesAdministered || "Physical therapy modalities"}\nExercises: ${parsedData.exercisePrescriptions || "Active exercise protocol"}`;
+        parsedData.formattedSoapNote = `Subjective: ${parsedData.subjectiveComplaints || "Clinical findings recorded"}\n\nObjective: ${parsedData.objectiveFindings?.specialTests || parsedData.objectiveFindings?.postureGait || "Physical examination and ROM completed"}\n\nAssessment: Physiotherapy Clinical Evaluation\n\nPlan: Modalities: ${parsedData.modalitiesAdministered || "Physical therapy modalities"}. Exercises: ${parsedData.exercisePrescriptions || "Active exercise protocol"}.`;
       }
 
       return NextResponse.json(parsedData);
@@ -244,6 +292,9 @@ export async function POST(req: NextRequest) {
         try {
           const parsed = JSON.parse(jsonMatch[0]);
           parsed.documentType = documentType;
+          if (parsed.rawVerbatimTranscript) {
+            parsed.rawVerbatimTranscript = formatVerbatim(parsed.rawVerbatimTranscript);
+          }
           return NextResponse.json(parsed);
         } catch {
           // If truncated, attempt bracket closure
@@ -251,6 +302,9 @@ export async function POST(req: NextRequest) {
           try {
             const parsed = JSON.parse(repaired);
             parsed.documentType = documentType;
+            if (parsed.rawVerbatimTranscript) {
+              parsed.rawVerbatimTranscript = formatVerbatim(parsed.rawVerbatimTranscript);
+            }
             return NextResponse.json(parsed);
           } catch {
             // pass

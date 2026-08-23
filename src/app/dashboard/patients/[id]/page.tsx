@@ -557,17 +557,19 @@ PLAN:
 
           if (uploadResponse.ok) {
             const uploadResult = await uploadResponse.json();
+            const gFileId = uploadResult.fileId;
+            const viewLink = uploadResult.webViewLink || (gFileId ? `https://drive.google.com/file/d/${gFileId}/view` : "");
+            const dlLink = uploadResult.downloadLink || viewLink;
+
             await addMedicalRecordFile(patient.id, {
-              patientId: patient.id,
               fileName: pdfFileName,
               fileType: "application/pdf",
               fileSize: pdfFile.size,
-              driveFileId: uploadResult.fileId,
-              driveViewLink: uploadResult.webViewLink,
-              uploadedAt: new Date().toISOString(),
-              summary: data.summaryForRecord || `Doctor Referral from ${data.doctorName || "Doctor"} (${data.hospitalOrClinic || "Hospital"}) - ${data.diagnosis || "Diagnosis"}`,
-              tags: ["Prescription", "Doctor Referral"]
-            });
+              dateUploaded: dateStamp,
+              googleDriveFileId: gFileId,
+              webViewLink: viewLink,
+              downloadLink: dlLink,
+            } as any);
           }
         }
 
@@ -586,17 +588,19 @@ PLAN:
 
             if (imgUploadRes.ok) {
               const imgResult = await imgUploadRes.json();
+              const imgFileId = imgResult.fileId;
+              const imgViewLink = imgResult.webViewLink || (imgFileId ? `https://drive.google.com/file/d/${imgFileId}/view` : "");
+              const imgDlLink = imgResult.downloadLink || imgViewLink;
+
               await addMedicalRecordFile(patient.id, {
-                patientId: patient.id,
                 fileName: scannedFile.name,
                 fileType: scannedFile.type || "image/jpeg",
                 fileSize: scannedFile.size,
-                driveFileId: imgResult.fileId,
-                driveViewLink: imgResult.webViewLink,
-                uploadedAt: new Date().toISOString(),
-                summary: `Original scanned prescription image (${data.doctorName || "Doctor"})`,
-                tags: ["Original Scan", "Prescription"]
-              });
+                dateUploaded: dateStamp,
+                googleDriveFileId: imgFileId,
+                webViewLink: imgViewLink,
+                downloadLink: imgDlLink,
+              } as any);
             }
           } catch (origErr) {
             console.warn("Original scan secondary upload note:", origErr);
@@ -1382,51 +1386,59 @@ PLAN:
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {files.map((file) => (
-                    <div 
-                      key={file.id} 
-                      className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="h-10 w-10 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green shrink-0">
-                          <FileText className="w-5 h-5" />
-                        </div>
-                        <div className="overflow-hidden">
-                          <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate">
-                            {file.fileName}
-                          </h4>
-                          <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-1">
-                            {file.dateUploaded} • {formatBytes(file.fileSize)}
-                          </p>
-                        </div>
-                      </div>
+                  {files.map((file) => {
+                    const fObj = file as any;
+                    const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
+                    const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
+                    const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
+                    const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
 
-                      <div className="flex items-center gap-1">
-                        {file.webViewLink && (
-                          <a
-                            href={file.webViewLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all"
-                            title="View File"
-                          >
-                            <Eye className="w-4.5 h-4.5" />
-                          </a>
-                        )}
-                        {file.downloadLink && (
-                          <a
-                            href={file.downloadLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all"
-                            title="Download File"
-                          >
-                            <Download className="w-4.5 h-4.5" />
-                          </a>
-                        )}
+                    return (
+                      <div 
+                        key={file.id || fId || Math.random().toString()} 
+                        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="h-10 w-10 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green shrink-0">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div className="overflow-hidden">
+                            <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate">
+                              {file.fileName}
+                            </h4>
+                            <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-1">
+                              {dateStr} • {formatBytes(file.fileSize)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {viewUrl && (
+                            <a
+                              href={viewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all"
+                              title="View File in Google Drive"
+                            >
+                              <Eye className="w-4.5 h-4.5" />
+                            </a>
+                          )}
+                          {downloadUrl && (
+                            <a
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all"
+                              title="Download File"
+                            >
+                              <Download className="w-4.5 h-4.5" />
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
