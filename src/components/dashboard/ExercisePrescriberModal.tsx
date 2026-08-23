@@ -25,6 +25,8 @@ import {
   savePatientPrescription, 
   removePrescribedExercise 
 } from "@/lib/exercisesDb";
+import { addMedicalRecordFile } from "@/lib/patientsDb";
+import { buildUnifiedPrescriptionPdf, getPrescriptionFileName } from "@/lib/prescriptionPdf";
 
 interface ExercisePrescriberModalProps {
   isOpen: boolean;
@@ -33,6 +35,8 @@ interface ExercisePrescriberModalProps {
   patientName: string;
   pid: string;
   lastSeen?: string;
+  googleDriveFolderId?: string;
+  therapistName?: string;
   onPrescriptionSaved?: () => void;
 }
 
@@ -59,6 +63,8 @@ export default function ExercisePrescriberModal({
   patientName,
   pid,
   lastSeen = "Today",
+  googleDriveFolderId,
+  therapistName = "Dr. Kinnera",
   onPrescriptionSaved
 }: ExercisePrescriberModalProps) {
   const [library, setLibrary] = useState<ExerciseItem[]>([]);
@@ -206,7 +212,59 @@ export default function ExercisePrescriberModal({
   const handleSavePrescription = async () => {
     setSaving(true);
     try {
+      // 1. Save active prescription in Firestore
       await savePatientPrescription(patientId, tray, generalNotes, durationDays);
+
+      // 2. Generate unified prescription PDF
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const dateDash = `${dd}-${mm}-${yyyy}`;
+      const fileName = getPrescriptionFileName(patientName, now);
+
+      const pdfDoc = buildUnifiedPrescriptionPdf({
+        patientName,
+        pid,
+        dateStr: dateDash,
+        therapistName,
+        durationDays,
+        generalNotes,
+        exercises: tray,
+      });
+
+      // 3. If patient has a Google Drive folder, auto-upload to date subfolder & record in Medical Files
+      if (googleDriveFolderId) {
+        try {
+          const pdfBlob = pdfDoc.output("blob");
+          const fileObj = new File([pdfBlob], fileName, { type: "application/pdf" });
+          const formData = new FormData();
+          formData.append("file", fileObj);
+          formData.append("parentFolderId", googleDriveFolderId);
+          formData.append("date", dateDash);
+
+          const uploadRes = await fetch("/api/drive/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+
+          if (uploadData.success) {
+            await addMedicalRecordFile(patientId, {
+              fileName: fileName,
+              fileType: "application/pdf",
+              fileSize: pdfBlob.size,
+              dateUploaded: dateDash,
+              googleDriveFileId: uploadData.fileId,
+              webViewLink: uploadData.webViewLink,
+              downloadLink: uploadData.downloadLink,
+            });
+          }
+        } catch (driveErr) {
+          console.warn("Auto-uploading prescription PDF to Google Drive failed:", driveErr);
+        }
+      }
+
       if (onPrescriptionSaved) onPrescriptionSaved();
       onClose();
     } catch (err) {

@@ -56,6 +56,7 @@ import {
   PatientPrescription, 
   PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
+import { buildUnifiedPrescriptionPdf, getPrescriptionFileName } from "@/lib/prescriptionPdf";
 import { getClinicConfig } from "@/lib/db";
 
 interface Patient {
@@ -702,6 +703,48 @@ PLAN:
           summary: notes,
           therapistName: loggingTherapist,
         });
+
+        // Auto-generate and upload unified consultation sheet if Drive folder is linked and no file was manually uploaded
+        if (patient?.googleDriveFolderId && !selectedFile) {
+          try {
+            const rxDoc = buildUnifiedPrescriptionPdf({
+              patientName: patient.name,
+              pid: patient.id,
+              dateStr: formattedDate,
+              therapistName: loggingTherapist,
+              durationDays: activePrescription?.durationDays || 14,
+              consultationSummary: notes,
+              generalNotes: activePrescription?.generalNotes,
+              exercises: activePrescription?.exercises || []
+            });
+            const pdfBlob = rxDoc.output("blob");
+            const fileName = getPrescriptionFileName(patient.name, new Date());
+            const fileObj = new File([pdfBlob], fileName, { type: "application/pdf" });
+            const formData = new FormData();
+            formData.append("file", fileObj);
+            formData.append("parentFolderId", patient.googleDriveFolderId);
+            formData.append("date", formattedDate);
+
+            const uploadRes = await fetch("/api/drive/upload", {
+              method: "POST",
+              body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (uploadData.success) {
+              await addMedicalRecordFile(id, {
+                fileName: fileName,
+                fileType: "application/pdf",
+                fileSize: pdfBlob.size,
+                dateUploaded: formattedDate,
+                googleDriveFileId: uploadData.fileId,
+                webViewLink: uploadData.webViewLink,
+                downloadLink: uploadData.downloadLink,
+              });
+            }
+          } catch (autoUploadErr) {
+            console.warn("Auto-uploading consultation sheet to Drive failed:", autoUploadErr);
+          }
+        }
       }
 
       // Success Reset
@@ -1662,6 +1705,8 @@ PLAN:
           patientName={patient.name}
           pid={patient.id}
           lastSeen={patient.lastVisit || "Today"}
+          googleDriveFolderId={patient.googleDriveFolderId}
+          therapistName={patient.therapistName || defaultTherapist || "Dr. Kinnera"}
           onPrescriptionSaved={() => {
             loadPatientDetails();
           }}
