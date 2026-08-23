@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import sharp from "sharp";
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
@@ -84,6 +85,30 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+
+    // Server-Side Image Processing with Sharp (Auto-rotate, Contrast normalization, Resize to optimal 1400px)
+    let optimizedBase64 = cleanBase64;
+    let finalMimeType = mimeType || "image/jpeg";
+
+    try {
+      const inputBuffer = Buffer.from(cleanBase64, "base64");
+      const processedBuffer = await sharp(inputBuffer)
+        .rotate() // Auto-orient based on smartphone EXIF orientation tags
+        .resize({
+          width: 1400,
+          height: 1400,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .normalize() // Enhances document contrast for handwriting clarity
+        .jpeg({ quality: 82, progressive: true })
+        .toBuffer();
+
+      optimizedBase64 = processedBuffer.toString("base64");
+      finalMimeType = "image/jpeg";
+    } catch (sharpErr) {
+      console.warn("Sharp image pre-processing fallback to original buffer:", sharpErr);
+    }
 
     const apiKey =
       process.env.GEMINI_API_KEY ||
@@ -189,8 +214,8 @@ Extract into this exact JSON structure:
             { text: userPrompt },
             {
               inlineData: {
-                mimeType: mimeType || "image/jpeg",
-                data: cleanBase64,
+                mimeType: finalMimeType,
+                data: optimizedBase64,
               },
             },
           ],
