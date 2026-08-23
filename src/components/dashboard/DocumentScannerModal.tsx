@@ -34,6 +34,7 @@ export interface ClinicalAssessmentResult {
   modalitiesAdministered?: string;
   exercisePrescriptions?: string;
   providerRemindersAndAlerts?: string[];
+  rawVerbatimTranscript?: string;
   formattedSoapNote?: string;
   rawClinicalTranscription?: string;
   confidenceScore?: number;
@@ -49,6 +50,7 @@ export interface DoctorPrescriptionResult {
   precautionsAndRestrictions?: string;
   medicationsList?: string;
   providerRemindersAndAlerts?: string[];
+  rawVerbatimTranscript?: string;
   summaryForRecord?: string;
   rawClinicalTranscription?: string;
   confidenceScore?: number;
@@ -78,6 +80,7 @@ export default function DocumentScannerModal({
   const [extractedData, setExtractedData] = useState<ScanResult | null>(null);
   
   // Editable fields before applying
+  const [editedVerbatimText, setEditedVerbatimText] = useState("");
   const [editedSoapNote, setEditedSoapNote] = useState("");
   const [editedSummary, setEditedSummary] = useState("");
   const [selectedAlerts, setSelectedAlerts] = useState<string[]>([]);
@@ -95,6 +98,7 @@ export default function DocumentScannerModal({
     setExtractedData(null);
     setError(null);
     setIsScanning(false);
+    setEditedVerbatimText("");
     setEditedSoapNote("");
     setEditedSummary("");
     setSelectedAlerts([]);
@@ -187,6 +191,9 @@ export default function DocumentScannerModal({
       const result: ScanResult = await response.json();
       setExtractedData(result);
 
+      const verbatimText = result.rawVerbatimTranscript || (result as any).rawClinicalTranscription || "";
+      setEditedVerbatimText(verbatimText);
+
       if (!isPrescriptionMode) {
         const soapText = result.formattedSoapNote || 
           `SUBJECTIVE:\n${result.subjectiveComplaints || "Patient assessment"}\n\nOBJECTIVE:\n${result.objectiveFindings?.specialTests || result.objectiveFindings?.postureGait || "ROM and tests evaluated"}\n\nASSESSMENT:\nPhysiotherapy Clinical Assessment\n\nPLAN:\n${result.modalitiesAdministered || ""}\n${result.exercisePrescriptions || ""}`;
@@ -215,11 +222,16 @@ export default function DocumentScannerModal({
   const handleConfirmApply = () => {
     if (!extractedData) return;
 
+    const combinedSoap = editedVerbatimText
+      ? `=== EXACT DOCTOR'S WRITING (VERBATIM) ===\n${editedVerbatimText}\n\n=== STRUCTURED SOAP CLINICAL NOTE ===\n${editedSoapNote}`
+      : editedSoapNote;
+
     const finalData: ScanResult = {
       ...extractedData,
+      documentType: documentType,
       providerRemindersAndAlerts: selectedAlerts,
-      ...(extractedData.documentType === "CLINICAL_ASSESSMENT"
-        ? { formattedSoapNote: editedSoapNote }
+      ...(!isPrescriptionMode
+        ? { formattedSoapNote: combinedSoap }
         : { summaryForRecord: editedSummary }),
     };
 
@@ -502,15 +514,40 @@ export default function DocumentScannerModal({
                     </div>
                   )}
 
-                  {/* Editable SOAP Note */}
+                  {/* 1. Exact Doctor Writing (Verbatim) */}
                   <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                      Formatted SOAP Clinical Session Note
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <span>1. Exact Doctor Writing (Verbatim Transcription)</span>
+                        <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-bold">
+                          As Written on Paper
+                        </span>
+                      </label>
+                    </div>
+                    <textarea
+                      value={editedVerbatimText}
+                      onChange={(e) => setEditedVerbatimText(e.target.value)}
+                      rows={3}
+                      placeholder="Exact word-for-word text from the physical document..."
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-mono text-[11px] leading-relaxed"
+                    />
+                  </div>
+
+                  {/* 2. Structured SOAP Note */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <span>2. Structured SOAP Clinical Session Note</span>
+                        <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] px-2 py-0.5 rounded-md font-bold">
+                          EMR / SOAP Format
+                        </span>
+                      </label>
+                    </div>
                     <textarea
                       value={editedSoapNote}
                       onChange={(e) => setEditedSoapNote(e.target.value)}
                       rows={5}
+                      placeholder="Subjective, Objective, Assessment, Plan notes..."
                       className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-medium leading-relaxed"
                     />
                   </div>

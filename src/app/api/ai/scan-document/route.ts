@@ -3,13 +3,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
-Transcribe and decode physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed, cursive, or messy doctor handwriting.
+Transcribe physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed, cursive, or messy doctor handwriting.
 
-KNOWLEDGE BASE & CLINICAL CONTEXT:
-- Hospitals: Manipal Hospital Whitefield, Aster Whitefield, Sakra World Hospital, Vydehi Institute of Medical Sciences (VIMS), Apollo Clinic, Cloudnine, RxDx Healthcare.
-- Abbreviations: VAS, ROM, SLR, IFT, UST, TENS, DN, SWD, PIVD, OA, TKR, THR, ACL, PNF, AFO, DRA, PFMT, LSCS, FMS, HTN, T2DM, CVA.
-- Handwriting Decoding: Reconstruct hurried shorthand by synthesizing visible letter contours, doctor specialty, standard dosage notation (1-0-1, OD, BD, SOS), and evidence-based clinical protocols.
-- CLINICAL SAFETY: Always isolate pre-existing trauma, surgeries, implants (e.g. Pacemaker, metal hardware), systemic conditions (diabetes, hypertension), contraindications, and active medications into "providerRemindersAndAlerts".
+INSTRUCTIONS:
+1. "rawVerbatimTranscript": Provide the EXACT word-for-word, line-by-line transcription of what is written on the physical document without paraphrasing.
+2. "formattedSoapNote": Format a standardized, professional SOAP note (Subjective, Objective, Assessment, Plan).
+3. "providerRemindersAndAlerts": Isolate all pre-existing conditions, implants (e.g. Pacemaker), past surgeries, trauma, allergies, and contraindications.
 `;
 
 // Strict JSON Schemas for Guaranteed Zero-Error Parsing
@@ -35,6 +34,7 @@ const clinicalAssessmentSchema = {
       type: Type.ARRAY,
       items: { type: Type.STRING },
     },
+    rawVerbatimTranscript: { type: Type.STRING },
     formattedSoapNote: { type: Type.STRING },
     confidenceScore: { type: Type.NUMBER },
   },
@@ -44,6 +44,7 @@ const clinicalAssessmentSchema = {
     "modalitiesAdministered",
     "exercisePrescriptions",
     "providerRemindersAndAlerts",
+    "rawVerbatimTranscript",
     "formattedSoapNote",
     "confidenceScore",
   ],
@@ -64,6 +65,7 @@ const doctorPrescriptionSchema = {
       type: Type.ARRAY,
       items: { type: Type.STRING },
     },
+    rawVerbatimTranscript: { type: Type.STRING },
     summaryForRecord: { type: Type.STRING },
     confidenceScore: { type: Type.NUMBER },
   },
@@ -74,6 +76,7 @@ const doctorPrescriptionSchema = {
     "precautionsAndRestrictions",
     "medicationsList",
     "providerRemindersAndAlerts",
+    "rawVerbatimTranscript",
     "summaryForRecord",
     "confidenceScore",
   ],
@@ -142,6 +145,7 @@ export async function POST(req: NextRequest) {
             "Hypertension & Diabetes",
             "On Blood Thinners (Ecosprin 75mg) - Avoid deep tissue bruising"
           ],
+          rawVerbatimTranscript: "Dr. Rajesh Kumar (MS Ortho)\nManipal Hospital, Whitefield\nPt: Rahul Sharma | Dt: 14/08/2026\nRx: Post-op Right Knee TKR Day 14\nAdv: Phase 2 rehab, active-assisted ROM 0-90 deg, quad isometrics, gait training with walker\nPrec: PWB with walker\nMed: Tab Ecosprin 75mg (1-0-0), Tab Ultracet SOS",
           summaryForRecord: "Referred by Dr. Rajesh Kumar (Manipal Hospital, Whitefield) for Post-op Right TKR rehab. Focus on active-assisted ROM (0-90°) and isometric strengthening.",
           confidenceScore: 0.98
         });
@@ -165,7 +169,8 @@ export async function POST(req: NextRequest) {
           "Metal suture anchor in right tibia",
           "Post-op Right ACL Reconstruction (Day 21)"
         ],
-        formattedSoapNote: "S: Right knee stiffness & pain post-ACL reconstruction Day 21 (VAS 6/10).\nO: Knee Flexion 85°, Extension -5° lag. Lachman negative. Antalgic gait.\nA: Post-op ACL reconstruction rehabilitation Phase 1.\nP: IFT (15m) + Cryotherapy + Patellar Grade II mobilization + Quad sets (15x3) & Heel slides.",
+        rawVerbatimTranscript: "Assessment Note:\nPatient: Rahul Sharma | Date: 14/08/2026\nComplaints: Right knee stiffness & pain post-ACL reconstruction (Day 21). VAS 6/10.\nExam: Flexion 85 deg, Ext -5 deg lag. Antalgic limp.\nTreatment: IFT 15m, Ice pack, Patellar Grade 2 mob.\nExercises: Quad sets 15x3, Heel slides, SLR with brace.\nAlerts: Metal anchor in tibia.",
+        formattedSoapNote: "SUBJECTIVE: Right knee stiffness & pain post-ACL reconstruction Day 21 (VAS 6/10).\nOBJECTIVE: Knee Flexion 85°, Extension -5° lag. Lachman negative. Antalgic gait.\nASSESSMENT: Post-op ACL reconstruction rehabilitation Phase 1.\nPLAN: IFT (15m) + Cryotherapy + Patellar Grade II mobilization + Quad sets (15x3) & Heel slides.",
         confidenceScore: 0.96
       });
     }
@@ -175,8 +180,8 @@ export async function POST(req: NextRequest) {
     const targetSchema = isPrescription ? doctorPrescriptionSchema : clinicalAssessmentSchema;
 
     const userPrompt = isPrescription
-      ? "Extract doctor name, hospital, prescription date, diagnosis, prescribed physical therapies, precautions & contraindications, medications list, and provider reminders & safety alerts into structured JSON matching the schema. For summaryForRecord provide a complete, clear clinical summary."
-      : "Extract patient name, visit date, therapist name, subjective complaints, VAS pain score, objective findings, modalities administered, exercise prescriptions, and provider reminders into structured JSON matching the schema. For formattedSoapNote, construct a full, professional Subjective (S), Objective (O), Assessment (A), and Plan (P) clinical rehabilitation note.";
+      ? "Extract: 1. rawVerbatimTranscript (exact word-for-word text from the prescription), 2. doctor details, 3. diagnosis, 4. prescribed therapies, 5. precautions, 6. medications, 7. provider reminders, 8. summaryForRecord."
+      : "Extract: 1. rawVerbatimTranscript (exact word-for-word text from the case sheet), 2. patient details, 3. subjective complaints, 4. VAS pain score, 5. objective findings, 6. modalities, 7. exercises, 8. formattedSoapNote (full Subjective, Objective, Assessment, Plan note), 9. provider reminders.";
 
     // High-speed model cascade (gemini-3.1-flash-lite -> gemini-3.5-flash-lite -> gemini-3.6-flash)
     const modelsToAttempt = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash"];
