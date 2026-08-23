@@ -320,7 +320,7 @@ export default function PatientsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
-            Patients
+            Patients Database
           </h1>
           <p className="text-xs text-slate-500 font-semibold mt-1">
             Manage patient records, recovery journeys, and treatment plans in one centralized clinical hub.

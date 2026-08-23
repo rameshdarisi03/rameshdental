@@ -26,9 +26,11 @@ import {
   Phone,
   Mail,
   UserCheck,
-  Dumbbell
+  Dumbbell,
+  Sparkles
 } from "lucide-react";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
+import DocumentScannerModal, { ScanResult } from "@/components/dashboard/DocumentScannerModal";
 import { 
   getPatientById, 
   getConsultations, 
@@ -145,6 +147,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
   const [activeTab, setActiveTab] = useState<"timeline" | "files">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
+
+  // Gemini AI Document Scanner states
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerType, setScannerType] = useState<"CLINICAL_ASSESSMENT" | "DOCTOR_PRESCRIPTION">("CLINICAL_ASSESSMENT");
 
   // New consultation log / upload form states
   const [notes, setNotes] = useState("");
@@ -290,6 +296,55 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
+  // Handle scanned document result from Gemini AI
+  const handleApplyScanResult = async (data: ScanResult, scannedFile?: File) => {
+    if (!patient) return;
+
+    // 1. Auto-append pre-existing conditions / alerts to Provider Reminders in Firestore
+    if (data.providerRemindersAndAlerts && data.providerRemindersAndAlerts.length > 0) {
+      try {
+        const existing = patient.reminders || [];
+        const newAlerts = data.providerRemindersAndAlerts.filter((a) => !existing.includes(a));
+        if (newAlerts.length > 0) {
+          const combined = [...existing, ...newAlerts];
+          await updatePatient(patient.id, { reminders: combined });
+          setPatient((prev) => (prev ? { ...prev, reminders: combined } : null));
+        }
+      } catch (remErr) {
+        console.error("Error auto-syncing provider alerts from scan:", remErr);
+      }
+    }
+
+    // 2. Handle Case Sheet Mode (Step 1)
+    if (data.documentType === "CLINICAL_ASSESSMENT") {
+      if (data.formattedSoapNote) {
+        setNotes(data.formattedSoapNote);
+      } else if (data.subjectiveComplaints) {
+        setNotes(data.subjectiveComplaints);
+      }
+      if (data.visitDate) {
+        setVisitDate(data.visitDate);
+      }
+      if (scannedFile) {
+        setSelectedFile(scannedFile);
+      }
+      setActiveTab("timeline");
+      setFormSuccess("✨ Handwritten case sheet transcribed & applied! You can review the notes and save below.");
+    }
+
+    // 3. Handle Doctor Prescription / Referral Mode (Step 2)
+    if (data.documentType === "DOCTOR_PRESCRIPTION") {
+      const summaryText = data.summaryForRecord || 
+        `[Doctor Referral: ${data.doctorName || "Orthopedic Doctor"} • ${data.hospitalOrClinic || "Hospital"}]\nDiagnosis: ${data.diagnosis || "N/A"}\nPrescribed: ${data.prescribedTherapies || "Physiotherapy"}\nPrecautions: ${data.precautionsAndRestrictions || "None noted"}`;
+      setNotes(summaryText);
+      if (scannedFile) {
+        setSelectedFile(scannedFile);
+      }
+      setActiveTab("timeline");
+      setFormSuccess("✨ Doctor prescription scanned and analyzed! Review details and click 'Log Visit & Upload Records' to store in Google Drive.");
+    }
+  };
+
   const handleLogVisit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notes && !selectedFile) {
@@ -427,7 +482,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       {/* Back to Directory Link */}
       <div className="flex items-center gap-2 text-xs font-bold text-slate-400 select-none">
         <Link href="/dashboard/patients" className="hover:text-brand-green transition-colors">
-          Patients List
+          Patients Database
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
         <span className="text-slate-500 font-extrabold">{patient.name}</span>
@@ -718,10 +773,24 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               
               {/* Form to Log a New Consultation */}
               <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4 flex items-center gap-1.5">
-                  <PlusCircle className="w-4.5 h-4.5 text-brand-green" />
-                  Log Consultation & Attach Files
-                </h3>
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                  <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                    <PlusCircle className="w-4.5 h-4.5 text-brand-green" />
+                    Log Consultation & Attach Files
+                  </h3>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScannerType("CLINICAL_ASSESSMENT");
+                      setScannerOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 dark:bg-teal-500/20 hover:bg-brand-green hover:text-white text-brand-green dark:text-teal-300 px-3.5 py-1.5 text-xs font-black transition-all cursor-pointer border border-brand-green/20 hover:border-brand-green shadow-xs active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Scan Handwritten Case Sheet</span>
+                  </button>
+                </div>
 
                 <form onSubmit={handleLogVisit} className="space-y-4">
                   {formSuccess && (
@@ -870,6 +939,36 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           {/* TAB 2: files list panel */}
           {activeTab === "files" && (
             <div className="space-y-4">
+              {/* Scan Doctor Referral / Prescription Action Strip */}
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-teal-400" />
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                      Scan Doctor Prescription / Referral Slip
+                    </h4>
+                    <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-teal-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                      Gemini OCR
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    Snap a photo of an external doctor's paper referral to extract diagnosis, precautions, and auto-update provider alerts.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScannerType("DOCTOR_PRESCRIPTION");
+                    setScannerOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white px-5 py-2.5 text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 dark:text-amber-500" />
+                  <span>Scan Prescription</span>
+                </button>
+              </div>
+
               {files.length === 0 ? (
                 <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
                   <Folder className="w-8 h-8 text-slate-300 mx-auto mb-2" />
@@ -980,6 +1079,17 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           onPrescriptionSaved={() => {
             loadPatientDetails();
           }}
+        />
+      )}
+
+      {/* Gemini AI Document Scanner Modal */}
+      {patient && (
+        <DocumentScannerModal
+          isOpen={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          documentType={scannerType}
+          patientName={patient.name}
+          onApply={handleApplyScanResult}
         />
       )}
 

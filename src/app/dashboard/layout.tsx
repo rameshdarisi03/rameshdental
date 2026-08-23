@@ -73,7 +73,7 @@ export default function DashboardLayout({
     { name: "Appointments", href: "/dashboard/appointments", icon: Calendar, role: "all" },
     { name: "Day Snapshot", href: "/dashboard/snapshot", icon: LayoutGrid, role: "all" },
     { name: "Walk-in Bookings", href: "/dashboard/walkin", icon: PlusCircle, role: "all" },
-    { name: "Patients", href: "/dashboard/patients", icon: Users, role: "all" },
+    { name: "Patients Database", href: "/dashboard/patients", icon: Users, role: "all" },
     { name: "Schedule Blocks", href: "/dashboard/blocks", icon: Clock, role: "all" },
     { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, role: "admin" },
     { name: "Staff Management", href: "/dashboard/staff", icon: UserCheck, role: "admin" },

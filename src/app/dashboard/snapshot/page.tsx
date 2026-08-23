@@ -734,53 +734,79 @@ export default function DaySnapshot() {
 
   return (
     <div className="space-y-6">
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header Panel with Integrated Day Stats Toolbar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white">Day Snapshot</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 font-semibold mt-1">
             Therapist view: click to select, hold <strong>Shift</strong> to select ranges. Right-click or use toolbar to Approve, Reject, or Block.
           </p>
         </div>
 
-        {/* Date Selector and Refresh Button */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handlePreviousDay}
-            title="Previous Day"
-            type="button"
-            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          
-          <button
-            onClick={handleNextDay}
-            title="Next Day"
-            type="button"
-            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        {/* Right side: Date Selector & Integrated Summary Badges */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Day Metrics Badge Strip */}
+          <div className="flex items-center gap-3 bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-750 px-4 py-2 rounded-2xl text-xs font-black select-none">
+            <div className="text-center px-1">
+              <span className="text-[9px] text-slate-400 block uppercase tracking-wider leading-none">Total</span>
+              <span className="text-slate-800 dark:text-slate-200 text-sm font-black">{totalSlotsCount}</span>
+            </div>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="text-center px-1">
+              <span className="text-[9px] text-slate-450 block uppercase tracking-wider leading-none">Booked</span>
+              <span className="text-brand-green dark:text-emerald-400 text-sm font-black">{bookedCount}</span>
+            </div>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="text-center px-1">
+              <span className="text-[9px] text-slate-450 block uppercase tracking-wider leading-none">Available</span>
+              <span className="text-emerald-600 dark:text-emerald-400 text-sm font-black">{availableCount}</span>
+            </div>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="text-center px-1">
+              <span className="text-[9px] text-slate-455 block uppercase tracking-wider leading-none">Blocked</span>
+              <span className="text-red-500 text-sm font-black">{blockedCount}</span>
+            </div>
+          </div>
 
-          <button
-            onClick={fetchDayData}
-            disabled={loading}
-            title="Refresh snapshot data"
-            type="button"
-            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
-          >
-            <RotateCw className={`h-4.5 w-4.5 ${loading ? "animate-spin text-brand-green" : ""}`} />
-          </button>
+          {/* Date Selector Controls */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handlePreviousDay}
+              title="Previous Day"
+              type="button"
+              className="p-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            
+            <button
+              onClick={handleNextDay}
+              title="Next Day"
+              type="button"
+              className="p-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
 
-          <div className="relative">
-            <Calendar className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-xl border border-slate-200/80 dark:border-slate-805 bg-white dark:bg-slate-900 pl-11 pr-4 py-2 text-xs font-bold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
-            />
+            <button
+              onClick={fetchDayData}
+              disabled={loading}
+              title="Refresh snapshot data"
+              type="button"
+              className="p-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+            >
+              <RotateCw className={`h-4 w-4 ${loading ? "animate-spin text-brand-green" : ""}`} />
+            </button>
+
+            <div className="relative">
+              <Calendar className="absolute left-3 top-2.5 h-3.5 w-3.5 text-brand-green" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 pl-9 pr-3 py-1.5 text-xs font-bold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1063,33 +1089,7 @@ export default function DaySnapshot() {
         </div>
       )}
 
-      {/* Floating Summary Footer Panel (Only shows when no slots are actively selected) */}
-      {selectedSlots.length === 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 rounded-full px-8 py-3.5 shadow-2xl flex items-center gap-8 select-none max-w-[90vw] animate-slide-up">
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Slots</p>
-            <p className="text-lg font-black text-slate-700 dark:text-slate-200 leading-none">{totalSlotsCount}</p>
-          </div>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
-          
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">Booked</p>
-            <p className="text-lg font-black text-[#1b3d2f] dark:text-emerald-400 leading-none">{bookedCount}</p>
-          </div>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
 
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">Available</p>
-            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">{availableCount}</p>
-          </div>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
-
-          <div className="text-center shrink-0">
-            <p className="text-[9px] font-black text-slate-455 uppercase tracking-widest leading-none mb-1">Blocked</p>
-            <p className="text-lg font-black text-red-500 leading-none">{blockedCount}</p>
-          </div>
-        </div>
-      )}
 
       {/* Book for Patient Modal Drawer */}
       {isBookForPatientOpen && (
