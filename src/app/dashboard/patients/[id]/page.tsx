@@ -49,6 +49,7 @@ import {
 } from "@/lib/patientsDb";
 import { 
   getPatientPrescription,
+  getPatientPrescriptionsHistory,
   subscribePatientPrescription,
   subscribePatientWorkoutProgress, 
   getProgramDayDateString,
@@ -56,7 +57,13 @@ import {
   PatientPrescription, 
   PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
-import { buildUnifiedPrescriptionPdf, getPrescriptionFileName } from "@/lib/prescriptionPdf";
+import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
+import { 
+  buildUnifiedPrescriptionPdf, 
+  getPrescriptionFileName,
+  buildUnifiedInvoicePdf,
+  getInvoiceFileName
+} from "@/lib/prescriptionPdf";
 import { getClinicConfig } from "@/lib/db";
 
 interface Patient {
@@ -160,6 +167,8 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [patient, setPatient] = useState<Patient | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [files, setFiles] = useState<MedicalFile[]>([]);
+  const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
+  const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -209,7 +218,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 • Chief Complaint: 
 • Pain Score (VAS 0-10): /10
 • Onset / Aggravating factors: 
-
+ 
 OBJECTIVE:
 • Range of Motion (ROM): 
 • Special Tests / Palpation: 
@@ -234,6 +243,7 @@ PLAN:
   useEffect(() => {
     let rxUnsub = () => {};
     let progUnsub = () => {};
+    let invUnsub = () => {};
 
     if (id) {
       loadPatientDetails();
@@ -265,6 +275,7 @@ PLAN:
     return () => {
       rxUnsub();
       progUnsub();
+      invUnsub();
     };
   }, [id]);
 
@@ -292,16 +303,24 @@ PLAN:
       }
       setPatient(pData as Patient);
 
-      // Fetch timelines & prescription
-      const [cList, fList, rx] = await Promise.all([
+      // Fetch timelines, files, prescription & history
+      const [cList, fList, rx, rxHist] = await Promise.all([
         getConsultations(id),
         getMedicalRecordFiles(id),
-        getPatientPrescription(id)
+        getPatientPrescription(id),
+        getPatientPrescriptionsHistory(id)
       ]);
 
       setConsultations(cList as Consultation[]);
       setFiles(fList as MedicalFile[]);
       setActivePrescription(rx);
+      setPrescriptionsHistory(rxHist);
+
+      if (pData.email) {
+        subscribePatientInvoices(pData.email, (invs) => {
+          setPatientInvoices(invs);
+        });
+      }
     } catch (err: any) {
       console.error("Error loading patient details:", err);
       setError("An error occurred while fetching details.");
@@ -767,6 +786,231 @@ PLAN:
     }
   };
 
+  const handleDownloadPrescription = (rxItem: any) => {
+    try {
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: rxItem.displayDate || rxItem.date || "23-08-2026",
+        therapistName: rxItem.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: rxItem.durationDays || 14,
+        generalNotes: rxItem.generalNotes,
+        consultationSummary: rxItem.consultationSummary,
+        modalitiesAdministered: rxItem.modalitiesAdministered,
+        exercises: rxItem.exercises || [],
+      });
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || new Date());
+      doc.save(fileName);
+    } catch (err) {
+      console.error("Prescription download failed:", err);
+    }
+  };
+
+  const handleViewPrescription = (rxItem: any) => {
+    try {
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: rxItem.displayDate || rxItem.date || "23-08-2026",
+        therapistName: rxItem.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: rxItem.durationDays || 14,
+        generalNotes: rxItem.generalNotes,
+        consultationSummary: rxItem.consultationSummary,
+        modalitiesAdministered: rxItem.modalitiesAdministered,
+        exercises: rxItem.exercises || [],
+      });
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Prescription view failed:", err);
+    }
+  };
+
+  const handleDownloadInvoice = (inv: Invoice) => {
+    try {
+      const doc = buildUnifiedInvoicePdf({
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        serviceDate: inv.serviceDate,
+        status: inv.status,
+        items: inv.items,
+        totalAmount: inv.totalAmount,
+        notes: inv.notes,
+      });
+      const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", inv.serviceDate || new Date());
+      doc.save(fileName);
+    } catch (err) {
+      console.error("Invoice download failed:", err);
+    }
+  };
+
+  const handleViewInvoice = (inv: Invoice) => {
+    try {
+      const doc = buildUnifiedInvoicePdf({
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        serviceDate: inv.serviceDate,
+        status: inv.status,
+        items: inv.items,
+        totalAmount: inv.totalAmount,
+        notes: inv.notes,
+      });
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Invoice view failed:", err);
+    }
+  };
+
+  // Build unified items for Medical Scans & Files
+  const allUnifiedFiles: Array<{
+    id: string;
+    category: "PRESCRIPTION" | "INVOICE" | "FILE";
+    fileName: string;
+    subtitle: string;
+    dateStr: string;
+    sizeFormatted?: string;
+    raw: any;
+    onView?: () => void;
+    onDownload?: () => void;
+    webViewLink?: string;
+    downloadLink?: string;
+  }> = [];
+
+  // 1. Active Prescription & Consultation Plan
+  const latestConsult = consultations.length > 0 ? consultations[0] : null;
+  if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
+    const rxDate = activePrescription.startDate || new Date();
+    const fileName = getPrescriptionFileName(patient?.name || "Patient", rxDate);
+    allUnifiedFiles.push({
+      id: "active-prescription-doc",
+      category: "PRESCRIPTION",
+      fileName: fileName,
+      subtitle: `Prescribed by ${patient?.therapistName || defaultTherapist} • ${activePrescription.durationDays || 14} Days Protocol`,
+      dateStr: activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan",
+      raw: activePrescription,
+      onView: () => handleViewPrescription({
+        displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+        rawDate: rxDate,
+        therapistName: patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription.durationDays || 14,
+        generalNotes: activePrescription.generalNotes,
+        consultationSummary: latestConsult?.summary,
+        exercises: activePrescription.exercises,
+      }),
+      onDownload: () => handleDownloadPrescription({
+        displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+        rawDate: rxDate,
+        therapistName: patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription.durationDays || 14,
+        generalNotes: activePrescription.generalNotes,
+        consultationSummary: latestConsult?.summary,
+        exercises: activePrescription.exercises,
+      })
+    });
+  } else if (latestConsult) {
+    const consultDate = latestConsult.date || new Date();
+    const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
+    allUnifiedFiles.push({
+      id: latestConsult.id,
+      category: "PRESCRIPTION",
+      fileName: fileName,
+      subtitle: `Clinical Session Notes • Logged by ${latestConsult.therapistName || defaultTherapist}`,
+      dateStr: latestConsult.date || "Recorded",
+      raw: latestConsult,
+      onView: () => handleViewPrescription({
+        displayDate: latestConsult.date,
+        rawDate: consultDate,
+        therapistName: latestConsult.therapistName || defaultTherapist,
+        durationDays: 14,
+        consultationSummary: latestConsult.summary,
+        exercises: [],
+      }),
+      onDownload: () => handleDownloadPrescription({
+        displayDate: latestConsult.date,
+        rawDate: consultDate,
+        therapistName: latestConsult.therapistName || defaultTherapist,
+        durationDays: 14,
+        consultationSummary: latestConsult.summary,
+        exercises: [],
+      })
+    });
+  }
+
+  // 2. Historical Prescriptions
+  prescriptionsHistory.forEach((hist, idx) => {
+    if (hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
+      const hDate = hist.startDate || new Date();
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", hDate);
+      allUnifiedFiles.push({
+        id: `hist-rx-${idx}`,
+        category: "PRESCRIPTION",
+        fileName: fileName,
+        subtitle: `Past Prescription v${prescriptionsHistory.length - idx} • ${hist.durationDays || 14} Days Protocol`,
+        dateStr: hist.prescribedDateFormatted || hist.startDate || "Past Plan",
+        raw: hist,
+        onView: () => handleViewPrescription({
+          displayDate: hist.prescribedDateFormatted || hist.startDate,
+          rawDate: hDate,
+          therapistName: patient?.therapistName || defaultTherapist,
+          durationDays: hist.durationDays || 14,
+          generalNotes: hist.generalNotes,
+          exercises: hist.exercises || [],
+        }),
+        onDownload: () => handleDownloadPrescription({
+          displayDate: hist.prescribedDateFormatted || hist.startDate,
+          rawDate: hDate,
+          therapistName: patient?.therapistName || defaultTherapist,
+          durationDays: hist.durationDays || 14,
+          generalNotes: hist.generalNotes,
+          exercises: hist.exercises || [],
+        })
+      });
+    }
+  });
+
+  // 3. Invoices
+  patientInvoices.forEach((inv) => {
+    const invDate = inv.serviceDate || new Date();
+    const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", invDate);
+    allUnifiedFiles.push({
+      id: inv.id,
+      category: "INVOICE",
+      fileName: fileName,
+      subtitle: `Invoice #${inv.invoiceNumber} • ₹${(inv.totalAmount || 0).toFixed(2)} • ${(inv.status || "PAID").toUpperCase()}`,
+      dateStr: inv.serviceDate || "Recorded",
+      raw: inv,
+      onView: () => handleViewInvoice(inv),
+      onDownload: () => handleDownloadInvoice(inv)
+    });
+  });
+
+  // 4. Uploaded Medical Files / Scans
+  files.forEach((file) => {
+    const fObj = file as any;
+    const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
+    const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
+    const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
+    const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
+
+    // Deduplicate if already present in allUnifiedFiles by fileName
+    if (!allUnifiedFiles.some((f) => f.fileName === file.fileName)) {
+      allUnifiedFiles.push({
+        id: file.id || fId || Math.random().toString(),
+        category: "FILE",
+        fileName: file.fileName,
+        subtitle: `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
+        dateStr: dateStr,
+        sizeFormatted: formatBytes(file.fileSize),
+        raw: file,
+        webViewLink: viewUrl,
+        downloadLink: downloadUrl
+      });
+    }
+  });
+
   if (loading) {
     return (
       <div className="flex flex-col h-96 items-center justify-center text-slate-500 text-xs font-semibold">
@@ -1194,7 +1438,7 @@ PLAN:
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Consultation Timeline
+                Consultation
               </button>
               <button
                 onClick={() => setActiveTab("files")}
@@ -1204,7 +1448,7 @@ PLAN:
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Medical Scans & Files ({files.length})
+                Medical Scans & Files ({allUnifiedFiles.length})
               </button>
               <button
                 onClick={() => setActiveTab("invoices")}
@@ -1214,7 +1458,7 @@ PLAN:
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Invoices & Billing
+                Invoices & Billing ({patientInvoices.length})
               </button>
             </div>
           </div>
@@ -1348,85 +1592,22 @@ PLAN:
                     />
                   </div>
 
-                  {/* Drag-and-drop / File upload & AI Scanner Box */}
-                  <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/30 dark:bg-slate-950/20 flex flex-col items-center justify-center gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-all">
-                    <div className="flex flex-col items-center text-center">
-                      <p className="text-[11px] font-black text-slate-600 dark:text-slate-300">
-                        {selectedFile ? `Attached file: ${selectedFile.name}` : "Attach physical case sheet, medical scan, or prescription"}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        {selectedFile ? `File size: ${formatBytes(selectedFile.size)} • Will upload to Google Drive` : "Select an option below to transcribe handwriting or upload to Drive"}
-                      </p>
-                      {selectedFile && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedFile(null)}
-                          className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer border border-red-200 dark:border-red-900"
-                        >
-                          <X className="w-3 h-3" />
-                          <span>Remove / Clear File</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-lg pt-1">
-                      {/* Option 1: AI Case Sheet Scanner */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setScannerType("CLINICAL_ASSESSMENT");
-                          setScannerOpen(true);
-                        }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-green/10 dark:bg-teal-500/20 hover:bg-brand-green hover:text-white text-brand-green dark:text-teal-300 border border-brand-green/30 px-4 py-2.5 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95"
-                      >
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        <span>Scan Case Sheet (AI OCR)</span>
-                      </button>
-
-                      {/* Option 2: Choose File */}
-                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
-                        <Upload className="w-4 h-4 text-brand-green" />
-                        <span>Choose File</span>
-                        <input
-                          type="file"
-                          id="file-input"
-                          onChange={handleFileChange}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                      </label>
-
-                      {/* Option 3: Camera Capture */}
-                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
-                        <Camera className="w-4 h-4 text-brand-green" />
-                        <span>Take Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          id="camera-input"
-                          onChange={handleFileChange}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Action Trigger Buttons */}
-                  <div className="flex justify-end pt-1">
+                  {/* Submit Button */}
+                  <div className="flex items-center justify-end gap-3 pt-2">
                     <button
                       type="submit"
-                      disabled={submitting}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+                      disabled={submitting || (!notes.trim() && !selectedFile)}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {submitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Saving Consultation & Syncing Drive...
+                          <span>Saving Session...</span>
                         </>
                       ) : (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                          <span>Save Consultation & Upload Records</span>
+                          <PlusCircle className="w-4 h-4" />
+                          <span>Log Consultation</span>
                         </>
                       )}
                     </button>
@@ -1434,19 +1615,17 @@ PLAN:
                 </form>
               </div>
 
-              {/* Collapsible Consultation History Section */}
-              <div className="space-y-4 pt-2">
+              {/* Collapsible Consultation Timeline History */}
+              <div className="space-y-4">
                 <button
                   type="button"
                   onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
-                  className="flex items-center justify-between w-full p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-brand-green transition-all select-none cursor-pointer"
+                  className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-left transition-all hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-xl bg-brand-green/10 flex items-center justify-center text-brand-green font-black text-xs">
-                      {consultations.length}
-                    </div>
-                    <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                      Consultation History Timeline ({consultations.length} Visits Logged)
+                    <Calendar className="w-4.5 h-4.5 text-brand-green" />
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                      Consultation History ({consultations.length})
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
@@ -1476,7 +1655,7 @@ PLAN:
                             key={consult.id} 
                             className="relative group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300"
                           >
-                            {/* Circle Dot Marker (connected to timeline) */}
+                            {/* Circle Dot Marker */}
                             <span className="absolute -left-[31px] top-6.5 h-3.5 w-3.5 rounded-full bg-white dark:bg-slate-950 border-4 border-[#1b3d2f] ring-2 ring-emerald-500/20" />
                             
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-3">
@@ -1590,62 +1769,103 @@ PLAN:
                 </div>
               )}
 
-              {files.length === 0 ? (
+              {allUnifiedFiles.length === 0 ? (
                 <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
                   <Folder className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                   <span>No medical records uploaded for this patient.</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {files.map((file) => {
-                    const fObj = file as any;
-                    const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
-                    const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
-                    const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
-                    const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
+                  {allUnifiedFiles.map((file) => {
+                    const isPrescription = file.category === "PRESCRIPTION";
+                    const isInvoice = file.category === "INVOICE";
 
                     return (
                       <div 
-                        key={file.id || fId || Math.random().toString()} 
+                        key={file.id} 
                         className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="h-10 w-10 rounded-2xl bg-brand-green/10 flex items-center justify-center text-brand-green shrink-0">
-                            <FileText className="w-5 h-5" />
+                          <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                            isPrescription 
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              : isInvoice
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                              : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300"
+                          }`}>
+                            {isPrescription ? (
+                              <FileText className="w-5 h-5" />
+                            ) : isInvoice ? (
+                              <Receipt className="w-5 h-5" />
+                            ) : (
+                              <Folder className="w-5 h-5" />
+                            )}
                           </div>
                           <div className="overflow-hidden">
-                            <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                isPrescription
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/80 dark:border-emerald-800 dark:text-emerald-300"
+                                  : isInvoice
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/80 dark:border-amber-800 dark:text-amber-300"
+                                  : "bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                              }`}>
+                                {file.category}
+                              </span>
+                            </div>
+                            <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate mt-1">
                               {file.fileName}
                             </h4>
-                            <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-1">
-                              {dateStr} • {formatBytes(file.fileSize)}
+                            <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-0.5 truncate">
+                              {file.subtitle}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
-                          {viewUrl && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* View Button */}
+                          {file.webViewLink ? (
                             <a
-                              href={viewUrl}
+                              href={file.webViewLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all"
-                              title="View File in Google Drive"
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="View Document"
                             >
                               <Eye className="w-4.5 h-4.5" />
                             </a>
-                          )}
-                          {downloadUrl && (
+                          ) : file.onView ? (
+                            <button
+                              type="button"
+                              onClick={file.onView}
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="Preview PDF"
+                            >
+                              <Eye className="w-4.5 h-4.5" />
+                            </button>
+                          ) : null}
+
+                          {/* Download Button */}
+                          {file.downloadLink ? (
                             <a
-                              href={downloadUrl}
+                              href={file.downloadLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all"
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
                               title="Download File"
                             >
                               <Download className="w-4.5 h-4.5" />
                             </a>
-                          )}
+                          ) : file.onDownload ? (
+                            <button
+                              type="button"
+                              onClick={file.onDownload}
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="Download PDF"
+                            >
+                              <Download className="w-4.5 h-4.5" />
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     );
