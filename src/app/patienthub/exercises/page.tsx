@@ -94,6 +94,8 @@ function ExercisesContent() {
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [localCompletedIds, setLocalCompletedIds] = useState<string[] | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>("ALL");
+  const [markingDay, setMarkingDay] = useState(false);
 
   useEffect(() => {
     let rxUnsub = () => {};
@@ -188,8 +190,6 @@ function ExercisesContent() {
     };
   }, [videoParam]);
 
-  const [filterCategory, setFilterCategory] = useState<string>("ALL");
-
   const todayStr = getLocalDateString();
   const todayLog = progress?.dailyLogs?.[todayStr];
   const serverCompletedIds = todayLog?.completedExerciseIds || [];
@@ -228,8 +228,6 @@ function ExercisesContent() {
   const currentDay = progress?.currentDayNumber || 1;
   const duration = prescription?.durationDays || 14;
   const isTodayDone = progress?.todayIsCompleted || false;
-
-  const [markingDay, setMarkingDay] = useState(false);
 
   const handleToggleDayComplete = async () => {
     if (!patient?.id) return;

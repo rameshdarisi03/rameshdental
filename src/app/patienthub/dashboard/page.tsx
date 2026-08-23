@@ -75,6 +75,7 @@ export default function DashboardPage() {
   const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
   const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
+  const [markingDay, setMarkingDay] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -189,8 +190,6 @@ export default function DashboardPage() {
   const percentDone = Math.min(100, Math.round((completedDays / duration) * 100));
   const isTodayDone = progress?.todayIsCompleted || false;
 
-  const [markingDay, setMarkingDay] = useState(false);
-
   const handleToggleDayComplete = async () => {
     if (!patient?.id) return;
     setMarkingDay(true);
@@ -227,47 +226,36 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* 2. Today's Rehabilitation Status Banner */}
-      <section className="bg-white dark:bg-[#121a1d] border border-[#21444D]/10 dark:border-slate-800 rounded-[28px] p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#f9ab55]/20 text-[#8a5100] dark:text-[#f9ab55]">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Personalized Care Protocol</span>
-            </span>
-            <span className="text-xs text-slate-400 font-semibold">• Whitefield Clinic</span>
+      {/* 2. Hero Card: Upcoming Care Session */}
+      <section className="bg-[#062e36] text-white rounded-[28px] p-6 sm:p-7 shadow-[0_12px_32px_rgba(6,46,54,0.18)] relative overflow-hidden border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+        
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#21444D] border border-[#f9ab55]/40 flex items-center justify-center text-[#f9ab55] shrink-0 font-bold text-lg shadow-inner">
+            <Activity className="h-7 w-7" />
           </div>
-
-          <h2 className="text-lg sm:text-xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
-            {isTodayDone 
-              ? `Day ${currentDay} Routine Completed! Great work!` 
-              : `Today's Focus: Day ${currentDay} Rehabilitation`}
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl">
-            {isTodayDone
-              ? "You've successfully checked in your routine today. Your therapist will review your compliance matrix."
-              : "Perform your prescribed sets with slow, controlled movements. Remember to breathe rhythmically."}
-          </p>
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block mb-1">
+              Next Care Appointment
+            </span>
+            <h3 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              {patient?.assignedTherapist || "Dr. Kinnera (Lead Physiotherapist)"}
+            </h3>
+            <p className="text-xs text-slate-300 font-medium mt-1 flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-[#f9ab55]" />
+              <span>{upcomingDate === "No session scheduled" ? "No active booking scheduled" : upcomingDate}</span>
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <button
-            type="button"
-            disabled={markingDay}
-            onClick={handleToggleDayComplete}
-            className={`flex-1 md:flex-none inline-flex items-center justify-center gap-2 text-xs font-black px-6 py-3.5 rounded-full transition-all shadow-md active:scale-95 cursor-pointer ${
-              isTodayDone
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                : "bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36]"
-            }`}
+        <div className="flex items-center gap-3 w-full sm:w-auto relative z-10">
+          <Link
+            href="/patienthub/appointments"
+            className="w-full sm:w-auto bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] font-bold text-xs px-6 py-3.5 rounded-full transition-all duration-200 shadow-md flex items-center justify-center gap-2 hover:scale-105 active:scale-95 cursor-pointer"
           >
-            {markingDay ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle className="h-4 w-4" />
-            )}
-            <span>{isTodayDone ? "✓ Day Completed" : "Mark Day Complete"}</span>
-          </button>
+            <Calendar className="h-4 w-4" />
+            <span>{upcomingDate === "No session scheduled" ? "Book Visit Slot" : "Manage Booking"}</span>
+          </Link>
         </div>
       </section>
 
