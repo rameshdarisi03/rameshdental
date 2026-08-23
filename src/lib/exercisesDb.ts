@@ -457,19 +457,20 @@ export async function toggleExerciseDailyCompletion(
   totalExercisesCount: number,
   targetDate?: string
 ): Promise<{ completed: boolean; allDone: boolean }> {
+  const cleanId = (patientId || "").trim().toUpperCase();
   const todayStr = targetDate || getLocalDateString();
   
   // 1. Read existing logs from LocalStorage cache first for instant sync
   let currentLogs: Record<string, DailyWorkoutLog> = {};
   if (typeof window !== "undefined") {
     try {
-      const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+      const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
       if (cached) currentLogs = JSON.parse(cached);
     } catch {}
   }
 
   // 2. Fetch latest from Firestore top-level collection
-  const progressDocRef = doc(db, "exercise_progress", patientId);
+  const progressDocRef = doc(db, "exercise_progress", cleanId);
   try {
     const snap = await getDoc(progressDocRef);
     if (snap.exists()) {
@@ -493,27 +494,30 @@ export async function toggleExerciseDailyCompletion(
     ? todayLog.completedExerciseIds.filter(id => id !== exerciseId)
     : [...todayLog.completedExerciseIds, exerciseId];
 
-  const isFullyCompleted = updatedIds.length >= totalExercisesCount && totalExercisesCount > 0;
+  // Mark fully completed if all prescribed exercises for today are checked
+  const isFullyCompleted = totalExercisesCount > 0 
+    ? updatedIds.length >= totalExercisesCount 
+    : updatedIds.length > 0;
 
   currentLogs[todayStr] = {
     date: todayStr,
     completedExerciseIds: updatedIds,
     totalExercises: totalExercisesCount,
-    isFullyCompleted: isFullyCompleted || updatedIds.length > 0,
+    isFullyCompleted,
     updatedAt: new Date().toISOString()
   };
 
   // 3. Immediately persist to LocalStorage
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(`gpc_workout_progress_${patientId}`, JSON.stringify(currentLogs));
+      localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(currentLogs));
     } catch {}
   }
 
   // 4. Save to Firestore root collection
   try {
     await setDoc(progressDocRef, {
-      patientId,
+      patientId: cleanId,
       dailyLogs: currentLogs,
       lastUpdated: Timestamp.now()
     }, { merge: true });
@@ -523,7 +527,7 @@ export async function toggleExerciseDailyCompletion(
 
   // 5. Try syncing to patient subcollection as backup
   try {
-    const subDocRef = doc(db, "patients", patientId, "exerciseProgress", "current");
+    const subDocRef = doc(db, "patients", cleanId, "exerciseProgress", "current");
     await setDoc(subDocRef, {
       dailyLogs: currentLogs,
       lastUpdated: Timestamp.now()
@@ -532,7 +536,7 @@ export async function toggleExerciseDailyCompletion(
 
   return {
     completed: !isAlreadyDone,
-    allDone: isFullyCompleted || updatedIds.length > 0
+    allDone: isFullyCompleted
   };
 }
 
@@ -543,13 +547,14 @@ export async function markPatientDayComplete(
   exerciseIds: string[] = [],
   forceComplete: boolean = true
 ): Promise<{ success: boolean; isFullyCompleted: boolean }> {
+  const cleanId = (patientId || "").trim().toUpperCase();
   const todayStr = targetDate || getLocalDateString();
-  const progressDocRef = doc(db, "exercise_progress", patientId);
+  const progressDocRef = doc(db, "exercise_progress", cleanId);
 
   let currentLogs: Record<string, DailyWorkoutLog> = {};
   if (typeof window !== "undefined") {
     try {
-      const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+      const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
       if (cached) currentLogs = JSON.parse(cached);
     } catch {}
   }
@@ -573,13 +578,13 @@ export async function markPatientDayComplete(
 
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem(`gpc_workout_progress_${patientId}`, JSON.stringify(currentLogs));
+      localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(currentLogs));
     } catch {}
   }
 
   try {
     await setDoc(progressDocRef, {
-      patientId,
+      patientId: cleanId,
       dailyLogs: currentLogs,
       lastUpdated: Timestamp.now()
     }, { merge: true });
@@ -596,6 +601,8 @@ export function subscribePatientWorkoutProgress(
   prescription: PatientPrescription | null,
   callback: (progress: PatientWorkoutProgress) => void
 ): () => void {
+  const cleanId = (patientId || "").trim().toUpperCase();
+
   const calculateMetrics = (dailyLogs: Record<string, DailyWorkoutLog>): PatientWorkoutProgress => {
     const todayStr = getLocalDateString();
     const duration = prescription?.durationDays || 14;
@@ -609,10 +616,10 @@ export function subscribePatientWorkoutProgress(
     const diffDays = Math.max(0, Math.floor((todayMs - startMs) / (1000 * 60 * 60 * 24)));
     const currentDayNumber = Math.min(duration, diffDays + 1);
 
-    // Calculate completed days
+    // Calculate completed days (SSOT based on isFullyCompleted)
     let completedDaysCount = 0;
     Object.values(dailyLogs).forEach(log => {
-      if (log.isFullyCompleted || (log.completedExerciseIds && log.completedExerciseIds.length > 0)) {
+      if (log.isFullyCompleted === true || (log.completedExerciseIds && log.completedExerciseIds.length >= (log.totalExercises || 1))) {
         completedDaysCount++;
       }
     });
@@ -622,15 +629,17 @@ export function subscribePatientWorkoutProgress(
     // Today's stats
     const todayLog = dailyLogs[todayStr];
     const todayCompletedCount = todayLog?.completedExerciseIds?.length || 0;
-    const todayIsCompleted = todayLog?.isFullyCompleted === true || (todayLog?.completedExerciseIds && todayLog.completedExerciseIds.length > 0);
+    const todayIsCompleted = todayLog?.isFullyCompleted === true || (todayCompletedCount >= (todayLog?.totalExercises || totalExercises) && totalExercises > 0);
 
-    // Calculate active streak
+    // Calculate active streak (consecutive completed days ending today or yesterday)
     let streakDays = 0;
     const checkDate = new Date();
     for (let i = 0; i < 60; i++) {
       const dStr = getLocalDateString(checkDate);
       const log = dailyLogs[dStr];
-      if (log && (log.isFullyCompleted || (log.completedExerciseIds && log.completedExerciseIds.length > 0))) {
+      const isDateDone = log && (log.isFullyCompleted === true || (log.completedExerciseIds && log.completedExerciseIds.length >= (log.totalExercises || 1)));
+      
+      if (isDateDone) {
         streakDays++;
       } else if (i > 0) {
         break;
@@ -639,7 +648,7 @@ export function subscribePatientWorkoutProgress(
     }
 
     return {
-      patientId,
+      patientId: cleanId,
       startDate,
       durationDays: duration,
       endDate,
@@ -657,7 +666,7 @@ export function subscribePatientWorkoutProgress(
   // 1. Send immediate metrics from localStorage cache
   if (typeof window !== "undefined") {
     try {
-      const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+      const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
       if (cached) {
         callback(calculateMetrics(JSON.parse(cached)));
       }
@@ -665,7 +674,7 @@ export function subscribePatientWorkoutProgress(
   }
 
   // 2. Listen to Firestore root collection
-  const progressDocRef = doc(db, "exercise_progress", patientId);
+  const progressDocRef = doc(db, "exercise_progress", cleanId);
 
   return onSnapshot(progressDocRef, (snap) => {
     let dailyLogs: Record<string, DailyWorkoutLog> = {};
@@ -673,13 +682,13 @@ export function subscribePatientWorkoutProgress(
       dailyLogs = snap.data().dailyLogs || {};
       if (typeof window !== "undefined") {
         try {
-          localStorage.setItem(`gpc_workout_progress_${patientId}`, JSON.stringify(dailyLogs));
+          localStorage.setItem(`gpc_workout_progress_${cleanId}`, JSON.stringify(dailyLogs));
         } catch {}
       }
     } else {
       if (typeof window !== "undefined") {
         try {
-          const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+          const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`) || localStorage.getItem(`gpc_workout_progress_${patientId}`);
           if (cached) dailyLogs = JSON.parse(cached);
         } catch {}
       }
@@ -690,7 +699,7 @@ export function subscribePatientWorkoutProgress(
     console.warn("Firestore snapshot on exercise_progress failed, keeping cached:", err);
     if (typeof window !== "undefined") {
       try {
-        const cached = localStorage.getItem(`gpc_workout_progress_${patientId}`);
+        const cached = localStorage.getItem(`gpc_workout_progress_${cleanId}`);
         if (cached) callback(calculateMetrics(JSON.parse(cached)));
       } catch {}
     }
