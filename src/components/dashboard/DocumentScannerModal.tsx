@@ -63,7 +63,7 @@ interface DocumentScannerModalProps {
   onClose: () => void;
   documentType: "CLINICAL_ASSESSMENT" | "DOCTOR_PRESCRIPTION";
   patientName?: string;
-  onApply: (data: ScanResult, file?: File, previewUrl?: string) => void;
+  onApply: (data: ScanResult, file?: File, previewUrl?: string) => Promise<void> | void;
 }
 
 export default function DocumentScannerModal({
@@ -76,6 +76,7 @@ export default function DocumentScannerModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ScanResult | null>(null);
   
@@ -93,11 +94,13 @@ export default function DocumentScannerModal({
   const isPrescriptionMode = documentType === "DOCTOR_PRESCRIPTION";
 
   const handleCloseAndReset = () => {
+    if (isApplying) return;
     setSelectedFile(null);
     setPreviewUrl(null);
     setExtractedData(null);
     setError(null);
     setIsScanning(false);
+    setIsApplying(false);
     setEditedVerbatimText("");
     setEditedSoapNote("");
     setEditedSummary("");
@@ -219,8 +222,11 @@ export default function DocumentScannerModal({
     );
   };
 
-  const handleConfirmApply = () => {
-    if (!extractedData) return;
+  const handleConfirmApply = async () => {
+    if (!extractedData || isApplying) return;
+
+    setIsApplying(true);
+    setError(null);
 
     const combinedSoap = editedVerbatimText
       ? `=== EXACT DOCTOR'S WRITING (VERBATIM) ===\n${editedVerbatimText}\n\n=== STRUCTURED SOAP CLINICAL NOTE ===\n${editedSoapNote}`
@@ -230,13 +236,19 @@ export default function DocumentScannerModal({
       ...extractedData,
       documentType: documentType,
       providerRemindersAndAlerts: selectedAlerts,
-      ...(!isPrescriptionMode
-        ? { formattedSoapNote: combinedSoap }
-        : { summaryForRecord: editedSummary }),
+      formattedSoapNote: combinedSoap,
+      summaryForRecord: editedSoapNote || editedVerbatimText || "Clinical referral record",
     };
 
-    onApply(finalData, selectedFile || undefined, previewUrl || undefined);
-    handleCloseAndReset();
+    try {
+      await onApply(finalData, selectedFile || undefined, previewUrl || undefined);
+      handleCloseAndReset();
+    } catch (applyErr: any) {
+      console.error("Error applying scanned document:", applyErr);
+      setError(applyErr?.message || "Failed to save document. Please try again.");
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -414,145 +426,88 @@ export default function DocumentScannerModal({
                 )}
               </div>
 
-              {/* Mode-Specific Structured Overview */}
-              {extractedData.documentType === "DOCTOR_PRESCRIPTION" ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-750">
+              {/* Unified Structured Overview */}
+              <div className="space-y-4">
+                {/* 1. Header Details (Doctor/Hospital or Diagnosis) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(extractedData.doctorName || extractedData.hospitalOrClinic) ? (
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-750">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
                         Referring Doctor & Hospital
                       </span>
                       <p className="text-xs font-black text-slate-800 dark:text-slate-200">
-                        {extractedData.doctorName || "Doctor not specified"}
+                        {extractedData.doctorName || "External Physician"}
                       </p>
                       <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                        {extractedData.hospitalOrClinic || "Hospital not specified"}
+                        {extractedData.hospitalOrClinic || "Medical Center"}
                       </p>
                     </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-750">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                        Primary Diagnosis
-                      </span>
-                      <p className="text-xs font-black text-brand-green dark:text-teal-400">
-                        {extractedData.diagnosis || "No diagnosis extracted"}
-                      </p>
-                      {extractedData.prescriptionDate && (
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                          Prescription Date: {extractedData.prescriptionDate}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {extractedData.prescribedTherapies && (
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-750">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                        Prescribed Therapies & Modalities
-                      </span>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                        {extractedData.prescribedTherapies}
-                      </p>
-                    </div>
-                  )}
-
-                  {extractedData.precautionsAndRestrictions && (
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 p-4 rounded-2xl">
-                      <span className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider block mb-1">
-                        Precautions & Contraindications
-                      </span>
-                      <p className="text-xs text-amber-900 dark:text-amber-300 font-medium">
-                        {extractedData.precautionsAndRestrictions}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Editable Summary For Medical File */}
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                      Medical File Summary Note
-                    </label>
-                    <textarea
-                      value={editedSummary}
-                      onChange={(e) => setEditedSummary(e.target.value)}
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-medium leading-relaxed"
-                    />
-                  </div>
-                </div>
-              ) : (
-                /* Clinical Assessment Mode */
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  ) : extractedData.vasPainScore ? (
                     <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-750">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
                         Pain Score (VAS)
                       </span>
                       <p className="text-sm font-black text-red-500">
-                        {extractedData.vasPainScore ? `${extractedData.vasPainScore} / 10` : "Not recorded"}
+                        {extractedData.vasPainScore} / 10
                       </p>
                     </div>
+                  ) : null}
 
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-750 sm:col-span-2">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                        Physical & ROM Tests
-                      </span>
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        {extractedData.objectiveFindings?.specialTests || extractedData.objectiveFindings?.lumbarFlexion || "Standard testing recorded"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {extractedData.modalitiesAdministered && (
+                  {(extractedData.diagnosis || extractedData.subjectiveComplaints) && (
                     <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-750">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
-                        Modalities Administered
+                        Clinical Diagnosis / Condition
                       </span>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                        {extractedData.modalitiesAdministered}
+                      <p className="text-xs font-black text-brand-green dark:text-teal-400">
+                        {extractedData.diagnosis || extractedData.subjectiveComplaints}
                       </p>
+                      {(extractedData.prescriptionDate || extractedData.visitDate) && (
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          Date: {extractedData.prescriptionDate || extractedData.visitDate}
+                        </p>
+                      )}
                     </div>
                   )}
-
-                  {/* 1. Exact Doctor Writing (Verbatim) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                        <span>1. Exact Doctor Writing (Verbatim Transcription)</span>
-                        <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-bold">
-                          As Written on Paper
-                        </span>
-                      </label>
-                    </div>
-                    <textarea
-                      value={editedVerbatimText}
-                      onChange={(e) => setEditedVerbatimText(e.target.value)}
-                      rows={3}
-                      placeholder="Exact word-for-word text from the physical document..."
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-mono text-[11px] leading-relaxed"
-                    />
-                  </div>
-
-                  {/* 2. Structured SOAP Note */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                        <span>2. Structured SOAP Clinical Session Note</span>
-                        <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] px-2 py-0.5 rounded-md font-bold">
-                          EMR / SOAP Format
-                        </span>
-                      </label>
-                    </div>
-                    <textarea
-                      value={editedSoapNote}
-                      onChange={(e) => setEditedSoapNote(e.target.value)}
-                      rows={5}
-                      placeholder="Subjective, Objective, Assessment, Plan notes..."
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-medium leading-relaxed"
-                    />
-                  </div>
                 </div>
-              )}
+
+                {/* 2. Exact Doctor Writing (Verbatim) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                      <span>1. Exact Doctor Writing (Verbatim Transcription)</span>
+                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-md font-bold">
+                        As Written on Paper
+                      </span>
+                    </label>
+                  </div>
+                  <textarea
+                    value={editedVerbatimText}
+                    onChange={(e) => setEditedVerbatimText(e.target.value)}
+                    rows={4}
+                    placeholder="Exact word-for-word text from the physical document..."
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-mono text-[11px] leading-relaxed"
+                  />
+                </div>
+
+                {/* 3. Structured SOAP Note */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                      <span>2. Structured SOAP Clinical Session Note</span>
+                      <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] px-2 py-0.5 rounded-md font-bold">
+                        EMR / SOAP Format
+                      </span>
+                    </label>
+                  </div>
+                  <textarea
+                    value={editedSoapNote}
+                    onChange={(e) => setEditedSoapNote(e.target.value)}
+                    rows={5}
+                    placeholder="Subjective, Objective, Assessment, Plan notes..."
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green font-medium leading-relaxed"
+                  />
+                </div>
+              </div>
 
               {/* Provider Reminders & Pre-existing Conditions Selector */}
               {extractedData.providerRemindersAndAlerts && extractedData.providerRemindersAndAlerts.length > 0 && (
@@ -581,7 +536,7 @@ export default function DocumentScannerModal({
                           }`}
                         >
                           <div className={`h-4 w-4 rounded-md border flex items-center justify-center shrink-0 mt-0.5 ${
-                            isSelected ? "bg-amber-600 border-amber-600 text-white" : "border-slate-300 dark:border-slate-700"
+                            isSelected ? "bg-amber-600 border-amber-600 text-white" : "border-slate-300 dark:border-slate-750"
                           }`}>
                             {isSelected && <Check className="h-3 w-3" />}
                           </div>
@@ -600,8 +555,9 @@ export default function DocumentScannerModal({
         <div className="p-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
           <button
             type="button"
+            disabled={isApplying}
             onClick={handleCloseAndReset}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer disabled:opacity-40"
           >
             Cancel
           </button>
@@ -609,13 +565,25 @@ export default function DocumentScannerModal({
           {extractedData && (
             <button
               type="button"
+              disabled={isApplying}
               onClick={handleConfirmApply}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
-              <Check className="h-4 w-4" />
-              <span>
-                {isPrescriptionMode ? "Save as Clinical PDF & Upload to Records" : "Apply SOAP Notes to Visit"}
-              </span>
+              {isApplying ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>
+                    {isPrescriptionMode ? "Generating Clinical PDF & Archiving..." : "Applying SOAP Notes to Visit..."}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>
+                    {isPrescriptionMode ? "Save as Clinical PDF & Upload to Records" : "Apply SOAP Notes to Visit"}
+                  </span>
+                </>
+              )}
             </button>
           )}
         </div>

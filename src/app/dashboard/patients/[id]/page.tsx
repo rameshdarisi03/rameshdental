@@ -561,7 +561,7 @@ PLAN:
             const viewLink = uploadResult.webViewLink || (gFileId ? `https://drive.google.com/file/d/${gFileId}/view` : "");
             const dlLink = uploadResult.downloadLink || viewLink;
 
-            await addMedicalRecordFile(patient.id, {
+            const newFileRecord = await addMedicalRecordFile(patient.id, {
               fileName: pdfFileName,
               fileType: "application/pdf",
               fileSize: pdfFile.size,
@@ -570,47 +570,16 @@ PLAN:
               webViewLink: viewLink,
               downloadLink: dlLink,
             } as any);
+
+            // Instantly prepend the new PDF to local state for 0ms UI reactivity
+            setFiles((prev) => [newFileRecord as MedicalFile, ...prev]);
+            setFormSuccess(`✨ Clinical Referral PDF (${pdfFileName}) successfully generated & saved to Google Drive!`);
+          } else {
+            throw new Error("Failed to upload PDF to Google Drive.");
           }
+        } else {
+          throw new Error("Patient does not have an assigned Google Drive folder.");
         }
-
-        // Upload original scan image if present
-        if (scannedFile && patient.googleDriveFolderId) {
-          try {
-            const imgFormData = new FormData();
-            imgFormData.append("file", scannedFile);
-            imgFormData.append("parentFolderId", patient.googleDriveFolderId);
-            imgFormData.append("date", dateStamp);
-
-            const imgUploadRes = await fetch("/api/drive/upload", {
-              method: "POST",
-              body: imgFormData,
-            });
-
-            if (imgUploadRes.ok) {
-              const imgResult = await imgUploadRes.json();
-              const imgFileId = imgResult.fileId;
-              const imgViewLink = imgResult.webViewLink || (imgFileId ? `https://drive.google.com/file/d/${imgFileId}/view` : "");
-              const imgDlLink = imgResult.downloadLink || imgViewLink;
-
-              await addMedicalRecordFile(patient.id, {
-                fileName: scannedFile.name,
-                fileType: scannedFile.type || "image/jpeg",
-                fileSize: scannedFile.size,
-                dateUploaded: dateStamp,
-                googleDriveFileId: imgFileId,
-                webViewLink: imgViewLink,
-                downloadLink: imgDlLink,
-              } as any);
-            }
-          } catch (origErr) {
-            console.warn("Original scan secondary upload note:", origErr);
-          }
-        }
-
-        // Refresh file list in state
-        const refreshedFiles = await getMedicalRecordFiles(id);
-        setFiles(refreshedFiles as MedicalFile[]);
-        setFormSuccess("✨ Clinical Referral PDF generated & saved directly to Medical Documents in Google Drive!");
       } catch (pdfErr: any) {
         console.error("PDF upload error:", pdfErr);
         setFormError(pdfErr?.message || "Failed to save prescription PDF.");
@@ -1378,6 +1347,38 @@ PLAN:
                   <span>Scan Prescription</span>
                 </button>
               </div>
+
+              {formSuccess && (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-2xl flex items-center justify-between gap-2 animate-fade-in shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>{formSuccess}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormSuccess("")}
+                    className="text-emerald-600 hover:text-emerald-800 p-1 rounded-md cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {formError && (
+                <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 text-xs font-bold rounded-2xl flex items-center justify-between gap-2 animate-shake shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormError("")}
+                    className="text-red-600 hover:text-red-800 p-1 rounded-md cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {files.length === 0 ? (
                 <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
