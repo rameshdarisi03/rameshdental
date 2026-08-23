@@ -5,6 +5,7 @@ import {
   getDocs, 
   getDoc, 
   setDoc, 
+  addDoc,
   updateDoc, 
   deleteDoc, 
   query, 
@@ -399,7 +400,33 @@ export async function savePatientPrescription(
     generalNotes
   };
 
+  // 1. Update active prescription
   await setDoc(docRef, payload);
+
+  // 2. Also archive in patient's prescriptions history subcollection
+  try {
+    const historyCol = collection(db, "patients", patientId, "prescriptions");
+    await addDoc(historyCol, payload);
+  } catch (historyErr) {
+    console.warn("Could not archive prescription to patient subcollection:", historyErr);
+  }
+}
+
+// Fetch all historical prescriptions for a patient
+export async function getPatientPrescriptionsHistory(patientId: string): Promise<PatientPrescription[]> {
+  try {
+    const colRef = collection(db, "patients", patientId, "prescriptions");
+    const q = query(colRef, orderBy("prescribedAt", "desc"));
+    const snap = await getDocs(q);
+    const list: PatientPrescription[] = [];
+    snap.forEach((docSnap) => {
+      list.push({ id: docSnap.id, ...docSnap.data() } as any);
+    });
+    return list;
+  } catch (err) {
+    console.error("Error fetching prescriptions history:", err);
+    return [];
+  }
 }
 
 // Remove an individual exercise from active prescription or clear all
