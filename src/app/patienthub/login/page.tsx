@@ -137,6 +137,7 @@ function LoginContent() {
       
       // 1. Look up patient matching email
       const q = query(collection(db, "patients"), where("email", "==", user.email));
+      const snap = await getDocs(q);
       let matchedDoc: any = null;
       if (!snap.empty) {
         matchedDoc = snap.docs[0];
