@@ -318,7 +318,7 @@ export default function DashboardPage() {
         </div>
 
         {/* WORKOUT PROGRESS ROADMAP & STREAK CARD */}
-        <div className="bg-gradient-to-br from-[#062e36] to-[#21444D] text-white p-6 rounded-3xl shadow-md space-y-5 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#062e36] to-[#21444D] text-white p-5 sm:p-6 rounded-3xl shadow-md space-y-5 relative overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -379,7 +379,7 @@ export default function DashboardPage() {
               <span>Target Review: Day {duration}</span>
             </div>
 
-            <div className="grid grid-cols-7 sm:grid-cols-14 gap-2">
+            <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 sm:gap-2.5 md:gap-3">
               {Array.from({ length: Math.min(duration, 14) }).map((_, idx) => {
                 const dayNum = idx + 1;
                 const startDate = prescription?.startDate || getLocalDateString();
@@ -391,7 +391,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={dayNum}
-                    className={`w-9 h-9 mx-auto rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                    className={`w-full max-w-[32px] sm:max-w-[36px] aspect-square mx-auto rounded-full flex items-center justify-center text-[11px] sm:text-xs font-black transition-all ${
                       isDone
                         ? "bg-[#f9ab55] text-[#062e36] shadow-sm font-black"
                         : isCurrent
