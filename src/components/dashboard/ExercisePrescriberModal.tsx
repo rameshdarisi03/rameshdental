@@ -493,7 +493,6 @@ export default function ExercisePrescriberModal({
                             className="w-full px-2.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </div>
-
                         <div>
                           <label className="block text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
                             Reps / Hold
@@ -517,16 +516,17 @@ export default function ExercisePrescriberModal({
             {/* Footer: Duration & Submit */}
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
               
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="block text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     PROGRAM DURATION
                   </label>
                   <span className="text-[10px] font-black text-brand-green dark:text-teal-400">
-                    Review: {new Date(Date.now() + durationDays * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    Review: {new Date(Date.now() + Math.max(1, durationDays || 1) * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                 </div>
 
+                {/* Preset Buttons */}
                 <div className="grid grid-cols-4 gap-1.5">
                   {[
                     { days: 7, label: "1 Week" },
@@ -541,19 +541,41 @@ export default function ExercisePrescriberModal({
                       className={`py-2 px-1 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
                         durationDays === preset.days
                           ? "bg-brand-green text-white dark:bg-emerald-500 dark:text-slate-950 shadow-xs"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                       }`}
                     >
                       {preset.label}
                     </button>
                   ))}
                 </div>
+
+                {/* Custom Number of Days Input */}
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    Custom Duration:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="180"
+                      value={durationDays || ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setDurationDays(isNaN(val) ? 0 : Math.max(1, Math.min(180, val)));
+                      }}
+                      placeholder="14"
+                      className="w-16 px-2 py-1 text-center font-black text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[#062e36] dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-green"
+                    />
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Days</span>
+                  </div>
+                </div>
               </div>
 
               {/* Bottom Action CTA */}
               <button
                 onClick={handleSavePrescription}
-                disabled={saving || tray.length === 0}
+                disabled={saving || tray.length === 0 || !durationDays || durationDays < 1}
                 className="w-full flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {saving ? (
@@ -561,7 +583,7 @@ export default function ExercisePrescriberModal({
                 ) : (
                   <>
                     <Send className="h-4 w-4" />
-                    Prescribe ({durationDays} Days) to Hub
+                    Prescribe ({durationDays || 14} Days) to Hub
                   </>
                 )}
               </button>
