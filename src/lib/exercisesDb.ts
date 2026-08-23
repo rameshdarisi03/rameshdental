@@ -320,6 +320,39 @@ export async function getPatientPrescription(patientId: string): Promise<Patient
   }
 }
 
+// Subscribe to active prescription for a patient in real time
+export function subscribePatientPrescription(
+  patientId: string,
+  callback: (prescription: PatientPrescription | null) => void
+): () => void {
+  const docRef = doc(db, "prescriptions", patientId);
+  return onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      callback(snap.data() as PatientPrescription);
+    } else {
+      callback(null);
+    }
+  }, (err) => {
+    console.error("Error subscribing to patient prescription:", err);
+  });
+}
+
+// Subscribe to live exercise library in real time
+export function subscribeExerciseLibrary(
+  callback: (library: ExerciseItem[]) => void
+): () => void {
+  const colRef = collection(db, "exercise_library");
+  return onSnapshot(colRef, (snap) => {
+    const exercises: ExerciseItem[] = [];
+    snap.forEach((docSnap) => {
+      exercises.push({ id: docSnap.id, ...docSnap.data() } as ExerciseItem);
+    });
+    callback(exercises);
+  }, (err) => {
+    console.error("Error subscribing to exercise library:", err);
+  });
+}
+
 // Save or update active prescription for a patient with duration
 export async function savePatientPrescription(
   patientId: string, 

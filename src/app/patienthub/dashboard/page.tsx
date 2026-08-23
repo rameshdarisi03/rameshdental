@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { 
-  getPatientPrescription, 
+  getPatientPrescription,
+  subscribePatientPrescription,
+  subscribeExerciseLibrary,
   getExerciseLibrary, 
   extractYoutubeId, 
-  PatientPrescription,
-  subscribePatientWorkoutProgress,
-  PatientWorkoutProgress
+  PatientPrescription, 
+  subscribePatientWorkoutProgress, 
+  PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
 import Link from "next/link";
 import { 
@@ -74,16 +76,67 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let invUnsub = () => {};
+    let rxUnsub = () => {};
+    let libUnsub = () => {};
     let progUnsub = () => {};
+
+    let currentRx: PatientPrescription | null = null;
+    let currentLib: any[] = [];
+
+    const syncExercises = () => {
+      if (!currentRx || !currentRx.exercises || currentRx.exercises.length === 0) {
+        setExercises([]);
+        return;
+      }
+      const libMap = new Map(currentLib.map((item) => [item.id, item]));
+      const mapped: DisplayExercise[] = currentRx.exercises.map((ex) => {
+        const liveItem = libMap.get(ex.exerciseId) || 
+          currentLib.find((l) => l.title.toLowerCase().trim() === ex.title.toLowerCase().trim() || l.id === ex.exerciseId);
+        const freshYtId = extractYoutubeId(liveItem?.youtubeId || ex.youtubeId || ex.youtubeUrl);
+        return {
+          id: ex.exerciseId,
+          title: liveItem?.title || ex.title,
+          description: `${ex.sets} sets × ${ex.repsOrHold}`,
+          duration: liveItem?.duration || "2 mins",
+          youtubeId: freshYtId,
+          tags: ex.tags || [ex.category]
+        };
+      });
+      setExercises(mapped);
+    };
+
+    const attachPatientListeners = (patientObj: any) => {
+      if (patientObj.email) {
+        invUnsub();
+        invUnsub = subscribePatientInvoices(patientObj.email, setPatientInvoices);
+      }
+
+      // 1. Subscribe to Live Exercise Library
+      libUnsub();
+      libUnsub = subscribeExerciseLibrary((liveLibrary) => {
+        currentLib = liveLibrary;
+        syncExercises();
+      });
+
+      // 2. Subscribe to Live Patient Prescription
+      rxUnsub();
+      rxUnsub = subscribePatientPrescription(patientObj.id, (rxData) => {
+        currentRx = rxData;
+        setPrescription(rxData);
+        syncExercises();
+
+        // 3. Subscribe to Live Workout Progress
+        progUnsub();
+        progUnsub = subscribePatientWorkoutProgress(patientObj.id, rxData, setProgress);
+      });
+    };
 
     const localData = localStorage.getItem("gpc_patient");
     if (localData) {
       const parsed = JSON.parse(localData);
       setPatient(parsed);
       setLoading(false);
-      if (parsed.email) {
-        invUnsub = subscribePatientInvoices(parsed.email, setPatientInvoices);
-      }
+      attachPatientListeners(parsed);
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -95,38 +148,7 @@ export default function DashboardPage() {
             const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
             setPatient(matched);
             localStorage.setItem("gpc_patient", JSON.stringify(matched));
-
-            if (matched.email) {
-              invUnsub = subscribePatientInvoices(matched.email, setPatientInvoices);
-            }
-
-            // Fetch active prescribed exercises and cross-reference live library
-            const rxData = await getPatientPrescription(matched.id);
-            const liveLibrary = await getExerciseLibrary();
-            const libMap = new Map(liveLibrary.map((item) => [item.id, item]));
-
-            if (rxData && rxData.exercises && rxData.exercises.length > 0) {
-              setPrescription(rxData);
-              const mapped: DisplayExercise[] = rxData.exercises.map((ex) => {
-                const liveItem = libMap.get(ex.exerciseId) || 
-                  liveLibrary.find((l) => l.title.toLowerCase().trim() === ex.title.toLowerCase().trim() || l.id === ex.exerciseId);
-                const freshYtId = extractYoutubeId(liveItem?.youtubeId || ex.youtubeId || ex.youtubeUrl);
-                return {
-                  id: ex.exerciseId,
-                  title: liveItem?.title || ex.title,
-                  description: `${ex.sets} sets × ${ex.repsOrHold}`,
-                  duration: liveItem?.duration || "2 mins",
-                  youtubeId: freshYtId,
-                  tags: ex.tags || [ex.category]
-                };
-              });
-              setExercises(mapped);
-
-              // Subscribe to real-time workout progress
-              progUnsub = subscribePatientWorkoutProgress(matched.id, rxData, setProgress);
-            } else {
-              progUnsub = subscribePatientWorkoutProgress(matched.id, null, setProgress);
-            }
+            attachPatientListeners(matched);
           }
         } catch (err) {
           console.error("Failed to sync patient details:", err);
@@ -138,6 +160,8 @@ export default function DashboardPage() {
     return () => {
       unsubscribe();
       invUnsub();
+      rxUnsub();
+      libUnsub();
       progUnsub();
     };
   }, []);
