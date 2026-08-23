@@ -3,72 +3,14 @@ import { GoogleGenAI } from "@google/genai";
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
-Your objective is to accurately transcribe, decode, and structure handwritten physical medical documents (Therapist Clinical Assessment Sheets and Doctor Prescriptions/Referral Slips) across ALL medical specialties, including challenging, hurried, and heavily scribbled handwriting.
+Transcribe and decode physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed/messy doctor handwriting.
 
-================================================================================
-1. MULTI-SPECIALTY CLINICAL DOMAIN KNOWLEDGE BASE
-================================================================================
-You handle referrals from all medical & surgical specialties:
-
-A. NEUROLOGY & NEUROSURGERY:
-- Conditions: Stroke / CVA (Hemiplegia, Hemiparesis), Parkinson's Disease (gait freeze, rigidity, balance), Bell's Palsy, Guillain-Barré Syndrome (GBS), Multiple Sclerosis, Peripheral Neuropathy, Traumatic Brain Injury (TBI), Spinal Cord Injury (SCI), Sciatica / Radiculopathy.
-- Physio Goals: PNF techniques, Neuro-rehab, Gait training, Balance & Coordination, Mirror therapy, Motor re-learning.
-
-B. GYNECOLOGY & OBSTETRICS (WOMEN'S HEALTH):
-- Conditions: Antenatal & Postnatal Back Pain, Diastasis Recti abdominis (DRA), Pelvic Floor Dysfunction / Incontinence, Sacroiliac Joint (SIJ) dysfunction, Post-C-section scar rehab, Pregnancy-related pelvic girdle pain (PGP).
-- Physio Goals: Pelvic floor muscle training (PFMT / Kegels), Core activation, Postural re-education, Safe postnatal strengthening.
-
-C. PSYCHIATRY & PSYCHOSOMATIC MEDICINE:
-- Conditions: Somatoform / Psychogenic Chronic Pain Syndrome, Fibromyalgia (18 tender points), Tension Headaches, Chronic Fatigue, Anxiety/Stress-induced Cervical-Thoracic myofascial spasms, Conversion disorders.
-- Physio Goals: Graded aerobic exercise, Diaphragmatic breathing & relaxation, Postural ergonomics, Gentle myofascial release, Hydrotherapy/Gentle mobility.
-
-D. GENERAL MEDICINE, GERIATRICS & ENDOCRINOLOGY:
-- Conditions: Diabetic Neuropathy & Gait Ataxia, Sarcopenia & Frailty, Post-ICU deconditioning, Fall prevention, Gouty Arthritis, Osteopenia / Osteoporosis, Chronic Lifestyle pain.
-- Physio Goals: Progressive resistive training, Balance & Proprioception, Weight-bearing bone loading, Functional mobility.
-
-E. CARDIOPULMONARY & INTERNAL MEDICINE:
-- Conditions: Post-CABG / Cardiac surgery, COPD, Bronchial Asthma, Post-COVID lung fibrosis, Bronchiectasis.
-- Physio Goals: Chest physiotherapy, Postural drainage, Pursed-lip breathing, Segmental breathing, Incentive spirometry, Cardiac aerobic conditioning.
-
-F. ORTHOPEDICS, RHEUMATOLOGY & SPORTS MEDICINE:
-- Conditions: Post-op TKR / THR / ACL / Meniscus, Rotator Cuff tears, Frozen Shoulder (Adhesive Capsulitis), Lumbar PIVD, Cervical Spondylosis, Ankylosing Spondylitis (AS), Rheumatoid Arthritis (RA).
-- Physio Goals: Joint mobilizations (Maitland/Mulligan), Modalities (IFT, UST, TENS, Dry Needling, Traction), Strength conditioning.
-
-================================================================================
-2. ADVANCED SCRIBBLING & MESSY HANDWRITING DECODING RULES
-================================================================================
-- Doctor handwriting often features rapid continuous loops, heavy cursive, single-stroke abbreviations, or smudged signatures.
-- Reconstruct words by synthesizing:
-  1. Visible consonant anchors (e.g. "Str...k / H...p...s" -> "Stroke / Hemiparesis").
-  2. Specialty of the referring doctor (Neurology vs OBG vs Ortho vs Psychiatry).
-  3. Standard medical dosage patterns ("1-0-1", "1-0-0", "0-0-1", "SOS", "OD", "BD", "TID", "HS", "Tab", "Cap", "Syr", "Inj").
-  4. Clinical symptom-diagnosis-modality semantic triplets.
-- Never hallucinate data that contradicts visual evidence. If completely unreadable, mark as null or indicate uncertainty gracefully.
-
-================================================================================
-3. REGIONAL WHITEFIELD & BANGALORE HOSPITAL DIRECTORY
-================================================================================
-- Manipal Hospital (Whitefield / HAL Airport Road / Varthur)
-- Aster Whitefield Hospital
-- Sakra World Hospital (Outer Ring Road / Marathahalli)
-- Vydehi Institute of Medical Sciences & Research Centre
-- Apollo Clinic / Apollo Cradle Whitefield
-- RxDx Healthcare / Cloudnine Hospital / Columbia Asia
-
-================================================================================
-4. CLINICAL SAFETY & PROVIDER REMINDERS EXTRACTION RULE
-================================================================================
-You MUST identify and isolate into "providerRemindersAndAlerts":
-a) Pre-existing conditions (e.g. Trauma, RTA, past surgeries, paralysis, diabetes, hypertension, epilepsy, depression/anxiety).
-b) Implants & Metal hardware (e.g. "Pacemaker", "Metal suture anchor", "Spinal fusion cage").
-c) Contraindications & Warnings (e.g. "Avoid electrotherapy over implant", "No high-velocity spinal thrusts", "Blood thinners - prone to bruising", "Asthma - avoid overexertion").
-d) Active systemic medications.
-Format these as clear, concise bullet strings in the "providerRemindersAndAlerts" array.
-
-================================================================================
-5. OUTPUT FORMAT
-================================================================================
-Return ONLY a valid JSON object matching the requested schema.
+KNOWLEDGE BASE & CLINICAL CONTEXT:
+- Hospitals: Manipal Whitefield, Aster Whitefield, Sakra World, Vydehi VIMS, Apollo Clinic, Cloudnine, RxDx.
+- Abbrevs: VAS, ROM, SLR, IFT, UST, TENS, DN, SWD, PIVD, OA, TKR, ACL, PNF, AFO, DRA, PFMT, LSCS, FMS, HTN, T2DM, CVA.
+- Decode cursive/scribbles by synthesizing visible letters, doctor specialty, standard dosage syntax (1-0-1, OD, BD, SOS), and clinical protocols.
+- CLINICAL SAFETY: Always isolate pre-existing trauma, surgeries, implants, systemic conditions (diabetes, HTN), contraindications, and active medications into "providerRemindersAndAlerts".
+- Output valid JSON only.
 `;
 
 export async function POST(req: NextRequest) {
@@ -85,31 +27,29 @@ export async function POST(req: NextRequest) {
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
-    // Safe dynamic server-side image processing
+    // Safe dynamic server-side image optimization
     let optimizedBase64 = cleanBase64;
     let finalMimeType = mimeType || "image/jpeg";
 
     try {
-      // Dynamic import prevents module initialization failure on serverless runtimes
       const sharpModule = await import("sharp");
       const sharp = sharpModule.default || sharpModule;
       const inputBuffer = Buffer.from(cleanBase64, "base64");
       const processedBuffer = await sharp(inputBuffer)
         .rotate()
         .resize({
-          width: 1400,
-          height: 1400,
+          width: 1200,
+          height: 1200,
           fit: "inside",
           withoutEnlargement: true,
         })
         .normalize()
-        .jpeg({ quality: 82, progressive: true })
+        .jpeg({ quality: 80, progressive: true })
         .toBuffer();
 
       optimizedBase64 = processedBuffer.toString("base64");
       finalMimeType = "image/jpeg";
     } catch {
-      // Gracefully use the original image payload if sharp native binary is not bundled
       optimizedBase64 = cleanBase64;
     }
 
@@ -137,7 +77,6 @@ export async function POST(req: NextRequest) {
             "On Blood Thinners (Ecosprin 75mg) - Avoid deep tissue bruising"
           ],
           summaryForRecord: "Referred by Dr. Rajesh Kumar (Manipal Hospital, Whitefield) for Post-op Right TKR rehab. Focus on active-assisted ROM (0-90°) and isometric strengthening.",
-          rawClinicalTranscription: "Dr. Rajesh Kumar MS Ortho, Manipal Hospital Whitefield. Post-op Right TKR Day 14. Start physio: ROM 0-90, Quad isometrics, cryotherapy. PWB with walker. Tab Ecosprin 75mg. Alert: Hypertension, diabetic, on blood thinners.",
           confidenceScore: 0.98
         });
       }
@@ -162,7 +101,6 @@ export async function POST(req: NextRequest) {
           "Post-op Right ACL Reconstruction (Day 21)"
         ],
         formattedSoapNote: "S: Right knee stiffness & pain post-ACL reconstruction Day 21 (VAS 6/10).\nO: Knee Flexion 85°, Extension -5° lag. Lachman negative. Antalgic gait.\nA: Post-op ACL reconstruction rehabilitation Phase 1.\nP: IFT (15m) + Cryotherapy + Patellar Grade II mobilization + Quad sets (15x3) & Heel slides.",
-        rawClinicalTranscription: "Pt: Rahul Sharma, Age 28. Therapist: Dr. Kinnera. Chief Complaint: Right knee stiffness & pain post-ACL reconstruction (Day 21). VAS: 6/10. ROM: Flexion 85 deg, Ext -5 deg lag. Lachman neg. Gait: Antalgic limp. Rx: IFT 15m, Cryo, Patellar mob Gr II. Exercises: Quad sets 15x3, Heel slides, SLR with brace. Alerts: Past sports injury 2024, Metal suture anchor in right tibia. Plan: 10 sessions.",
         confidenceScore: 0.96
       });
     }
@@ -170,8 +108,7 @@ export async function POST(req: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     const userPrompt = documentType === "DOCTOR_PRESCRIPTION"
-      ? `Analyze this external doctor's handwritten referral slip or prescription (could be from Orthopedics, Neurology, Gynecology, Psychiatry, General Medicine, Geriatrics, or Pulmonology). Handle hurried cursive handwriting, abbreviations, and messy scripts.
-Extract into this exact JSON structure:
+      ? `Analyze this doctor's handwritten referral/prescription. Extract into JSON:
 {
   "documentType": "DOCTOR_PRESCRIPTION",
   "doctorName": string or null,
@@ -183,11 +120,9 @@ Extract into this exact JSON structure:
   "medicationsList": string,
   "providerRemindersAndAlerts": string[],
   "summaryForRecord": string,
-  "rawClinicalTranscription": string,
   "confidenceScore": number
 }`
-      : `Analyze this physiotherapist's handwritten assessment sheet or daily clinical session note. Handle rushed handwriting, shorthand notations, and clinical abbreviations across Musculoskeletal, Neuro, Women's Health, or Geriatric rehab.
-Extract into this exact JSON structure:
+      : `Analyze this physiotherapist's handwritten assessment/session note. Extract into JSON:
 {
   "documentType": "CLINICAL_ASSESSMENT",
   "patientName": string or null,
@@ -204,10 +139,10 @@ Extract into this exact JSON structure:
   "exercisePrescriptions": string,
   "providerRemindersAndAlerts": string[],
   "formattedSoapNote": string,
-  "rawClinicalTranscription": string,
   "confidenceScore": number
 }`;
 
+    // Fast inference with greedy decoding (temperature: 0.0)
     const response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: [
@@ -227,6 +162,8 @@ Extract into this exact JSON structure:
       config: {
         systemInstruction: SYSTEM_INSTRUCTION_CLINICAL,
         responseMimeType: "application/json",
+        temperature: 0.0,
+        maxOutputTokens: 800,
       },
     });
 
@@ -235,8 +172,7 @@ Extract into this exact JSON structure:
     try {
       const parsedData = JSON.parse(responseText);
       return NextResponse.json(parsedData);
-    } catch (parseError) {
-      console.error("Failed to parse Gemini JSON response:", responseText);
+    } catch {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return NextResponse.json(JSON.parse(jsonMatch[0]));

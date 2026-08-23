@@ -32,8 +32,10 @@ import {
   Minimize2,
   ChevronDown,
   ChevronUp,
-  RotateCcw
+  RotateCcw,
+  X
 } from "lucide-react";
+import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
 import DocumentScannerModal, { ScanResult } from "@/components/dashboard/DocumentScannerModal";
 import { 
@@ -346,7 +348,7 @@ PLAN:
   };
 
   // Handle scanned document result from Gemini AI
-  const handleApplyScanResult = async (data: ScanResult, scannedFile?: File) => {
+  const handleApplyScanResult = async (data: ScanResult, scannedFile?: File, previewUrl?: string) => {
     if (!patient) return;
 
     // 1. Auto-append pre-existing conditions / alerts to Provider Reminders in Firestore
@@ -364,7 +366,7 @@ PLAN:
       }
     }
 
-    // 2. Handle Case Sheet Mode (Step 1)
+    // 2. Handle Case Sheet Mode (Consultation Timeline)
     if (data.documentType === "CLINICAL_ASSESSMENT") {
       if (data.formattedSoapNote) {
         setNotes(data.formattedSoapNote);
@@ -381,16 +383,234 @@ PLAN:
       setFormSuccess("✨ Handwritten case sheet transcribed & applied! You can review the notes and save below.");
     }
 
-    // 3. Handle Doctor Prescription / Referral Mode (Step 2)
+    // 3. Handle Doctor Prescription / Referral Mode (Medical Scans & Files Tab - Generate & Save PDF)
     if (data.documentType === "DOCTOR_PRESCRIPTION") {
-      const summaryText = data.summaryForRecord || 
-        `[Doctor Referral: ${data.doctorName || "Orthopedic Doctor"} • ${data.hospitalOrClinic || "Hospital"}]\nDiagnosis: ${data.diagnosis || "N/A"}\nPrescribed: ${data.prescribedTherapies || "Physiotherapy"}\nPrecautions: ${data.precautionsAndRestrictions || "None noted"}`;
-      setNotes(summaryText);
-      if (scannedFile) {
-        setSelectedFile(scannedFile);
+      setActiveTab("files");
+      setFormSuccess("");
+      setFormError("");
+
+      try {
+        const doc = new jsPDF({ unit: "pt", format: "a4" });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const currentDateStr = new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+
+        // Top Header Banner
+        doc.setFillColor(27, 61, 47); // Brand Green
+        doc.rect(0, 0, pageWidth, 75, "F");
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(17);
+        doc.text("GAIT PHYSIO CLINIC", 40, 35);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("Advanced Physiotherapy, Orthopedic & Neuro Rehabilitation Centre", 40, 50);
+        doc.text("Whitefield, Bengaluru • Contact: +91 9192939495", 40, 62);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.text("DOCTOR REFERRAL RECORD", pageWidth - 40, 48, { align: "right" });
+
+        // Patient Details Card
+        let y = 100;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(40, y, pageWidth - 80, 52, 6, 6, "FD");
+
+        doc.setTextColor(30, 41, 59);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.text(`Patient: ${patient.name || "N/A"}`, 55, y + 18);
+        doc.text(`Patient ID: ${patient.patientId || patient.id}`, 55, y + 34);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(`Age / Gender: ${patient.age || "N/A"} / ${patient.gender || "N/A"}`, pageWidth / 2 + 20, y + 18);
+        doc.text(`Recorded Date: ${currentDateStr}`, pageWidth / 2 + 20, y + 34);
+
+        y += 70;
+
+        // Referring Physician & Hospital
+        doc.setFillColor(241, 245, 249);
+        doc.rect(40, y, pageWidth - 80, 20, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text("1. REFERRING PHYSICIAN & SOURCE", 50, y + 14);
+        y += 30;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("Referring Doctor:", 50, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(data.doctorName || "External Consultant", 160, y);
+        y += 16;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Hospital / Clinic:", 50, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(data.hospitalOrClinic || "Medical Center", 160, y);
+        y += 16;
+
+        if (data.prescriptionDate) {
+          doc.setFont("helvetica", "bold");
+          doc.text("Prescription Date:", 50, y);
+          doc.setFont("helvetica", "normal");
+          doc.text(data.prescriptionDate, 160, y);
+          y += 16;
+        }
+
+        y += 8;
+
+        // Diagnosis Section
+        doc.setFillColor(241, 245, 249);
+        doc.rect(40, y, pageWidth - 80, 20, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.text("2. CLINICAL DIAGNOSIS & REASON FOR REFERRAL", 50, y + 14);
+        y += 30;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        const splitDiag = doc.splitTextToSize(data.diagnosis || "Physiotherapy referral", pageWidth - 100);
+        doc.text(splitDiag, 50, y);
+        y += splitDiag.length * 13 + 12;
+
+        // Prescribed Therapies
+        if (data.prescribedTherapies) {
+          doc.setFillColor(241, 245, 249);
+          doc.rect(40, y, pageWidth - 80, 20, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9.5);
+          doc.text("3. ADVISED PHYSICAL THERAPY & PROTOCOL", 50, y + 14);
+          y += 30;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          const splitRx = doc.splitTextToSize(data.prescribedTherapies, pageWidth - 100);
+          doc.text(splitRx, 50, y);
+          y += splitRx.length * 13 + 12;
+        }
+
+        // Precautions & Contraindications
+        if (data.precautionsAndRestrictions) {
+          doc.setFillColor(254, 242, 242);
+          doc.setDrawColor(254, 202, 202);
+          doc.roundedRect(40, y, pageWidth - 80, 32, 4, 4, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(153, 27, 27);
+          doc.text("PRECAUTIONS & CONTRAINDICATIONS:", 50, y + 13);
+          doc.setFont("helvetica", "normal");
+          const splitPrec = doc.splitTextToSize(data.precautionsAndRestrictions, pageWidth - 110);
+          doc.text(splitPrec, 50, y + 24);
+          y += 44;
+        }
+
+        // Provider Reminders & Safety Alerts
+        if (data.providerRemindersAndAlerts && data.providerRemindersAndAlerts.length > 0) {
+          const alertHeight = 18 + data.providerRemindersAndAlerts.length * 13;
+          doc.setFillColor(254, 243, 199);
+          doc.setDrawColor(253, 230, 138);
+          doc.roundedRect(40, y, pageWidth - 80, alertHeight, 4, 4, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(146, 64, 14);
+          doc.text("IDENTIFIED SAFETY ALERTS & PRE-EXISTING CONDITIONS:", 50, y + 12);
+          doc.setFont("helvetica", "normal");
+          data.providerRemindersAndAlerts.forEach((alert, aIdx) => {
+            doc.text(`• ${alert}`, 55, y + 24 + aIdx * 13);
+          });
+          y += alertHeight + 15;
+        }
+
+        // Footer note
+        doc.setTextColor(148, 163, 184);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.text("Transcribed via Gait Physio AI Clinical OCR • Archived in Google Drive EMR", 40, doc.internal.pageSize.getHeight() - 25);
+
+        // Generate PDF Blob
+        const pdfBlob = doc.output("blob");
+        const cleanDoctorName = (data.doctorName || data.hospitalOrClinic || "Doctor").replace(/[^a-zA-Z0-9]/g, "_");
+        const dateStamp = new Date().toISOString().split("T")[0];
+        const pdfFileName = `Referral_${cleanDoctorName}_${dateStamp}.pdf`;
+        const pdfFile = new File([pdfBlob], pdfFileName, { type: "application/pdf" });
+
+        // Upload PDF directly to Google Drive
+        if (patient.googleDriveFolderId) {
+          const uploadFormData = new FormData();
+          uploadFormData.append("file", pdfFile);
+          uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
+          uploadFormData.append("date", dateStamp);
+
+          const uploadResponse = await fetch("/api/drive/upload", {
+            method: "POST",
+            body: uploadFormData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            await addMedicalRecordFile(patient.id, {
+              patientId: patient.id,
+              fileName: pdfFileName,
+              fileType: "application/pdf",
+              fileSize: pdfFile.size,
+              driveFileId: uploadResult.fileId,
+              driveViewLink: uploadResult.webViewLink,
+              uploadedAt: new Date().toISOString(),
+              summary: data.summaryForRecord || `Doctor Referral from ${data.doctorName || "Doctor"} (${data.hospitalOrClinic || "Hospital"}) - ${data.diagnosis || "Diagnosis"}`,
+              tags: ["Prescription", "Doctor Referral"]
+            });
+          }
+        }
+
+        // Upload original scan image if present
+        if (scannedFile && patient.googleDriveFolderId) {
+          try {
+            const imgFormData = new FormData();
+            imgFormData.append("file", scannedFile);
+            imgFormData.append("parentFolderId", patient.googleDriveFolderId);
+            imgFormData.append("date", dateStamp);
+
+            const imgUploadRes = await fetch("/api/drive/upload", {
+              method: "POST",
+              body: imgFormData,
+            });
+
+            if (imgUploadRes.ok) {
+              const imgResult = await imgUploadRes.json();
+              await addMedicalRecordFile(patient.id, {
+                patientId: patient.id,
+                fileName: scannedFile.name,
+                fileType: scannedFile.type || "image/jpeg",
+                fileSize: scannedFile.size,
+                driveFileId: imgResult.fileId,
+                driveViewLink: imgResult.webViewLink,
+                uploadedAt: new Date().toISOString(),
+                summary: `Original scanned prescription image (${data.doctorName || "Doctor"})`,
+                tags: ["Original Scan", "Prescription"]
+              });
+            }
+          } catch (origErr) {
+            console.warn("Original scan secondary upload note:", origErr);
+          }
+        }
+
+        // Refresh file list in state
+        const refreshedFiles = await getMedicalRecordFiles(id);
+        setFiles(refreshedFiles as MedicalFile[]);
+        setFormSuccess("✨ Clinical Referral PDF generated & saved directly to Medical Documents in Google Drive!");
+      } catch (pdfErr: any) {
+        console.error("PDF upload error:", pdfErr);
+        setFormError(pdfErr?.message || "Failed to save prescription PDF.");
       }
-      setActiveTab("timeline");
-      setFormSuccess("✨ Doctor prescription scanned and analyzed! Review details and click 'Log Visit & Upload Records' to store in Google Drive.");
     }
   };
 
@@ -827,18 +1047,6 @@ PLAN:
                     <PlusCircle className="w-5 h-5 text-brand-green" />
                     Log Consultation & Clinical Notes
                   </h3>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setScannerType("CLINICAL_ASSESSMENT");
-                      setScannerOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 dark:bg-teal-500/20 hover:bg-brand-green hover:text-white text-brand-green dark:text-teal-300 px-4 py-2 text-xs font-black transition-all cursor-pointer border border-brand-green/20 hover:border-brand-green shadow-xs active:scale-95"
-                  >
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>Scan Handwritten Case Sheet</span>
-                  </button>
                 </div>
 
                 <form onSubmit={handleLogVisit} className="space-y-4">
@@ -949,7 +1157,7 @@ PLAN:
                       </span>
                     </div>
                     <textarea
-                      placeholder="Type clinical session notes (Subjective complaints, Range of motion measurements, Modalities administered, and Home Exercise prescriptions) or click 'Scan Handwritten Case Sheet' above."
+                      placeholder="Type clinical session notes (Subjective complaints, Range of motion measurements, Modalities administered, and Home Exercise prescriptions) or click 'Scan Case Sheet' below."
                       rows={isEditorExpanded ? 16 : 8}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
@@ -957,21 +1165,45 @@ PLAN:
                     />
                   </div>
 
-                  {/* Drag-and-drop / File upload Selector */}
+                  {/* Drag-and-drop / File upload & AI Scanner Box */}
                   <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/30 dark:bg-slate-950/20 flex flex-col items-center justify-center gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-all">
                     <div className="flex flex-col items-center text-center">
                       <p className="text-[11px] font-black text-slate-600 dark:text-slate-300">
-                        {selectedFile ? `Attached file: ${selectedFile.name}` : "Attach medical scan, paper case sheet, or prescription"}
+                        {selectedFile ? `Attached file: ${selectedFile.name}` : "Attach physical case sheet, medical scan, or prescription"}
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        {selectedFile ? `File size: ${formatBytes(selectedFile.size)} • Will upload to Google Drive` : "Select or snap file below to archive in Google Drive"}
+                        {selectedFile ? `File size: ${formatBytes(selectedFile.size)} • Will upload to Google Drive` : "Select an option below to transcribe handwriting or upload to Drive"}
                       </p>
+                      {selectedFile && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFile(null)}
+                          className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer border border-red-200 dark:border-red-900"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Remove / Clear File</span>
+                        </button>
+                      )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-sm">
-                      <label className="relative flex-grow flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
+                    <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-lg pt-1">
+                      {/* Option 1: AI Case Sheet Scanner */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScannerType("CLINICAL_ASSESSMENT");
+                          setScannerOpen(true);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-green/10 dark:bg-teal-500/20 hover:bg-brand-green hover:text-white text-brand-green dark:text-teal-300 border border-brand-green/30 px-4 py-2.5 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Scan Case Sheet (AI OCR)</span>
+                      </button>
+
+                      {/* Option 2: Choose File */}
+                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
                         <Upload className="w-4 h-4 text-brand-green" />
-                        Choose File
+                        <span>Choose File</span>
                         <input
                           type="file"
                           id="file-input"
@@ -980,9 +1212,10 @@ PLAN:
                         />
                       </label>
 
-                      <label className="relative flex-grow flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
+                      {/* Option 3: Camera Capture */}
+                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
                         <Camera className="w-4 h-4 text-brand-green" />
-                        Take Photo
+                        <span>Take Photo</span>
                         <input
                           type="file"
                           accept="image/*"

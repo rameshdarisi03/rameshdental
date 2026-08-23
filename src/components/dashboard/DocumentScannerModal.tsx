@@ -61,7 +61,7 @@ interface DocumentScannerModalProps {
   onClose: () => void;
   documentType: "CLINICAL_ASSESSMENT" | "DOCTOR_PRESCRIPTION";
   patientName?: string;
-  onApply: (data: ScanResult, file?: File) => void;
+  onApply: (data: ScanResult, file?: File, previewUrl?: string) => void;
 }
 
 export default function DocumentScannerModal({
@@ -89,6 +89,18 @@ export default function DocumentScannerModal({
 
   const isPrescriptionMode = documentType === "DOCTOR_PRESCRIPTION";
 
+  const handleCloseAndReset = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setExtractedData(null);
+    setError(null);
+    setIsScanning(false);
+    setEditedSoapNote("");
+    setEditedSummary("");
+    setSelectedAlerts([]);
+    onClose();
+  };
+
   const compressImageForOCR = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -96,7 +108,7 @@ export default function DocumentScannerModal({
         const dataUrl = e.target?.result as string;
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1400;
+          const maxDim = 1200;
           let width = img.width;
           let height = img.height;
 
@@ -116,7 +128,7 @@ export default function DocumentScannerModal({
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const compressed = canvas.toDataURL("image/jpeg", 0.82);
+            const compressed = canvas.toDataURL("image/jpeg", 0.75);
             resolve(compressed);
           } else {
             resolve(dataUrl);
@@ -209,8 +221,8 @@ export default function DocumentScannerModal({
         : { summaryForRecord: editedSummary }),
     };
 
-    onApply(finalData, selectedFile || undefined);
-    onClose();
+    onApply(finalData, selectedFile || undefined, previewUrl || undefined);
+    handleCloseAndReset();
   };
 
   return (
@@ -226,28 +238,25 @@ export default function DocumentScannerModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  {isPrescriptionMode
-                    ? "Scan Doctor Referral / Prescription"
-                    : "Scan Handwritten Clinical Case Sheet"}
+                  {isPrescriptionMode ? "Scan Doctor Referral / Prescription" : "Scan Handwritten Clinical Case Sheet"}
                 </h3>
-                <span className="bg-brand-green/10 dark:bg-teal-500/20 text-brand-green dark:text-teal-400 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
                   Gemini AI Vision
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                {patientName ? `Patient: ${patientName} • ` : ""}
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {isPrescriptionMode
-                  ? "Transcribes diagnosis, referring doctor, restrictions, and pre-existing alerts."
-                  : "Transcribes VAS pain scores, ROM, tests, and standardizes SOAP notes."}
+                  ? `Patient: ${patientName || "Selected Patient"} • Transcribes diagnosis, referring doctor, restrictions, and pre-existing alerts.`
+                  : `Patient: ${patientName || "Selected Patient"} • Transcribes VAS pain scores, ROM, tests, and standardizes SOAP notes.`}
               </p>
             </div>
           </div>
 
           <button
-            onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            onClick={handleCloseAndReset}
+            className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -551,19 +560,23 @@ export default function DocumentScannerModal({
         {/* Modal Footer */}
         <div className="p-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
           <button
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+            type="button"
+            onClick={handleCloseAndReset}
+            className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
           >
             Cancel
           </button>
 
           {extractedData && (
             <button
+              type="button"
               onClick={handleConfirmApply}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               <Check className="h-4 w-4" />
-              Apply to Patient Record
+              <span>
+                {isPrescriptionMode ? "Save as Clinical PDF & Upload to Records" : "Apply SOAP Notes to Visit"}
+              </span>
             </button>
           )}
         </div>
