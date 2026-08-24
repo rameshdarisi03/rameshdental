@@ -274,12 +274,15 @@ export default function ExercisePrescriberModal({
     }
   };
   useEffect(() => {
+    if (!isOpen) return;
     const originalStyle = window.getComputedStyle(document.body).overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = originalStyle;
     };
-  }, []);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in">
