@@ -192,6 +192,13 @@ export default function Login() {
           </button>
         </form>
 
+        <div className="text-center pt-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold tracking-wider">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            BUILD: 2026.08.24-V9 (CLEAN ENGINE)
+          </span>
+        </div>
+
       </div>
     </div>
   );
