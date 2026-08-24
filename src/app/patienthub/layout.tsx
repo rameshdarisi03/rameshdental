@@ -91,7 +91,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
         setPatient(null);
         setCheckingAuth(false);
         if (pathname !== "/patienthub/login") {
-          router.push("/patienthub/login");
+          router.replace("/patienthub/login");
         }
         return;
       }
@@ -138,7 +138,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
           await auth.signOut();
           localStorage.removeItem("gpc_patient");
           setPatient(null);
-          router.push(`/patienthub/login?error=not_registered&email=${encodeURIComponent(firebaseUser.email || "")}`);
+          router.replace(`/patienthub/login?error=not_registered&email=${encodeURIComponent(firebaseUser.email || "")}`);
           return;
         }
 
@@ -154,7 +154,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
         await auth.signOut();
         localStorage.removeItem("gpc_patient");
         setPatient(null);
-        router.push("/patienthub/login?error=auth_failed");
+        router.replace("/patienthub/login?error=auth_failed");
       }
     });
 
@@ -166,7 +166,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("gpc_patient");
       setPatient(null);
       await auth.signOut();
-      router.push("/patienthub/login");
+      router.replace("/patienthub/login");
     } catch (err) {
       console.error("Sign out failed:", err);
     }

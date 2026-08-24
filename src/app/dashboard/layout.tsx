@@ -46,7 +46,7 @@ export default function DashboardLayout({
     // Check if user is logged in
     const userJson = localStorage.getItem("gpc_user");
     if (!userJson) {
-      router.push("/login");
+      router.replace("/login");
     } else {
       setUser(JSON.parse(userJson));
       setLoading(false);
@@ -58,10 +58,10 @@ export default function DashboardLayout({
       localStorage.removeItem("gpc_user");
       document.cookie = "gpc_session=; Max-Age=-99999999; path=/";
       await auth.signOut();
-      router.push("/login");
+      router.replace("/login");
     } catch (err) {
       console.error("Staff logout failed:", err);
-      router.push("/login");
+      router.replace("/login");
     }
   };
 

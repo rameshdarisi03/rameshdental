@@ -19,7 +19,7 @@ export default function Login() {
   useEffect(() => {
     const userJson = localStorage.getItem("gpc_user");
     if (userJson) {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
   }, [router]);
 
@@ -51,7 +51,7 @@ export default function Login() {
         localStorage.setItem("gpc_user", JSON.stringify(userSession));
         // Set session cookie matching role
         document.cookie = `gpc_session=${userSession.role}; path=/`;
-        router.push("/dashboard");
+        router.replace("/dashboard");
       } else {
         setError("Access Denied. Your profile was not found in the staff database.");
         setLoading(false);
@@ -86,7 +86,7 @@ export default function Login() {
           // Save user session
           localStorage.setItem("gpc_user", JSON.stringify(profile));
           document.cookie = `gpc_session=${defaultRole}; path=/`;
-          router.push("/dashboard");
+          router.replace("/dashboard");
           return;
         } catch (createErr: any) {
           console.error("Auto bootstrap registration failed: ", createErr);

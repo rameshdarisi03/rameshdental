@@ -184,7 +184,7 @@ function LoginContent() {
         localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
       }
 
-      router.push("/patienthub/dashboard");
+      router.replace("/patienthub/dashboard");
     } catch (err: any) {
       console.error("Google Auth failed:", err);
       if (err.code !== "auth/popup-closed-by-user") {
@@ -253,7 +253,7 @@ function LoginContent() {
         localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
       }
 
-      router.push("/patienthub/dashboard");
+      router.replace("/patienthub/dashboard");
     } catch (err: any) {
       console.error("Linking Google account failed:", err);
       setError(err.message || "Failed to link Google account.");
@@ -400,7 +400,7 @@ function LoginContent() {
         }
       }
       
-      router.push("/patienthub/dashboard");
+      router.replace("/patienthub/dashboard");
     } catch (err: any) {
       console.error("Email authentication failed:", err);
       if (err.code === "auth/email-already-in-use") {
@@ -417,7 +417,7 @@ function LoginContent() {
   // If Patient Hub is disabled in features configuration
   useEffect(() => {
     if (!FEATURES.enablePatientHub) {
-      router.push("/");
+      router.replace("/");
     }
   }, [router]);
 
