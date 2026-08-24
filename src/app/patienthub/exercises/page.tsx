@@ -32,6 +32,8 @@ import {
   Flame
 } from "lucide-react";
 
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
+
 interface DisplayExercise {
   id: string;
   title: string;
@@ -71,7 +73,7 @@ const DEFAULT_EXERCISES: DisplayExercise[] = [
 export default function ExercisesPage() {
   return (
     <Suspense fallback={
-      <div className="flex h-[60vh] items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
         <Loader2 className="h-8 w-8 animate-spin text-brand-green" />
       </div>
     }>
@@ -83,10 +85,10 @@ export default function ExercisesPage() {
 function ExercisesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { patient, loading: authLoading } = usePatientAuth();
   
   const videoParam = searchParams.get("video");
 
-  const [patient, setPatient] = useState<any | null>(null);
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
   const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
   const [activeVideo, setActiveVideo] = useState<string>(DEFAULT_EXERCISES[0].youtubeId);
@@ -98,6 +100,11 @@ function ExercisesContent() {
   const [markingDay, setMarkingDay] = useState(false);
 
   useEffect(() => {
+    if (!patient || !patient.id) {
+      if (!authLoading) setLoading(false);
+      return;
+    }
+
     let rxUnsub = () => {};
     let libUnsub = () => {};
     let progUnsub = () => {};
@@ -132,89 +139,31 @@ function ExercisesContent() {
       }
     };
 
-    const attachPatientListeners = (patientObj: any) => {
-      // 1. Subscribe to Live Exercise Library
-      libUnsub();
-      libUnsub = subscribeExerciseLibrary((liveLibrary) => {
-        currentLib = liveLibrary;
-        syncExercises();
-      });
-
-      // 2. Subscribe to Live Patient Prescription
-      rxUnsub();
-      rxUnsub = subscribePatientPrescription(patientObj.id, (rxData) => {
-        currentRx = rxData;
-        setPrescription(rxData);
-        syncExercises();
-
-        // 3. Subscribe to Live Workout Progress
-        progUnsub();
-        progUnsub = subscribePatientWorkoutProgress(patientObj.id, rxData, (newProg) => {
-          setProgress(newProg);
-          setLocalCompletedIds(null);
-        });
-      });
-    };
-
-    const localData = localStorage.getItem("gpc_patient");
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData);
-        setPatient(parsed);
-        setLoading(false);
-        attachPatientListeners(parsed);
-      } catch (e) {}
-    }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const freshCache = localStorage.getItem("gpc_patient");
-        if (freshCache) {
-          try {
-            const parsed = JSON.parse(freshCache);
-            if (parsed.email?.toLowerCase() === user.email?.toLowerCase() || parsed.authUid === user.uid) {
-              setPatient(parsed);
-              setLoading(false);
-              attachPatientListeners(parsed);
-              return;
-            }
-          } catch (e) {}
-        }
-
-        try {
-          let matchedDoc: any = null;
-          const q1 = query(collection(db, "patients"), where("email", "==", user.email));
-          const snap1 = await getDocs(q1);
-          if (!snap1.empty) matchedDoc = snap1.docs[0];
-
-          if (!matchedDoc && user.uid) {
-            const q3 = query(collection(db, "patients"), where("authUid", "==", user.uid));
-            const snap3 = await getDocs(q3);
-            if (!snap3.empty) matchedDoc = snap3.docs[0];
-          }
-
-          if (matchedDoc) {
-            const matched = { ...matchedDoc.data(), id: matchedDoc.id } as any;
-            setPatient(matched);
-            localStorage.setItem("gpc_patient", JSON.stringify(matched));
-            attachPatientListeners(matched);
-          }
-        } catch (err) {
-          console.warn("Failed to load exercises notice:", err);
-        }
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
+    libUnsub = subscribeExerciseLibrary((liveLibrary) => {
+      currentLib = liveLibrary;
+      syncExercises();
     });
 
+    rxUnsub = subscribePatientPrescription(patient.id, (rxData) => {
+      currentRx = rxData;
+      setPrescription(rxData);
+      syncExercises();
+
+      progUnsub();
+      progUnsub = subscribePatientWorkoutProgress(patient.id!, rxData, (newProg) => {
+        setProgress(newProg);
+        setLocalCompletedIds(null);
+      });
+    });
+
+    setLoading(false);
+
     return () => {
-      unsubscribe();
       rxUnsub();
       libUnsub();
       progUnsub();
     };
-  }, [videoParam]);
+  }, [patient, authLoading, videoParam]);
 
   const todayStr = getLocalDateString();
   const todayLog = progress?.dailyLogs?.[todayStr];

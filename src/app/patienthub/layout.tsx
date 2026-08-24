@@ -2,9 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { Patient } from "@/lib/patientsDb";
+import { PatientAuthProvider, usePatientAuth } from "@/providers/PatientAuthProvider";
 import Link from "next/link";
 import { 
   Activity, 
@@ -21,27 +19,29 @@ import {
   Moon
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
+
 export default function PatientHubLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <Suspense fallback={
-      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-green" />
-      </div>
-    }>
-      <PatientHubContent>{children}</PatientHubContent>
-    </Suspense>
+    <PatientAuthProvider>
+      <Suspense fallback={
+        <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+          <Loader2 className="h-8 w-8 animate-spin text-brand-green" />
+        </div>
+      }>
+        <PatientHubContent>{children}</PatientHubContent>
+      </Suspense>
+    </PatientAuthProvider>
   );
 }
 
 function PatientHubContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const { patient, loading, logout } = usePatientAuth();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -63,122 +63,28 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    // 1. Instant Fast Path: Hydrate from verified local session immediately (0ms flash)
-    try {
-      const cached = localStorage.getItem("gpc_patient");
-      if (cached) {
-        setPatient(JSON.parse(cached));
-        setCheckingAuth(false);
-      }
-    } catch (e) {}
-
-    // 2. Stable Global Firebase Auth Listener (runs once on mount)
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (!firebaseUser) {
-        localStorage.removeItem("gpc_patient");
-        setPatient(null);
-        setCheckingAuth(false);
-        return;
-      }
-
-      try {
-        let matchedDoc: any = null;
-
-        // 1. Try exact email match
-        const q1 = query(collection(db, "patients"), where("email", "==", firebaseUser.email));
-        const snap1 = await getDocs(q1);
-        if (!snap1.empty) {
-          matchedDoc = snap1.docs[0];
-        }
-
-        // 2. Try lowercase email match
-        if (!matchedDoc && firebaseUser.email) {
-          const q2 = query(collection(db, "patients"), where("email", "==", firebaseUser.email.toLowerCase()));
-          const snap2 = await getDocs(q2);
-          if (!snap2.empty) matchedDoc = snap2.docs[0];
-        }
-
-        // 3. Try authUid match
-        if (!matchedDoc && firebaseUser.uid) {
-          const q3 = query(collection(db, "patients"), where("authUid", "==", firebaseUser.uid));
-          const snap3 = await getDocs(q3);
-          if (!snap3.empty) matchedDoc = snap3.docs[0];
-        }
-
-        // 4. Fallback scan all patients for case-insensitive trim
-        if (!matchedDoc && firebaseUser.email) {
-          const allSnap = await getDocs(collection(db, "patients"));
-          const target = firebaseUser.email.trim().toLowerCase();
-          for (const d of allSnap.docs) {
-            const emailVal = d.data().email;
-            if (emailVal && emailVal.trim().toLowerCase() === target) {
-              matchedDoc = d;
-              break;
-            }
-          }
-        }
-
-        if (!matchedDoc) {
-          // Access Denied: Not registered as a patient
-          localStorage.removeItem("gpc_patient");
-          setPatient(null);
-          setCheckingAuth(false);
-          await auth.signOut();
-          return;
-        }
-
-        const docData = matchedDoc.data();
-        const matchedPatient = { ...docData, id: matchedDoc.id } as Patient;
-        setPatient(matchedPatient);
-        
-        // Cache user info in localStorage for instant offline access
-        localStorage.setItem("gpc_patient", JSON.stringify(matchedPatient));
-        setCheckingAuth(false);
-      } catch (err) {
-        console.error("Patient validation error:", err);
-        setCheckingAuth(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // 3. Dedicated Clean Route Protection Guard (TenoPilot pattern)
+  // Dedicated Clean Route Protection Guard (TenoPilot pattern)
   useEffect(() => {
     if (!FEATURES.enablePatientHub) {
       router.replace("/");
       return;
     }
 
-    if (checkingAuth) return;
+    if (loading) return;
 
     if (!patient && pathname !== "/patienthub/login") {
       router.replace("/patienthub/login");
     } else if (patient && pathname === "/patienthub/login") {
       router.replace("/patienthub/dashboard");
     }
-  }, [checkingAuth, patient, pathname, router]);
+  }, [loading, patient, pathname, router]);
 
-  const handleLogout = async () => {
-    try {
-      localStorage.removeItem("gpc_patient");
-      setPatient(null);
-      setCheckingAuth(false);
-      await auth.signOut();
-      router.replace("/patienthub/login");
-    } catch (err) {
-      console.error("Sign out failed:", err);
-      router.replace("/patienthub/login");
-    }
-  };
-
-  // Render clean children directly during auth check for login page
+  // Render clean children directly for login page
   if (pathname === "/patienthub/login") {
     return <div className="min-h-screen">{children}</div>;
   }
 
-  if (checkingAuth) {
+  if (loading && !patient) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[#062e36] text-white">
         <div className="text-center space-y-4 animate-fade-in flex flex-col items-center">
@@ -325,7 +231,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
             </Link>
 
             <button 
-              onClick={handleLogout}
+              onClick={logout}
               className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full text-red-500 transition-colors cursor-pointer"
               title="Logout"
             >

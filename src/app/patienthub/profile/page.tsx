@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { Patient } from "@/lib/patientsDb";
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
 import { useRouter } from "next/navigation";
 import { 
   User, 
@@ -24,8 +22,7 @@ import {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { patient, loading, logout } = usePatientAuth();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -33,44 +30,7 @@ export default function ProfilePage() {
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
     }
-
-    const localData = localStorage.getItem("gpc_patient");
-    if (localData) {
-      setPatient(JSON.parse(localData));
-      setLoading(false);
-    }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const q = query(collection(db, "patients"), where("email", "==", user.email));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as Patient;
-            setPatient(matched);
-            localStorage.setItem("gpc_patient", JSON.stringify(matched));
-          }
-        } catch (err) {
-          console.error("Failed to sync patient profile:", err);
-        }
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      localStorage.removeItem("gpc_patient");
-      setPatient(null);
-      await auth.signOut();
-      router.replace("/patienthub/login");
-    } catch (err) {
-      console.error("Sign out failed:", err);
-      router.replace("/patienthub/login");
-    }
-  };
 
   const toggleTheme = () => {
     const root = document.documentElement;
@@ -210,7 +170,7 @@ export default function ProfilePage() {
 
       {/* Log out primary trigger button */}
       <button
-        onClick={handleLogout}
+        onClick={logout}
         className="w-full inline-flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 py-3.5 rounded-full text-xs font-bold uppercase transition-all shadow-xs cursor-pointer border border-red-200/50"
       >
         <LogOut className="h-4 w-4" />

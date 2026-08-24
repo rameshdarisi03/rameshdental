@@ -31,9 +31,11 @@ const STANDARD_SLOTS = [
   "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM"
 ];
 
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
+
 export default function AppointmentsPage() {
   const router = useRouter();
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const { patient, loading: authLoading } = usePatientAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -55,82 +57,28 @@ export default function AppointmentsPage() {
     const dd = String(tomorrow.getDate()).padStart(2, "0");
     setBookingDate(`${yyyy}-${mm}-${dd}`);
 
-    const localData = localStorage.getItem("gpc_patient");
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData);
-        setPatient(parsed);
-        if (parsed.email) {
-          const qApps = query(
-            collection(db, "appointments"),
-            where("patientEmail", "==", parsed.email)
-          );
-          getDocs(qApps).then((snapApps) => {
-            const list: Appointment[] = [];
-            snapApps.forEach((doc) => {
-              list.push({ id: doc.id, ...doc.data() } as Appointment);
-            });
-            list.sort((a, b) => b.date.localeCompare(a.date));
-            setAppointments(list);
-            setLoading(false);
-          }).catch(() => setLoading(false));
-        }
-      } catch (e) {
-        setLoading(false);
-      }
+    if (!patient || !patient.email) {
+      if (!authLoading) setLoading(false);
+      return;
     }
 
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const freshCache = localStorage.getItem("gpc_patient");
-        if (freshCache) {
-          try {
-            const parsed = JSON.parse(freshCache);
-            if (parsed.email?.toLowerCase() === user.email?.toLowerCase() || parsed.authUid === user.uid) {
-              setPatient(parsed);
-              setLoading(false);
-              return;
-            }
-          } catch (e) {}
-        }
-
-        try {
-          // 1. Sync patient details
-          const qPatient = query(collection(db, "patients"), where("email", "==", user.email));
-          const snapPatient = await getDocs(qPatient);
-          let currentPatient: Patient | null = null;
-          
-          if (!snapPatient.empty) {
-            currentPatient = { id: snapPatient.docs[0].id, ...snapPatient.docs[0].data() } as Patient;
-            setPatient(currentPatient);
-            localStorage.setItem("gpc_patient", JSON.stringify(currentPatient));
-          }
-
-          if (currentPatient) {
-            // 2. Fetch history of appointments for this patient phone or email
-            const qApps = query(
-              collection(db, "appointments"),
-              where("patientEmail", "==", currentPatient.email)
-            );
-            const snapApps = await getDocs(qApps);
-            const list: Appointment[] = [];
-            snapApps.forEach((doc) => {
-              list.push({ id: doc.id, ...doc.data() } as Appointment);
-            });
-            
-            // Sort by date (descending)
-            list.sort((a, b) => b.date.localeCompare(a.date));
-            setAppointments(list);
-          }
-        } catch (err) {
-          console.warn("Failed to load patient appointments notice:", err);
-        }
-      }
+    const qApps = query(
+      collection(db, "appointments"),
+      where("patientEmail", "==", patient.email)
+    );
+    getDocs(qApps).then((snapApps) => {
+      const list: Appointment[] = [];
+      snapApps.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as Appointment);
+      });
+      list.sort((a, b) => b.date.localeCompare(a.date));
+      setAppointments(list);
+      setLoading(false);
+    }).catch((err) => {
+      console.warn("Failed to load appointments:", err);
       setLoading(false);
     });
-
-    return () => unsubscribe();
-  }, []);
+  }, [patient, authLoading]);
 
   const handleBookSession = async (e: React.FormEvent) => {
     e.preventDefault();

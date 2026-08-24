@@ -23,9 +23,10 @@ import {
   Pill,
   CheckCircle2
 } from "lucide-react";
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
 
 export default function RecordsPage() {
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const { patient, loading: authLoading } = usePatientAuth();
   const [activeTab, setActiveTab] = useState<"invoices" | "prescriptions">("prescriptions");
   const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
   const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
@@ -35,64 +36,29 @@ export default function RecordsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!patient || !patient.id) {
+      if (!authLoading) setLoading(false);
+      return;
+    }
+
     let invUnsub = () => {};
     let rxUnsub = () => {};
 
-    const localData = localStorage.getItem("gpc_patient");
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData);
-        setPatient(parsed);
-        loadPatientRecords(parsed.id);
-        if (parsed.email) {
-          invUnsub = subscribePatientInvoices(parsed.email, setInvoices);
-        }
-        rxUnsub = subscribePatientPrescription(parsed.id, (rx) => {
-          setActivePrescription(rx);
-        });
-      } catch (e) {}
+    loadPatientRecords(patient.id);
+    if (patient.email) {
+      invUnsub = subscribePatientInvoices(patient.email, setInvoices);
     }
-
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user && user.email) {
-        const freshCache = localStorage.getItem("gpc_patient");
-        if (freshCache) {
-          try {
-            const parsed = JSON.parse(freshCache);
-            if (parsed.email?.toLowerCase() === user.email.toLowerCase() || parsed.authUid === user.uid) {
-              setPatient(parsed);
-              setLoading(false);
-              return;
-            }
-          } catch (e) {}
-        }
-
-        try {
-          const q = query(collection(db, "patients"), where("email", "==", user.email));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            const matched = { id: snap.docs[0].id, ...snap.docs[0].data() } as Patient;
-            setPatient(matched);
-            localStorage.setItem("gpc_patient", JSON.stringify(matched));
-            loadPatientRecords(matched.id!);
-            invUnsub = subscribePatientInvoices(matched.email, setInvoices);
-            rxUnsub = subscribePatientPrescription(matched.id!, (rx) => {
-              setActivePrescription(rx);
-            });
-          }
-        } catch (err) {
-          console.warn("Failed to sync records notice:", err);
-        }
-      }
-      setLoading(false);
+    rxUnsub = subscribePatientPrescription(patient.id, (rx) => {
+      setActivePrescription(rx);
     });
 
+    setLoading(false);
+
     return () => {
-      unsubscribe();
       invUnsub();
       rxUnsub();
     };
-  }, []);
+  }, [patient, authLoading]);
 
   const loadPatientRecords = async (patientId: string) => {
     try {

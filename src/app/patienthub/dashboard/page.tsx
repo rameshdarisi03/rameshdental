@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
 
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
+
 interface DisplayExercise {
   id?: string;
   title: string;
@@ -70,7 +72,7 @@ const DEFAULT_EXERCISES: DisplayExercise[] = [
 ];
 
 export default function DashboardPage() {
-  const [patient, setPatient] = useState<any | null>(null);
+  const { patient, loading: authLoading } = usePatientAuth();
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
   const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
@@ -79,6 +81,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!patient || !patient.id) {
+      if (!authLoading) setLoading(false);
+      return;
+    }
+
     let invUnsub = () => {};
     let rxUnsub = () => {};
     let libUnsub = () => {};
@@ -109,92 +116,33 @@ export default function DashboardPage() {
       setExercises(mapped);
     };
 
-    const attachPatientListeners = (patientObj: any) => {
-      if (patientObj.email) {
-        invUnsub();
-        invUnsub = subscribePatientInvoices(patientObj.email, setPatientInvoices);
-      }
-
-      // 1. Subscribe to Live Exercise Library
-      libUnsub();
-      libUnsub = subscribeExerciseLibrary((liveLibrary) => {
-        currentLib = liveLibrary;
-        syncExercises();
-      });
-
-      // 2. Subscribe to Live Patient Prescription
-      rxUnsub();
-      rxUnsub = subscribePatientPrescription(patientObj.id, (rxData) => {
-        currentRx = rxData;
-        setPrescription(rxData);
-        syncExercises();
-
-        // 3. Subscribe to Live Workout Progress
-        progUnsub();
-        progUnsub = subscribePatientWorkoutProgress(patientObj.id, rxData, setProgress);
-      });
-    };
-
-    const localData = localStorage.getItem("gpc_patient");
-    if (localData) {
-      try {
-        const parsed = JSON.parse(localData);
-        setPatient(parsed);
-        setLoading(false);
-        attachPatientListeners(parsed);
-      } catch (e) {}
+    if (patient.email) {
+      invUnsub = subscribePatientInvoices(patient.email, setPatientInvoices);
     }
 
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        const freshCache = localStorage.getItem("gpc_patient");
-        if (freshCache) {
-          try {
-            const parsed = JSON.parse(freshCache);
-            if (parsed.email?.toLowerCase() === user.email?.toLowerCase() || parsed.authUid === user.uid) {
-              setPatient(parsed);
-              setLoading(false);
-              attachPatientListeners(parsed);
-              return;
-            }
-          } catch (e) {}
-        }
-
-        try {
-          let matchedDoc: any = null;
-          const q1 = query(collection(db, "patients"), where("email", "==", user.email));
-          const snap1 = await getDocs(q1);
-          if (!snap1.empty) matchedDoc = snap1.docs[0];
-
-          if (!matchedDoc && user.uid) {
-            const q3 = query(collection(db, "patients"), where("authUid", "==", user.uid));
-            const snap3 = await getDocs(q3);
-            if (!snap3.empty) matchedDoc = snap3.docs[0];
-          }
-
-          if (matchedDoc) {
-            const matched = { ...matchedDoc.data(), id: matchedDoc.id } as any;
-            setPatient(matched);
-            localStorage.setItem("gpc_patient", JSON.stringify(matched));
-            attachPatientListeners(matched);
-          }
-        } catch (err) {
-          console.warn("Failed to sync patient details notice:", err);
-        }
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
+    libUnsub = subscribeExerciseLibrary((liveLibrary) => {
+      currentLib = liveLibrary;
+      syncExercises();
     });
 
+    rxUnsub = subscribePatientPrescription(patient.id, (rxData) => {
+      currentRx = rxData;
+      setPrescription(rxData);
+      syncExercises();
+
+      progUnsub();
+      progUnsub = subscribePatientWorkoutProgress(patient.id!, rxData, setProgress);
+    });
+
+    setLoading(false);
+
     return () => {
-      unsubscribe();
       invUnsub();
       rxUnsub();
       libUnsub();
       progUnsub();
     };
-  }, []);
+  }, [patient, authLoading]);
 
   if (loading) {
     return (

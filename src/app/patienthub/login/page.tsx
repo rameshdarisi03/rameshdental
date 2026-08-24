@@ -3,14 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
-} from "firebase/auth";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
 import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode, Monitor, X } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
@@ -26,15 +19,21 @@ export default function LoginPage() {
   );
 }
 
-interface PendingGoogleUser {
-  email: string;
-  uid: string;
-  displayName: string;
-}
-
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const {
+    patient,
+    loading: authLoading,
+    error: authError,
+    setError: setAuthError,
+    pendingGoogle,
+    setPendingGoogle,
+    loginWithGoogle,
+    linkGoogleWithActivationCode,
+    loginWithEmail,
+    signUpWithCode
+  } = usePatientAuth();
   
   const errorParam = searchParams.get("error");
   const emailParam = searchParams.get("email");
@@ -43,7 +42,7 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [activationCode, setActivationCode] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // PWA Native Install Prompt handling
@@ -53,22 +52,17 @@ function LoginContent() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [installInstructions, setInstallInstructions] = useState<string | null>(null);
 
-  // Pending Google Account state for linking
-  const [pendingGoogle, setPendingGoogle] = useState<PendingGoogleUser | null>(null);
-
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
       setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
       
-      // If the prompt already fired and was captured globally in RootLayout
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
         setIsInstallable(true);
       }
     }
 
-    // Listen for browser PWA install trigger
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -100,7 +94,6 @@ function LoginContent() {
       }
     }
 
-    // Fallback: If browser doesn't trigger beforeinstallprompt (e.g. iOS Safari, Chrome on iOS, or already installed)
     const ua = navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(ua);
     const isAndroid = /android/.test(ua);
@@ -128,289 +121,73 @@ function LoginContent() {
     }
   }, [errorParam, emailParam]);
 
+  // Sync auth context error
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
+
   const handleGoogleLogin = async () => {
     setError("");
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // 1. Look up patient matching email
-      const q = query(collection(db, "patients"), where("email", "==", user.email));
-      const snap = await getDocs(q);
-      let matchedDoc: any = null;
-      if (!snap.empty) {
-        matchedDoc = snap.docs[0];
-      } else if (user.email) {
-        const q2 = query(collection(db, "patients"), where("email", "==", user.email.toLowerCase()));
-        const snap2 = await getDocs(q2);
-        if (!snap2.empty) matchedDoc = snap2.docs[0];
-      }
+    setIsSubmitting(true);
+    const result = await loginWithGoogle();
+    setIsSubmitting(false);
 
-      if (!matchedDoc && user.email) {
-        const allSnap = await getDocs(collection(db, "patients"));
-        const target = user.email.trim().toLowerCase();
-        for (const d of allSnap.docs) {
-          if (d.data().email?.trim().toLowerCase() === target) {
-            matchedDoc = d;
-            break;
-          }
-        }
-      }
-
-      if (!matchedDoc) {
-        // Not registered - prompt them for Activation Code to link this Google login
-        setPendingGoogle({
-          email: user.email || "",
-          uid: user.uid,
-          displayName: user.displayName || "Patient"
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Patient found - update UID link and save session
-      const patientDoc = matchedDoc;
-      const patientData = patientDoc.data();
-      const sessionObj = { ...patientData, id: patientDoc.id };
-
-      await updateDoc(doc(db, "patients", patientDoc.id), {
-        authUid: user.uid,
-        activated: true
-      });
-
+    if (result.success) {
       if (typeof window !== "undefined") {
-        localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
+        window.location.href = "/patienthub/dashboard";
       }
-
-      router.replace("/patienthub/dashboard");
-    } catch (err: any) {
-      console.error("Google Auth failed:", err);
-      if (err.code !== "auth/popup-closed-by-user") {
-        setError(err.message || "Failed to log in with Google.");
-      }
-      setLoading(false);
     }
   };
 
   const handleGoogleLinkActivation = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setIsSubmitting(true);
 
-    if (!activationCode || !pendingGoogle) {
-      setError("Please enter your activation code.");
-      setLoading(false);
-      return;
-    }
+    const result = await linkGoogleWithActivationCode(activationCode);
+    setIsSubmitting(false);
 
-    try {
-      // Find patient matching activation code
-      const cleanCode = activationCode.trim().toUpperCase();
-      let matchedDoc: any = null;
-      const q = query(collection(db, "patients"), where("activationCode", "==", cleanCode));
-      const snap = await getDocs(q);
-
-      if (!snap.empty) {
-        matchedDoc = snap.docs[0];
-      } else {
-        const allSnap = await getDocs(collection(db, "patients"));
-        for (const d of allSnap.docs) {
-          const data = d.data();
-          if (data.activationCode?.trim().toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode) {
-            matchedDoc = d;
-            break;
-          }
-        }
-      }
-
-      if (!matchedDoc) {
-        setError("Invalid activation code. Please check with your clinic receptionist.");
-        setLoading(false);
-        return;
-      }
-
-      const patientDoc = matchedDoc;
-      const patientData = patientDoc.data();
-      const sessionObj = {
-        ...patientData,
-        id: patientDoc.id,
-        email: pendingGoogle.email.toLowerCase().trim(),
-        authUid: pendingGoogle.uid,
-        activated: true
-      };
-      
-      // Update patient doc to link Google account details
-      await updateDoc(doc(db, "patients", patientDoc.id), {
-        email: pendingGoogle.email.toLowerCase().trim(),
-        authUid: pendingGoogle.uid,
-        activated: true,
-        activationCode: "" // clear code so it cannot be used again
-      });
-
+    if (result.success) {
       if (typeof window !== "undefined") {
-        localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
+        window.location.href = "/patienthub/dashboard";
       }
-
-      router.replace("/patienthub/dashboard");
-    } catch (err: any) {
-      console.error("Linking Google account failed:", err);
-      setError(err.message || "Failed to link Google account.");
-      setLoading(false);
     }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setIsSubmitting(true);
 
     if (!email || !password) {
       setError("Please fill in email and password fields.");
-      setLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
-    try {
-      if (isSignUp) {
-        // Sign Up Mode:
-        if (!activationCode) {
-          setError("Activation code is required for initial sign-up.");
-          setLoading(false);
-          return;
-        }
-
-        // 1. Create the Firebase Auth account first to get authenticated state
-        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-
-        // 2. Query Firestore now that we are authenticated
-        try {
-          const cleanCode = activationCode.trim().toUpperCase();
-          let matchedDoc: any = null;
-          const q = query(
-            collection(db, "patients"), 
-            where("activationCode", "==", cleanCode)
-          );
-          const snap = await getDocs(q);
-
-          if (!snap.empty) {
-            matchedDoc = snap.docs[0];
-          } else {
-            const allSnap = await getDocs(collection(db, "patients"));
-            for (const d of allSnap.docs) {
-              const data = d.data();
-              if (data.activationCode?.trim().toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode) {
-                matchedDoc = d;
-                break;
-              }
-            }
-          }
-
-          if (!matchedDoc) {
-            // Invalid activation code: delete the newly created auth user to prevent orphaned accounts
-            if (auth.currentUser) {
-              await auth.currentUser.delete();
-            }
-            await auth.signOut();
-            setError("Invalid activation code. Please contact the front desk to get a valid code.");
-            setLoading(false);
-            return;
-          }
-
-          const patientDoc = matchedDoc;
-          const patientData = patientDoc.data();
-          const sessionObj = {
-            ...patientData,
-            id: patientDoc.id,
-            email: email.trim().toLowerCase(),
-            authUid: cred.user.uid,
-            activated: true
-          };
-
-          // Link and activate patient record
-          await updateDoc(doc(db, "patients", patientDoc.id), {
-            email: email.trim().toLowerCase(),
-            authUid: cred.user.uid,
-            activated: true,
-            activationCode: "" // clear activation code
-          });
-
-          if (typeof window !== "undefined") {
-            localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
-          }
-        } catch (dbErr: any) {
-          console.error("Database linking error during signup:", dbErr);
-          if (auth.currentUser) {
-            await auth.currentUser.delete();
-          }
-          await auth.signOut();
-          throw dbErr;
-        }
-      } else {
-        // Sign In Mode:
-        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-
-        try {
-          let matchedDoc: any = null;
-          const target = email.trim().toLowerCase();
-          const q1 = query(collection(db, "patients"), where("email", "==", email.trim()));
-          const snap1 = await getDocs(q1);
-          if (!snap1.empty) matchedDoc = snap1.docs[0];
-
-          if (!matchedDoc) {
-            const q2 = query(collection(db, "patients"), where("email", "==", target));
-            const snap2 = await getDocs(q2);
-            if (!snap2.empty) matchedDoc = snap2.docs[0];
-          }
-
-          if (!matchedDoc) {
-            const allSnap = await getDocs(collection(db, "patients"));
-            for (const d of allSnap.docs) {
-              if (d.data().email?.trim().toLowerCase() === target) {
-                matchedDoc = d;
-                break;
-              }
-            }
-          }
-
-          if (!matchedDoc) {
-            await auth.signOut();
-            setError("This email address is not registered as a patient. Sign up with an activation code first.");
-            setLoading(false);
-            return;
-          }
-          
-          const patientDoc = matchedDoc;
-          const sessionObj = { ...patientDoc.data(), id: patientDoc.id };
-
-          if (!patientDoc.data().authUid) {
-            await updateDoc(doc(db, "patients", patientDoc.id), {
-              authUid: cred.user.uid
-            });
-          }
-
-          if (typeof window !== "undefined") {
-            localStorage.setItem("gpc_patient", JSON.stringify(sessionObj));
-          }
-        } catch (dbErr: any) {
-          console.error("Database lookup error during signin:", dbErr);
-          await auth.signOut();
-          throw dbErr;
+    if (isSignUp) {
+      if (!activationCode) {
+        setError("Activation code is required for initial sign-up.");
+        setIsSubmitting(false);
+        return;
+      }
+      const result = await signUpWithCode(email, password, activationCode);
+      setIsSubmitting(false);
+      if (result.success) {
+        if (typeof window !== "undefined") {
+          window.location.href = "/patienthub/dashboard";
         }
       }
-      
-      router.replace("/patienthub/dashboard");
-    } catch (err: any) {
-      console.error("Email authentication failed:", err);
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered in our system. Try signing in.");
-      } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
-        setError("Invalid email or password. Please verify and try again.");
-      } else {
-        setError(err.message || "Authentication failed.");
+    } else {
+      const result = await loginWithEmail(email, password);
+      setIsSubmitting(false);
+      if (result.success) {
+        if (typeof window !== "undefined") {
+          window.location.href = "/patienthub/dashboard";
+        }
       }
-      setLoading(false);
     }
   };
 
@@ -420,6 +197,8 @@ function LoginContent() {
       router.replace("/");
     }
   }, [router]);
+
+  const loading = isSubmitting || authLoading;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 sm:px-6 bg-[#F9F9F7] dark:bg-[#062e36] text-[#1A1C1B] dark:text-white relative gap-6 font-['Inter',sans-serif]">
