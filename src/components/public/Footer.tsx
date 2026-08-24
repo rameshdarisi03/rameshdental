@@ -6,10 +6,15 @@ import { usePathname } from "next/navigation";
 import { Activity, Phone, Mail, MapPin, Clock } from "lucide-react";
 
 export default function Footer() {
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
-  const isPortalSubroute = pathname?.startsWith("/dashboard") || (pathname?.startsWith("/patienthub") && pathname !== "/patienthub/login");
-  if (isPortalSubroute) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isPortalSubroute = pathname?.startsWith("/dashboard") || pathname?.startsWith("/patienthub") || pathname === "/login";
+  if (!mounted || isPortalSubroute) {
     return null;
   }
 

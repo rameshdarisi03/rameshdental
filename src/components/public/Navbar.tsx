@@ -7,11 +7,13 @@ import { Menu, X, Activity, Phone, Moon, Sun } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function Navbar() {
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
     }
@@ -30,8 +32,8 @@ export default function Navbar() {
     }
   };
 
-  const isPortalSubroute = pathname?.startsWith("/dashboard") || (pathname?.startsWith("/patienthub") && pathname !== "/patienthub/login");
-  if (isPortalSubroute) {
+  const isPortalSubroute = pathname?.startsWith("/dashboard") || pathname?.startsWith("/patienthub") || pathname === "/login";
+  if (!mounted || isPortalSubroute) {
     return null;
   }
 
