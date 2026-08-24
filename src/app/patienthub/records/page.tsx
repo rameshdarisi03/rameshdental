@@ -40,19 +40,33 @@ export default function RecordsPage() {
 
     const localData = localStorage.getItem("gpc_patient");
     if (localData) {
-      const parsed = JSON.parse(localData);
-      setPatient(parsed);
-      loadPatientRecords(parsed.id);
-      if (parsed.email) {
-        invUnsub = subscribePatientInvoices(parsed.email, setInvoices);
-      }
-      rxUnsub = subscribePatientPrescription(parsed.id, (rx) => {
-        setActivePrescription(rx);
-      });
+      try {
+        const parsed = JSON.parse(localData);
+        setPatient(parsed);
+        loadPatientRecords(parsed.id);
+        if (parsed.email) {
+          invUnsub = subscribePatientInvoices(parsed.email, setInvoices);
+        }
+        rxUnsub = subscribePatientPrescription(parsed.id, (rx) => {
+          setActivePrescription(rx);
+        });
+      } catch (e) {}
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && user.email) {
+        const freshCache = localStorage.getItem("gpc_patient");
+        if (freshCache) {
+          try {
+            const parsed = JSON.parse(freshCache);
+            if (parsed.email?.toLowerCase() === user.email.toLowerCase() || parsed.authUid === user.uid) {
+              setPatient(parsed);
+              setLoading(false);
+              return;
+            }
+          } catch (e) {}
+        }
+
         try {
           const q = query(collection(db, "patients"), where("email", "==", user.email));
           const snap = await getDocs(q);
@@ -67,7 +81,7 @@ export default function RecordsPage() {
             });
           }
         } catch (err) {
-          console.error("Failed to sync records:", err);
+          console.warn("Failed to sync records notice:", err);
         }
       }
       setLoading(false);

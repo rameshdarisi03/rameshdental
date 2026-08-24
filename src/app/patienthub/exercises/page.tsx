@@ -158,42 +158,39 @@ function ExercisesContent() {
 
     const localData = localStorage.getItem("gpc_patient");
     if (localData) {
-      const parsed = JSON.parse(localData);
-      setPatient(parsed);
-      setLoading(false);
-      attachPatientListeners(parsed);
+      try {
+        const parsed = JSON.parse(localData);
+        setPatient(parsed);
+        setLoading(false);
+        attachPatientListeners(parsed);
+      } catch (e) {}
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
+        const freshCache = localStorage.getItem("gpc_patient");
+        if (freshCache) {
+          try {
+            const parsed = JSON.parse(freshCache);
+            if (parsed.email?.toLowerCase() === user.email?.toLowerCase() || parsed.authUid === user.uid) {
+              setPatient(parsed);
+              setLoading(false);
+              attachPatientListeners(parsed);
+              return;
+            }
+          } catch (e) {}
+        }
+
         try {
           let matchedDoc: any = null;
           const q1 = query(collection(db, "patients"), where("email", "==", user.email));
           const snap1 = await getDocs(q1);
           if (!snap1.empty) matchedDoc = snap1.docs[0];
 
-          if (!matchedDoc && user.email) {
-            const q2 = query(collection(db, "patients"), where("email", "==", user.email.toLowerCase()));
-            const snap2 = await getDocs(q2);
-            if (!snap2.empty) matchedDoc = snap2.docs[0];
-          }
-
           if (!matchedDoc && user.uid) {
             const q3 = query(collection(db, "patients"), where("authUid", "==", user.uid));
             const snap3 = await getDocs(q3);
             if (!snap3.empty) matchedDoc = snap3.docs[0];
-          }
-
-          if (!matchedDoc && user.email) {
-            const allSnap = await getDocs(collection(db, "patients"));
-            const target = user.email.trim().toLowerCase();
-            for (const d of allSnap.docs) {
-              const pEmail = d.data().email;
-              if (pEmail && pEmail.trim().toLowerCase() === target) {
-                matchedDoc = d;
-                break;
-              }
-            }
           }
 
           if (matchedDoc) {
@@ -203,8 +200,10 @@ function ExercisesContent() {
             attachPatientListeners(matched);
           }
         } catch (err) {
-          console.error("Failed to load exercises for patient:", err);
+          console.warn("Failed to load exercises notice:", err);
         }
+        setLoading(false);
+      } else {
         setLoading(false);
       }
     });

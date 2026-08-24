@@ -57,11 +57,43 @@ export default function AppointmentsPage() {
 
     const localData = localStorage.getItem("gpc_patient");
     if (localData) {
-      setPatient(JSON.parse(localData));
+      try {
+        const parsed = JSON.parse(localData);
+        setPatient(parsed);
+        if (parsed.email) {
+          const qApps = query(
+            collection(db, "appointments"),
+            where("patientEmail", "==", parsed.email)
+          );
+          getDocs(qApps).then((snapApps) => {
+            const list: Appointment[] = [];
+            snapApps.forEach((doc) => {
+              list.push({ id: doc.id, ...doc.data() } as Appointment);
+            });
+            list.sort((a, b) => b.date.localeCompare(a.date));
+            setAppointments(list);
+            setLoading(false);
+          }).catch(() => setLoading(false));
+        }
+      } catch (e) {
+        setLoading(false);
+      }
     }
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
+        const freshCache = localStorage.getItem("gpc_patient");
+        if (freshCache) {
+          try {
+            const parsed = JSON.parse(freshCache);
+            if (parsed.email?.toLowerCase() === user.email?.toLowerCase() || parsed.authUid === user.uid) {
+              setPatient(parsed);
+              setLoading(false);
+              return;
+            }
+          } catch (e) {}
+        }
+
         try {
           // 1. Sync patient details
           const qPatient = query(collection(db, "patients"), where("email", "==", user.email));
@@ -91,7 +123,7 @@ export default function AppointmentsPage() {
             setAppointments(list);
           }
         } catch (err) {
-          console.error("Failed to load patient appointments:", err);
+          console.warn("Failed to load patient appointments notice:", err);
         }
       }
       setLoading(false);

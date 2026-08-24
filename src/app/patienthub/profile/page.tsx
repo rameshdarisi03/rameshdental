@@ -65,9 +65,10 @@ export default function ProfilePage() {
       localStorage.removeItem("gpc_patient");
       setPatient(null);
       await auth.signOut();
-      router.push("/patienthub/login");
+      router.replace("/patienthub/login");
     } catch (err) {
       console.error("Sign out failed:", err);
+      router.replace("/patienthub/login");
     }
   };
 

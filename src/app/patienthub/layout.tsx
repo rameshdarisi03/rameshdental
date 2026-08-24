@@ -64,19 +64,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // If the Patient Hub is deactivated, redirect users immediately back to home
-    if (!FEATURES.enablePatientHub) {
-      router.push("/");
-      return;
-    }
-
-    // Skip checks for the login page
-    if (pathname === "/patienthub/login") {
-      setCheckingAuth(false);
-      return;
-    }
-
-    // 1. Fast path: check local cache for instant render without white flash
+    // 1. Instant Fast Path: Hydrate from verified local session immediately (0ms flash)
     try {
       const cached = localStorage.getItem("gpc_patient");
       if (cached) {
@@ -85,14 +73,12 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {}
 
+    // 2. Stable Global Firebase Auth Listener (runs once on mount)
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (!firebaseUser) {
         localStorage.removeItem("gpc_patient");
         setPatient(null);
         setCheckingAuth(false);
-        if (pathname !== "/patienthub/login") {
-          router.replace("/patienthub/login");
-        }
         return;
       }
 
@@ -135,10 +121,10 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
         if (!matchedDoc) {
           // Access Denied: Not registered as a patient
-          await auth.signOut();
           localStorage.removeItem("gpc_patient");
           setPatient(null);
-          router.replace(`/patienthub/login?error=not_registered&email=${encodeURIComponent(firebaseUser.email || "")}`);
+          setCheckingAuth(false);
+          await auth.signOut();
           return;
         }
 
@@ -146,29 +132,44 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
         const matchedPatient = { ...docData, id: matchedDoc.id } as Patient;
         setPatient(matchedPatient);
         
-        // Cache user info in localStorage for offline availability check
+        // Cache user info in localStorage for instant offline access
         localStorage.setItem("gpc_patient", JSON.stringify(matchedPatient));
         setCheckingAuth(false);
       } catch (err) {
         console.error("Patient validation error:", err);
-        await auth.signOut();
-        localStorage.removeItem("gpc_patient");
-        setPatient(null);
-        router.replace("/patienthub/login?error=auth_failed");
+        setCheckingAuth(false);
       }
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, []);
+
+  // 3. Dedicated Clean Route Protection Guard (TenoPilot pattern)
+  useEffect(() => {
+    if (!FEATURES.enablePatientHub) {
+      router.replace("/");
+      return;
+    }
+
+    if (checkingAuth) return;
+
+    if (!patient && pathname !== "/patienthub/login") {
+      router.replace("/patienthub/login");
+    } else if (patient && pathname === "/patienthub/login") {
+      router.replace("/patienthub/dashboard");
+    }
+  }, [checkingAuth, patient, pathname, router]);
 
   const handleLogout = async () => {
     try {
       localStorage.removeItem("gpc_patient");
       setPatient(null);
+      setCheckingAuth(false);
       await auth.signOut();
       router.replace("/patienthub/login");
     } catch (err) {
       console.error("Sign out failed:", err);
+      router.replace("/patienthub/login");
     }
   };
 
