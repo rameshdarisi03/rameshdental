@@ -53,10 +53,16 @@ export default function DashboardLayout({
     }
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("gpc_user");
-    document.cookie = "gpc_session=; Max-Age=-99999999; path=/";
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem("gpc_user");
+      document.cookie = "gpc_session=; Max-Age=-99999999; path=/";
+      await auth.signOut();
+      router.push("/login");
+    } catch (err) {
+      console.error("Staff logout failed:", err);
+      router.push("/login");
+    }
   };
 
   if (loading) {

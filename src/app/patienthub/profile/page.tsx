@@ -62,8 +62,9 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
       localStorage.removeItem("gpc_patient");
+      setPatient(null);
+      await auth.signOut();
       router.push("/patienthub/login");
     } catch (err) {
       console.error("Sign out failed:", err);

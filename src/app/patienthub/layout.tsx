@@ -76,9 +76,23 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // 1. Fast path: check local cache for instant render without white flash
+    try {
+      const cached = localStorage.getItem("gpc_patient");
+      if (cached) {
+        setPatient(JSON.parse(cached));
+        setCheckingAuth(false);
+      }
+    } catch (e) {}
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (!firebaseUser) {
-        router.push("/patienthub/login");
+        localStorage.removeItem("gpc_patient");
+        setPatient(null);
+        setCheckingAuth(false);
+        if (pathname !== "/patienthub/login") {
+          router.push("/patienthub/login");
+        }
         return;
       }
 
@@ -122,6 +136,8 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
         if (!matchedDoc) {
           // Access Denied: Not registered as a patient
           await auth.signOut();
+          localStorage.removeItem("gpc_patient");
+          setPatient(null);
           router.push(`/patienthub/login?error=not_registered&email=${encodeURIComponent(firebaseUser.email || "")}`);
           return;
         }
@@ -136,6 +152,8 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.error("Patient validation error:", err);
         await auth.signOut();
+        localStorage.removeItem("gpc_patient");
+        setPatient(null);
         router.push("/patienthub/login?error=auth_failed");
       }
     });
@@ -145,8 +163,9 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
       localStorage.removeItem("gpc_patient");
+      setPatient(null);
+      await auth.signOut();
       router.push("/patienthub/login");
     } catch (err) {
       console.error("Sign out failed:", err);
