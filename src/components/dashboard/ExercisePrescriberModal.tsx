@@ -87,6 +87,15 @@ export default function ExercisePrescriberModal({
   }, []);
 
   useEffect(() => {
+    if (!isOpen) return;
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) {
       loadData();
     }
@@ -273,14 +282,6 @@ export default function ExercisePrescriberModal({
       setSaving(false);
     }
   };
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, [isOpen]);
 
   if (!isOpen) return null;
 

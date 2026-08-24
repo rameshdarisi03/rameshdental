@@ -89,7 +89,14 @@ export default function DocumentScannerModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, [isOpen]);
 
   const isPrescriptionMode = documentType === "DOCTOR_PRESCRIPTION";
 
@@ -255,15 +262,6 @@ export default function DocumentScannerModal({
       setIsApplying(false);
     }
   };
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalStyle;
-    };
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
