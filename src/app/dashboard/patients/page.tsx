@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { 
   Search, 
@@ -20,7 +21,8 @@ import {
   Activity,
   CheckCircle2,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  X
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient } from "@/lib/patientsDb";
 import { getClinicConfig } from "@/lib/db";
@@ -60,6 +62,7 @@ export default function PatientsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [therapistFilter, setTherapistFilter] = useState("all");
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   // Registration modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -87,6 +90,7 @@ export default function PatientsPage() {
 
   // Initial Fetch of Patients
   useEffect(() => {
+    setMounted(true);
     fetchPatientsList();
     fetchEnrolledTherapists();
   }, []);
@@ -731,21 +735,26 @@ export default function PatientsPage() {
       </div>
 
       {/* New Patient Registration Overlay Modal Dialog */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-brand-charcoal/60 backdrop-blur-md overflow-hidden animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-3xl border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full h-full sm:h-auto sm:max-h-[92vh] flex flex-col overflow-hidden animate-scale-in">
+      {mounted && modalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             
             {/* Modal Header */}
-            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between bg-brand-bg dark:bg-slate-800/40 shrink-0">
-              <div className="flex items-center gap-2 text-brand-green font-black">
-                <UserPlus className="h-5 w-5" />
-                <span className="text-base sm:text-lg text-brand-charcoal dark:text-white">Register New Patient</span>
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Register New Patient</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Creates clinical folder & Universal ID (GPC-XXXXX)</p>
+                </div>
               </div>
               <button 
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                Close
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -975,18 +984,18 @@ export default function PatientsPage() {
             </div>
 
               {/* Action Buttons */}
-              <div className="p-4 sm:p-6 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 px-5 py-3 text-xs font-bold transition-all hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (
                     <>
@@ -1001,7 +1010,8 @@ export default function PatientsPage() {
 
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

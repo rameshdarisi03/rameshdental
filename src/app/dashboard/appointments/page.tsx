@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   collection,
   query,
@@ -59,6 +60,7 @@ interface UserProfile {
 }
 
 export default function DashboardAppointments() {
+  const [mounted, setMounted] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">("pending");
@@ -144,6 +146,7 @@ export default function DashboardAppointments() {
   }
 
   useEffect(() => {
+    setMounted(true);
     fetchAppointments();
 
     // 1. Fetch clinic configuration
@@ -603,50 +606,53 @@ export default function DashboardAppointments() {
       )}
 
       {/* Rejection Accidental Safeguard Warning Modal */}
-      {rejectionConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 text-center animate-zoom-in max-h-[90vh] overflow-y-auto">
-            <div className="h-12 w-12 rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center text-red-650 mx-auto">
+      {mounted && rejectionConfirmOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
+            <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-sm">
               <ShieldAlert className="h-6 w-6" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Confirm Rejection</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Confirm Rejection</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Are you sure you want to reject this appointment booking request? This will decline the time slot, mark it as available for other patients, and trigger a WhatsApp cancellation template.
+                Are you sure you want to decline this appointment request? This will release the slot and inform the patient.
               </p>
             </div>
             <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => {
                   setRejectionConfirmOpen(false);
                   setPendingRejectionId(null);
                 }}
-                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-650 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleRejectionConfirmed}
-                className="flex-grow bg-red-600 hover:bg-red-500 text-white rounded-full py-3 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                className="flex-grow bg-red-600 hover:bg-red-500 text-white rounded-full py-2.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
                 Reject Appointment
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Custom WhatsApp Notification Modal */}
-      {notificationModalOpen && pendingNotificationApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 text-center animate-zoom-in max-h-[90vh] overflow-y-auto">
+      {mounted && notificationModalOpen && pendingNotificationApp && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
             <div className="flex justify-center">
-              <div className="h-12 w-12 rounded-full bg-brand-sand/85 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green">
+              <div className="h-12 w-12 rounded-2xl bg-brand-green/15 dark:bg-teal-500/20 text-brand-green dark:text-teal-400 flex items-center justify-center shadow-sm">
                 <Check className="h-6 w-6" />
               </div>
             </div>
             <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Confirm Appointment Approval</h3>
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Confirm Appointment Approval</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                 Are you sure you want to approve this appointment for <strong>{pendingNotificationApp.patientName}</strong>?
               </p>
@@ -661,16 +667,16 @@ export default function DashboardAppointments() {
                 onChange={(e) => setNotifyWhatsApp(e.target.checked)}
                 className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
               />
-              <label htmlFor="notifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+              <label htmlFor="notifyWhatsApp" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
                 Notify patient via WhatsApp
               </label>
             </div>
 
             {/* Preview box - shows only if checked */}
             {notifyWhatsApp && (
-              <div className="bg-slate-50 dark:bg-slate-955 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in max-h-48 overflow-y-auto">
-                <p className="font-bold text-slate-400">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
+              <div className="bg-slate-50 dark:bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 animate-fade-in max-h-48 overflow-y-auto overscroll-contain">
+                <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
                   Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
                   Add to Google Calendar: {generateGoogleCalendarUrl(pendingNotificationApp)}{"\n\n"}
                   Looking forward to seeing you.
@@ -685,7 +691,7 @@ export default function DashboardAppointments() {
                   setNotificationModalOpen(false);
                   setPendingNotificationApp(null);
                 }}
-                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 No, Cancel
               </button>
@@ -697,14 +703,15 @@ export default function DashboardAppointments() {
                   await handleStatusChange(appId, "approved", notifyWhatsApp);
                   setPendingNotificationApp(null);
                 }}
-                className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
                 <Check className="h-4 w-4" />
                 Yes, Approve
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
 import { 
@@ -10,7 +11,7 @@ import {
   createUserWithEmailAndPassword 
 } from "firebase/auth";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
-import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode, Monitor } from "lucide-react";
+import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode, Monitor, X } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function LoginPage() {
@@ -650,26 +651,47 @@ function LoginContent() {
       )}
 
       {/* PWA Help Overlay Modal */}
-      {installInstructions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062e36]/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center gap-2 text-[#062e36] dark:text-[#f9ab55]">
-              <Smartphone className="h-5 w-5" />
-              <h4 className="text-sm font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans',sans-serif]">Installation Guide</h4>
-            </div>
-            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              {installInstructions}
-            </p>
-            <div className="pt-2">
+      {mounted && installInstructions && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+            {/* Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-50/60 via-white to-orange-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#f9ab55] text-[#062e36] flex items-center justify-center shadow-sm shrink-0">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Installation Guide</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add to Home Screen</p>
+                </div>
+              </div>
               <button
                 onClick={() => setInstallInstructions(null)}
-                className="w-full bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">
+                {installInstructions}
+              </p>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end shrink-0">
+              <button
+                onClick={() => setInstallInstructions(null)}
+                className="bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Got It
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

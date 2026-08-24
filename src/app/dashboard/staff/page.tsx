@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-import { Lock, UserCheck, ShieldAlert, Plus, User, Mail, Loader2, Key, Trash2, ShieldCheck, AlertOctagon } from "lucide-react";
+import { Lock, UserCheck, ShieldAlert, Plus, User, Mail, Loader2, Key, Trash2, ShieldCheck, AlertOctagon, X } from "lucide-react";
 
 interface UserProfile {
   uid: string;
@@ -15,6 +16,7 @@ interface UserProfile {
 }
 
 export default function DashboardStaff() {
+  const [mounted, setMounted] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [staffList, setStaffList] = useState<UserProfile[]>([]);
@@ -55,6 +57,7 @@ export default function DashboardStaff() {
   };
 
   useEffect(() => {
+    setMounted(true);
     const userJson = localStorage.getItem("gpc_user");
     if (userJson) {
       const user = JSON.parse(userJson) as UserProfile;
@@ -288,110 +291,126 @@ export default function DashboardStaff() {
       </div>
 
       {/* Add Staff Modal */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-5 relative animate-zoom-in max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Add Staff Member</h3>
+      {mounted && isFormOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+            
+            {/* Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Add Staff Member</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Authorize clinic receptionist or admin account</p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsFormOpen(false)}
-                className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs font-black"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {error && (
-              <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
-                {error}
-              </div>
-            )}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
+                {error && (
+                  <div className="p-3.5 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 text-xs font-bold rounded-2xl border border-red-200 dark:border-red-900/40">
+                    {error}
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Full Name *
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
-                  <input
-                    type="text"
-                    required
-                    name="name"
-                    value={formData.name}
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Full Name *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
+                    <input
+                      type="text"
+                      required
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Anjali Sharma"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
+                    <input
+                      type="email"
+                      required
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="staff@gaitphysio.com"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Password * (Min 6 chars)
+                  </label>
+                  <div className="relative">
+                    <Key className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
+                    <input
+                      type="password"
+                      required
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Password for sign in"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Assigned Role
+                  </label>
+                  <select
+                    name="role"
+                    value={formData.role}
                     onChange={handleInputChange}
-                    placeholder="e.g. Anjali Sharma"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 pl-11 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                  />
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold cursor-pointer"
+                  >
+                    <option value="receptionist">Receptionist (Limited Access)</option>
+                    <option value="admin">Administrator (Full Control)</option>
+                  </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
-                  <input
-                    type="email"
-                    required
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="staff@gaitphysio.com"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 pl-11 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Password * (Min 6 chars)
-                </label>
-                <div className="relative">
-                  <Key className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
-                  <input
-                    type="password"
-                    required
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Password for sign in"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 pl-11 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Assigned Role
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
-                >
-                  <option value="receptionist">Receptionist (Limited Access)</option>
-                  <option value="admin">Administrator (Full Control)</option>
-                </select>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex gap-3">
+              {/* Sticky Footer */}
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-grow flex items-center justify-center bg-brand-green hover:bg-brand-green-hover text-white rounded-full py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating account...
+                    </>
                   ) : (
                     "Create Staff Account"
                   )}
@@ -399,94 +418,100 @@ export default function DashboardStaff() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {isDeleteOpen && memberToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 relative animate-zoom-in max-h-[90vh] overflow-y-auto">
+      {mounted && isDeleteOpen && memberToDelete && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 relative animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
             
-            <div className="flex items-center gap-3 text-red-650 dark:text-red-400 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <AlertOctagon className="h-6 w-6 animate-pulse" />
-              <h3 className="text-base sm:text-lg font-black">Confirm Deletion</h3>
+            <div className="flex items-center gap-3 text-red-600 dark:text-red-400 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center shadow-sm shrink-0">
+                <AlertOctagon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Confirm Staff Deletion</h3>
+                <p className="text-xs text-slate-500">{memberToDelete.name}</p>
+              </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
-                You are about to delete staff member <strong className="text-slate-900 dark:text-white font-bold">{memberToDelete.name}</strong> (<span className="italic">{memberToDelete.email}</span>). 
+                You are about to remove access for <strong className="text-slate-900 dark:text-white">{memberToDelete.name}</strong> (<span className="italic">{memberToDelete.email}</span>).
               </p>
               
-              <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-150 dark:border-red-900 rounded-2xl">
-                <p className="text-[10px] text-red-750 dark:text-red-400 font-bold leading-relaxed">
-                  <strong>WARNING</strong>: This action deletes their access profile from the clinic database. They will be signed out and blocked from logging in.
+              <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-2xl">
+                <p className="text-[11px] text-red-700 dark:text-red-300 font-bold leading-relaxed">
+                  This action removes their permissions from the clinic portal immediately.
                 </p>
               </div>
 
-              <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">
-                Please enter your administrator password twice to confirm:
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                Enter your administrator password to confirm:
               </p>
             </div>
 
             {deleteError && (
-              <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
+              <div className="p-3.5 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-200">
                 {deleteError}
               </div>
             )}
 
             <form onSubmit={handleDeleteSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                   Your Admin Password *
                 </label>
                 <div className="relative">
-                  <Key className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                  <Key className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
                   <input
                     type="password"
                     required
                     value={adminPassword1}
                     onChange={(e) => setAdminPassword1(e.target.value)}
-                    placeholder="Enter password"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 pl-11 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    placeholder="Enter admin password"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                   Re-enter Admin Password *
                 </label>
                 <div className="relative">
-                  <Key className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                  <Key className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
                   <input
                     type="password"
                     required
                     value={adminPassword2}
                     onChange={(e) => setAdminPassword2(e.target.value)}
-                    placeholder="Re-enter password to verify"
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 pl-11 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    placeholder="Re-enter to verify"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex gap-3">
+              <div className="pt-3 flex gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setIsDeleteOpen(false);
                     setMemberToDelete(null);
                   }}
-                  className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={deleting}
-                  className="flex-grow flex items-center justify-center bg-red-600 hover:bg-red-500 text-white rounded-full py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                  className="flex-grow bg-red-600 hover:bg-red-500 text-white rounded-full py-2.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   {deleting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                   ) : (
                     "Re-authenticate & Delete"
                   )}
@@ -494,7 +519,8 @@ export default function DashboardStaff() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

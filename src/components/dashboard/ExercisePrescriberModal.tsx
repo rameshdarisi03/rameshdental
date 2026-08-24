@@ -283,7 +283,7 @@ export default function ExercisePrescriberModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in">

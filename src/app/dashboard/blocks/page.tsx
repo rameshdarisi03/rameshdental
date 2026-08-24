@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   collection,
   query,
@@ -16,6 +17,7 @@ import { DayBlock } from "@/lib/db";
 import { Clock, Plus, Trash2, AlertCircle, Loader2, Calendar, X, RotateCw } from "lucide-react";
 
 export default function DashboardBlocks() {
+  const [mounted, setMounted] = useState(false);
   const [blocks, setBlocks] = useState<DayBlock[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -51,6 +53,7 @@ export default function DashboardBlocks() {
   }
 
   useEffect(() => {
+    setMounted(true);
     fetchBlocks();
     const today = new Date();
     const year = today.getFullYear();
@@ -220,97 +223,113 @@ export default function DashboardBlocks() {
       </div>
 
       {/* Modal Dialog Form */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-5 relative animate-zoom-in max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Create Availability Block</h3>
+      {mounted && isFormOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+            
+            {/* Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Create Availability Block</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Override booking availability for clinic calendar</p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsFormOpen(false)}
-                className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <X className="h-4 w-4" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Select Target Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  name="date"
-                  min={minDate}
-                  value={formData.date}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Block Scope
-                </label>
-                <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
-                >
-                  <option value="full_day">Full Day Closure</option>
-                  <option value="holiday">Holiday</option>
-                  <option value="session">Specific Session Block</option>
-                </select>
-              </div>
-
-              {formData.type === "session" && (
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                    Select Target Session
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Select Target Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    name="date"
+                    min={minDate}
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Block Scope
                   </label>
                   <select
-                    name="session"
-                    value={formData.session}
+                    name="type"
+                    value={formData.type}
                     onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold cursor-pointer"
                   >
-                    <option value="morning">Morning Session (09:00 AM - 01:00 PM)</option>
-                    <option value="evening">Evening Session (02:00 PM - 07:00 PM)</option>
+                    <option value="full_day">Full Day Closure</option>
+                    <option value="holiday">Holiday</option>
+                    <option value="session">Specific Session Block</option>
                   </select>
                 </div>
-              )}
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                  Reason for closure / block
-                </label>
-                <input
-                  type="text"
-                  name="reason"
-                  value={formData.reason}
-                  onChange={handleInputChange}
-                  placeholder="e.g. Clinic Maintenance, Doctor Seminar"
-                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
-                />
+                {formData.type === "session" && (
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                      Select Target Session
+                    </label>
+                    <select
+                      name="session"
+                      value={formData.session}
+                      onChange={handleInputChange}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold cursor-pointer"
+                    >
+                      <option value="morning">Morning Session (09:00 AM - 01:00 PM)</option>
+                      <option value="evening">Evening Session (02:00 PM - 07:00 PM)</option>
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Reason for closure / block
+                  </label>
+                  <input
+                    type="text"
+                    name="reason"
+                    value={formData.reason}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Clinic Maintenance, Doctor Seminar"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex gap-3">
+              {/* Sticky Footer */}
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !formData.date}
-                  className="flex-grow flex items-center justify-center bg-brand-green hover:bg-brand-green-hover text-white rounded-full py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
                   ) : (
                     "Save Block Rule"
                   )}
@@ -318,12 +337,10 @@ export default function DashboardBlocks() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
   );
 }
-
-// Simple icons export bypass to make imports neat
-import { X as XIcon } from "lucide-react";

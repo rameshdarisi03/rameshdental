@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   collection,
   query,
@@ -61,6 +62,7 @@ interface UserProfile {
 }
 
 export default function DaySnapshot() {
+  const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -187,6 +189,7 @@ export default function DaySnapshot() {
   }, [selectedDate]);
 
   useEffect(() => {
+    setMounted(true);
     // 1. Load clinic config
     async function loadConfig() {
       try {
@@ -979,7 +982,6 @@ export default function DaySnapshot() {
               Book for Patient
             </button>
           )}
-
           {!isAllFreeSelected() && appointments.some((a) => selectedSlots.includes(a.slot)) && (
             <>
               <button
@@ -1089,33 +1091,41 @@ export default function DaySnapshot() {
         </div>
       )}
 
-
-
-      {/* Book for Patient Modal Drawer */}
-      {isBookForPatientOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-955/45 backdrop-blur-sm">
-          <div className="w-full max-w-md h-full bg-white dark:bg-slate-900 border-l border-slate-205 dark:border-slate-800 p-6 flex flex-col justify-between overflow-y-auto relative animate-slide-in">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Book for Patient</h3>
-                <button
-                  onClick={() => {
-                    setSelectedPatient(null);
-                    setSearchQuery("");
-                    setPatientType("new");
-                    setIsBookForPatientOpen(false);
-                  }}
-                  className="p-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+      {/* Book for Patient Modal */}
+      {mounted && isBookForPatientOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
+            
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Book for Patient</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {selectedDate} • Slots: {selectedSlots.join(", ")}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-slate-450 leading-relaxed font-semibold">
-                Manually schedule an approved booking on <strong>{selectedDate}</strong> for slots: <strong>{selectedSlots.join(", ")}</strong>.
-              </p>
+              <button
+                onClick={() => {
+                  setSelectedPatient(null);
+                  setSearchQuery("");
+                  setPatientType("new");
+                  setIsBookForPatientOpen(false);
+                }}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
               {/* Patient Type Selectors */}
-              <div className="flex rounded-xl bg-slate-100 dark:bg-slate-950 p-1 border border-slate-200/80 dark:border-slate-855 select-none">
+              <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-950 p-1 border border-slate-200/80 dark:border-slate-800 select-none">
                 <button
                   type="button"
                   onClick={() => {
@@ -1124,9 +1134,9 @@ export default function DaySnapshot() {
                     setSearchQuery("");
                     setPatientForm(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
                   }}
-                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${
+                  className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${
                     patientType === "new"
-                      ? "bg-[#1b3d2f] text-white shadow-sm"
+                      ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-500 hover:text-brand-green"
                   }`}
                 >
@@ -1140,9 +1150,9 @@ export default function DaySnapshot() {
                     setSearchQuery("");
                     setPatientForm(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
                   }}
-                  className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${
+                  className={`flex-1 rounded-xl py-2 text-xs font-bold transition-all ${
                     patientType === "existing"
-                      ? "bg-[#1b3d2f] text-white shadow-sm"
+                      ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-500 hover:text-brand-green"
                   }`}
                 >
@@ -1154,11 +1164,11 @@ export default function DaySnapshot() {
                 
                 {patientType === "existing" ? (
                   <div className="relative">
-                    <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                       Search Patient Profile (Name or Phone) *
                     </label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-brand-green" />
+                      <Search className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
                       <input
                         type="text"
                         value={searchQuery}
@@ -1168,13 +1178,13 @@ export default function DaySnapshot() {
                         }}
                         onFocus={() => setShowDropdown(true)}
                         placeholder="Type patient name or mobile number..."
-                        className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white"
                       />
                     </div>
                     
                     {/* Dropdown suggestions list */}
                     {showDropdown && searchQuery.trim().length > 0 && (
-                      <div className="absolute z-30 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-xl shadow-xl py-1">
+                      <div className="absolute z-30 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl py-1">
                         {patients
                           .filter((p) => 
                             p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1196,26 +1206,18 @@ export default function DaySnapshot() {
                                 }));
                                 setShowDropdown(false);
                               }}
-                              className="w-full text-left px-3.5 py-2 text-xs hover:bg-[#f0f4f2] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-250 font-semibold border-b border-slate-50 dark:border-slate-850 last:border-0"
+                              className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-emerald-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border-b border-slate-50 dark:border-slate-800 last:border-0"
                             >
-                              <div className="font-extrabold text-brand-charcoal dark:text-white">{p.name}</div>
-                              <div className="text-[9px] text-slate-400 mt-0.5">{p.phone} • Plan: {p.treatmentPlan}</div>
+                              <p className="font-bold text-slate-900 dark:text-white">{p.name}</p>
+                              <p className="text-[10px] text-slate-400">{p.phone} • {p.treatmentPlan}</p>
                             </button>
                           ))}
-                        {patients.filter((p) => 
-                          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.phone.includes(searchQuery)
-                        ).length === 0 && (
-                          <div className="px-3 py-2.5 text-xs text-slate-400 italic text-center">
-                            No matching patient records found.
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                       Patient Full Name *
                     </label>
                     <input
@@ -1225,7 +1227,7 @@ export default function DaySnapshot() {
                       value={patientForm.patientName}
                       onChange={handlePatientInputChange}
                       placeholder="e.g. John Doe"
-                      className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                     />
                   </div>
                 )}
@@ -1233,7 +1235,7 @@ export default function DaySnapshot() {
                 {(!selectedPatient || patientType === "new") ? (
                   <>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                         Mobile/WhatsApp Number *
                       </label>
                       <input
@@ -1243,12 +1245,12 @@ export default function DaySnapshot() {
                         value={patientForm.patientPhone}
                         onChange={handlePatientInputChange}
                         placeholder="e.g. 9206651295"
-                        className="w-full rounded-xl border border-slate-200/80 dark:border-slate-855 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                         Email Address (Optional)
                       </label>
                       <input
@@ -1257,76 +1259,69 @@ export default function DaySnapshot() {
                         value={patientForm.patientEmail}
                         onChange={handlePatientInputChange}
                         placeholder="john@example.com"
-                        className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                       />
                     </div>
                   </>
                 ) : (
                   selectedPatient && (
-                    <div className="bg-[#f0f4f2]/40 dark:bg-brand-green/5 border border-brand-green/10 p-4 rounded-xl space-y-2.5 animate-fade-in-up">
-                      <div className="flex justify-between items-center text-[9px] font-black text-brand-green uppercase tracking-wider">
+                    <div className="bg-emerald-50/50 dark:bg-teal-950/20 border border-emerald-200 dark:border-teal-800/40 p-4 rounded-2xl space-y-2">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-brand-green dark:text-teal-400 uppercase tracking-wider">
                         <span>Patient Summary</span>
                         <Link 
                           href={`/dashboard/patients/${selectedPatient.id}`}
+                          className="hover:underline flex items-center gap-1 font-bold"
                           target="_blank"
-                          className="underline hover:text-brand-green-hover"
                         >
-                          Full Profile →
+                          View Full Record <ChevronRight className="h-3 w-3" />
                         </Link>
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Patient ID:</div>
-                        <div className="font-extrabold text-slate-700 dark:text-slate-350">{selectedPatient.id}</div>
-                        
-                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Full Name:</div>
-                        <div className="font-extrabold text-slate-700 dark:text-slate-350">{selectedPatient.name}</div>
-                        
-                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Phone / Email:</div>
-                        <div className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{selectedPatient.phone}</div>
-                        
-                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Last Visited:</div>
-                        <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.lastVisit || "First session"}</div>
-                        
-                        <div className="text-slate-400 font-bold uppercase text-[8px] tracking-wider">Active Plan:</div>
-                        <div className="font-extrabold text-slate-700 dark:text-slate-355 truncate">{selectedPatient.treatmentPlan || "None"}</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-300">
+                        <p><strong className="text-slate-900 dark:text-white">Phone:</strong> {selectedPatient.phone}</p>
+                        {selectedPatient.email && <p><strong className="text-slate-900 dark:text-white">Email:</strong> {selectedPatient.email}</p>}
+                        <p><strong className="text-slate-900 dark:text-white">Active Plan:</strong> {selectedPatient.treatmentPlan}</p>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedPatient(null);
-                          setSearchQuery("");
-                          setPatientForm(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
-                        }}
-                        className="text-[9px] text-red-500 font-black underline hover:text-red-755 cursor-pointer block border-0 bg-transparent p-0 pt-0.5"
-                      >
-                        Change Selection
-                      </button>
                     </div>
                   )
                 )}
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
-                    Physiotherapy Service
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Clinical Service Plan *
                   </label>
                   <select
                     name="serviceId"
                     value={patientForm.serviceId}
                     onChange={handlePatientInputChange}
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold cursor-pointer"
                   >
-                    {servicesList.map((svc) => (
-                        <option key={svc} value={svc}>
-                          {svc}
-                        </option>
+                    {servicesList.map((srv) => (
+                      <option key={srv} value={srv}>{srv}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                    Assigned Primary Therapist
+                  </label>
+                  <select
+                    name="therapistName"
+                    value={patientForm.therapistName}
+                    onChange={handlePatientInputChange}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold cursor-pointer"
+                  >
+                    {(clinicConfig.therapists && clinicConfig.therapists.length > 0
+                      ? clinicConfig.therapists
+                      : ["Dr. Sarah Jenkins", "Dr. Rohan Das"]
+                    ).map((docName) => (
+                      <option key={docName} value={docName}>{docName}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                     Inquiry Notes / Symptoms
                   </label>
                   <textarea
@@ -1335,11 +1330,11 @@ export default function DaySnapshot() {
                     value={patientForm.notes}
                     onChange={handlePatientInputChange}
                     placeholder="Describe any pain or symptoms..."
-                    className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-955 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                   />
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 select-none">
+                <div className="flex items-center gap-2 pt-1 select-none">
                   <input
                     type="checkbox"
                     id="manualNotifyWhatsApp"
@@ -1347,14 +1342,15 @@ export default function DaySnapshot() {
                     onChange={(e) => setManualNotifyWhatsApp(e.target.checked)}
                     className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
                   />
-                  <label htmlFor="manualNotifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                  <label htmlFor="manualNotifyWhatsApp" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
                     Notify patient via WhatsApp
                   </label>
                 </div>
               </form>
             </div>
 
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+            {/* Sticky Footer */}
+            <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1363,7 +1359,7 @@ export default function DaySnapshot() {
                   setPatientType("new");
                   setIsBookForPatientOpen(false);
                 }}
-                className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -1371,31 +1367,35 @@ export default function DaySnapshot() {
                 type="submit"
                 form="bookForPatientForm"
                 disabled={submittingPatientForm}
-                className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3.5 text-xs font-black shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
               >
                 {submittingPatientForm ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Booking...
+                  </>
                 ) : (
                   "Confirm Booking"
                 )}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Blocking Reason Dialog Modal */}
-      {blockingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 animate-zoom-in max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Block Selected Slots</h3>
-            <p className="text-xs text-slate-550 leading-relaxed font-semibold">
+      {mounted && blockingModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Block Selected Slots</h3>
+            <p className="text-xs text-slate-500 leading-relaxed font-semibold">
               Provide a reason to block these <strong>{selectedSlots.length}</strong> selected slots. Patients will not be able to book them online.
             </p>
 
             <form onSubmit={handleBlockSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-455 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
                   Blocking Reason
                 </label>
                 <input
@@ -1404,7 +1404,7 @@ export default function DaySnapshot() {
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   placeholder="e.g. Doctor personal leave, Lunch hour block"
-                  className="w-full rounded-xl border border-slate-200/80 dark:border-slate-805 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold"
                 />
               </div>
 
@@ -1412,65 +1412,69 @@ export default function DaySnapshot() {
                 <button
                   type="button"
                   onClick={() => setBlockingModalOpen(false)}
-                  className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-655 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow bg-brand-green hover:bg-brand-green-hover text-white rounded-full py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+                  className="flex-grow bg-brand-green hover:bg-brand-green-hover text-white rounded-full py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
                 >
                   Save Override
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Rejection Safeguard Modal */}
-      {rejectionConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 text-center animate-zoom-in max-h-[90vh] overflow-y-auto">
-            <div className="h-12 w-12 rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center text-red-650 mx-auto animate-pulse">
+      {mounted && rejectionConfirmOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
+            <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-sm">
               <ShieldAlert className="h-6 w-6" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Confirm Rejection</h3>
-              <p className="text-xs text-slate-505 leading-relaxed font-semibold">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Confirm Rejection</h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                 Are you sure you want to reject the selected appointment booking(s)? This will cancel their slots, make them available for other patients, and launch a WhatsApp notification template.
               </p>
             </div>
             <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => {
                   setRejectionConfirmOpen(false);
                   setPendingRejectionSlots([]);
                 }}
-                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-655 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleRejectionConfirmed}
-                className="flex-grow bg-red-650 hover:bg-red-500 text-white rounded-full py-3.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                className="flex-grow bg-red-600 hover:bg-red-500 text-white rounded-full py-2.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
                 Reject Appointment(s)
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* WhatsApp Rejection/Approval Preview Modal */}
-      {notificationModalOpen && pendingActionApp && pendingActionType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 text-center animate-zoom-in max-h-[90vh] overflow-y-auto">
+      {mounted && notificationModalOpen && pendingActionApp && pendingActionType && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
             <div className="flex justify-center">
-              <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm ${
                 pendingActionType === "approve"
-                  ? "bg-[#f0f4f2] dark:bg-[#f0f4f2]/20 text-brand-green ring-4 ring-[#f0f4f2]/30"
-                  : "bg-red-50 dark:bg-red-950/30 text-red-655"
+                  ? "bg-brand-green/15 dark:bg-teal-500/20 text-brand-green dark:text-teal-400"
+                  : "bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400"
               }`}>
                 {pendingActionType === "approve" ? (
                   <Check className="h-6 w-6" />
@@ -1481,7 +1485,7 @@ export default function DaySnapshot() {
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                 {pendingActionType === "approve" ? "Confirm Appointment Approval" : "Appointment Rejected"}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
@@ -1503,7 +1507,7 @@ export default function DaySnapshot() {
                   onChange={(e) => setNotifyWhatsApp(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
                 />
-                <label htmlFor="notifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
+                <label htmlFor="notifyWhatsApp" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
                   Notify patient via WhatsApp
                 </label>
               </div>
@@ -1511,9 +1515,9 @@ export default function DaySnapshot() {
 
             {/* Preview Box */}
             {(pendingActionType === "reject" || (pendingActionType === "approve" && notifyWhatsApp)) && (
-              <div className="bg-[#fbfcfb] dark:bg-slate-955 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in break-all max-h-48 overflow-y-auto">
-                <p className="font-bold text-slate-400">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
+              <div className="bg-slate-50 dark:bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 animate-fade-in break-all max-h-48 overflow-y-auto overscroll-contain">
+                <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
                   {pendingActionType === "approve" ? (
                     <>
                       Hi {pendingActionApp.patientName}, your appointment request for *{pendingActionApp.serviceId}* on *{pendingActionApp.date}* at *{pendingActionApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
@@ -1535,7 +1539,7 @@ export default function DaySnapshot() {
                   setPendingActionApp(null);
                   setPendingActionType(null);
                 }}
-                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-655 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 {pendingActionType === "approve" ? "No, Cancel" : "No"}
               </button>
@@ -1549,7 +1553,7 @@ export default function DaySnapshot() {
                     setPendingActionApp(null);
                     setPendingActionType(null);
                   }}
-                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <Check className="h-4 w-4" />
                   Yes, Approve
@@ -1564,7 +1568,7 @@ export default function DaySnapshot() {
                     setPendingActionApp(null);
                     setPendingActionType(null);
                   }}
-                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <MessageSquare className="h-4 w-4" />
                   Yes, Send WhatsApp
@@ -1572,7 +1576,8 @@ export default function DaySnapshot() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

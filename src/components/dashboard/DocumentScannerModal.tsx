@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { 
   Sparkles, 
   Upload, 
@@ -14,9 +15,11 @@ import {
   Activity, 
   ShieldAlert, 
   Plus, 
-  Check,
-  RefreshCw,
-  Eye
+  Check, 
+  RefreshCw, 
+  Eye,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 
 export interface ClinicalAssessmentResult {
@@ -73,6 +76,8 @@ export default function DocumentScannerModal({
   patientName,
   onApply,
 }: DocumentScannerModalProps) {
+  const [mounted, setMounted] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -88,6 +93,10 @@ export default function DocumentScannerModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -112,6 +121,7 @@ export default function DocumentScannerModal({
     setEditedSoapNote("");
     setEditedSummary("");
     setSelectedAlerts([]);
+    setIsMaximized(false);
     onClose();
   };
 
@@ -263,41 +273,56 @@ export default function DocumentScannerModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border-0 sm:border border-slate-200/80 dark:border-slate-800 rounded-none sm:rounded-3xl w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-3xl flex flex-col shadow-2xl overflow-hidden">
-        
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+      <div
+        className={`bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden transition-all duration-300 ${
+          isMaximized ? "w-[98vw] h-[96vh]" : "w-full max-w-3xl max-h-[90vh]"
+        }`}
+      >
         {/* Modal Header */}
-        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+        <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-brand-green/15 dark:bg-teal-500/20 text-brand-green dark:text-teal-400 flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5" />
+            <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                  {isPrescriptionMode ? "Scan Doctor Referral / Prescription" : "Scan Handwritten Clinical Case Sheet"}
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  {isPrescriptionMode ? "Scan Doctor Referral / Prescription" : "Scan Handwritten Case Sheet"}
                 </h3>
-                <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0">
-                  Gemini AI Vision
+                <span className="px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" /> AI Vision
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1 sm:line-clamp-none">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {patientName ? `Patient: ${patientName} • ` : ""}
                 {isPrescriptionMode
-                  ? `Patient: ${patientName || "Selected Patient"} • Transcribes diagnosis, referring doctor, restrictions, and pre-existing alerts.`
-                  : `Patient: ${patientName || "Selected Patient"} • Transcribes VAS pain scores, ROM, tests, and standardizes SOAP notes.`}
+                  ? "Transcribes diagnosis, doctor, restrictions & alerts"
+                  : "Transcribes VAS pain score, ROM, findings & EMR SOAP notes"}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={handleCloseAndReset}
-            className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0 ml-2"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            <button
+              type="button"
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title={isMaximized ? "Restore size" : "Maximize view"}
+            >
+              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={handleCloseAndReset}
+              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
@@ -603,6 +628,7 @@ export default function DocumentScannerModal({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

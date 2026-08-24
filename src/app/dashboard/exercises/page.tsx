@@ -394,24 +394,28 @@ export default function ExerciseLibraryAdminPage() {
           ))}
         </div>
       )}
+
       {/* Add New Exercise Modal */}
       {mounted && isAddModalOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             
-            {/* Header */}
-            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center">
-                  <Video className="h-5 w-5" />
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+                  <Video className="w-5 h-5" />
                 </div>
-                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Add Video Exercise</h3>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Add Video Exercise</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Clinical library item with YouTube video sync</p>
+                </div>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <X className="h-4 w-4" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -525,13 +529,20 @@ export default function ExerciseLibraryAdminPage() {
               </div>
 
               {/* Sticky Footer */}
-              <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
-                  {saving ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Save to Exercise Library"}
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to Exercise Library"}
                 </button>
               </div>
             </form>
@@ -542,22 +553,25 @@ export default function ExerciseLibraryAdminPage() {
 
       {/* Edit Exercise Modal */}
       {mounted && editingExercise && createPortal(
-        <div className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             
-            {/* Header */}
-            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center">
-                  <Pencil className="h-5 w-5" />
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+                  <Pencil className="w-5 h-5" />
                 </div>
-                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Edit Exercise Details</h3>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Edit Exercise Details</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Modify clinical instructions and video link</p>
+                </div>
               </div>
               <button
                 onClick={() => setEditingExercise(null)}
-                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <X className="h-4 w-4" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -661,13 +675,20 @@ export default function ExerciseLibraryAdminPage() {
               </div>
 
               {/* Sticky Footer */}
-              <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEditingExercise(null)}
+                  className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={updating}
-                  className="w-full flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
-                  {updating ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : "Save Changes"}
+                  {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -678,31 +699,33 @@ export default function ExerciseLibraryAdminPage() {
 
       {/* Video Player Modal */}
       {mounted && playingVideo && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-hidden animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl space-y-3 sm:space-y-4 p-3 sm:p-6 relative">
-            <div className="flex items-center justify-between px-1 sm:px-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col relative">
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900 shrink-0">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">
                   {playingVideo.category}
                 </span>
-                <h3 className="text-sm sm:text-lg font-black text-white line-clamp-1">{playingVideo.title}</h3>
+                <h3 className="text-sm sm:text-base font-bold text-white line-clamp-1">{playingVideo.title}</h3>
               </div>
               <button
                 onClick={() => setPlayingVideo(null)}
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shrink-0 ml-2"
               >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="aspect-video w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-inner">
-              <iframe
-                src={`https://www.youtube.com/embed/${playingVideo.youtubeId}?autoplay=1`}
-                title={playingVideo.title}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex items-center justify-center bg-black">
+              <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-inner">
+                <iframe
+                  src={`https://www.youtube.com/embed/${playingVideo.youtubeId}?autoplay=1`}
+                  title={playingVideo.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
         </div>,
