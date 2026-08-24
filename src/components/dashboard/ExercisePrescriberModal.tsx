@@ -273,31 +273,39 @@ export default function ExercisePrescriberModal({
       setSaving(false);
     }
   };
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   return createPortal(
     <div className="fixed inset-0 z-[100] bg-[#f8fafc] dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in">
       
       {/* Top Navigation Bar with Back Button & Centered Search */}
-      <div className="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 bg-white dark:bg-slate-900 shadow-xs shrink-0">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 sm:gap-4 bg-white dark:bg-slate-900 shadow-xs shrink-0">
         
         {/* Back Button */}
         <button
           onClick={onClose}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-black uppercase tracking-wider transition-colors cursor-pointer shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Profile</span>
+          <span className="hidden sm:inline">Back to Profile</span>
+          <span className="sm:hidden">Back</span>
         </button>
 
         {/* Centered Unclipped Search Bar */}
         <div className="flex-1 max-w-xl mx-auto relative">
-          <Search className="absolute left-4 top-3 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 sm:left-4 top-2.5 sm:top-3 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search clinical exercises by title, muscle, or region..."
-            className="w-full pl-11 pr-4 py-2.5 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green dark:focus:border-teal-500 shadow-inner transition-colors"
+            placeholder="Search exercises..."
+            className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2 sm:py-2.5 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green dark:focus:border-teal-500 shadow-inner transition-colors"
           />
         </div>
 
@@ -305,10 +313,10 @@ export default function ExercisePrescriberModal({
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onClose}
-            className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
             title="Close Prescriber Session"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
       </div>
@@ -317,7 +325,7 @@ export default function ExercisePrescriberModal({
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
           
           {/* Left Grid: Exercise Selector & History Banner */}
-          <div className="flex-1 p-6 overflow-y-auto space-y-6">
+          <div className="flex-1 p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 overscroll-contain">
             
             {/* Header Title */}
             <div>

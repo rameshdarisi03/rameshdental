@@ -1386,9 +1386,9 @@ export default function DaySnapshot() {
 
       {/* Blocking Reason Dialog Modal */}
       {blockingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 animate-zoom-in">
-            <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Block Selected Slots</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 animate-zoom-in max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Block Selected Slots</h3>
             <p className="text-xs text-slate-550 leading-relaxed font-semibold">
               Provide a reason to block these <strong>{selectedSlots.length}</strong> selected slots. Patients will not be able to book them online.
             </p>
@@ -1412,15 +1412,15 @@ export default function DaySnapshot() {
                 <button
                   type="button"
                   onClick={() => setBlockingModalOpen(false)}
-                  className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-655 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-grow bg-brand-green hover:bg-brand-green-hover text-white rounded-full py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                  className="flex-grow bg-brand-green hover:bg-brand-green-hover text-white rounded-full py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
                 >
-                  Save Availability Override
+                  Save Override
                 </button>
               </div>
             </form>
@@ -1430,13 +1430,13 @@ export default function DaySnapshot() {
 
       {/* Rejection Safeguard Modal */}
       {rejectionConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 text-center animate-zoom-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 text-center animate-zoom-in max-h-[90vh] overflow-y-auto">
             <div className="h-12 w-12 rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center text-red-650 mx-auto animate-pulse">
               <ShieldAlert className="h-6 w-6" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Confirm Rejection</h3>
+              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Confirm Rejection</h3>
               <p className="text-xs text-slate-505 leading-relaxed font-semibold">
                 Are you sure you want to reject the selected appointment booking(s)? This will cancel their slots, make them available for other patients, and launch a WhatsApp notification template.
               </p>
@@ -1447,23 +1447,25 @@ export default function DaySnapshot() {
                   setRejectionConfirmOpen(false);
                   setPendingRejectionSlots([]);
                 }}
-                className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-655 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRejectionConfirmed}
-                className="flex-grow bg-red-650 hover:bg-red-500 text-white rounded-full py-3.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
+                className="flex-grow bg-red-650 hover:bg-red-500 text-white rounded-full py-3.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
                 Reject Appointment(s)
               </button>
             </div>
           </div>
         </div>
-      )}      {/* WhatsApp Rejection/Approval Preview Modal */}
+      )}
+
+      {/* WhatsApp Rejection/Approval Preview Modal */}
       {notificationModalOpen && pendingActionApp && pendingActionType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 text-center animate-zoom-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 text-center animate-zoom-in max-h-[90vh] overflow-y-auto">
             <div className="flex justify-center">
               <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
                 pendingActionType === "approve"
@@ -1479,7 +1481,7 @@ export default function DaySnapshot() {
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-lg font-black text-brand-charcoal dark:text-white">
+              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">
                 {pendingActionType === "approve" ? "Confirm Appointment Approval" : "Appointment Rejected"}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
@@ -1509,9 +1511,9 @@ export default function DaySnapshot() {
 
             {/* Preview Box */}
             {(pendingActionType === "reject" || (pendingActionType === "approve" && notifyWhatsApp)) && (
-              <div className="bg-[#fbfcfb] dark:bg-slate-955 p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in break-all">
+              <div className="bg-[#fbfcfb] dark:bg-slate-955 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-855 text-left text-xs space-y-1.5 animate-fade-in break-all max-h-48 overflow-y-auto">
                 <p className="font-bold text-slate-400">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line">
+                <p className="text-slate-600 dark:text-slate-455 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
                   {pendingActionType === "approve" ? (
                     <>
                       Hi {pendingActionApp.patientName}, your appointment request for *{pendingActionApp.serviceId}* on *{pendingActionApp.date}* at *{pendingActionApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
@@ -1533,15 +1535,21 @@ export default function DaySnapshot() {
                   setPendingActionApp(null);
                   setPendingActionType(null);
                 }}
-                className="flex-1 rounded-full border border-slate-200 text-slate-655 py-3 text-xs font-bold hover:bg-slate-50 transition-colors"
+                className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-655 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 {pendingActionType === "approve" ? "No, Cancel" : "No"}
               </button>
               {pendingActionType === "approve" ? (
                 <button
                   type="button"
-                  onClick={() => confirmApproval(notifyWhatsApp)}
-                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                  onClick={async () => {
+                    const appId = pendingActionApp.id!;
+                    setNotificationModalOpen(false);
+                    await handleStatusChange(appId, "approved", notifyWhatsApp);
+                    setPendingActionApp(null);
+                    setPendingActionType(null);
+                  }}
+                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <Check className="h-4 w-4" />
                   Yes, Approve
@@ -1549,16 +1557,17 @@ export default function DaySnapshot() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    triggerWhatsAppConfirmation(pendingActionApp, false);
+                  onClick={async () => {
+                    const appId = pendingActionApp.id!;
                     setNotificationModalOpen(false);
+                    await handleStatusChange(appId, "rejected", true);
                     setPendingActionApp(null);
                     setPendingActionType(null);
                   }}
-                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-500 text-white py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
+                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  Yes, Notify
+                  Yes, Send WhatsApp
                 </button>
               )}
             </div>

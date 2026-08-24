@@ -652,7 +652,7 @@ function LoginContent() {
       {/* PWA Help Overlay Modal */}
       {installInstructions && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#062e36]/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 relative">
+          <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 relative max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-2 text-[#062e36] dark:text-[#f9ab55]">
               <Smartphone className="h-5 w-5" />
               <h4 className="text-sm font-bold uppercase tracking-wider font-['Plus_Jakarta_Sans',sans-serif]">Installation Guide</h4>

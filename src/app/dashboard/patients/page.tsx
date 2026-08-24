@@ -732,25 +732,26 @@ export default function PatientsPage() {
 
       {/* New Patient Registration Overlay Modal Dialog */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-charcoal/45 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden animate-scale-in">
+        <div className="fixed inset-0 z-50 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-brand-charcoal/60 backdrop-blur-md overflow-hidden animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-none sm:rounded-3xl border-0 sm:border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full h-full sm:h-auto sm:max-h-[92vh] flex flex-col overflow-hidden animate-scale-in">
             
             {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between bg-brand-bg dark:bg-slate-800/40">
+            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between bg-brand-bg dark:bg-slate-800/40 shrink-0">
               <div className="flex items-center gap-2 text-brand-green font-black">
                 <UserPlus className="h-5 w-5" />
-                <span className="text-lg text-brand-charcoal dark:text-white">Register New Patient</span>
+                <span className="text-base sm:text-lg text-brand-charcoal dark:text-white">Register New Patient</span>
               </div>
               <button 
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 Close
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleCreatePatient} className="p-6 space-y-4">
+            <form onSubmit={handleCreatePatient} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
               
               {formError && (
                 <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-2xl">
@@ -971,20 +972,21 @@ export default function PatientsPage() {
                   />
                 </div>
               </div>
+            </div>
 
               {/* Action Buttons */}
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-850">
+              <div className="p-4 sm:p-6 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 px-5 py-3 text-xs font-bold transition-all hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="rounded-full border border-slate-200 dark:border-slate-800 text-slate-500 px-5 py-3 text-xs font-bold transition-all hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? (
                     <>

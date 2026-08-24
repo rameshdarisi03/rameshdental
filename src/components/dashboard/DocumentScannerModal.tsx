@@ -256,26 +256,34 @@ export default function DocumentScannerModal({
     }
   };
 
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 border-0 sm:border border-slate-200/80 dark:border-slate-800 rounded-none sm:rounded-3xl w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-3xl flex flex-col shadow-2xl overflow-hidden">
         
         {/* Modal Header */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-brand-green/15 dark:bg-teal-500/20 text-brand-green dark:text-teal-400 flex items-center justify-center shrink-0">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-slate-900 dark:text-white">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
                   {isPrescriptionMode ? "Scan Doctor Referral / Prescription" : "Scan Handwritten Clinical Case Sheet"}
                 </h3>
-                <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                <span className="bg-brand-green/10 text-brand-green dark:text-teal-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0">
                   Gemini AI Vision
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1 sm:line-clamp-none">
                 {isPrescriptionMode
                   ? `Patient: ${patientName || "Selected Patient"} • Transcribes diagnosis, referring doctor, restrictions, and pre-existing alerts.`
                   : `Patient: ${patientName || "Selected Patient"} • Transcribes VAS pain scores, ROM, tests, and standardizes SOAP notes.`}
@@ -285,14 +293,14 @@ export default function DocumentScannerModal({
 
           <button
             onClick={handleCloseAndReset}
-            className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0 ml-2"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 overscroll-contain">
           
           {/* Upload & Capture Options (if no scan completed yet) */}
           {!extractedData && (

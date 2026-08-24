@@ -289,15 +289,15 @@ export default function DashboardStaff() {
 
       {/* Add Staff Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-6 relative animate-zoom-in">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-brand-charcoal dark:text-white">Add Staff Member</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-5 relative animate-zoom-in max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white">Add Staff Member</h3>
               <button
                 onClick={() => setIsFormOpen(false)}
-                className="p-1.5 px-3 rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 text-xs font-black"
+                className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer text-xs font-black"
               >
-                Close
+                ✕
               </button>
             </div>
 
@@ -404,12 +404,12 @@ export default function DashboardStaff() {
 
       {/* Delete Confirmation Modal */}
       {isDeleteOpen && memberToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/55 backdrop-blur-sm px-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-xl space-y-5 relative animate-zoom-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-xl space-y-4 relative animate-zoom-in max-h-[90vh] overflow-y-auto">
             
-            <div className="flex items-center gap-3 text-red-650 dark:text-red-400 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3 text-red-650 dark:text-red-400 border-b border-slate-100 dark:border-slate-800 pb-3">
               <AlertOctagon className="h-6 w-6 animate-pulse" />
-              <h3 className="text-lg font-black">Confirm Deletion</h3>
+              <h3 className="text-base sm:text-lg font-black">Confirm Deletion</h3>
             </div>
 
             <div className="space-y-3">

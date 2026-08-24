@@ -394,157 +394,138 @@ export default function ExerciseLibraryAdminPage() {
           ))}
         </div>
       )}
-
       {/* Add New Exercise Modal */}
       {mounted && isAddModalOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative my-auto">
+        <div className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
             
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="h-9 w-9 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center">
                   <Video className="h-5 w-5" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white">Add Video Exercise</h3>
+                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Add Video Exercise</h3>
               </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
+                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddExercise} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  Exercise Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Scapular Retractions with Resistance Band"
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    YouTube Video Link or ID
+            <form onSubmit={handleAddExercise} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Exercise Title
                   </label>
-                  <span className="text-[10px] font-bold text-brand-green dark:text-teal-400">
-                    Auto-detects Watch, Shorts, Embed & ID
-                  </span>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Scapular Retractions with Resistance Band"
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  />
                 </div>
-                <input
-                  type="text"
-                  required
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
-                  placeholder="e.g. https://www.youtube.com/watch?v=wD7V2F3eRns or video ID"
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
-                />
 
-                {/* Live YouTube Validation & Preview Box */}
-                {youtubeUrl && (
-                  <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 animate-fade-in">
-                    <div className="relative aspect-video w-20 rounded-xl overflow-hidden bg-black shrink-0 border border-slate-200 dark:border-slate-800 shadow-inner">
-                      <img
-                        src={`https://img.youtube.com/vi/${extractYoutubeId(youtubeUrl)}/mqdefault.jpg`}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1 leading-tight">
-                      <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
-                        Video ID: <span className="font-mono text-brand-green dark:text-teal-400">{extractYoutubeId(youtubeUrl)}</span>
-                      </p>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 inline" /> Thumbnail & player linked
-                      </p>
-                    </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      YouTube Video Link or ID
+                    </label>
+                    <span className="text-[10px] font-bold text-brand-green dark:text-teal-400">
+                      Auto-detects URLs & IDs
+                    </span>
                   </div>
-                )}
-              </div>
+                  <input
+                    type="text"
+                    required
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="e.g. https://www.youtube.com/watch?v=wD7V2F3eRns"
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Anatomical Category
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Target Anatomy
+                    </label>
+                    <select
+                      value={targetRegion}
+                      onChange={(e) => setTargetRegion(e.target.value)}
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                    >
+                      {TARGET_REGIONS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Clinical Goal
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Default Sets
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultSets}
+                      onChange={(e) => setDefaultSets(e.target.value)}
+                      placeholder="3"
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Default Reps / Hold
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultReps}
+                      onChange={(e) => setDefaultReps(e.target.value)}
+                      placeholder="10"
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Duration (MM:SS)
+                    Tags (comma separated)
                   </label>
                   <input
                     type="text"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    placeholder="1:00"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="SHOULDER, MOBILITY, STRENGTH"
                     className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Default Sets
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={defaultSets}
-                    onChange={(e) => setDefaultSets(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Default Reps / Hold
-                  </label>
-                  <input
-                    type="text"
-                    value={defaultReps}
-                    onChange={(e) => setDefaultReps(e.target.value)}
-                    placeholder="10"
-                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  Tags (comma separated)
-                </label>
-                <input
-                  type="text"
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  placeholder="SHOULDER, MOBILITY, STRENGTH"
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                />
-              </div>
-
-              <div className="pt-4">
+              {/* Sticky Footer */}
+              <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
                 <button
                   type="submit"
                   disabled={saving}
@@ -561,150 +542,126 @@ export default function ExerciseLibraryAdminPage() {
 
       {/* Edit Exercise Modal */}
       {mounted && editingExercise && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 animate-fade-in relative my-auto">
+        <div className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border-0 sm:border border-slate-200 dark:border-slate-800 w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg rounded-none sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden">
             
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="h-9 w-9 rounded-2xl bg-brand-green/10 text-brand-green flex items-center justify-center">
                   <Pencil className="h-5 w-5" />
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white">Edit Exercise Details</h3>
+                <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Edit Exercise Details</h3>
               </div>
               <button
                 onClick={() => setEditingExercise(null)}
-                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
+                className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateExercise} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  Exercise Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                />
-              </div>
+            <form onSubmit={handleUpdateExercise} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Exercise Title
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                  />
+                </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
                     YouTube Video Link or ID
                   </label>
-                  <span className="text-[10px] font-bold text-brand-green dark:text-teal-400">
-                    Auto-detects Watch, Shorts, Embed & ID
-                  </span>
+                  <input
+                    type="text"
+                    required
+                    value={editYoutubeUrl}
+                    onChange={(e) => setEditYoutubeUrl(e.target.value)}
+                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
+                  />
                 </div>
-                <input
-                  type="text"
-                  required
-                  value={editYoutubeUrl}
-                  onChange={(e) => setEditYoutubeUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... or ID"
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green font-mono"
-                />
 
-                {/* Live YouTube Validation & Preview Box */}
-                {editYoutubeUrl && (
-                  <div className="mt-2.5 flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 animate-fade-in">
-                    <div className="relative aspect-video w-20 rounded-xl overflow-hidden bg-black shrink-0 border border-slate-200 dark:border-slate-800 shadow-inner">
-                      <img
-                        src={`https://img.youtube.com/vi/${extractYoutubeId(editYoutubeUrl)}/mqdefault.jpg`}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1 leading-tight">
-                      <p className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
-                        Video ID: <span className="font-mono text-brand-green dark:text-teal-400">{extractYoutubeId(editYoutubeUrl)}</span>
-                      </p>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 inline" /> Thumbnail & player linked
-                      </p>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Target Anatomy
+                    </label>
+                    <select
+                      value={editTargetRegion}
+                      onChange={(e) => setEditTargetRegion(e.target.value)}
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                    >
+                      {TARGET_REGIONS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Anatomical Category
-                  </label>
-                  <select
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Clinical Goal
+                    </label>
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Default Sets
+                    </label>
+                    <input
+                      type="text"
+                      value={editDefaultSets}
+                      onChange={(e) => setEditDefaultSets(e.target.value)}
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Default Reps / Hold
+                    </label>
+                    <input
+                      type="text"
+                      value={editDefaultReps}
+                      onChange={(e) => setEditDefaultReps(e.target.value)}
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Duration (MM:SS)
-                  </label>
-                  <input
-                    type="text"
-                    value={editDuration}
-                    onChange={(e) => setEditDuration(e.target.value)}
-                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Default Sets
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editDefaultSets}
-                    onChange={(e) => setEditDefaultSets(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Default Reps / Hold
+                    Tags (comma separated)
                   </label>
                   <input
                     type="text"
-                    value={editDefaultReps}
-                    onChange={(e) => setEditDefaultReps(e.target.value)}
+                    value={editTagsInput}
+                    onChange={(e) => setEditTagsInput(e.target.value)}
                     className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  Tags (comma separated)
-                </label>
-                <input
-                  type="text"
-                  value={editTagsInput}
-                  onChange={(e) => setEditTagsInput(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                />
-              </div>
-
-              <div className="pt-4">
+              {/* Sticky Footer */}
+              <div className="p-4 sm:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
                 <button
                   type="submit"
                   disabled={updating}
@@ -721,24 +678,24 @@ export default function ExerciseLibraryAdminPage() {
 
       {/* Video Player Modal */}
       {mounted && playingVideo && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl space-y-4 p-4 sm:p-6 relative my-auto">
-            <div className="flex items-center justify-between px-2">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-hidden animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl space-y-3 sm:space-y-4 p-3 sm:p-6 relative">
+            <div className="flex items-center justify-between px-1 sm:px-2">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">
                   {playingVideo.category}
                 </span>
-                <h3 className="text-lg font-black text-white">{playingVideo.title}</h3>
+                <h3 className="text-sm sm:text-lg font-black text-white line-clamp-1">{playingVideo.title}</h3>
               </div>
               <button
                 onClick={() => setPlayingVideo(null)}
-                className="h-9 w-9 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 ml-2"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
 
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-inner">
+            <div className="aspect-video w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-inner">
               <iframe
                 src={`https://www.youtube.com/embed/${playingVideo.youtubeId}?autoplay=1`}
                 title={playingVideo.title}
