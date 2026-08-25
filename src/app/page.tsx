@@ -28,7 +28,8 @@ import {
   Mail,
   Clock,
   Navigation,
-  Loader2
+  Loader2,
+  MessageSquare
 } from "lucide-react";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
 
@@ -591,13 +592,25 @@ export default function Home() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4 animate-fade-in-up" style={{ animationDelay: '1100ms' }}>
-                <Link
-                  href="/book"
-                  className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-                >
-                  Book Free Consultation
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+                {clinicConfig.enablePublicBooking !== false ? (
+                  <Link
+                    href="/book"
+                    className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    Book Free Consultation
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                ) : (
+                  <a
+                    href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    <MessageSquare className="h-5 w-5" />
+                    Book via WhatsApp
+                  </a>
+                )}
                 <a
                   href="#services"
                   className="inline-flex items-center justify-center rounded-full border border-brand-green text-brand-green hover:bg-brand-green/5 bg-white/40 backdrop-blur-sm px-8 py-4 text-base font-bold transition-all active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
@@ -921,13 +934,25 @@ export default function Home() {
               </div>
 
               <div className="pt-2 animate-fade-in-up delay-400">
-                <Link
-                  href="/book"
-                  className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
-                >
-                  <span>Request Booking</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                {clinicConfig.enablePublicBooking !== false ? (
+                  <Link
+                    href="/book"
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    <span>Request Booking</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <a
+                    href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent(`Hello Gait Physio Clinic, I would like to schedule a consultation with ${therapistProfiles[teamIndex]?.name || 'a therapist'}.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Inquire via WhatsApp</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -1522,13 +1547,25 @@ export default function Home() {
           <p className="text-lg text-teal-50 max-w-2xl mx-auto">
             Take the first step toward pain-free movement. Book your initial consultation today at our convenient location.
           </p>
-          <div className="flex justify-center gap-4">
-            <Link
-              href="/book"
-              className="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
-            >
-              Book Online Now
-            </Link>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+            {clinicConfig.enablePublicBooking !== false ? (
+              <Link
+                href="/book"
+                className="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
+              >
+                Book Online Now
+              </Link>
+            ) : (
+              <a
+                href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule an appointment.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
+              >
+                <MessageSquare className="h-5 w-5 text-brand-green" />
+                Book via WhatsApp
+              </a>
+            )}
             <a
               href="#locate-us"
               className="inline-flex items-center justify-center rounded-full border border-white/30 bg-transparent px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all active:scale-95"

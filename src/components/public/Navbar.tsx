@@ -3,18 +3,29 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Activity, Phone, Moon, Sun } from "lucide-react";
+import { Menu, X, Activity, Phone, Moon, Sun, MessageSquare } from "lucide-react";
 import { FEATURES } from "@/lib/features";
+import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
   const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
     }
+    async function loadConfig() {
+      try {
+        const conf = await getClinicConfig();
+        setClinicConfig(conf);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadConfig();
   }, []);
 
   const toggleDarkMode = () => {
@@ -137,28 +148,42 @@ export default function Navbar() {
             </span>
           </button>
 
-          <a
-            href="tel:+919206651295"
-            className="hidden sm:flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-green dark:text-slate-200 dark:hover:text-brand-green/85 mr-1 transition-colors"
-          >
-            <Phone className="h-4 w-4 text-brand-green shrink-0" />
-            <span>Call Clinic</span>
-          </a>
+          {clinicConfig.enablePublicBooking !== false ? (
+            <>
+              <a
+                href={`tel:${clinicConfig.phone || "+919206651295"}`}
+                className="hidden sm:flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-green dark:text-slate-200 dark:hover:text-brand-green/85 mr-1 transition-colors"
+              >
+                <Phone className="h-4 w-4 text-brand-green shrink-0" />
+                <span>Call Clinic</span>
+              </a>
 
-          <Link
-            href="/book"
-            className="hidden sm:inline-flex items-center justify-center rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green transition-all active:scale-95"
-          >
-            Book Appointment
-          </Link>
+              <Link
+                href="/book"
+                className="hidden sm:inline-flex items-center justify-center rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green transition-all active:scale-95"
+              >
+                Book Appointment
+              </Link>
+            </>
+          ) : (
+            <a
+              href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-hover transition-all active:scale-95"
+            >
+              <MessageSquare className="h-4 w-4" />
+              WhatsApp Us
+            </a>
+          )}
           
-          <Link
-            href="tel:+919206651295"
+          <a
+            href={`tel:${clinicConfig.phone || "+919206651295"}`}
             className="sm:hidden flex items-center justify-center h-10 w-10 rounded-full border border-slate-200 dark:border-slate-800 text-brand-green dark:text-teal-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
             title="Call Clinic"
           >
             <Phone className="h-4 w-4" />
-          </Link>
+          </a>
 
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -191,13 +216,26 @@ export default function Navbar() {
             );
           })}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-900">
-            <Link
-              href="/book"
-              onClick={() => setIsOpen(false)}
-              className="flex w-full items-center justify-center rounded-full bg-brand-green py-3 text-center text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"
-            >
-              Book Appointment
-            </Link>
+            {clinicConfig.enablePublicBooking !== false ? (
+              <Link
+                href="/book"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-center rounded-full bg-brand-green py-3 text-center text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"
+              >
+                Book Appointment
+              </Link>
+            ) : (
+              <a
+                href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-center text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"
+              >
+                <MessageSquare className="h-4 w-4" />
+                WhatsApp Reception
+              </a>
+            )}
           </div>
         </div>
       )}

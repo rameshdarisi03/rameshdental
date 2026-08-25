@@ -22,7 +22,11 @@ import {
   UserMinus,
   Map,
   Layers,
-  Sparkles
+  Sparkles,
+  HelpCircle,
+  Power,
+  AlertTriangle,
+  RotateCcw
 } from "lucide-react";
 import Link from "next/link";
 
@@ -38,9 +42,15 @@ export default function DashboardSettings() {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Expandable Hourly Overrides & Help Tooltip state
+  const [showHourlyOverrides, setShowHourlyOverrides] = useState(false);
+  const [showHelpTooltip, setShowHelpTooltip] = useState(false);
 
   // Settings State
   const [config, setConfig] = useState<ClinicConfig>({
+    enablePublicBooking: true,
     weeklyHolidays: {
       sunday: true,
       monday: false,
@@ -94,6 +104,10 @@ export default function DashboardSettings() {
         const fetched = await getClinicConfig();
         setConfig(fetched);
         
+        if (fetched.hourlyCapacityOverrides && Object.keys(fetched.hourlyCapacityOverrides).length > 0) {
+          setShowHourlyOverrides(true);
+        }
+
         // Dynamically show last saved if available in localStorage
         const savedTime = localStorage.getItem("gpc_config_saved_at");
         if (savedTime) {
@@ -108,6 +122,18 @@ export default function DashboardSettings() {
     loadData();
   }, []);
 
+  // Unsaved changes browser beforeunload guard
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
   const handleHolidayToggle = (day: keyof ClinicConfig["weeklyHolidays"]) => {
     setConfig((prev) => ({
       ...prev,
@@ -116,6 +142,7 @@ export default function DashboardSettings() {
         [day]: !prev.weeklyHolidays[day],
       },
     }));
+    setIsDirty(true);
     setSavedSuccess(false);
   };
 
@@ -125,6 +152,7 @@ export default function DashboardSettings() {
       ...prev,
       [name]: name === "slotDuration" || name === "defaultCapacityPerSlot" ? Number(value) : value,
     }));
+    setIsDirty(true);
     setSavedSuccess(false);
   };
 
@@ -138,6 +166,7 @@ export default function DashboardSettings() {
       }
       return { ...prev, hourlyCapacityOverrides: overrides };
     });
+    setIsDirty(true);
     setSavedSuccess(false);
   };
 
@@ -160,6 +189,7 @@ export default function DashboardSettings() {
       const success = await saveClinicConfig(updatedConfig);
       if (success) {
         setSavedSuccess(true);
+        setIsDirty(false);
         setConfig(updatedConfig);
         
         // Update saving timestamp
@@ -265,17 +295,17 @@ export default function DashboardSettings() {
     <div className="flex flex-col min-h-screen -m-4 sm:-m-6 md:-m-8 bg-[#f8fafc] dark:bg-slate-955">
       
       {/* Top Configuration Header Bar */}
-      <header className="flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 sm:px-8 shrink-0">
+      <header className="flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 sm:px-8 shrink-0 sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <Settings className="h-4.5 w-4.5 text-[#1b3d2f] dark:text-emerald-450" />
           <span className="text-xs sm:text-sm font-black text-brand-charcoal dark:text-white select-none">Clinic Configuration</span>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link
             href="/"
             target="_blank"
-            className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-slate-500 hover:text-brand-green dark:text-slate-400 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-slate-500 hover:text-brand-green dark:text-slate-400 transition-colors"
           >
             <Globe className="h-4 w-4" />
             View Website
@@ -284,19 +314,29 @@ export default function DashboardSettings() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100/60 dark:border-emerald-900/40 text-[9px] font-black uppercase tracking-wider">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live Connection
+              Live
             </div>
             
-            <button type="button" className="relative p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-800">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500" />
+            {/* Header Quick-Save Button */}
+            <button
+              type="button"
+              onClick={() => handleSave()}
+              disabled={saving}
+              className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer shadow-xs ${
+                isDirty
+                  ? "bg-brand-green text-white hover:bg-brand-green-hover ring-4 ring-brand-green/20 scale-105"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>{isDirty ? "Save Changes *" : "Save"}</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Settings Body Grid */}
-      <div className="flex-grow p-6 sm:p-8 space-y-6 pb-28">
+      <div className="flex-grow p-6 sm:p-8 space-y-6 pb-36">
         
         {/* Title and Intro */}
         <div className="space-y-1">
@@ -317,6 +357,63 @@ export default function DashboardSettings() {
           
           {/* Left Column (Span 8) */}
           <div className="lg:col-span-8 space-y-8">
+
+            {/* Master Public Online Booking Toggle Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    config.enablePublicBooking !== false
+                      ? "bg-emerald-500/10 text-brand-green"
+                      : "bg-amber-500/10 text-amber-600"
+                  }`}>
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Public Online Appointment Booking
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Control direct customer booking access on the website
+                    </p>
+                  </div>
+                </div>
+
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  config.enablePublicBooking !== false
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                    : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${config.enablePublicBooking !== false ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+                  {config.enablePublicBooking !== false ? "Online Booking Active" : "Direct Contact Only"}
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50/80 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-200/60 dark:border-slate-800">
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold leading-relaxed max-w-md">
+                  {config.enablePublicBooking !== false
+                    ? "Active: Website visitors can view real-time time slots and submit booking requests."
+                    : "Direct Contact: Public booking slots are hidden. Website directs visitors to Call or WhatsApp reception directly."}
+                </p>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfig((prev) => ({ ...prev, enablePublicBooking: prev.enablePublicBooking === false ? true : false }));
+                    setIsDirty(true);
+                    setSavedSuccess(false);
+                  }}
+                  className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                    config.enablePublicBooking !== false
+                      ? "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300"
+                      : "bg-brand-green text-white hover:bg-brand-green-hover shadow-sm"
+                  }`}
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>{config.enablePublicBooking !== false ? "Switch to Direct Contact" : "Enable Online Booking"}</span>
+                </button>
+              </div>
+            </div>
             
             {/* Operational Shifts and Durations Card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-6">
@@ -533,79 +630,129 @@ export default function DashboardSettings() {
                 </div>
               </div>
 
-              {/* Hourly Capacity Adjustments Matrix */}
-              <div className="space-y-3 pt-2">
+              {/* Expandable Hourly Overrides Toggle with Help Tooltip */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
-                    Hourly Overrides (Custom capacity for specific hours)
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={showHourlyOverrides}
+                      onChange={(e) => setShowHourlyOverrides(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+                    />
+                    <span className="text-xs font-black text-brand-charcoal dark:text-white">
+                      Enable Custom Hourly Overrides
+                    </span>
+                    {Object.keys(config.hourlyCapacityOverrides || {}).length > 0 && (
+                      <span className="text-[9px] font-black text-amber-600 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-full">
+                        {Object.keys(config.hourlyCapacityOverrides || {}).length} custom
+                      </span>
+                    )}
                   </label>
-                  {Object.keys(config.hourlyCapacityOverrides || {}).length > 0 && (
+
+                  {/* Help Tooltip Icon */}
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={() => {
-                        setConfig((prev) => ({ ...prev, hourlyCapacityOverrides: {} }));
-                        setSavedSuccess(false);
-                      }}
-                      className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
+                      onMouseEnter={() => setShowHelpTooltip(true)}
+                      onMouseLeave={() => setShowHelpTooltip(false)}
+                      onClick={() => setShowHelpTooltip((prev) => !prev)}
+                      className="p-1 rounded-full text-slate-400 hover:text-brand-green hover:bg-brand-green/10 transition-colors cursor-pointer"
+                      title="Learn what hourly overrides do"
                     >
-                      Reset all hours to default
+                      <HelpCircle className="h-4 w-4" />
                     </button>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {generateSlotsFromHours(
-                    config.morningStart,
-                    config.morningEnd,
-                    config.eveningStart,
-                    config.eveningEnd,
-                    config.slotDuration
-                  ).map((time) => {
-                    const currentCapacity = getSlotCapacity(config, time);
-                    const isCustom = config.hourlyCapacityOverrides && typeof config.hourlyCapacityOverrides[time] === "number";
-
-                    return (
-                      <div
-                        key={time}
-                        className={`p-3 rounded-2xl border transition-all ${
-                          isCustom
-                            ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/80"
-                            : "bg-slate-50/60 dark:bg-slate-950/50 border-slate-200/80 dark:border-slate-800"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-black text-brand-charcoal dark:text-white">
-                            {time}
-                          </span>
-                          {isCustom && (
-                            <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">
-                              Custom
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Capacity Selector */}
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4].map((cap) => (
-                            <button
-                              key={cap}
-                              type="button"
-                              onClick={() => handleSlotCapacityChange(time, cap)}
-                              className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
-                                currentCapacity === cap
-                                  ? "bg-brand-green text-white shadow-xs"
-                                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                              }`}
-                              title={`${time}: ${cap} patient slots`}
-                            >
-                              {cap}
-                            </button>
-                          ))}
-                        </div>
+                    {/* Hover Tooltip Card */}
+                    {showHelpTooltip && (
+                      <div className="absolute right-0 bottom-full mb-2 w-72 p-3.5 bg-brand-charcoal text-white text-[11px] rounded-2xl shadow-xl z-50 animate-fade-in pointer-events-none border border-slate-700 leading-relaxed font-medium">
+                        <p className="font-bold text-emerald-400 mb-1 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          What are Hourly Overrides?
+                        </p>
+                        Set specific capacities for individual peak or lunch hours when fewer or more therapists are on duty (e.g. 1 therapist at 1:00 PM lunch, or 4 therapists during 5:00 PM peak).
                       </div>
-                    );
-                  })}
+                    )}
+                  </div>
                 </div>
+
+                {/* Collapsible Hourly Matrix */}
+                {showHourlyOverrides && (
+                  <div className="mt-4 space-y-3 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] text-slate-500 font-semibold">
+                        Select capacity for each hour. Hours matching default capacity ({config.defaultCapacityPerSlot || 3}) are automatically streamlined.
+                      </p>
+                      {Object.keys(config.hourlyCapacityOverrides || {}).length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfig((prev) => ({ ...prev, hourlyCapacityOverrides: {} }));
+                            setIsDirty(true);
+                            setSavedSuccess(false);
+                          }}
+                          className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer shrink-0 ml-2"
+                        >
+                          Reset all to default
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {generateSlotsFromHours(
+                        config.morningStart,
+                        config.morningEnd,
+                        config.eveningStart,
+                        config.eveningEnd,
+                        config.slotDuration
+                      ).map((time) => {
+                        const currentCapacity = getSlotCapacity(config, time);
+                        const isCustom = config.hourlyCapacityOverrides && typeof config.hourlyCapacityOverrides[time] === "number";
+
+                        return (
+                          <div
+                            key={time}
+                            className={`p-3 rounded-2xl border transition-all ${
+                              isCustom
+                                ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/80"
+                                : "bg-slate-50/60 dark:bg-slate-950/50 border-slate-200/80 dark:border-slate-800"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-black text-brand-charcoal dark:text-white">
+                                {time}
+                              </span>
+                              {isCustom && (
+                                <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">
+                                  Custom
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Capacity Selector */}
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4].map((cap) => (
+                                <button
+                                  key={cap}
+                                  type="button"
+                                  onClick={() => handleSlotCapacityChange(time, cap)}
+                                  className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                                    currentCapacity === cap
+                                      ? "bg-brand-green text-white shadow-xs"
+                                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                  }`}
+                                  title={`${time}: ${cap} patient slots`}
+                                >
+                                  {cap}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -862,6 +1009,7 @@ export default function DashboardSettings() {
                           }));
                           setNewTherapistName("");
                           setShowAddForm(false);
+                          setIsDirty(true);
                           setSavedSuccess(false);
                         }}
                         className="px-3.5 py-1 bg-[#1b3d2f] text-white font-black rounded-lg cursor-pointer border-0 shadow-sm"
@@ -907,6 +1055,7 @@ export default function DashboardSettings() {
                               ...prev,
                               therapists: prev.therapists.filter((t) => t !== therapist),
                             }));
+                            setIsDirty(true);
                             setSavedSuccess(false);
                           }
                         }}
@@ -928,29 +1077,42 @@ export default function DashboardSettings() {
 
       </div>
 
-      {/* Sticky Bottom Actions Bar */}
-      <footer className="fixed bottom-0 left-0 md:left-64 right-0 h-20 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-md px-6 sm:px-8 flex items-center justify-between z-30 shadow-lg">
-        <div className="flex items-center gap-2 text-slate-400 select-none">
-          <Clock className="h-4 w-4" />
-          <span className="text-[10px] sm:text-xs font-bold">
-            Last configured by <strong className="text-slate-600 dark:text-slate-300">Admin</strong> on {lastSavedTime}
-          </span>
+      {/* Sticky Bottom Actions Bar (Mobile & Desktop) */}
+      <footer className={`fixed bottom-0 left-0 md:left-64 right-0 min-h-20 border-t transition-all z-30 shadow-2xl px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 ${
+        isDirty
+          ? "bg-slate-900 text-white border-brand-green/40 ring-4 ring-brand-green/20"
+          : "bg-white/95 dark:bg-slate-900/95 border-slate-200/80 dark:border-slate-800 backdrop-blur-md"
+      }`}>
+        <div className="flex items-center gap-2 select-none w-full sm:w-auto justify-between sm:justify-start">
+          {isDirty ? (
+            <div className="flex items-center gap-2 text-emerald-400 font-black text-xs animate-pulse">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span>You have unsaved changes pending</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-slate-400 text-[10px] sm:text-xs font-bold">
+              <Clock className="h-4 w-4 text-brand-green shrink-0" />
+              <span>Last saved on {lastSavedTime}</span>
+            </div>
+          )}
         </div>
         
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={handleDiscard}
-            className="px-5 py-2.5 rounded-full border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-xs font-black transition-colors"
-          >
-            Discard Changes
-          </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          {isDirty && (
+            <button
+              type="button"
+              onClick={handleDiscard}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-full border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-black transition-colors cursor-pointer"
+            >
+              Discard
+            </button>
+          )}
           
           <button
             type="button"
             onClick={() => handleSave()}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full bg-[#1b3d2f] text-white hover:bg-brand-green-hover px-6 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all border-0"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full bg-brand-green text-white hover:bg-brand-green-hover px-6 py-2.5 text-xs font-black shadow-lg hover:scale-105 active:scale-95 transition-all border-0 cursor-pointer"
           >
             {saving ? (
               <>

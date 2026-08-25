@@ -48,6 +48,7 @@ export interface DayBlock {
 }
 
 export interface ClinicConfig {
+  enablePublicBooking?: boolean; // Master toggle for public online booking access
   weeklyHolidays: {
     sunday: boolean;
     monday: boolean;
@@ -76,6 +77,7 @@ export interface ClinicConfig {
 
 // Default Configuration fallback
 export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
+  enablePublicBooking: true,
   weeklyHolidays: {
     sunday: true,
     monday: false,

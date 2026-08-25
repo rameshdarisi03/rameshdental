@@ -14,7 +14,7 @@ import {
   ClinicConfig,
   isSlotInPast
 } from "@/lib/db";
-import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -273,6 +273,51 @@ function BookingFormContent() {
       <div className="flex h-screen items-center justify-center bg-brand-bg dark:bg-slate-900 text-slate-500">
         <Loader2 className="h-8 w-8 animate-spin text-brand-green mr-2" />
         <span className="text-sm font-semibold">Loading scheduling layout...</span>
+      </div>
+    );
+  }
+
+  if (clinicConfig.enablePublicBooking === false) {
+    const cleanPhone = (clinicConfig.phone || "9206651295").replace(/\D/g, "");
+    return (
+      <div className="flex flex-col w-full min-h-screen bg-brand-bg dark:bg-slate-900">
+        <PageHeader
+          title="Direct Consultation Booking"
+          description="We are currently scheduling all patient consultations directly through our clinic reception."
+        />
+        <div className="flex-grow flex items-center justify-center p-6 my-8">
+          <div className="max-w-md w-full bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-8 text-center shadow-xl space-y-6 animate-fade-in-up">
+            <div className="h-16 w-16 bg-emerald-50 dark:bg-emerald-950/40 text-brand-green rounded-full flex items-center justify-center mx-auto ring-8 ring-emerald-50/50 dark:ring-emerald-950/20">
+              <Phone className="h-8 w-8 text-brand-green" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-brand-charcoal dark:text-white">
+                Personalized Clinical Consultation
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                To guarantee you receive customized care suited to your symptoms, our therapists schedule sessions directly with you.
+              </p>
+            </div>
+            <div className="space-y-3 pt-2">
+              <a
+                href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a physiotherapy appointment.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white py-4 px-4 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Book via WhatsApp
+              </a>
+              <a
+                href={`tel:${clinicConfig.phone || "+919206651295"}`}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 py-3.5 px-4 text-xs font-black transition-all active:scale-95 cursor-pointer"
+              >
+                <Phone className="h-4 w-4 text-brand-green" />
+                Call Reception ({clinicConfig.phone || "+91 92066 51295"})
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
