@@ -40,10 +40,7 @@ export default function FloatingSocials() {
   const [isDark, setIsDark] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
 
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
     // Check initial dark mode state
     if (typeof window !== "undefined") {
       setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
@@ -69,7 +66,7 @@ export default function FloatingSocials() {
 
   // Hide on portal and dashboard pages
   const isPortalSubroute = pathname?.startsWith("/dashboard") || pathname?.startsWith("/patienthub") || pathname === "/login";
-  if (!mounted || isPortalSubroute) return null;
+  if (isPortalSubroute) return null;
 
   return (
     <div
