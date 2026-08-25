@@ -52,7 +52,12 @@ import {
   ChevronRight,
   RotateCw,
   RotateCcw,
-  Search
+  Search,
+  Send,
+  ExternalLink,
+  FileText,
+  Sparkles,
+  Phone
 } from "lucide-react";
 import Link from "next/link";
 
@@ -109,6 +114,13 @@ export default function DaySnapshot() {
   const [pendingActionType, setPendingActionType] = useState<"approve" | "reject" | null>(null);
   const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
   const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
+
+  // Dedicated Patient Action & WhatsApp Hub Modal State
+  const [patientActionModalOpen, setPatientActionModalOpen] = useState(false);
+  const [activePatientApp, setActivePatientApp] = useState<Appointment | null>(null);
+  const [customWhatsAppMessage, setCustomWhatsAppMessage] = useState("");
+  const [delayMinutes, setDelayMinutes] = useState(15);
+  const [showCustomMsgInput, setShowCustomMsgInput] = useState(false);
 
   // Book for Patient modal drawer states
   const [isBookForPatientOpen, setIsBookForPatientOpen] = useState(false);
@@ -293,14 +305,37 @@ export default function DaySnapshot() {
     });
   };
 
-  // Assign therapist directly to an appointment
+  // Open dedicated Patient Action Hub
+  const openPatientActions = (app: Appointment) => {
+    setActivePatientApp(app);
+    setCustomWhatsAppMessage("");
+    setShowCustomMsgInput(false);
+    setPatientActionModalOpen(true);
+  };
+
+  // Assign therapist directly to an appointment (syncs with Appointments & Patients DB)
   const handleAssignTherapist = async (appointmentId: string, therapistName: string) => {
     try {
       const docRef = doc(db, "appointments", appointmentId);
       await updateDoc(docRef, { assignedTherapist: therapistName });
+      
       setAppointments((prev) =>
         prev.map((a) => (a.id === appointmentId ? { ...a, assignedTherapist: therapistName } : a))
       );
+
+      setActivePatientApp((prev) => (prev && prev.id === appointmentId ? { ...prev, assignedTherapist: therapistName } : prev));
+
+      // Sync with Patients DB if patient exists
+      const targetApp = appointments.find((a) => a.id === appointmentId);
+      if (targetApp && targetApp.patientPhone) {
+        const cleanPhone = targetApp.patientPhone.replace(/\D/g, "");
+        const matchedPatient = patients.find((p) => p.phone && p.phone.replace(/\D/g, "").includes(cleanPhone.slice(-10)));
+        if (matchedPatient && matchedPatient.id) {
+          await updatePatient(matchedPatient.id, {
+            therapistName: therapistName
+          });
+        }
+      }
     } catch (err) {
       console.error("Error assigning therapist: ", err);
     }
@@ -769,8 +804,12 @@ export default function DaySnapshot() {
     }
   };
 
-  // Launch WhatsApp Confirmation
-  const triggerWhatsAppConfirmation = (app: Appointment, isApprove: boolean) => {
+  // Launch WhatsApp with Rich Pre-Made Templates & Delay Notifications (Popup-blocker proof)
+  const sendWhatsAppWithTemplate = (
+    app: Appointment,
+    templateType: "confirm" | "delay" | "early" | "custom",
+    customMsg?: string
+  ) => {
     let cleanPhone = app.patientPhone.replace(/\D/g, "");
     if (cleanPhone.startsWith("0")) {
       cleanPhone = cleanPhone.replace(/^0+/, "");
@@ -782,15 +821,37 @@ export default function DaySnapshot() {
       cleanPhone = "919206651295";
     }
 
-    const calendarUrl = generateGoogleCalendarUrl(app);
-    const calendarMsg = isApprove && calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-    const message = isApprove
-      ? `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`
-      : `Hi ${app.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${app.date}* at *${app.slot}* due to schedule overrides. Please visit our website to select another slot.`;
+    const therapistText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : "";
+    let message = "";
+
+    if (templateType === "confirm") {
+      const calendarUrl = generateGoogleCalendarUrl(app);
+      const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
+      message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${therapistText} on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
+    } else if (templateType === "delay") {
+      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${delayMinutes} minutes later* (around ${app.slot}). Thank you for your kind understanding!`;
+    } else if (templateType === "early") {
+      message = `Hi *${app.patientName}*, kindly arrive *10 minutes before* your appointment at *${app.slot}* today for initial biometric preparation. See you soon!`;
+    } else if (templateType === "custom") {
+      message = customMsg || `Hi *${app.patientName}*, regarding your appointment on *${app.date}* at *${app.slot}* at Gait Physio Clinic...`;
+    }
 
     const encodedMessage = encodeURIComponent(message);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-    window.open(waUrl, "_blank");
+    
+    // Popup-blocker proof dispatch
+    const win = window.open(waUrl, "_blank");
+    if (!win || win.closed || typeof win.closed === "undefined") {
+      window.location.href = waUrl;
+    }
+  };
+
+  const triggerWhatsAppConfirmation = (app: Appointment, isApprove: boolean) => {
+    sendWhatsAppWithTemplate(app, isApprove ? "confirm" : "custom");
+  };
+
+  const triggerWhatsAppRedirect = (app: Appointment, isApprove: boolean) => {
+    sendWhatsAppWithTemplate(app, isApprove ? "confirm" : "custom");
   };
 
   // Check if context option for booking is allowed (all selected slots must be free and not in the past)
@@ -840,7 +901,7 @@ export default function DaySnapshot() {
             </div>
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
             <div className="text-center px-1">
-      <span className="text-[9px] text-slate-455 block uppercase tracking-wider leading-none">Blocked</span>
+              <span className="text-[9px] text-slate-455 block uppercase tracking-wider leading-none">Blocked</span>
               <span className="text-red-500 text-sm font-black">{blockedCount}</span>
             </div>
           </div>
@@ -975,11 +1036,15 @@ export default function DaySnapshot() {
                       return (
                         <div
                           key={app.id || app.patientName}
-                          className="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-3 rounded-2xl space-y-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPatientActions(app);
+                          }}
+                          className="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-3 rounded-2xl space-y-2 cursor-pointer hover:border-brand-green/50 dark:hover:border-brand-green/50 transition-all hover:shadow-xs group"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-black text-slate-900 dark:text-white truncate">
+                              <p className="text-xs font-black text-slate-900 dark:text-white truncate group-hover:text-brand-green transition-colors">
                                 {app.patientName}
                               </p>
                               <p className="text-[10px] text-slate-500 truncate font-semibold">
@@ -1025,9 +1090,9 @@ export default function DaySnapshot() {
                             </select>
                           </div>
 
-                          {/* Individual Patient Action Buttons (1-by-1 Isolation) */}
+                          {/* Individual Patient Action Buttons */}
                           <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/50 dark:border-slate-800/80">
-                            {isPending && (
+                            {isPending ? (
                               <>
                                 <button
                                   type="button"
@@ -1035,8 +1100,8 @@ export default function DaySnapshot() {
                                     e.stopPropagation();
                                     handleApprove(app);
                                   }}
-                                  className="flex-1 py-1 px-2 rounded-lg bg-brand-green hover:bg-brand-green-hover text-white text-[10px] font-black flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
-                                  title="Approve only this patient"
+                                  className="flex-1 py-1.5 px-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-[10px] font-black flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
+                                  title="Approve booking"
                                 >
                                   <Check className="w-3 h-3" />
                                   <span>Approve</span>
@@ -1045,30 +1110,28 @@ export default function DaySnapshot() {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    triggerRejectionGuard(app);
+                                    openPatientActions(app);
                                   }}
-                                  className="py-1 px-2 rounded-lg border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
-                                  title="Reject only this patient"
+                                  className="py-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all"
+                                  title="Open patient action options & WhatsApp"
                                 >
-                                  <X className="w-3 h-3" />
-                                  <span>Reject</span>
+                                  <Sparkles className="w-3 h-3 text-brand-green" />
+                                  <span>Actions</span>
                                 </button>
                               </>
-                            )}
-
-                            {isApproved && (
-                              <div className="flex items-center justify-between w-full gap-1.5">
+                            ) : (
+                              <>
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    triggerWhatsAppRedirect(app, true);
+                                    openPatientActions(app);
                                   }}
-                                  className="flex-1 py-1 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/40 text-brand-green text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
-                                  title="Send WhatsApp Confirmation to this patient"
+                                  className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/40 text-brand-green hover:bg-emerald-100 text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                                  title="Open WhatsApp & Patient Actions"
                                 >
                                   <MessageSquare className="w-3 h-3" />
-                                  <span>WhatsApp</span>
+                                  <span>WhatsApp & Actions</span>
                                 </button>
                                 <button
                                   type="button"
@@ -1076,29 +1139,12 @@ export default function DaySnapshot() {
                                     e.stopPropagation();
                                     triggerRejectionGuard(app);
                                   }}
-                                  className="py-1 px-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-900 text-[10px] font-bold transition-colors cursor-pointer"
-                                  title="Cancel/Reject only this patient"
+                                  className="py-1.5 px-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-[10px] font-bold transition-colors cursor-pointer"
+                                  title="Cancel/Reject this patient"
                                 >
                                   <X className="w-3 h-3" />
                                 </button>
-                              </div>
-                            )}
-
-                            {isRejected && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (app.id) {
-                                    handleSingleAppointmentStatus(app.id, "approved", false);
-                                  }
-                                }}
-                                className="w-full py-1 px-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-brand-green text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                                title="Restore to Approved"
-                              >
-                                <RotateCcw className="w-3 h-3" />
-                                <span>Re-Approve</span>
-                              </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -1754,6 +1800,320 @@ export default function DaySnapshot() {
                 </button>
               )}
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🚀 DEDICATED INDIVIDUAL PATIENT ACTION & WHATSAPP HUB MODAL             */}
+      {/* ========================================================================= */}
+      {mounted && patientActionModalOpen && activePatientApp && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden animate-scale-in max-h-[92vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 bg-slate-50/80 dark:bg-slate-950/80 border-b border-slate-200/70 dark:border-slate-800 flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white truncate">
+                    {activePatientApp.patientName}
+                  </h3>
+                  {activePatientApp.status === "approved" && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-[10px] font-black text-emerald-700 dark:text-emerald-300">
+                      Approved
+                    </span>
+                  )}
+                  {activePatientApp.status === "pending" && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-[10px] font-black text-amber-700 dark:text-amber-300 animate-pulse">
+                      Pending Approval
+                    </span>
+                  )}
+                  {activePatientApp.status === "rejected" && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-[10px] font-black text-red-700 dark:text-red-300">
+                      Rejected / Cancelled
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-brand-green" />
+                    {activePatientApp.date} • {activePatientApp.slot}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                    {activePatientApp.patientPhone}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">
+                  {activePatientApp.serviceId}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPatientActionModalOpen(false);
+                  setActivePatientApp(null);
+                }}
+                className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-5 sm:p-6 space-y-5 overflow-y-auto overscroll-contain flex-grow">
+              
+              {/* 1. Status Controls */}
+              <div className="bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+                    Appointment Status
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    Operates on this patient only
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {activePatientApp.status !== "approved" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (activePatientApp.id) {
+                          await handleSingleAppointmentStatus(activePatientApp.id, "approved", false);
+                          setActivePatientApp((prev) => prev ? { ...prev, status: "approved" } : null);
+                        }
+                      }}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Approve Booking</span>
+                    </button>
+                  )}
+
+                  {activePatientApp.status !== "rejected" ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (activePatientApp.id) {
+                          setPatientActionModalOpen(false);
+                          triggerRejectionGuard(activePatientApp);
+                        }
+                      }}
+                      className="flex-1 py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Cancel / Reject</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (activePatientApp.id) {
+                          await handleSingleAppointmentStatus(activePatientApp.id, "approved", false);
+                          setActivePatientApp((prev) => prev ? { ...prev, status: "approved" } : null);
+                        }
+                      }}
+                      className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-brand-green hover:bg-emerald-50 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Restore to Approved</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Assigned Therapist Selector */}
+              <div className="bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 p-4 rounded-2xl space-y-2.5">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block">
+                  Assigned Therapist
+                </label>
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-400 shrink-0" />
+                  <select
+                    value={activePatientApp.assignedTherapist || ""}
+                    onChange={(e) => {
+                      if (activePatientApp.id) {
+                        handleAssignTherapist(activePatientApp.id, e.target.value);
+                      }
+                    }}
+                    className="w-full text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-xl outline-none text-slate-800 dark:text-slate-200 cursor-pointer"
+                  >
+                    <option value="">Auto-Assign / Unassigned</option>
+                    {(clinicConfig.therapists || []).map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 3. WhatsApp Communication Hub */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-brand-green flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4" />
+                    WhatsApp Messages & Delay Alerts
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-bold">1-Tap Direct Send</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  
+                  {/* Template A: Confirmation */}
+                  <button
+                    type="button"
+                    onClick={() => sendWhatsAppWithTemplate(activePatientApp, "confirm")}
+                    className="w-full text-left p-3.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/50 transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                  >
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="text-xs font-black text-brand-green flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" />
+                        Send Booking Confirmation
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold truncate">
+                        Confirms slot with therapist name and Google Calendar link
+                      </p>
+                    </div>
+                    <Send className="w-4 h-4 text-brand-green shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
+                  {/* Template B: Running Late / Session Delay */}
+                  <div className="p-3.5 rounded-2xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/30 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          Running Session Delay (Come a bit late)
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-semibold">
+                          Informs patient to arrive late due to ongoing treatment
+                        </p>
+                      </div>
+
+                      {/* Minutes Selector Pills */}
+                      <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-amber-200/80 dark:border-amber-800">
+                        {[10, 15, 20, 30].map((mins) => (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => setDelayMinutes(mins)}
+                            className={`px-2 py-0.5 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
+                              delayMinutes === mins
+                                ? "bg-amber-500 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                          >
+                            +{mins}m
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => sendWhatsAppWithTemplate(activePatientApp, "delay")}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Send "+{delayMinutes} Mins Late" Delay Note</span>
+                    </button>
+                  </div>
+
+                  {/* Template C: Arrive 10m Early */}
+                  <button
+                    type="button"
+                    onClick={() => sendWhatsAppWithTemplate(activePatientApp, "early")}
+                    className="w-full text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 hover:bg-slate-100 transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                  >
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-blue-500" />
+                        Please Arrive 10 Mins Early
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-semibold truncate">
+                        Pre-session preparation reminder
+                      </p>
+                    </div>
+                    <Send className="w-4 h-4 text-slate-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
+                  {/* Template D: Custom Message Input */}
+                  <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomMsgInput(!showCustomMsgInput)}
+                      className="w-full flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-purple-500" />
+                        Type Custom WhatsApp Message
+                      </span>
+                      <span className="text-[10px] text-slate-400">{showCustomMsgInput ? "Hide" : "Expand"}</span>
+                    </button>
+
+                    {showCustomMsgInput && (
+                      <div className="space-y-2 pt-1 animate-fade-in">
+                        <textarea
+                          rows={3}
+                          value={customWhatsAppMessage}
+                          onChange={(e) => setCustomWhatsAppMessage(e.target.value)}
+                          placeholder="Type custom note for patient..."
+                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green"
+                        />
+                        <button
+                          type="button"
+                          disabled={!customWhatsAppMessage.trim()}
+                          onClick={() => sendWhatsAppWithTemplate(activePatientApp, "custom", customWhatsAppMessage)}
+                          className="w-full py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Send Custom Message</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+
+              {/* 4. Patient Profile & Actions Links */}
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-3">
+                <a
+                  href={`tel:${activePatientApp.patientPhone}`}
+                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5 text-brand-green" />
+                  <span>Call Patient</span>
+                </a>
+
+                <Link
+                  href={`/dashboard/patients?search=${encodeURIComponent(activePatientApp.patientPhone)}`}
+                  onClick={() => setPatientActionModalOpen(false)}
+                  className="flex-1 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-brand-green" />
+                  <span>Patient Profile</span>
+                </Link>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200/70 dark:border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setPatientActionModalOpen(false);
+                  setActivePatientApp(null);
+                }}
+                className="px-6 py-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-black hover:bg-slate-300 transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
           </div>
         </div>,
         document.body
