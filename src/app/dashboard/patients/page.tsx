@@ -194,7 +194,6 @@ export default function PatientsPage() {
     }
 
     setFilteredPatients(result);
-    setCurrentPage(1); // Reset to page 1 on filter change
   }, [patients, searchQuery, statusFilter, therapistFilter, daysSortOrder]);
 
   const fetchPatientsList = async () => {
