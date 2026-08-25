@@ -19,6 +19,7 @@ import {
   ClinicConfig,
   getClinicConfig,
   generateSlotsFromHours,
+  getSlotCapacity,
   DEFAULT_CLINIC_CONFIG,
   getAppointmentsByDate,
   getBlocksByDate,
@@ -386,11 +387,12 @@ export default function DashboardAppointments() {
       return { disabled: true, label: `${time} (Unavailable - Past)` };
     }
 
-    // 1. Check approved appointments
-    const isBooked = manualDateAppointments.some(a => a.slot === time && a.status === "approved");
-    if (isBooked) {
-      const app = manualDateAppointments.find(a => a.slot === time && a.status === "approved");
-      return { disabled: true, label: `${time} (Booked - ${app ? app.patientName : "Occupied"})` };
+    // 1. Check capacity vs approved appointments
+    const maxCapacity = getSlotCapacity(clinicConfig, time);
+    const approvedCount = manualDateAppointments.filter(a => a.slot === time && a.status === "approved").length;
+    const remaining = Math.max(0, maxCapacity - approvedCount);
+    if (remaining <= 0) {
+      return { disabled: true, label: `${time} (Fully Booked - ${approvedCount}/${maxCapacity})` };
     }
 
     // 2. Check blocks
@@ -418,7 +420,7 @@ export default function DashboardAppointments() {
       return { disabled: true, label: `${time} (Blocked - ${blockReason})` };
     }
 
-    return { disabled: false, label: `${time} (Available)` };
+    return { disabled: false, label: `${time} (${remaining} ${remaining === 1 ? 'slot' : 'slots'} left)` };
   };
 
   return (
@@ -505,7 +507,7 @@ export default function DashboardAppointments() {
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6 text-xs text-slate-500 font-semibold">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-xs text-slate-500 font-semibold">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-brand-green" />
                     {app.date}
@@ -518,6 +520,12 @@ export default function DashboardAppointments() {
                     <Phone className="h-3.5 w-3.5 text-brand-green" />
                     {app.patientPhone}
                   </span>
+                  {app.assignedTherapist && (
+                    <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg text-[11px] font-bold">
+                      <User className="h-3.5 w-3.5" />
+                      {app.assignedTherapist}
+                    </span>
+                  )}
                 </div>
 
                 <div className="bg-[#fbfcfb] dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-850">

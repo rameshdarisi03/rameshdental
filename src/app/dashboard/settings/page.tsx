@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getClinicConfig, saveClinicConfig, ClinicConfig } from "@/lib/db";
+import { getClinicConfig, saveClinicConfig, ClinicConfig, generateSlotsFromHours, getSlotCapacity } from "@/lib/db";
 import { 
   Loader2, 
   Save, 
@@ -20,7 +20,9 @@ import {
   Info,
   User,
   UserMinus,
-  Map
+  Map,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 
@@ -49,6 +51,8 @@ export default function DashboardSettings() {
       saturday: false,
     },
     slotDuration: 30,
+    defaultCapacityPerSlot: 3,
+    hourlyCapacityOverrides: {},
     morningStart: "09:00 AM",
     morningEnd: "01:00 PM",
     eveningStart: "02:00 PM",
@@ -119,8 +123,21 @@ export default function DashboardSettings() {
     const { name, value } = e.target;
     setConfig((prev) => ({
       ...prev,
-      [name]: name === "slotDuration" ? Number(value) : value,
+      [name]: name === "slotDuration" || name === "defaultCapacityPerSlot" ? Number(value) : value,
     }));
+    setSavedSuccess(false);
+  };
+
+  const handleSlotCapacityChange = (slot: string, newCapacity: number) => {
+    setConfig((prev) => {
+      const overrides = { ...(prev.hourlyCapacityOverrides || {}) };
+      if (newCapacity === (prev.defaultCapacityPerSlot || 3)) {
+        delete overrides[slot];
+      } else {
+        overrides[slot] = newCapacity;
+      }
+      return { ...prev, hourlyCapacityOverrides: overrides };
+    });
     setSavedSuccess(false);
   };
 
@@ -452,6 +469,143 @@ export default function DashboardSettings() {
                   </div>
                 </div>
 
+              </div>
+
+            </div>
+
+            {/* Multi-Therapist Slot Capacity & Flexible Hourly Controls Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-6">
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-brand-green flex items-center justify-center shrink-0">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Multi-Therapist Slot Capacity & Hourly Controls
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Control how many patients can book concurrently per hour based on on-duty therapists
+                    </p>
+                  </div>
+                </div>
+
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/10 text-brand-green text-[10px] font-black uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3" />
+                  Flexible Capacity
+                </span>
+              </div>
+
+              {/* Default Slot Capacity Input */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center bg-[#f0f4f2]/40 dark:bg-brand-green/5 border border-brand-green/15 p-5 rounded-2xl">
+                <div className="md:col-span-6 space-y-1">
+                  <label className="block text-xs font-black text-brand-charcoal dark:text-white">
+                    Default Concurrent Capacity (Therapists on Duty)
+                  </label>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                    Set the base number of patients that can book each slot (e.g., 3 therapists = 3 slots).
+                  </p>
+                </div>
+
+                <div className="md:col-span-6 flex items-center gap-3 justify-start md:justify-end">
+                  {[1, 2, 3, 4, 5].map((count) => {
+                    const isSelected = (config.defaultCapacityPerSlot || 3) === count;
+                    return (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => {
+                          setConfig((prev) => ({ ...prev, defaultCapacityPerSlot: count }));
+                          setSavedSuccess(false);
+                        }}
+                        className={`h-11 w-11 rounded-2xl text-xs font-black transition-all cursor-pointer flex flex-col items-center justify-center ${
+                          isSelected
+                            ? "bg-brand-green text-white shadow-md shadow-brand-green/20 scale-105"
+                            : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-brand-green"
+                        }`}
+                      >
+                        <span className="text-sm leading-none">{count}</span>
+                        <span className="text-[8px] font-bold opacity-75">slots</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Hourly Capacity Adjustments Matrix */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-wider block">
+                    Hourly Overrides (Custom capacity for specific hours)
+                  </label>
+                  {Object.keys(config.hourlyCapacityOverrides || {}).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfig((prev) => ({ ...prev, hourlyCapacityOverrides: {} }));
+                        setSavedSuccess(false);
+                      }}
+                      className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
+                    >
+                      Reset all hours to default
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {generateSlotsFromHours(
+                    config.morningStart,
+                    config.morningEnd,
+                    config.eveningStart,
+                    config.eveningEnd,
+                    config.slotDuration
+                  ).map((time) => {
+                    const currentCapacity = getSlotCapacity(config, time);
+                    const isCustom = config.hourlyCapacityOverrides && typeof config.hourlyCapacityOverrides[time] === "number";
+
+                    return (
+                      <div
+                        key={time}
+                        className={`p-3 rounded-2xl border transition-all ${
+                          isCustom
+                            ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/80"
+                            : "bg-slate-50/60 dark:bg-slate-950/50 border-slate-200/80 dark:border-slate-800"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-black text-brand-charcoal dark:text-white">
+                            {time}
+                          </span>
+                          {isCustom && (
+                            <span className="text-[8px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded">
+                              Custom
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Capacity Selector */}
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4].map((cap) => (
+                            <button
+                              key={cap}
+                              type="button"
+                              onClick={() => handleSlotCapacityChange(time, cap)}
+                              className={`flex-1 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                                currentCapacity === cap
+                                  ? "bg-brand-green text-white shadow-xs"
+                                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                              }`}
+                              title={`${time}: ${cap} patient slots`}
+                            >
+                              {cap}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
             </div>

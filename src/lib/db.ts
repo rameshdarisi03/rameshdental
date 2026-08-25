@@ -24,6 +24,9 @@ export interface Appointment {
   type: "online" | "manual";
   createdAt: Timestamp;
   
+  // Multi-Therapist assignment
+  assignedTherapist?: string;
+  
   // Auditing / Transparency Logs
   createdByUid?: string;
   createdByName?: string;
@@ -55,6 +58,8 @@ export interface ClinicConfig {
     saturday: boolean;
   };
   slotDuration: number; // 30, 45, 60
+  defaultCapacityPerSlot: number; // e.g. 3 therapists = 3 slots per hour
+  hourlyCapacityOverrides?: Record<string, number>; // e.g. { "01:00 PM": 1, "05:00 PM": 3 }
   morningStart: string; // "09:00 AM"
   morningEnd: string; // "01:00 PM"
   eveningStart: string; // "02:00 PM"
@@ -81,6 +86,8 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
     saturday: false,
   },
   slotDuration: 30,
+  defaultCapacityPerSlot: 3,
+  hourlyCapacityOverrides: {},
   morningStart: "09:00 AM",
   morningEnd: "01:00 PM",
   eveningStart: "02:00 PM",
@@ -94,6 +101,14 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   googleMapsLink: "https://maps.google.com/?q=Gait+Physio+Clinic+Bangalore",
   googleMapsEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.9700303102434!2d77.62018597576572!3d12.973797614838645!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae16a62c4a92c1%3A0xe54e60408542cd5!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
 };
+
+// Helper: Calculate max patient capacity for a given time slot
+export function getSlotCapacity(config: ClinicConfig, slotStr: string): number {
+  if (config.hourlyCapacityOverrides && typeof config.hourlyCapacityOverrides[slotStr] === "number") {
+    return config.hourlyCapacityOverrides[slotStr];
+  }
+  return config.defaultCapacityPerSlot || 3;
+}
 
 // Fetch Clinic Config settings
 export async function getClinicConfig(): Promise<ClinicConfig> {
@@ -258,7 +273,11 @@ export async function submitBookingRequest(
     const appointmentsRef = collection(db, "appointments");
     const blocksRef = collection(db, "blocks");
 
-    // 1. Verify if slot is already approved
+    // Fetch active clinic configuration for capacity check
+    const config = await getClinicConfig();
+    const maxCapacity = getSlotCapacity(config, booking.slot);
+
+    // 1. Verify if slot is already fully booked
     const qApproved = query(
       appointmentsRef,
       where("date", "==", booking.date),
@@ -266,8 +285,8 @@ export async function submitBookingRequest(
       where("status", "==", "approved")
     );
     const approvedDocs = await getDocs(qApproved);
-    if (!approvedDocs.empty) {
-      return { success: false, error: "This slot has already been booked and approved. Please select another slot." };
+    if (approvedDocs.size >= maxCapacity) {
+      return { success: false, error: "This time slot is now fully booked. Please select another available slot." };
     }
 
     // 2. Verify if slot is blocked by admin rules

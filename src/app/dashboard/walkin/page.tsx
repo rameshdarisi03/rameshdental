@@ -9,6 +9,7 @@ import {
   getBlocksByDate,
   getClinicConfig,
   generateSlotsFromHours,
+  getSlotCapacity,
   DEFAULT_CLINIC_CONFIG,
   ClinicConfig,
   isSlotInPast,
@@ -33,7 +34,8 @@ import {
   Bookmark, 
   ArrowRight,
   ShieldCheck,
-  Search
+  Search,
+  UserCheck
 } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
@@ -77,6 +79,7 @@ function WalkInBookingContent() {
     serviceId: "General Physiotherapy Consultation",
     date: getTodayDateString(),
     slot: "",
+    assignedTherapist: "",
     notes: "",
   });
 
@@ -91,7 +94,7 @@ function WalkInBookingContent() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Firestore availability state for selected date
-  const [approvedSlots, setApprovedSlots] = useState<string[]>([]);
+  const [approvedSlotCounts, setApprovedSlotCounts] = useState<Record<string, number>>({});
   const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
   const [blockedType, setBlockedType] = useState<"none" | "full" | "morning" | "evening">("none");
 
@@ -195,17 +198,20 @@ function WalkInBookingContent() {
     async function checkAvailability() {
       setLoadingSlots(true);
       setErrorMessage("");
-      setApprovedSlots([]);
+      setApprovedSlotCounts({});
       setBlockedSlots([]);
       setBlockedType("none");
 
       try {
-        // 1. Fetch approved appointments for that date
+        // 1. Fetch approved appointments for that date and count by slot
         const appointments = await getAppointmentsByDate(formData.date);
-        const approved = appointments
-          .filter((app) => app.status === "approved")
-          .map((app) => app.slot);
-        setApprovedSlots(approved);
+        const counts: Record<string, number> = {};
+        appointments.forEach((app) => {
+          if (app.status === "approved") {
+            counts[app.slot] = (counts[app.slot] || 0) + 1;
+          }
+        });
+        setApprovedSlotCounts(counts);
 
         // 2. Fetch active day/session blocks
         const blocks = await getBlocksByDate(formData.date);
@@ -235,16 +241,22 @@ function WalkInBookingContent() {
     checkAvailability();
   }, [formData.date, loadingConfig]);
 
-  // Helper to check if a slot is disabled
+  // Helper to calculate remaining slot capacity
+  const getRemainingCapacity = (time: string) => {
+    if (blockedType === "full") return 0;
+    if (blockedType === "morning" && isMorningSlot(time)) return 0;
+    if (blockedType === "evening" && !isMorningSlot(time)) return 0;
+    if (blockedSlots.includes(time)) return 0;
+    if (isSlotInPast(time, formData.date)) return 0;
+
+    const maxCapacity = getSlotCapacity(clinicConfig, time);
+    const booked = approvedSlotCounts[time] || 0;
+    return Math.max(0, maxCapacity - booked);
+  };
+
+  // Helper to check if a slot is disabled (0 slots left or blocked)
   const isSlotDisabled = (time: string) => {
-    if (blockedType === "full") return true;
-    if (blockedType === "morning" && isMorningSlot(time)) return true;
-    if (blockedType === "evening" && !isMorningSlot(time)) return true;
-    return (
-      approvedSlots.includes(time) ||
-      blockedSlots.includes(time) ||
-      isSlotInPast(time, formData.date)
-    );
+    return getRemainingCapacity(time) <= 0;
   };
 
   const handleInputChange = (
@@ -338,6 +350,7 @@ function WalkInBookingContent() {
         serviceId: formData.serviceId,
         date: formData.date,
         slot: formData.slot,
+        assignedTherapist: formData.assignedTherapist || undefined,
         notes: formData.notes,
         status: "approved" as const,
         type: "manual" as const,
@@ -755,6 +768,27 @@ function WalkInBookingContent() {
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                Assign Therapist (Optional)
+              </label>
+              <div className="relative">
+                <select
+                  name="assignedTherapist"
+                  value={formData.assignedTherapist}
+                  onChange={handleInputChange}
+                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-3.5 text-xs outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white font-bold"
+                >
+                  <option value="">Auto-Assign / Any Available</option>
+                  {(clinicConfig.therapists || []).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
                 Symptoms / Notes (Optional)
               </label>
               <div className="relative">
@@ -848,7 +882,8 @@ function WalkInBookingContent() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                   {allSlots.map((time) => {
-                    const disabled = isSlotDisabled(time);
+                    const remaining = getRemainingCapacity(time);
+                    const disabled = remaining <= 0;
                     const isSelected = formData.slot === time;
                     return (
                       <button
@@ -856,15 +891,20 @@ function WalkInBookingContent() {
                         type="button"
                         disabled={disabled}
                         onClick={() => handleSlotSelect(time)}
-                        className={`py-3 text-[11px] font-extrabold rounded-xl border text-center transition-all ${
+                        className={`py-2.5 px-2 text-[11px] font-extrabold rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
                           disabled
                             ? "bg-slate-100 dark:bg-slate-950 border-slate-200/50 dark:border-slate-850 text-slate-400 cursor-not-allowed opacity-50"
                             : isSelected
-                            ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-105"
+                            ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-[1.02]"
                             : "bg-[#f0f4f2] dark:bg-brand-green/10 border-brand-green/20 text-brand-green hover:bg-brand-green/15"
                         }`}
                       >
-                        {time}
+                        <span className="leading-tight">{time}</span>
+                        {!disabled && (
+                          <span className={`text-[8px] font-bold tracking-tight ${isSelected ? "text-emerald-100" : "text-emerald-700 dark:text-emerald-400"}`}>
+                            {remaining} {remaining === 1 ? "slot" : "slots"} left
+                          </span>
+                        )}
                       </button>
                     );
                   })}

@@ -21,6 +21,7 @@ import {
   ClinicConfig,
   getClinicConfig,
   generateSlotsFromHours,
+  getSlotCapacity,
   DEFAULT_CLINIC_CONFIG,
   isSlotInPast
 } from "@/lib/db";
@@ -291,12 +292,25 @@ export default function DaySnapshot() {
     });
   };
 
-  // Check state of slot
-  const getSlotState = (slot: string) => {
-    const app = appointments.find((a) => a.slot === slot);
-    if (app) {
-      return { type: "appointment", data: app } as const;
+  // Assign therapist directly to an appointment
+  const handleAssignTherapist = async (appointmentId: string, therapistName: string) => {
+    try {
+      const docRef = doc(db, "appointments", appointmentId);
+      await updateDoc(docRef, { assignedTherapist: therapistName });
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === appointmentId ? { ...a, assignedTherapist: therapistName } : a))
+      );
+    } catch (err) {
+      console.error("Error assigning therapist: ", err);
     }
+  };
+
+  // Comprehensive multi-capacity slot state
+  const getSlotData = (slot: string) => {
+    const slotApps = appointments.filter((a) => a.slot === slot);
+    const maxCapacity = getSlotCapacity(clinicConfig, slot);
+    const approvedCount = slotApps.filter((a) => a.status === "approved").length;
+    const pendingCount = slotApps.filter((a) => a.status === "pending").length;
 
     let isBlocked = false;
     let blockReasonText = "";
@@ -324,10 +338,31 @@ export default function DaySnapshot() {
       }
     });
 
-    if (isBlocked) {
-      return { type: "blocked", reason: blockReasonText, blockId } as const;
-    }
+    const isPast = isSlotInPast(slot, selectedDate);
+    const remainingSlots = isBlocked || isPast ? 0 : Math.max(0, maxCapacity - approvedCount);
 
+    return {
+      slotApps,
+      maxCapacity,
+      approvedCount,
+      pendingCount,
+      remainingSlots,
+      isBlocked,
+      blockReasonText,
+      blockId,
+      isPast,
+    };
+  };
+
+  // Check state of slot (legacy / single reference helper)
+  const getSlotState = (slot: string) => {
+    const data = getSlotData(slot);
+    if (data.isBlocked) {
+      return { type: "blocked", reason: data.blockReasonText, blockId: data.blockId } as const;
+    }
+    if (data.slotApps.length > 0) {
+      return { type: "appointment", data: data.slotApps[0] } as const;
+    }
     return { type: "free" } as const;
   };
 
@@ -766,7 +801,7 @@ export default function DaySnapshot() {
             </div>
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
             <div className="text-center px-1">
-              <span className="text-[9px] text-slate-455 block uppercase tracking-wider leading-none">Blocked</span>
+      <span className="text-[9px] text-slate-455 block uppercase tracking-wider leading-none">Blocked</span>
               <span className="text-red-500 text-sm font-black">{blockedCount}</span>
             </div>
           </div>
@@ -818,7 +853,7 @@ export default function DaySnapshot() {
       <div className="flex gap-2.5 bg-[#f0f4f2] dark:bg-teal-950/20 border border-brand-green/20 p-4 rounded-2xl text-slate-650 dark:text-teal-400 text-xs">
         <Info className="h-4.5 w-4.5 text-brand-green shrink-0 mt-0.5" />
         <p className="leading-relaxed font-semibold">
-          <strong>Grid Instructions:</strong> Click cells to select, hold <strong>Shift</strong> to select ranges. Right-click to access **Book for Patient**, Approve, Reject, or Block. Floating actions bar handles adjustments on tablet screens.
+          <strong>Capacity & Therapist Grid:</strong> Multi-patient capacity slots allow concurrent bookings per therapist. Assign therapists directly from the dropdown or 1-tap book walk-ins.
         </p>
       </div>
 
@@ -834,118 +869,19 @@ export default function DaySnapshot() {
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 max-h-[70vh] overflow-y-auto pr-2 pb-16 animate-fade-in"
         >
           {allSlots.map((slot) => {
-            const slotState = getSlotState(slot);
+            const slotData = getSlotData(slot);
             const isSelected = selectedSlots.includes(slot);
+            const isPast = slotData.isPast;
             
-            let cardClasses = "group relative border rounded-3xl p-5 shadow-sm transition-all select-none cursor-pointer duration-300 hover:scale-[1.02] hover:shadow-md ";
-            let statusIndicator = null;
-            let detailNode = null;
-
-            // Highlight ring if selected
+            let cardBorder = "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900";
             if (isSelected) {
-              cardClasses += "ring-4 ring-brand-green border-brand-green ";
-            }
-
-            if (slotState.type === "appointment") {
-              const app = slotState.data;
-              const isPending = app.status === "pending";
-              const isApproved = app.status === "approved";
-              const isRejected = app.status === "rejected";
-
-              if (isApproved) {
-                cardClasses += "bg-gradient-to-br from-[#f0f4f2] to-[#fafcfb] dark:from-slate-900 dark:to-slate-950 border-l-[6px] border-l-brand-green border-slate-200/80 shadow-sm";
-                statusIndicator = (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-green/10 text-[9px] font-black uppercase tracking-wider text-brand-green">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse" />
-                    Approved
-                  </span>
-                );
-              } else if (isPending) {
-                cardClasses += "bg-gradient-to-br from-amber-50/80 to-yellow-50/20 dark:from-amber-950/25 dark:to-yellow-950/5 border-l-[6px] border-l-amber-500 border-amber-250/60 dark:border-amber-900/50 shadow-amber-500/5";
-                statusIndicator = (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100/60 dark:bg-amber-950/50 text-[9px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
-                    Pending
-                  </span>
-                );
-              } else {
-                cardClasses += "bg-gradient-to-br from-red-50/80 to-rose-50/20 dark:from-red-955/25 dark:to-rose-950/5 border-l-[6px] border-l-red-500 border-red-250/60 dark:border-red-900/50 shadow-red-500/5";
-                statusIndicator = (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-100/60 dark:bg-red-950/50 text-[9px] font-black uppercase tracking-wider text-red-650 dark:text-red-300">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                    Rejected
-                  </span>
-                );
-              }
-
-              detailNode = (
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className={`font-black text-sm truncate ${
-                      isApproved ? "text-brand-charcoal dark:text-emerald-50" :
-                      isPending ? "text-amber-950 dark:text-amber-50" :
-                      "text-red-955 dark:text-red-50"
-                    }`}>{app.patientName}</p>
-                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 shrink-0 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{slot}</p>
-                  </div>
-                  <p className="text-xs text-slate-650 dark:text-slate-350 truncate font-bold leading-tight">{app.serviceId}</p>
-                  
-                  {/* Audit trail indicator */}
-                  {(app.createdByName || app.actionedByName) && (
-                    <div className="text-[8px] text-slate-400 font-bold uppercase tracking-wider leading-tight">
-                      {app.type === "manual" && app.createdByName && `Manual: ${app.createdByName}`}
-                      {app.actionedByName && app.status !== "pending" && ` • Action: ${app.actionedByName}`}
-                    </div>
-                  )}
-
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-850">
-                    {statusIndicator}
-                    <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold tracking-tight truncate max-w-[60%]">
-                      {app.patientPhone}
-                    </p>
-                  </div>
-                </div>
-              );
-
-            } else if (slotState.type === "blocked") {
-              cardClasses += "bg-gradient-to-br from-slate-100/90 to-slate-50/40 dark:from-slate-900/60 dark:to-slate-950/40 border-l-[6px] border-l-slate-400/80 border-slate-200 dark:border-slate-800 opacity-90";
-              detailNode = (
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="inline-flex items-center gap-1 bg-slate-205 dark:bg-slate-800 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-350">
-                      <Lock className="h-2.5 w-2.5 text-slate-500" />
-                      Blocked
-                    </span>
-                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 shrink-0 bg-slate-205 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{slot}</p>
-                  </div>
-                  <p className="text-xs text-slate-550 dark:text-slate-355 truncate font-semibold">Reason: {slotState.reason}</p>
-                  <p className="text-[10px] text-slate-400 italic font-medium">Availability overridden</p>
-                </div>
-              );
-            } else {
-              // Free Slot
-              const isPast = isSlotInPast(slot, selectedDate);
-              if (isPast) {
-                cardClasses += "bg-slate-100/60 dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-450 opacity-60 cursor-not-allowed hover:scale-100 hover:shadow-none";
-              } else {
-                cardClasses += "border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/10 hover:border-brand-green/80 hover:bg-[#f0f4f2]/30 cursor-pointer";
-              }
-              detailNode = (
-                <div className="h-full flex flex-col justify-between py-1 min-h-[92px]">
-                  <div className="flex justify-between items-center">
-                    <span className={`text-[9px] font-black tracking-wider ${isPast ? "text-slate-400" : "text-brand-green"}`}>
-                      {isPast ? "PAST SLOT" : "AVAILABLE"}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {!isPast && <Plus className="h-3 w-3 text-brand-green opacity-0 group-hover:opacity-100 transition-opacity" />}
-                      <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 shrink-0 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">{slot}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-400 italic font-semibold">
-                    {isPast ? "Unavailable" : "Free slot"}
-                  </p>
-                </div>
-              );
+              cardBorder = "ring-4 ring-brand-green border-brand-green bg-emerald-50/20 dark:bg-emerald-950/20";
+            } else if (slotData.isBlocked) {
+              cardBorder = "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 opacity-85";
+            } else if (slotData.approvedCount >= slotData.maxCapacity) {
+              cardBorder = "border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/30 dark:bg-emerald-950/20";
+            } else if (slotData.pendingCount > 0) {
+              cardBorder = "border-amber-300 dark:border-amber-800/60 bg-amber-50/20 dark:bg-amber-950/10";
             }
 
             return (
@@ -953,9 +889,136 @@ export default function DaySnapshot() {
                 key={slot}
                 onClick={(e) => handleSlotClick(e, slot)}
                 onContextMenu={(e) => handleContextMenu(e, slot)}
-                className={cardClasses}
+                className={`group relative border rounded-[24px] p-4 sm:p-5 shadow-xs transition-all select-none duration-200 flex flex-col justify-between space-y-3.5 ${cardBorder}`}
               >
-                {detailNode}
+                {/* Header: Time & Capacity Badge */}
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-brand-charcoal dark:text-white bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-xl">
+                      {slot}
+                    </span>
+                    {slotData.isBlocked ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-slate-500 bg-slate-200/70 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                        <Lock className="w-2.5 h-2.5" /> Blocked
+                      </span>
+                    ) : slotData.approvedCount >= slotData.maxCapacity ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full">
+                        <Check className="w-2.5 h-2.5" /> Full ({slotData.approvedCount}/{slotData.maxCapacity})
+                      </span>
+                    ) : slotData.approvedCount > 0 || slotData.pendingCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-brand-green dark:text-teal-400 bg-brand-green/10 px-2 py-0.5 rounded-full">
+                        {slotData.approvedCount}/{slotData.maxCapacity} Filled
+                      </span>
+                    ) : isPast ? (
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                        Past Slot
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
+                        {slotData.remainingSlots} Slots Open
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    Cap: {slotData.maxCapacity}
+                  </span>
+                </div>
+
+                {/* Body: Booked Patients Cards List */}
+                <div className="space-y-2.5 flex-grow">
+                  {slotData.slotApps.length > 0 ? (
+                    slotData.slotApps.map((app) => {
+                      const isPending = app.status === "pending";
+                      const isApproved = app.status === "approved";
+                      const isRejected = app.status === "rejected";
+
+                      return (
+                        <div
+                          key={app.id || app.patientName}
+                          className="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-3 rounded-2xl space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                {app.patientName}
+                              </p>
+                              <p className="text-[10px] text-slate-500 truncate font-semibold">
+                                {app.serviceId}
+                              </p>
+                            </div>
+
+                            {/* Status Badge */}
+                            {isApproved && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-[9px] font-black text-emerald-700 dark:text-emerald-300 shrink-0">
+                                Approved
+                              </span>
+                            )}
+                            {isPending && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-[9px] font-black text-amber-700 dark:text-amber-300 shrink-0 animate-pulse">
+                                Pending
+                              </span>
+                            )}
+                            {isRejected && (
+                              <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-[9px] font-black text-red-700 dark:text-red-300 shrink-0">
+                                Rejected
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Therapist Assignment Dropdown */}
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50 dark:border-slate-800/80">
+                            <User className="w-3 h-3 text-slate-400 shrink-0" />
+                            <select
+                              value={app.assignedTherapist || ""}
+                              onChange={(e) => {
+                                if (app.id) {
+                                  handleAssignTherapist(app.id, e.target.value);
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full text-[10px] font-bold bg-transparent outline-none text-slate-700 dark:text-slate-300 cursor-pointer"
+                            >
+                              <option value="">Assign Therapist...</option>
+                              {(clinicConfig.therapists || []).map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : slotData.isBlocked ? (
+                    <div className="py-3 text-center space-y-1">
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        {slotData.blockReasonText}
+                      </p>
+                      <p className="text-[10px] text-slate-400">Time slot closed</p>
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center">
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                        {isPast ? "No appointments" : "All slots open"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Action: + Book Walk-in / Add Patient button */}
+                {slotData.remainingSlots > 0 && !isPast && !slotData.isBlocked && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSlots([slot]);
+                      setIsBookForPatientOpen(true);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl border border-dashed border-brand-green/40 hover:border-brand-green bg-brand-green/5 hover:bg-brand-green/10 text-brand-green text-[10px] font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Book Walk-in ({slotData.remainingSlots} left)</span>
+                  </button>
+                )}
               </div>
             );
           })}
