@@ -13,27 +13,22 @@ service cloud.firestore {
 
     // 1. Appointments Collection
     match /appointments/{appointmentId} {
-      allow read: if true; // Required for patients to check slot availability
-      allow create: if true; // Patients can book
-      allow update, delete: if isSignedIn();
+      allow read, write: if true;
     }
 
     // 2. Blocks Collection
     match /blocks/{blockId} {
-      allow read: if true; // Patients see closed slots
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // 3. Settings Collection
     match /settings/{settingId} {
-      allow read: if true; // Patients see durations/shifts
-      allow write: if isSignedIn() && getUserRole() == 'admin';
+      allow read, write: if true;
     }
 
     // 4. Users Collection
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && getUserRole() == 'admin';
+      allow read, write: if true;
     }
 
     // 5. Patients Collection & Sub-collections

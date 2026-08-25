@@ -343,15 +343,14 @@ function WalkInBookingContent() {
     try {
       const fullPhone = dialCode + formData.patientPhone.replace(/\D/g, "");
       
-      const newBooking = {
-        patientName: formData.patientName,
+      const newBooking: any = {
+        patientName: formData.patientName.trim(),
         patientPhone: fullPhone,
-        patientEmail: formData.patientEmail,
+        patientEmail: formData.patientEmail?.trim() || "",
         serviceId: formData.serviceId,
         date: formData.date,
         slot: formData.slot,
-        assignedTherapist: formData.assignedTherapist || undefined,
-        notes: formData.notes,
+        notes: formData.notes?.trim() || "",
         status: "approved" as const,
         type: "manual" as const,
         createdAt: Timestamp.now(),
@@ -363,6 +362,10 @@ function WalkInBookingContent() {
         actionedByRole: currentUser?.role || "receptionist",
         actionedAt: Timestamp.now(),
       };
+
+      if (formData.assignedTherapist && formData.assignedTherapist.trim()) {
+        newBooking.assignedTherapist = formData.assignedTherapist.trim();
+      }
 
       await addDoc(collection(db, "appointments"), newBooking);
 
@@ -461,8 +464,8 @@ function WalkInBookingContent() {
       setPatientType("new");
 
     } catch (err: any) {
-      console.error(err);
-      setErrorMessage("Failed to save booking. Check database permissions.");
+      console.error("Booking error: ", err);
+      setErrorMessage(err?.message || "Failed to save booking. Please check your database connection.");
     } finally {
       setSubmitting(false);
     }
