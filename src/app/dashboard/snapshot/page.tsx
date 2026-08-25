@@ -1036,15 +1036,11 @@ export default function DaySnapshot() {
                       return (
                         <div
                           key={app.id || app.patientName}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPatientActions(app);
-                          }}
-                          className="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-3 rounded-2xl space-y-2 cursor-pointer hover:border-brand-green/50 dark:hover:border-brand-green/50 transition-all hover:shadow-xs group"
+                          className="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-3 rounded-2xl space-y-2"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-black text-slate-900 dark:text-white truncate group-hover:text-brand-green transition-colors">
+                              <p className="text-xs font-black text-slate-900 dark:text-white truncate">
                                 {app.patientName}
                               </p>
                               <p className="text-[10px] text-slate-500 truncate font-semibold">
@@ -1080,7 +1076,6 @@ export default function DaySnapshot() {
                                   handleAssignTherapist(app.id, e.target.value);
                                 }
                               }}
-                              onClick={(e) => e.stopPropagation()}
                               className="w-full text-[10px] font-bold bg-transparent outline-none text-slate-700 dark:text-slate-300 cursor-pointer"
                             >
                               <option value="">Assign Therapist...</option>
@@ -1091,15 +1086,12 @@ export default function DaySnapshot() {
                           </div>
 
                           {/* Individual Patient Action Buttons */}
-                          <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/50 dark:border-slate-800/80">
+                          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-200/50 dark:border-slate-800/80">
                             {isPending ? (
                               <>
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleApprove(app);
-                                  }}
+                                  onClick={() => handleApprove(app)}
                                   className="flex-1 py-1.5 px-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-[10px] font-black flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
                                   title="Approve booking"
                                 >
@@ -1108,43 +1100,24 @@ export default function DaySnapshot() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPatientActions(app);
-                                  }}
-                                  className="py-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all"
-                                  title="Open patient action options & WhatsApp"
+                                  onClick={() => openPatientActions(app)}
+                                  className="py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                                  title="Open Actions"
                                 >
                                   <Sparkles className="w-3 h-3 text-brand-green" />
                                   <span>Actions</span>
                                 </button>
                               </>
                             ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPatientActions(app);
-                                  }}
-                                  className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/40 text-brand-green hover:bg-emerald-100 text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
-                                  title="Open WhatsApp & Patient Actions"
-                                >
-                                  <MessageSquare className="w-3 h-3" />
-                                  <span>WhatsApp & Actions</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    triggerRejectionGuard(app);
-                                  }}
-                                  className="py-1.5 px-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-[10px] font-bold transition-colors cursor-pointer"
-                                  title="Cancel/Reject this patient"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                onClick={() => openPatientActions(app)}
+                                className="w-full py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/40 text-brand-green hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                                title="Open Actions"
+                              >
+                                <Sparkles className="w-3 h-3 text-brand-green" />
+                                <span>Actions</span>
+                              </button>
                             )}
                           </div>
                         </div>
