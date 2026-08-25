@@ -373,25 +373,43 @@ export default function Home() {
     },
   ];
 
-  const [reviewPage, setReviewPage] = useState(0);
+  // Review slider state: 1 card on Mobile (3s interval), 2 cards on Desktop (3.5s interval)
+  const [mobileReviewIndex, setMobileReviewIndex] = useState(0);
+  const [desktopReviewPage, setDesktopReviewPage] = useState(0);
   const [isReviewHovered, setIsReviewHovered] = useState(false);
-  const totalReviewPages = Math.ceil(googleReviews.length / 2);
+  const totalDesktopPages = Math.ceil(googleReviews.length / 2);
 
-  // Auto-slide every 3.5 seconds (pauses when user hovers over the cards)
+  // Auto-slide timers (3s on mobile, 3.5s on desktop, pauses on hover/touch)
   useEffect(() => {
     if (isReviewHovered) return;
-    const timer = setInterval(() => {
-      setReviewPage((prev) => (prev + 1) % totalReviewPages);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, [isReviewHovered, totalReviewPages]);
+    const mobileTimer = setInterval(() => {
+      setMobileReviewIndex((prev) => (prev + 1) % googleReviews.length);
+    }, 3000);
 
-  const handlePrevReview = () => {
-    setReviewPage((prev) => (prev === 0 ? totalReviewPages - 1 : prev - 1));
+    const desktopTimer = setInterval(() => {
+      setDesktopReviewPage((prev) => (prev + 1) % totalDesktopPages);
+    }, 3500);
+
+    return () => {
+      clearInterval(mobileTimer);
+      clearInterval(desktopTimer);
+    };
+  }, [isReviewHovered, totalDesktopPages, googleReviews.length]);
+
+  const handlePrevReviewMobile = () => {
+    setMobileReviewIndex((prev) => (prev === 0 ? googleReviews.length - 1 : prev - 1));
   };
 
-  const handleNextReview = () => {
-    setReviewPage((prev) => (prev + 1) % totalReviewPages);
+  const handleNextReviewMobile = () => {
+    setMobileReviewIndex((prev) => (prev + 1) % googleReviews.length);
+  };
+
+  const handlePrevReviewDesktop = () => {
+    setDesktopReviewPage((prev) => (prev === 0 ? totalDesktopPages - 1 : prev - 1));
+  };
+
+  const handleNextReviewDesktop = () => {
+    setDesktopReviewPage((prev) => (prev + 1) % totalDesktopPages);
   };
 
   // Viewport Scroll Entrance Reveal hook
@@ -1047,123 +1065,241 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 2-Card Carousel Track with Side Navigation Arrows */}
+          {/* Responsive Reviews Carousel: 1 Card on Mobile, 2 Cards on Desktop */}
           <div 
             className="relative px-2 sm:px-12"
             onMouseEnter={() => setIsReviewHovered(true)}
             onMouseLeave={() => setIsReviewHovered(false)}
+            onTouchStart={() => setIsReviewHovered(true)}
+            onTouchEnd={() => setIsReviewHovered(false)}
           >
-            {/* Left Nav Arrow Button (Beside Slide) */}
-            <button
-              onClick={handlePrevReview}
-              className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
-              aria-label="Previous review page"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+            {/* --- DESKTOP VIEW (md and up): 2 Side-by-Side Cards --- */}
+            <div className="hidden md:block">
+              {/* Left Nav Arrow Button */}
+              <button
+                onClick={handlePrevReviewDesktop}
+                className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
+                aria-label="Previous review pair"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-            {/* Right Nav Arrow Button (Beside Slide) */}
-            <button
-              onClick={handleNextReview}
-              className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
-              aria-label="Next review page"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+              {/* Right Nav Arrow Button */}
+              <button
+                onClick={handleNextReviewDesktop}
+                className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
+                aria-label="Next review pair"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
 
-            {/* 2 Side-by-Side Review Cards */}
-            <div 
-              key={reviewPage}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-swap"
-            >
-              {[0, 1].map((offset) => {
-                const reviewIndex = (reviewPage * 2 + offset) % googleReviews.length;
-                const review = googleReviews[reviewIndex];
-                return (
-                  <div
-                    key={review.name + reviewIndex}
-                    className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 sm:p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.18)] hover:-translate-y-1 transition-all duration-300 group"
-                  >
-                    <div className="space-y-4">
-                      {/* Reviewer Header */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-11 w-11 rounded-full ${review.avatarBg} text-white font-bold text-base flex items-center justify-center shrink-0 shadow-sm`}>
-                            {review.avatarText}
+              {/* 2 Side-by-Side Review Cards */}
+              <div 
+                key={desktopReviewPage}
+                className="grid grid-cols-2 gap-6 animate-fade-swap"
+              >
+                {[0, 1].map((offset) => {
+                  const reviewIndex = (desktopReviewPage * 2 + offset) % googleReviews.length;
+                  const review = googleReviews[reviewIndex];
+                  return (
+                    <div
+                      key={review.name + reviewIndex}
+                      className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 sm:p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.18)] hover:-translate-y-1 transition-all duration-300 group"
+                    >
+                      <div className="space-y-4">
+                        {/* Reviewer Header */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-11 w-11 rounded-full ${review.avatarBg} text-white font-bold text-base flex items-center justify-center shrink-0 shadow-sm`}>
+                              {review.avatarText}
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                                {review.name}
+                              </h4>
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                {review.reviewsCount}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
-                              {review.name}
-                            </h4>
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                              {review.reviewsCount}
-                            </p>
+
+                          {/* Google Logo Icon */}
+                          <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 shrink-0">
+                            <svg viewBox="0 0 24 24" className="h-4 w-4">
+                              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                            </svg>
                           </div>
                         </div>
 
-                        {/* Google Logo Icon */}
-                        <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 shrink-0">
-                          <svg viewBox="0 0 24 24" className="h-4 w-4">
-                            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-                            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                          </svg>
+                        {/* Rating Stars & Time */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex text-amber-400">
+                            {[...Array(review.rating)].map((_, i) => (
+                              <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                            ))}
+                          </div>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                            • {review.timeAgo}
+                          </span>
                         </div>
-                      </div>
 
-                      {/* Rating Stars & Time */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex text-amber-400">
-                          {[...Array(review.rating)].map((_, i) => (
-                            <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                          ))}
+                        {/* Condition Badge */}
+                        <div>
+                          <span className="inline-block rounded-full bg-brand-green/10 dark:bg-brand-green/20 text-brand-green dark:text-teal-300 text-[10px] font-black px-3 py-1">
+                            {review.condition}
+                          </span>
                         </div>
-                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                          • {review.timeAgo}
-                        </span>
+
+                        {/* Comment Quote */}
+                        <p className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-normal italic pt-1">
+                          "{review.comment}"
+                        </p>
                       </div>
 
-                      {/* Condition Badge */}
-                      <div>
-                        <span className="inline-block rounded-full bg-brand-green/10 dark:bg-brand-green/20 text-brand-green dark:text-teal-300 text-[10px] font-black px-3 py-1">
-                          {review.condition}
+                      {/* Footer Verified Seal */}
+                      <div className="pt-5 mt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                        <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Verified Google Patient
                         </span>
+                        <span>5.0 / 5.0</span>
                       </div>
-
-                      {/* Comment Quote */}
-                      <p className="text-xs sm:text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed font-normal italic pt-1">
-                        "{review.comment}"
-                      </p>
                     </div>
+                  );
+                })}
+              </div>
 
-                    {/* Footer Verified Seal */}
-                    <div className="pt-5 mt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                      <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        Verified Google Patient
-                      </span>
-                      <span>5.0 / 5.0</span>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* Desktop Pagination Dots (3 Pairs) */}
+              <div className="flex justify-center gap-2 pt-6">
+                {Array.from({ length: totalDesktopPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setDesktopReviewPage(i)}
+                    className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      desktopReviewPage === i
+                        ? "bg-brand-green w-8"
+                        : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"
+                    }`}
+                    aria-label={`Go to slide pair ${i + 1}`}
+                  />
+                ))}
+              </div>
             </div>
 
-            {/* Pagination Dots (3 Pairs) */}
-            <div className="flex justify-center gap-2 pt-6">
-              {Array.from({ length: totalReviewPages }).map((_, i) => (
+            {/* --- MOBILE VIEW (< md): 1 Single Focused Card --- */}
+            <div className="block md:hidden">
+              {/* Single Review Card */}
+              <div 
+                key={mobileReviewIndex}
+                className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] animate-fade-swap"
+              >
+                {(() => {
+                  const review = googleReviews[mobileReviewIndex];
+                  return (
+                    <>
+                      <div className="space-y-3.5">
+                        {/* Reviewer Header */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-full ${review.avatarBg} text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm`}>
+                              {review.avatarText}
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                                {review.name}
+                              </h4>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                {review.reviewsCount}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Google Logo Icon */}
+                          <div className="p-1 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-800 shrink-0">
+                            <svg viewBox="0 0 24 24" className="h-4 w-4">
+                              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                            </svg>
+                          </div>
+                        </div>
+
+                        {/* Rating Stars & Time */}
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex text-amber-400">
+                            {[...Array(review.rating)].map((_, i) => (
+                              <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                            • {review.timeAgo}
+                          </span>
+                        </div>
+
+                        {/* Condition Badge */}
+                        <div>
+                          <span className="inline-block rounded-full bg-brand-green/10 dark:bg-brand-green/20 text-brand-green dark:text-teal-300 text-[9px] font-black px-2.5 py-0.5">
+                            {review.condition}
+                          </span>
+                        </div>
+
+                        {/* Comment Quote */}
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal italic pt-0.5">
+                          "{review.comment}"
+                        </p>
+                      </div>
+
+                      {/* Footer Verified Seal */}
+                      <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Verified Google Patient
+                        </span>
+                        <span>5.0 / 5.0</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Mobile Arrows & Dots Nav Bar */}
+              <div className="flex items-center justify-between pt-4 px-1">
                 <button
-                  key={i}
-                  onClick={() => setReviewPage(i)}
-                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    reviewPage === i
-                      ? "bg-brand-green w-8"
-                      : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"
-                  }`}
-                  aria-label={`Go to slide pair ${i + 1}`}
-                />
-              ))}
+                  onClick={handlePrevReviewMobile}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm active:scale-90"
+                  aria-label="Previous review"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                {/* 6 Mobile Dots */}
+                <div className="flex items-center gap-1.5">
+                  {googleReviews.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMobileReviewIndex(i)}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        mobileReviewIndex === i
+                          ? "bg-brand-green w-5"
+                          : "bg-slate-300 dark:bg-slate-700 w-2"
+                      }`}
+                      aria-label={`Go to review ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleNextReviewMobile}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm active:scale-90"
+                  aria-label="Next review"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
