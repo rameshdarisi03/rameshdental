@@ -1033,10 +1033,28 @@ export default function DaySnapshot() {
                       const isApproved = app.status === "approved";
                       const isRejected = app.status === "rejected";
 
+                      let patientCardStyle = "bg-slate-50/80 dark:bg-slate-950/60 border-slate-200/70 dark:border-slate-800";
+                      let dividerStyle = "border-slate-200/50 dark:border-slate-800/80";
+                      let actionBtnStyle = "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/80 dark:border-emerald-900/40 text-brand-green hover:bg-emerald-100";
+
+                      if (isApproved) {
+                        patientCardStyle = "bg-emerald-50/45 dark:bg-emerald-950/25 border-emerald-200/80 dark:border-emerald-800/60 shadow-xs";
+                        dividerStyle = "border-emerald-200/60 dark:border-emerald-900/40";
+                        actionBtnStyle = "bg-emerald-100/70 dark:bg-emerald-900/50 border-emerald-300/80 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-200/70";
+                      } else if (isPending) {
+                        patientCardStyle = "bg-amber-50/60 dark:bg-amber-950/30 border-amber-200/90 dark:border-amber-800/60 shadow-xs";
+                        dividerStyle = "border-amber-200/60 dark:border-amber-900/40";
+                        actionBtnStyle = "bg-amber-100/80 dark:bg-amber-900/50 border-amber-300/80 dark:border-amber-700/60 text-amber-800 dark:text-amber-200 hover:bg-amber-200/80";
+                      } else if (isRejected) {
+                        patientCardStyle = "bg-red-50/40 dark:bg-red-950/25 border-red-200/70 dark:border-red-800/50 opacity-90";
+                        dividerStyle = "border-red-200/60 dark:border-red-900/40";
+                        actionBtnStyle = "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 hover:bg-red-100/70";
+                      }
+
                       return (
                         <div
                           key={app.id || app.patientName}
-                          className="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800 p-3 rounded-2xl space-y-2"
+                          className={`p-3 rounded-2xl border space-y-2 transition-all ${patientCardStyle}`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
@@ -1067,7 +1085,7 @@ export default function DaySnapshot() {
                           </div>
 
                           {/* Therapist Assignment Dropdown */}
-                          <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50 dark:border-slate-800/80">
+                          <div className={`flex items-center gap-2 pt-1 border-t ${dividerStyle}`}>
                             <User className="w-3 h-3 text-slate-400 shrink-0" />
                             <select
                               value={app.assignedTherapist || ""}
@@ -1086,7 +1104,7 @@ export default function DaySnapshot() {
                           </div>
 
                           {/* Individual Patient Action Buttons */}
-                          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-200/50 dark:border-slate-800/80">
+                          <div className={`flex items-center justify-between gap-2 pt-1.5 border-t ${dividerStyle}`}>
                             {isPending ? (
                               <>
                                 <button
@@ -1101,10 +1119,10 @@ export default function DaySnapshot() {
                                 <button
                                   type="button"
                                   onClick={() => openPatientActions(app)}
-                                  className="py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                                  className={`py-1.5 px-3 rounded-xl border text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 ${actionBtnStyle}`}
                                   title="Open Actions"
                                 >
-                                  <Sparkles className="w-3 h-3 text-brand-green" />
+                                  <Sparkles className="w-3 h-3" />
                                   <span>Actions</span>
                                 </button>
                               </>
@@ -1112,10 +1130,10 @@ export default function DaySnapshot() {
                               <button
                                 type="button"
                                 onClick={() => openPatientActions(app)}
-                                className="w-full py-1.5 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/40 text-brand-green hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                                className={`w-full py-1.5 px-3 rounded-xl border text-[10px] font-black flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95 ${actionBtnStyle}`}
                                 title="Open Actions"
                               >
-                                <Sparkles className="w-3 h-3 text-brand-green" />
+                                <Sparkles className="w-3 h-3" />
                                 <span>Actions</span>
                               </button>
                             )}
