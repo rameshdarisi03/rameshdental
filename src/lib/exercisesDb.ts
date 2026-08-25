@@ -386,7 +386,8 @@ export async function savePatientPrescription(
   exercises: PrescribedExercise[], 
   generalNotes: string,
   durationDays: number = 14,
-  customStartDate?: string
+  customStartDate?: string,
+  preserveExistingProgress: boolean = true
 ): Promise<void> {
   const cleanId = (patientId || "").trim().toUpperCase();
   const docRef = doc(db, "prescriptions", cleanId);
@@ -396,10 +397,37 @@ export async function savePatientPrescription(
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
-  const startDateStr = customStartDate || `${yyyy}-${mm}-${dd}`;
+  const todayStr = `${yyyy}-${mm}-${dd}`;
 
-  // Calculate end date
-  const endObj = new Date(now);
+  let finalStartDate = customStartDate;
+
+  // If preserving ongoing protocol and no custom start date was provided, look up existing startDate
+  if (!finalStartDate && preserveExistingProgress) {
+    try {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const existingData = snap.data() as PatientPrescription;
+        if (existingData.startDate) {
+          finalStartDate = existingData.startDate;
+        }
+      }
+    } catch (err) {
+      console.warn("Could not retrieve previous prescription start date:", err);
+    }
+  }
+
+  // Fallback to today if brand new protocol
+  if (!finalStartDate) {
+    finalStartDate = todayStr;
+  }
+
+  // Calculate end date based on finalStartDate
+  const startParts = finalStartDate.split("-");
+  const startObj = startParts.length === 3 
+    ? new Date(parseInt(startParts[0], 10), parseInt(startParts[1], 10) - 1, parseInt(startParts[2], 10))
+    : new Date(now);
+  
+  const endObj = new Date(startObj);
   endObj.setDate(endObj.getDate() + durationDays);
   const endYyyy = endObj.getFullYear();
   const endMm = String(endObj.getMonth() + 1).padStart(2, "0");
@@ -411,7 +439,7 @@ export async function savePatientPrescription(
     prescribedAt: Timestamp.now(),
     prescribedDateFormatted: dateFormatted,
     durationDays,
-    startDate: startDateStr,
+    startDate: finalStartDate,
     endDate: endDateStr,
     exercises,
     generalNotes

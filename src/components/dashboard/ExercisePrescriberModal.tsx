@@ -80,6 +80,7 @@ export default function ExercisePrescriberModal({
   const [tray, setTray] = useState<PrescribedExercise[]>([]);
   const [generalNotes, setGeneralNotes] = useState("");
   const [durationDays, setDurationDays] = useState<number>(14);
+  const [resetProgressToDay1, setResetProgressToDay1] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -221,8 +222,15 @@ export default function ExercisePrescriberModal({
   const handleSavePrescription = async () => {
     setSaving(true);
     try {
-      // 1. Save active prescription in Firestore
-      await savePatientPrescription(patientId, tray, generalNotes, durationDays);
+      // 1. Save active prescription in Firestore (Preserving ongoing start date and past days history unless explicitly reset)
+      await savePatientPrescription(
+        patientId, 
+        tray, 
+        generalNotes, 
+        durationDays, 
+        resetProgressToDay1 ? undefined : pastPrescription?.startDate,
+        !resetProgressToDay1
+      );
 
       // 2. Generate unified prescription PDF
       const now = new Date();
@@ -640,6 +648,24 @@ export default function ExercisePrescriberModal({
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Days</span>
                   </div>
                 </div>
+
+                {/* Protocol Progression Option */}
+                {pastPrescription && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 select-none">
+                    <input
+                      type="checkbox"
+                      id="resetProtocolCheck"
+                      checked={resetProgressToDay1}
+                      onChange={(e) => setResetProgressToDay1(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
+                    />
+                    <label htmlFor="resetProtocolCheck" className="cursor-pointer text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-tight">
+                      {resetProgressToDay1 
+                        ? "Start as Fresh Protocol (Reset patient to Day 1)"
+                        : "Preserve ongoing progress (Patient continues without losing past days)"}
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Bottom Action CTA */}
