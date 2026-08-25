@@ -51,6 +51,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCw,
+  RotateCcw,
   Search
 } from "lucide-react";
 import Link from "next/link";
@@ -387,7 +388,48 @@ export default function DaySnapshot() {
     setSelectedDate(`${yyyy}-${mm}-${dd}`);
   };
 
-  const triggerRejectionGuard = () => {
+  // Single-appointment status update with zero bulk side effects
+  const handleSingleAppointmentStatus = async (
+    appointmentId: string, 
+    newStatus: "approved" | "rejected",
+    sendWhatsApp: boolean = false
+  ) => {
+    try {
+      const docRef = doc(db, "appointments", appointmentId);
+      const auditData = {
+        status: newStatus,
+        actionedByUid: currentUser?.uid || "system",
+        actionedByName: currentUser?.name || "Clinic Staff",
+        actionedByRole: currentUser?.role || "receptionist",
+        actionedAt: Timestamp.now()
+      };
+      await updateDoc(docRef, auditData);
+
+      // Local state update immediately (0ms lag)
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === appointmentId ? { ...a, ...auditData } : a))
+      );
+
+      const targetApp = appointments.find((a) => a.id === appointmentId);
+      if (sendWhatsApp && targetApp) {
+        triggerWhatsAppRedirect({ ...targetApp, ...auditData }, newStatus === "approved");
+      }
+    } catch (err) {
+      console.error("Error updating appointment status: ", err);
+      alert("Failed to update appointment.");
+    }
+  };
+
+  const handleStatusChange = handleSingleAppointmentStatus;
+
+  const triggerRejectionGuard = (targetApp?: Appointment) => {
+    if (targetApp) {
+      setPendingActionApp(targetApp);
+      setPendingRejectionSlots([]);
+      setRejectionConfirmOpen(true);
+      return;
+    }
+
     const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
     if (targetApps.length === 0) {
       alert("No patient appointments selected to reject.");
@@ -401,29 +443,37 @@ export default function DaySnapshot() {
     setLoading(true);
     setRejectionConfirmOpen(false);
     try {
-      const targetApps = appointments.filter((app) => pendingRejectionSlots.includes(app.slot));
-      const batch = writeBatch(db);
-      
-      const auditData = {
-        status: "rejected" as const,
-        actionedByUid: currentUser?.uid || "system",
-        actionedByName: currentUser?.name || "Clinic Staff",
-        actionedByRole: currentUser?.role || "receptionist",
-        actionedAt: Timestamp.now()
-      };
+      if (pendingActionApp && pendingActionApp.id) {
+        // Isolated single-patient rejection
+        await handleSingleAppointmentStatus(pendingActionApp.id, "rejected", false);
+        setPendingActionType("reject");
+        setNotificationModalOpen(true);
+      } else if (pendingRejectionSlots.length > 0) {
+        const targetApps = appointments.filter((app) => pendingRejectionSlots.includes(app.slot));
+        const batch = writeBatch(db);
+        
+        const auditData = {
+          status: "rejected" as const,
+          actionedByUid: currentUser?.uid || "system",
+          actionedByName: currentUser?.name || "Clinic Staff",
+          actionedByRole: currentUser?.role || "receptionist",
+          actionedAt: Timestamp.now()
+        };
 
-      targetApps.forEach((app) => {
-        if (app.id) {
-          const docRef = doc(db, "appointments", app.id);
-          batch.update(docRef, auditData);
+        targetApps.forEach((app) => {
+          if (app.id) {
+            const docRef = doc(db, "appointments", app.id);
+            batch.update(docRef, auditData);
+          }
+        });
+        await batch.commit();
+
+        if (targetApps.length > 0) {
+          setPendingActionApp({ ...targetApps[0], ...auditData });
+          setPendingActionType("reject");
+          setNotificationModalOpen(true);
         }
-      });
-      await batch.commit();
-
-      // Launch WhatsApp rejection template popup
-      setPendingActionApp({ ...targetApps[0], ...auditData });
-      setPendingActionType("reject");
-      setNotificationModalOpen(true);
+      }
 
       setPendingRejectionSlots([]);
       await fetchDayData();
@@ -436,7 +486,15 @@ export default function DaySnapshot() {
   };
 
   // Trigger approve confirm flow
-  const handleApprove = () => {
+  const handleApprove = (targetApp?: Appointment) => {
+    if (targetApp) {
+      setPendingActionApp(targetApp);
+      setPendingActionType("approve");
+      setNotifyWhatsApp(true);
+      setNotificationModalOpen(true);
+      return;
+    }
+
     const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
     if (targetApps.length === 0) {
       alert("No patient appointments selected to approve.");
@@ -450,30 +508,11 @@ export default function DaySnapshot() {
   };
 
   const confirmApproval = async (shouldNotify: boolean) => {
-    if (!pendingActionApp) return;
+    if (!pendingActionApp || !pendingActionApp.id) return;
     setLoading(true);
     try {
-      const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
-      const batch = writeBatch(db);
-      const auditData = {
-        status: "approved" as const,
-        actionedByUid: currentUser?.uid || "system",
-        actionedByName: currentUser?.name || "Clinic Staff",
-        actionedByRole: currentUser?.role || "receptionist",
-        actionedAt: Timestamp.now()
-      };
-
-      targetApps.forEach((app) => {
-        if (app.id) {
-          const docRef = doc(db, "appointments", app.id);
-          batch.update(docRef, auditData);
-        }
-      });
-      await batch.commit();
-
-      if (shouldNotify) {
-        triggerWhatsAppConfirmation({ ...pendingActionApp, ...auditData }, true);
-      }
+      // Isolated single patient approval
+      await handleSingleAppointmentStatus(pendingActionApp.id, "approved", shouldNotify);
 
       setNotificationModalOpen(false);
       setPendingActionApp(null);
@@ -482,7 +521,7 @@ export default function DaySnapshot() {
       await fetchDayData();
     } catch (error) {
       console.error("Approval error: ", error);
-      alert("Failed to approve appointments.");
+      alert("Failed to approve appointment.");
     } finally {
       setLoading(false);
     }
@@ -984,6 +1023,83 @@ export default function DaySnapshot() {
                                 <option key={t} value={t}>{t}</option>
                               ))}
                             </select>
+                          </div>
+
+                          {/* Individual Patient Action Buttons (1-by-1 Isolation) */}
+                          <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/50 dark:border-slate-800/80">
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleApprove(app);
+                                  }}
+                                  className="flex-1 py-1 px-2 rounded-lg bg-brand-green hover:bg-brand-green-hover text-white text-[10px] font-black flex items-center justify-center gap-1 shadow-xs cursor-pointer transition-all active:scale-95"
+                                  title="Approve only this patient"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  <span>Approve</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    triggerRejectionGuard(app);
+                                  }}
+                                  className="py-1 px-2 rounded-lg border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                                  title="Reject only this patient"
+                                >
+                                  <X className="w-3 h-3" />
+                                  <span>Reject</span>
+                                </button>
+                              </>
+                            )}
+
+                            {isApproved && (
+                              <div className="flex items-center justify-between w-full gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    triggerWhatsAppRedirect(app, true);
+                                  }}
+                                  className="flex-1 py-1 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/40 text-brand-green text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
+                                  title="Send WhatsApp Confirmation to this patient"
+                                >
+                                  <MessageSquare className="w-3 h-3" />
+                                  <span>WhatsApp</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    triggerRejectionGuard(app);
+                                  }}
+                                  className="py-1 px-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-900 text-[10px] font-bold transition-colors cursor-pointer"
+                                  title="Cancel/Reject only this patient"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+
+                            {isRejected && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (app.id) {
+                                    handleSingleAppointmentStatus(app.id, "approved", false);
+                                  }
+                                }}
+                                className="w-full py-1 px-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-brand-green text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                                title="Restore to Approved"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                <span>Re-Approve</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       );

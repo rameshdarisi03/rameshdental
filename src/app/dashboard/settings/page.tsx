@@ -385,15 +385,15 @@ export default function DashboardSettings() {
                     : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                 }`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${config.enablePublicBooking !== false ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-                  {config.enablePublicBooking !== false ? "Online Booking Active" : "Direct Contact Only"}
+                  {config.enablePublicBooking !== false ? "Online Booking: Enabled" : "Online Booking: Disabled"}
                 </span>
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50/80 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-200/60 dark:border-slate-800">
                 <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold leading-relaxed max-w-md">
                   {config.enablePublicBooking !== false
-                    ? "Active: Website visitors can view real-time time slots and submit booking requests."
-                    : "Direct Contact: Public booking slots are hidden. Website directs visitors to Call or WhatsApp reception directly."}
+                    ? "Enabled: Website visitors can view real-time time slots and schedule appointments directly."
+                    : "Disabled: Online booking slots are hidden from visitors. Website shows direct Call and WhatsApp booking buttons."}
                 </p>
                 
                 <button
@@ -410,7 +410,7 @@ export default function DashboardSettings() {
                   }`}
                 >
                   <Power className="w-3.5 h-3.5" />
-                  <span>{config.enablePublicBooking !== false ? "Switch to Direct Contact" : "Enable Online Booking"}</span>
+                  <span>{config.enablePublicBooking !== false ? "Disable Online Booking" : "Enable Online Booking"}</span>
                 </button>
               </div>
             </div>
