@@ -84,10 +84,6 @@ export default function PatientsPage() {
   // Action Menu dropdown state (stores patient ID of open menu)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
   // Initial Fetch of Patients
   useEffect(() => {
     setMounted(true);
@@ -311,12 +307,6 @@ export default function PatientsPage() {
     ])
   );
 
-  // Pagination calculation
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentPatientsList = filteredPatients.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage) || 1;
-
   return (
     <div className="space-y-8 animate-page-fade relative">
       
@@ -449,7 +439,7 @@ export default function PatientsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {currentPatientsList.map((patient) => {
+                {filteredPatients.map((patient) => {
                   const statusColors = {
                     active: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400",
                     completed: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
@@ -649,30 +639,22 @@ export default function PatientsPage() {
           )}
         </div>
 
-        {/* Pagination Toolbar */}
-        <div className="p-6 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs font-bold text-slate-500">
-          <span>
-            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPatients.length)} of {filteredPatients.length} entries
-          </span>
-
+        {/* Unlimited Scroll Directory Summary Bar */}
+        <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-slate-500">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2 border border-slate-200 dark:border-slate-850 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-3 py-1 bg-brand-green text-white rounded-xl">
-              {currentPage}
+            <span className="inline-flex items-center gap-1.5 bg-brand-green/10 text-brand-green px-3 py-1 rounded-full text-xs font-black">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse" />
+              {filteredPatients.length} Patients Listed
             </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 border border-slate-200 dark:border-slate-850 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            {searchQuery && (
+              <span className="text-[11px] text-slate-400 font-semibold">
+                (Filtered from {patients.length} total)
+              </span>
+            )}
+          </div>
+
+          <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5">
+            <span>Scroll smoothly to view all records</span>
           </div>
         </div>
       </div>
