@@ -233,6 +233,13 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
 
     try {
       const cleanCode = code.trim().toUpperCase();
+      if (!cleanCode) {
+        setLoading(false);
+        const msg = "Please enter a valid activation code provided by the clinic.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
       let matchedDoc: any = null;
 
       const q = query(collection(db, "patients"), where("activationCode", "==", cleanCode));
@@ -243,7 +250,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         const allSnap = await getDocs(collection(db, "patients"));
         for (const d of allSnap.docs) {
           const data = d.data();
-          if (data.activationCode?.trim().toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode) {
+          if ((data.activationCode && data.activationCode.trim().toUpperCase() === cleanCode) || (data.email && d.id.toUpperCase() === cleanCode)) {
             matchedDoc = d;
             break;
           }
@@ -349,6 +356,13 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
 
     try {
       const cleanCode = code.trim().toUpperCase();
+      if (!cleanCode) {
+        setLoading(false);
+        const msg = "Please enter a valid activation code provided by the clinic.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
       let matchedDoc: any = null;
 
       const q = query(collection(db, "patients"), where("activationCode", "==", cleanCode));
@@ -359,7 +373,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         const allSnap = await getDocs(collection(db, "patients"));
         for (const d of allSnap.docs) {
           const data = d.data();
-          if (data.activationCode?.trim().toUpperCase() === cleanCode || d.id.toUpperCase() === cleanCode) {
+          if ((data.activationCode && data.activationCode.trim().toUpperCase() === cleanCode) || (data.email && d.id.toUpperCase() === cleanCode)) {
             matchedDoc = d;
             break;
           }

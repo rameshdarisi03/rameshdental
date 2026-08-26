@@ -46,7 +46,8 @@ import {
   getMedicalRecordFiles, 
   addConsultation, 
   addMedicalRecordFile, 
-  updatePatient 
+  updatePatient,
+  generateActivationCode 
 } from "@/lib/patientsDb";
 import { 
   getPatientPrescription,
@@ -74,6 +75,7 @@ interface Patient {
   email: string;
   phone: string;
   dob?: string;
+  age?: string | number;
   gender?: string;
   treatmentPlan: string;
   status: "active" | "completed" | "pending";
@@ -83,6 +85,8 @@ interface Patient {
   upcoming?: string;
   reminders?: string[];
   attendanceRate?: number;
+  activationCode?: string;
+  activated?: boolean;
 }
 
 interface Consultation {
@@ -207,6 +211,72 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   // Dedicated Doctor Reference Scan Upload state
   const [uploadingDoctorScan, setUploadingDoctorScan] = useState(false);
   const doctorScanFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Email management states
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const handleSaveEmail = async () => {
+    if (!emailInput.trim() || !patient || !id) return;
+    const cleanEmail = emailInput.trim().toLowerCase();
+    
+    // Basic email format check
+    if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    setSavingEmail(true);
+    setEmailError("");
+
+    try {
+      // If patient does not have an activation code yet, generate one
+      let newActivationCode = patient.activationCode || "";
+      if (!newActivationCode && !patient.activated) {
+        newActivationCode = generateActivationCode();
+      }
+
+      await updatePatient(id, {
+        email: cleanEmail,
+        activationCode: newActivationCode,
+      });
+
+      setPatient((prev) => prev ? {
+        ...prev,
+        email: cleanEmail,
+        activationCode: newActivationCode,
+      } : null);
+
+      setIsEditingEmail(false);
+      setEmailInput("");
+    } catch (err: any) {
+      console.error("Error updating patient email:", err);
+      setEmailError(err.message || "Failed to update email.");
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleSendPortalInvite = () => {
+    if (!patient || !patient.activationCode) return;
+    let cleanPhone = patient.phone.replace(/\D/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = cleanPhone.replace(/^0+/, "");
+    }
+    if (cleanPhone.length === 10) {
+      cleanPhone = "91" + cleanPhone;
+    }
+    if (!cleanPhone || cleanPhone.length < 10) {
+      cleanPhone = "919206651295";
+    }
+
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login` : "https://gaitphysioclinic.com/patienthub/login";
+    const message = `Hello ${patient.name}, your Gait Physio Clinic Patient Hub is ready! 🎉\n\nAccess your personalized home exercises, clinical recovery progress, and appointment details online:\n🔗 ${portalUrl}\n\n🔑 Your Portal Activation Code: *${patient.activationCode}*\n\nPlease log in and activate your account.`;
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank");
+  };
 
   const setQuickDate = (type: "today" | "yesterday") => {
     const d = new Date();
@@ -1274,9 +1344,80 @@ PLAN:
                 </div>
               </div>
 
+              {/* Email Address */}
               <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
-                <p className="text-[9px] font-extrabold uppercase text-slate-400">Email Address</p>
-                <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5 truncate">{patient.email}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Email Address</p>
+                  {!patient.email && (
+                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded-md">
+                      Missing
+                    </span>
+                  )}
+                </div>
+
+                {isEditingEmail ? (
+                  <div className="mt-1.5 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="email"
+                        placeholder="patient@gmail.com"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveEmail}
+                        disabled={savingEmail || !emailInput.trim()}
+                        className="px-3 py-1.5 rounded-xl bg-brand-green text-white text-[10px] font-black cursor-pointer hover:bg-brand-green-hover disabled:opacity-50 active:scale-95 shrink-0"
+                      >
+                        {savingEmail ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingEmail(false);
+                          setEmailError("");
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {emailError && (
+                      <p className="text-[10px] font-bold text-red-500">{emailError}</p>
+                    )}
+                  </div>
+                ) : patient.email ? (
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 truncate">{patient.email}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput(patient.email);
+                        setIsEditingEmail(true);
+                      }}
+                      className="text-[10px] font-black text-slate-400 hover:text-brand-green cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs text-slate-400 italic font-semibold">Not registered yet</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput("");
+                        setIsEditingEmail(true);
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-green/10 hover:bg-brand-green hover:text-white px-2.5 py-1 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add Email</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
@@ -1292,22 +1433,43 @@ PLAN:
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     <span>Active Profile</span>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-2 mt-1">
-                    <p className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono tracking-wider bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg">
-                      {patient.activationCode || "N/A"}
-                    </p>
+                ) : patient.email && patient.activationCode ? (
+                  <div className="space-y-1.5 mt-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono tracking-wider bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg">
+                        {patient.activationCode}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (patient.activationCode) {
+                            navigator.clipboard.writeText(patient.activationCode);
+                            alert("Portal activation code copied to clipboard!");
+                          }
+                        }}
+                        className="text-[10px] font-black text-brand-green hover:underline cursor-pointer border-0 bg-transparent"
+                      >
+                        Copy Code
+                      </button>
+                    </div>
                     <button
-                      onClick={() => {
-                        if (patient.activationCode) {
-                          navigator.clipboard.writeText(patient.activationCode);
-                          alert("Portal activation code copied to clipboard!");
-                        }
-                      }}
-                      className="text-[10px] font-black text-brand-green hover:underline cursor-pointer border-0 bg-transparent"
+                      type="button"
+                      onClick={handleSendPortalInvite}
+                      className="w-full flex items-center justify-center gap-1.5 text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-1.5 rounded-xl hover:bg-emerald-100 transition-colors cursor-pointer active:scale-95"
                     >
-                      Copy Code
+                      <MessageSquare className="w-3 h-3" />
+                      <span>Send WhatsApp Invite</span>
                     </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                      <Lock className="w-3 h-3 shrink-0" />
+                      <span>Locked (Missing Email)</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold leading-tight">
+                      Add patient email above to generate Patient Hub activation code.
+                    </p>
                   </div>
                 )}
               </div>

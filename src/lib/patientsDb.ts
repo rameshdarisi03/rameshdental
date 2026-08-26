@@ -62,7 +62,7 @@ export interface MedicalRecordFile {
 }
 
 // Helper to generate a cryptographically secure 8-character alphanumeric activation code (excluding confusing chars)
-function generateActivationCode(): string {
+export function generateActivationCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
@@ -113,10 +113,15 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     const patientId = await generateUniquePatientId();
     const docRef = doc(db, "patients", patientId);
 
+    const hasEmail = Boolean(patientData.email && patientData.email.trim());
+    const activationCode = hasEmail
+      ? patientData.activationCode || generateActivationCode()
+      : "";
+
     const newPatient: Patient = {
       ...patientData,
       id: patientId,
-      activationCode: patientData.activationCode || generateActivationCode(),
+      activationCode,
       activated: patientData.activated || false,
       createdAt: Timestamp.now(),
     };
