@@ -157,44 +157,67 @@ export default function FastTrackPatientImportModal({
     setStep("REVIEW");
   };
 
-  // Handle Gemini OCR Scan for Physical Registers
-  const handleOcrImageUpload = async (file: File) => {
-    setOcrLoading(true);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setScannedImage(base64);
+  // Handle Gemini OCR Scan for Physical Registers, Photos & PDF Documents
+  const handleOcrImageUpload = async (files: FileList | File[] | File) => {
+    const fileArray = files instanceof FileList ? Array.from(files) : Array.isArray(files) ? files : [files];
+    if (fileArray.length === 0) return;
 
-      try {
-        const res = await fetch("/api/ai/scan-document", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageBase64: base64,
-            documentType: "CLINICAL_ASSESSMENT",
-            mimeType: file.type || "image/jpeg"
-          })
+    setOcrLoading(true);
+    setStep("PROCESSING");
+    setProcessingProgress(15);
+    setProcessingStatus(`Loading ${fileArray.length} document(s)...`);
+
+    try {
+      const imagesData: { data: string; mimeType: string; name: string }[] = [];
+
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
         });
 
-        const data = await res.json();
-        if (data.success && data.rawExtractedText) {
-          setPastedText(data.rawExtractedText);
-          setActiveTab("SHEET");
-          handleStartParsing(data.rawExtractedText);
-        } else {
-          // Fallback parsing from response
-          const generatedRow = `${data.patientName || "Patient"}, ${data.age || "35"}, Male, 9876543210, ${data.diagnosis || "Physiotherapy"}, ${enrolledTherapists[0] || "Dr. Kinnera"}, Active`;
-          setPastedText(generatedRow);
-          setActiveTab("SHEET");
-          handleStartParsing(generatedRow);
-        }
-      } catch (err) {
-        console.error("OCR scan error:", err);
-      } finally {
-        setOcrLoading(false);
+        imagesData.push({
+          data: base64,
+          mimeType: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg"),
+          name: file.name
+        });
       }
-    };
-    reader.readAsDataURL(file);
+
+      setProcessingProgress(45);
+      setProcessingStatus("Gemini AI is reading handwritten entries, diagnosis & records...");
+
+      const res = await fetch("/api/fasttrack/ai-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: imagesData,
+          enrolledTherapists
+        })
+      });
+
+      const data = await res.json();
+      setProcessingProgress(90);
+      setProcessingStatus("Formatting extracted patient records into data grid...");
+
+      if (data.success && data.rows && data.rows.length > 0) {
+        setEditableRows(data.rows);
+        await new Promise((r) => setTimeout(r, 200));
+        setProcessingProgress(100);
+        setStep("REVIEW");
+      } else {
+        throw new Error(data.error || "No patient records recognized. Please try a clearer photo or spreadsheet.");
+      }
+    } catch (err: any) {
+      console.error("AI OCR Scan Error:", err);
+      setProcessingStatus(`AI recognition notice: ${err.message || "Failed to scan"}`);
+      await new Promise((r) => setTimeout(r, 1800));
+      setStep("INPUT");
+    } finally {
+      setOcrLoading(false);
+    }
   };
 
   // Row update helpers
@@ -480,45 +503,66 @@ export default function FastTrackPatientImportModal({
             {/* TAB B: CAMERA / REGISTER AI OCR */}
             {activeTab === "CAMERA" && (
               <div className="space-y-5 max-w-2xl mx-auto text-center">
+                {/* Multi-image / PDF File Input */}
                 <input
                   ref={cameraInputRef}
                   type="file"
-                  accept="image/*"
-                  capture="environment"
+                  accept="image/*,application/pdf"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleOcrImageUpload(e.target.files[0]);
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleOcrImageUpload(e.target.files);
                     }
                   }}
                 />
 
-                <div className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl space-y-4 bg-slate-50/50 dark:bg-slate-950/40">
+                <div 
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      handleOcrImageUpload(e.dataTransfer.files);
+                    }
+                  }}
+                  className={`p-8 border-2 border-dashed rounded-3xl space-y-4 transition-all ${
+                    isDragging 
+                      ? "border-brand-green bg-brand-green/5 dark:bg-emerald-950/20 scale-[1.01]" 
+                      : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40"
+                  }`}
+                >
                   <div className="h-16 w-16 rounded-3xl bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 mx-auto flex items-center justify-center">
                     <Camera className="h-8 w-8" />
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                      Physical Register & Paper Intake OCR
+                      Physical Register, Patient Sheets & PDF Ledgers
                     </h4>
-                    <p className="text-xs text-slate-500 font-semibold max-w-sm mx-auto">
-                      Snap a photo of your paper appointment book or patient register. Gemini AI will extract patient names, phone numbers, and treatment plans automatically.
+                    <p className="text-xs text-slate-500 font-semibold max-w-md mx-auto">
+                      Drop single/multiple photos of handwritten patient notebooks, appointment ledgers, or multi-page PDF rosters. Gemini AI automatically transcribes them into the interactive table.
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={ocrLoading}
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="px-6 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white text-xs font-black inline-flex items-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {ocrLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Camera className="h-4 w-4" />
-                    )}
-                    <span>{ocrLoading ? "Scanning Register with AI..." : "Take Photo / Select Scan"}</span>
-                  </button>
+                  <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={ocrLoading}
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="px-6 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white text-xs font-black inline-flex items-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                    >
+                      {ocrLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                      <span>{ocrLoading ? "Scanning with AI..." : "Take Photos / Select Files (PDF & Images)"}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
