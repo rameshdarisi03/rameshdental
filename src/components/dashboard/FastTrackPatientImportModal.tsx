@@ -934,6 +934,7 @@ export default function FastTrackPatientImportModal({
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
