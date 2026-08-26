@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, use } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { 
@@ -62,9 +62,6 @@ import {
   PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
-import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
-import ViewInvoiceModal from "@/components/dashboard/invoices/ViewInvoiceModal";
-import jsPDF from "jspdf";
 import { 
   buildUnifiedPrescriptionPdf, 
   getPrescriptionFileName,
@@ -172,17 +169,14 @@ const compressImageFile = (file: File): Promise<File> => {
 };
 
 export default function PatientDetailPage() {
-  const routeParams = useParams();
-  const id = (routeParams?.id as string) || "";
+  const params = useParams();
+  const id = (params?.id as string) || "";
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [files, setFiles] = useState<MedicalFile[]>([]);
   const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
-  const [isPatientInvoiceModalOpen, setIsPatientInvoiceModalOpen] = useState(false);
-  const [selectedInvoiceForEdit, setSelectedInvoiceForEdit] = useState<Invoice | null>(null);
-  const [selectedInvoiceForView, setSelectedInvoiceForView] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -269,7 +263,7 @@ export default function PatientDetailPage() {
 
   const handleSendPortalInvite = () => {
     if (!patient || !patient.activationCode) return;
-    let cleanPhone = (patient?.phone || "").replace(/\D/g, "");
+    let cleanPhone = patient.phone.replace(/\D/g, "");
     if (cleanPhone.startsWith("0")) {
       cleanPhone = cleanPhone.replace(/^0+/, "");
     }
@@ -380,10 +374,6 @@ PLAN:
     setLoading(true);
     setError("");
     try {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
       const pData = await getPatientById(id);
       if (!pData) {
         setError("Patient profile not found in database.");
@@ -409,20 +399,22 @@ PLAN:
       setActivePrescription(rx);
       setPrescriptionsHistory(rxHist);
 
-      try {
-        subscribePatientInvoices(
-          { 
-            patientId: pData.id, 
-            email: pData.email, 
-            phone: pData.phone, 
-            customId: pData.customId 
-          }, 
-          (invs) => {
-            setPatientInvoices(invs || []);
-          }
-        );
-      } catch (subErr) {
-        console.warn("Invoice subscription warning:", subErr);
+      if (pData.email || pData.id || pData.phone || pData.customId) {
+        try {
+          subscribePatientInvoices(
+            { 
+              patientId: pData.id, 
+              email: pData.email, 
+              phone: pData.phone, 
+              customId: pData.customId 
+            }, 
+            (invs) => {
+              setPatientInvoices(invs || []);
+            }
+          );
+        } catch (subErr) {
+          console.warn("Invoice subscription warning:", subErr);
+        }
       }
     } catch (err: any) {
       console.error("Error loading patient details:", err);
@@ -1031,7 +1023,15 @@ PLAN:
 
   const handleDownloadInvoice = (inv: Invoice) => {
     try {
-      const doc = buildInvoicePdf(inv);
+      const doc = buildUnifiedInvoicePdf({
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        serviceDate: inv.serviceDate,
+        status: inv.status,
+        items: inv.items,
+        totalAmount: inv.totalAmount,
+        notes: inv.notes,
+      });
       const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", inv.serviceDate || new Date());
       doc.save(fileName);
     } catch (err) {
@@ -1041,7 +1041,15 @@ PLAN:
 
   const handleViewInvoice = (inv: Invoice) => {
     try {
-      const doc = buildInvoicePdf(inv);
+      const doc = buildUnifiedInvoicePdf({
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        serviceDate: inv.serviceDate,
+        status: inv.status,
+        items: inv.items,
+        totalAmount: inv.totalAmount,
+        notes: inv.notes,
+      });
       const pdfBlob = doc.output("blob");
       const url = URL.createObjectURL(pdfBlob);
       window.open(url, "_blank");
@@ -1050,224 +1058,157 @@ PLAN:
     }
   };
 
-  const buildInvoicePdf = (inv: Invoice): jsPDF => {
-    return buildUnifiedInvoicePdf({
-      invoiceNumber: inv.invoiceNumber,
-      patientName: inv.patientName || patient?.name || "Patient",
-      patientId: inv.patientId || patient?.id,
-      patientEmail: inv.patientEmail || patient?.email,
-      patientPhone: inv.patientPhone || patient?.phone,
-      therapistName: inv.therapistName || patient?.therapistName,
-      serviceDate: inv.serviceDate,
-      dueDate: inv.dueDate,
-      status: inv.status,
-      paymentMethod: inv.paymentMethod,
-      items: inv.items,
-      subtotal: inv.subtotal,
-      taxRate: inv.taxRate,
-      taxAmount: inv.taxAmount,
-      discount: inv.discount,
-      totalAmount: inv.totalAmount,
-      currency: inv.currency || "INR",
-      notes: inv.notes,
+  // Build unified items for Medical Scans & Files
+  const allUnifiedFiles: Array<{
+    id: string;
+    category: "PRESCRIPTION" | "INVOICE" | "FILE";
+    fileName: string;
+    subtitle: string;
+    dateStr: string;
+    sizeFormatted?: string;
+    raw: any;
+    isDoctorOnly?: boolean;
+    onView?: () => void;
+    onDownload?: () => void;
+    webViewLink?: string;
+    downloadLink?: string;
+  }> = [];
+
+  // 1. Active Prescription & Consultation Plan
+  const latestConsult = consultations.length > 0 ? consultations[0] : null;
+  if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
+    const rxDate = activePrescription.startDate || new Date();
+    const fileName = getPrescriptionFileName(patient?.name || "Patient", rxDate);
+    allUnifiedFiles.push({
+      id: "active-prescription-doc",
+      category: "PRESCRIPTION",
+      fileName: fileName,
+      subtitle: `Prescribed by ${patient?.therapistName || defaultTherapist} • ${activePrescription.durationDays || 14} Days Protocol`,
+      dateStr: activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan",
+      raw: activePrescription,
+      onView: () => handleViewPrescription({
+        displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+        rawDate: rxDate,
+        therapistName: patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription.durationDays || 14,
+        generalNotes: activePrescription.generalNotes,
+        consultationSummary: latestConsult?.summary,
+        exercises: activePrescription.exercises,
+      }),
+      onDownload: () => handleDownloadPrescription({
+        displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+        rawDate: rxDate,
+        therapistName: patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription.durationDays || 14,
+        generalNotes: activePrescription.generalNotes,
+        consultationSummary: latestConsult?.summary,
+        exercises: activePrescription.exercises,
+      })
     });
-  };
+  } else if (latestConsult) {
+    const consultDate = latestConsult.date || new Date();
+    const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
+    allUnifiedFiles.push({
+      id: latestConsult.id,
+      category: "PRESCRIPTION",
+      fileName: fileName,
+      subtitle: `Clinical Session Notes • Logged by ${latestConsult.therapistName || defaultTherapist}`,
+      dateStr: latestConsult.date || "Recorded",
+      raw: latestConsult,
+      onView: () => handleViewPrescription({
+        displayDate: latestConsult.date,
+        rawDate: consultDate,
+        therapistName: latestConsult.therapistName || defaultTherapist,
+        durationDays: 14,
+        consultationSummary: latestConsult.summary,
+        exercises: [],
+      }),
+      onDownload: () => handleDownloadPrescription({
+        displayDate: latestConsult.date,
+        rawDate: consultDate,
+        therapistName: latestConsult.therapistName || defaultTherapist,
+        durationDays: 14,
+        consultationSummary: latestConsult.summary,
+        exercises: [],
+      })
+    });
+  }
 
-  const handleDownloadInvoicePdf = (inv: Invoice) => {
-    try {
-      const pdf = buildInvoicePdf(inv);
-      pdf.save(`${inv.invoiceNumber}_GaitPhysio.pdf`);
-    } catch (e) {
-      console.error("Error generating invoice PDF:", e);
-    }
-  };
-
-  const getWhatsAppInvoiceUrl = (inv: Invoice) => {
-    const phone = inv.patientPhone || patient?.phone;
-    if (!phone) return "#";
-    const cleanDigits = phone.replace(/\D/g, "");
-    const formattedPhone = cleanDigits.startsWith("91") && cleanDigits.length === 12
-      ? cleanDigits
-      : cleanDigits.length === 10
-      ? `91${cleanDigits}`
-      : cleanDigits;
-
-    const message = `Hello ${inv.patientName || patient?.name || "Valued Patient"},
-
-Your official treatment invoice from Gait Physio Clinic is ready:
-
-📄 *Invoice #*: ${inv.invoiceNumber}
-📅 *Date*: ${inv.serviceDate}
-👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Kinnera"}
-💳 *Total Amount*: ₹${(inv.totalAmount || 0).toLocaleString("en-IN")} (${(inv.status || "PAID").toUpperCase()})
-
-Thank you for choosing Gait Physio Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
-
-Warm regards,
-*Gait Physio Clinic, Bengaluru*
-📞 +91 92066 51295`;
-
-    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-  };
-
-  // Build unified items for Medical Scans & Files safely inside useMemo
-  const allUnifiedFiles = useMemo(() => {
-    const list: Array<{
-      id: string;
-      category: "PRESCRIPTION" | "INVOICE" | "FILE";
-      fileName: string;
-      subtitle: string;
-      dateStr: string;
-      sizeFormatted?: string;
-      raw: any;
-      isDoctorOnly?: boolean;
-      onView?: () => void;
-      onDownload?: () => void;
-      webViewLink?: string;
-      downloadLink?: string;
-    }> = [];
-
-    if (!patient) return list;
-
-    // 1. Active Prescription & Consultation Plan
-    const latestConsult = consultations && consultations.length > 0 ? consultations[0] : null;
-    if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
-      const rxDate = activePrescription.startDate || new Date();
-      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxDate);
-      list.push({
-        id: "active-prescription-doc",
+  // 2. Historical Prescriptions
+  prescriptionsHistory.forEach((hist, idx) => {
+    if (hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
+      const hDate = hist.startDate || new Date();
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", hDate);
+      allUnifiedFiles.push({
+        id: `hist-rx-${idx}`,
         category: "PRESCRIPTION",
         fileName: fileName,
-        subtitle: `Prescribed by ${patient?.therapistName || defaultTherapist} • ${activePrescription.durationDays || 14} Days Protocol`,
-        dateStr: activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan",
-        raw: activePrescription,
+        subtitle: `Past Prescription v${prescriptionsHistory.length - idx} • ${hist.durationDays || 14} Days Protocol`,
+        dateStr: hist.prescribedDateFormatted || hist.startDate || "Past Plan",
+        raw: hist,
         onView: () => handleViewPrescription({
-          displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
-          rawDate: rxDate,
+          displayDate: hist.prescribedDateFormatted || hist.startDate,
+          rawDate: hDate,
           therapistName: patient?.therapistName || defaultTherapist,
-          durationDays: activePrescription.durationDays || 14,
-          generalNotes: activePrescription.generalNotes,
-          consultationSummary: latestConsult?.summary,
-          exercises: activePrescription.exercises,
+          durationDays: hist.durationDays || 14,
+          generalNotes: hist.generalNotes,
+          exercises: hist.exercises || [],
         }),
         onDownload: () => handleDownloadPrescription({
-          displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
-          rawDate: rxDate,
+          displayDate: hist.prescribedDateFormatted || hist.startDate,
+          rawDate: hDate,
           therapistName: patient?.therapistName || defaultTherapist,
-          durationDays: activePrescription.durationDays || 14,
-          generalNotes: activePrescription.generalNotes,
-          consultationSummary: latestConsult?.summary,
-          exercises: activePrescription.exercises,
-        })
-      });
-    } else if (latestConsult) {
-      const consultDate = latestConsult.date || new Date();
-      const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
-      list.push({
-        id: latestConsult.id || "consult-doc",
-        category: "PRESCRIPTION",
-        fileName: fileName,
-        subtitle: `Clinical Session Notes • Logged by ${latestConsult.therapistName || defaultTherapist}`,
-        dateStr: latestConsult.date || "Recorded",
-        raw: latestConsult,
-        onView: () => handleViewPrescription({
-          displayDate: latestConsult.date,
-          rawDate: consultDate,
-          therapistName: latestConsult.therapistName || defaultTherapist,
-          durationDays: 14,
-          consultationSummary: latestConsult.summary,
-          exercises: [],
-        }),
-        onDownload: () => handleDownloadPrescription({
-          displayDate: latestConsult.date,
-          rawDate: consultDate,
-          therapistName: latestConsult.therapistName || defaultTherapist,
-          durationDays: 14,
-          consultationSummary: latestConsult.summary,
-          exercises: [],
+          durationDays: hist.durationDays || 14,
+          generalNotes: hist.generalNotes,
+          exercises: hist.exercises || [],
         })
       });
     }
+  });
 
-    // 2. Historical Prescriptions
-    (prescriptionsHistory || []).forEach((hist, idx) => {
-      if (hist && hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
-        const hDate = hist.startDate || new Date();
-        const fileName = getPrescriptionFileName(patient?.name || "Patient", hDate);
-        list.push({
-          id: `hist-rx-${idx}`,
-          category: "PRESCRIPTION",
-          fileName: fileName,
-          subtitle: `Past Prescription v${prescriptionsHistory.length - idx} • ${hist.durationDays || 14} Days Protocol`,
-          dateStr: hist.prescribedDateFormatted || hist.startDate || "Past Plan",
-          raw: hist,
-          onView: () => handleViewPrescription({
-            displayDate: hist.prescribedDateFormatted || hist.startDate,
-            rawDate: hDate,
-            therapistName: patient?.therapistName || defaultTherapist,
-            durationDays: hist.durationDays || 14,
-            generalNotes: hist.generalNotes,
-            exercises: hist.exercises || [],
-          }),
-          onDownload: () => handleDownloadPrescription({
-            displayDate: hist.prescribedDateFormatted || hist.startDate,
-            rawDate: hDate,
-            therapistName: patient?.therapistName || defaultTherapist,
-            durationDays: hist.durationDays || 14,
-            generalNotes: hist.generalNotes,
-            exercises: hist.exercises || [],
-          })
-        });
-      }
+  // 3. Invoices
+  patientInvoices.forEach((inv) => {
+    const invDate = inv.serviceDate || new Date();
+    const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", invDate);
+    allUnifiedFiles.push({
+      id: inv.id,
+      category: "INVOICE",
+      fileName: fileName,
+      subtitle: `Invoice #${inv.invoiceNumber} • ₹${(inv.totalAmount || 0).toFixed(2)} • ${(inv.status || "PAID").toUpperCase()}`,
+      dateStr: inv.serviceDate || "Recorded",
+      raw: inv,
+      onView: () => handleViewInvoice(inv),
+      onDownload: () => handleDownloadInvoice(inv)
     });
+  });
 
-    // 3. Invoices
-    (patientInvoices || []).forEach((inv) => {
-      if (!inv) return;
-      const invDate = inv.serviceDate || new Date();
-      const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", invDate);
-      list.push({
-        id: inv.id || `inv-${Math.random()}`,
-        category: "INVOICE",
-        fileName: fileName,
-        subtitle: `Invoice #${inv.invoiceNumber} • Rs. ${(inv.totalAmount || 0).toLocaleString("en-IN")} • ${(inv.status || "PAID").toUpperCase()}`,
-        dateStr: inv.serviceDate || "Recorded",
-        raw: inv,
-        onView: () => handleViewInvoice(inv),
-        onDownload: () => handleDownloadInvoice(inv)
+  // 4. Uploaded Medical Files / Scans
+  files.forEach((file) => {
+    const fObj = file as any;
+    const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
+    const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
+    const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
+    const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
+    const isDocOnly = file.isDoctorOnly === true || fObj.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
+
+    // Deduplicate if already present in allUnifiedFiles by fileName
+    if (!allUnifiedFiles.some((f) => f.fileName === file.fileName)) {
+      allUnifiedFiles.push({
+        id: file.id || fId || Math.random().toString(),
+        category: "FILE",
+        fileName: file.fileName,
+        subtitle: isDocOnly 
+          ? `🔒 Doctor Reference • ${formatBytes(file.fileSize)}`
+          : `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
+        dateStr: dateStr,
+        sizeFormatted: formatBytes(file.fileSize),
+        raw: file,
+        isDoctorOnly: isDocOnly,
+        webViewLink: viewUrl,
+        downloadLink: downloadUrl
       });
-    });
-
-    // 4. Uploaded Medical Files / Scans
-    (files || []).forEach((file) => {
-      if (!file) return;
-      const fObj = file as any;
-      const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
-      const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
-      const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
-      const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
-      const isDocOnly = file.isDoctorOnly === true || fObj.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
-
-      if (!list.some((f) => f.fileName === file.fileName)) {
-        list.push({
-          id: file.id || fId || Math.random().toString(),
-          category: "FILE",
-          fileName: file.fileName || "Medical Document",
-          subtitle: isDocOnly 
-            ? `Doctor Reference • ${formatBytes(file.fileSize)}`
-            : `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
-          dateStr: dateStr,
-          sizeFormatted: formatBytes(file.fileSize),
-          raw: file,
-          isDoctorOnly: isDocOnly,
-          webViewLink: viewUrl,
-          downloadLink: downloadUrl
-        });
-      }
-    });
-
-    return list;
-  }, [patient, consultations, activePrescription, prescriptionsHistory, patientInvoices, files]);
+    }
+  });
 
   if (loading) {
     return (
@@ -1400,7 +1341,7 @@ Warm regards,
                   <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
                   <button
                     onClick={() => {
-                      let cleanPhone = (patient?.phone || "").replace(/\D/g, "");
+                      let cleanPhone = patient.phone.replace(/\D/g, "");
                       if (cleanPhone.startsWith("0")) {
                         cleanPhone = cleanPhone.replace(/^0+/, "");
                       }
@@ -2335,175 +2276,38 @@ Warm regards,
 
           {/* TAB 3: Invoices & Billing */}
           {activeTab === "invoices" && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                    Patient Invoices & Receipts ({patientInvoices.length})
+                    Patient Billing History
                   </h3>
                   <p className="text-xs text-slate-400 font-bold mt-0.5">
-                    Official tax invoices and payment receipts generated for {patient?.name || "Patient"}
+                    Generate & manage billing statements for {patient.name}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedInvoiceForEdit(null);
-                    setIsPatientInvoiceModalOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+                <Link
+                  href={`/dashboard/invoices`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition-all shadow-sm"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Create Invoice</span>
-                </button>
+                  Create Invoice
+                </Link>
               </div>
 
-              {patientInvoices.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
-                  <Receipt className="h-10 w-10 text-brand-green mx-auto" />
-                  <div>
-                    <h4 className="text-sm font-black text-slate-800 dark:text-white">No Invoices Issued Yet</h4>
-                    <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1">
-                      Generate an itemized treatment invoice for {patient?.name || "this patient"}. It will automatically sync to their Patient Hub portal and Google Drive.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedInvoiceForEdit(null);
-                      setIsPatientInvoiceModalOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-green text-white text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer hover:bg-brand-green-hover transition-all"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Create First Invoice</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {patientInvoices.map((inv) => {
-                    const isVoided = inv.status === "voided" || inv.status === "cancelled";
-                    const isPaid = inv.status === "paid";
-
-                    return (
-                      <div
-                        key={inv.id}
-                        className={`p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
-                          isVoided ? "opacity-60 bg-rose-50/10" : ""
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-black text-slate-900 dark:text-white">
-                              {inv.invoiceNumber}
-                            </span>
-                            {isPaid ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                                Paid
-                              </span>
-                            ) : isVoided ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-400 text-[10px] font-black uppercase" title={inv.voidReason || "Voided"}>
-                                <Ban className="w-2.5 h-2.5" />
-                                Voided
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase">
-                                <Clock className="w-2.5 h-2.5" />
-                                Pending
-                              </span>
-                            )}
-                            <span className="text-[10px] font-bold text-slate-400">
-                              {inv.serviceDate} • {inv.paymentMethod || "UPI"}
-                            </span>
-                          </div>
-
-                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                            {inv.items?.map((it) => it.description).filter(Boolean).join(", ") || "Physiotherapy Treatment"}
-                          </p>
-
-                          <div className="text-[11px] font-bold text-slate-400">
-                            Therapist: <span className="text-slate-600 dark:text-slate-200">{inv.therapistName || "Dr. Kinnera"}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-800">
-                          <div className="text-left sm:text-right">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                              Total Amount
-                            </span>
-                            <span className={`text-sm font-black ${isVoided ? "line-through text-slate-400" : "text-brand-green dark:text-emerald-400"}`}>
-                              ₹{(inv.totalAmount || 0).toLocaleString("en-IN")}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            {/* 1. Edit Invoice (FIRST) */}
-                            {!isVoided && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedInvoiceForEdit(inv);
-                                  setIsPatientInvoiceModalOpen(true);
-                                }}
-                                className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
-                                title="Edit Invoice"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                  Edit / Correct invoice items
-                                </span>
-                              </button>
-                            )}
-
-                            {/* 2. WhatsApp Button */}
-                            {(inv.patientPhone || patient?.phone) && !isVoided && (
-                              <a
-                                href={getWhatsAppInvoiceUrl(inv)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative"
-                                title="Send WhatsApp bill to patient"
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                  Send WhatsApp bill directly to patient
-                                </span>
-                              </a>
-                            )}
-
-                            {/* 3. Download PDF */}
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadInvoicePdf(inv)}
-                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
-                              title="Download PDF"
-                            >
-                              <Download className="h-4 w-4" />
-                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                Download official PDF tax receipt
-                              </span>
-                            </button>
-
-                            {/* 4. View PDF Preview */}
-                            <button
-                              type="button"
-                              onClick={() => handleViewInvoice(inv)}
-                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
-                              title="View Invoice PDF"
-                            >
-                              <Eye className="h-4 w-4" />
-                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                View full invoice PDF
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                <Receipt className="h-10 w-10 text-[#2d5a4c] mx-auto mb-3" />
+                <h4 className="text-sm font-black text-slate-800 dark:text-white">Clinical Billing Hub Active</h4>
+                <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1 mb-4">
+                  All invoices generated for {patient.name} automatically sync to their Patient Hub portal in real time.
+                </p>
+                <Link
+                  href="/dashboard/invoices"
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-[#2d5a4c] dark:text-emerald-400 hover:underline"
+                >
+                  Open Billing Center & Issue Statement →
+                </Link>
+              </div>
             </div>
           )}
 
@@ -2536,37 +2340,6 @@ Warm regards,
           documentType={scannerType}
           patientName={patient.name}
           onApply={handleApplyScanResult}
-        />
-      )}
-
-      {/* Create & Edit Invoice Modal for Patient Profile */}
-      {isPatientInvoiceModalOpen && patient && (
-        <CreateEditInvoiceModal
-          isOpen={isPatientInvoiceModalOpen}
-          initialInvoice={selectedInvoiceForEdit}
-          initialPatient={patient}
-          patients={[patient]}
-          onClose={() => {
-            setIsPatientInvoiceModalOpen(false);
-            setSelectedInvoiceForEdit(null);
-          }}
-          onSuccess={(msg) => {
-            setIsPatientInvoiceModalOpen(false);
-            setSelectedInvoiceForEdit(null);
-            setFormSuccess(msg);
-            setTimeout(() => setFormSuccess(""), 4000);
-          }}
-          buildInvoicePdf={buildInvoicePdf}
-        />
-      )}
-
-      {/* View Invoice Modal for Patient Profile */}
-      {selectedInvoiceForView && (
-        <ViewInvoiceModal
-          invoice={selectedInvoiceForView}
-          onClose={() => setSelectedInvoiceForView(null)}
-          onDownload={() => handleDownloadInvoicePdf(selectedInvoiceForView)}
-          whatsappUrl={getWhatsAppInvoiceUrl(selectedInvoiceForView)}
         />
       )}
 
