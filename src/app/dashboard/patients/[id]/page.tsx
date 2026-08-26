@@ -1046,15 +1046,7 @@ PLAN:
 
   const handleDownloadInvoice = (inv: Invoice) => {
     try {
-      const doc = buildUnifiedInvoicePdf({
-        invoiceNumber: inv.invoiceNumber,
-        patientName: inv.patientName || patient?.name || "Patient",
-        serviceDate: inv.serviceDate,
-        status: inv.status,
-        items: inv.items,
-        totalAmount: inv.totalAmount,
-        notes: inv.notes,
-      });
+      const doc = buildInvoicePdf(inv);
       const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", inv.serviceDate || new Date());
       doc.save(fileName);
     } catch (err) {
@@ -1064,15 +1056,7 @@ PLAN:
 
   const handleViewInvoice = (inv: Invoice) => {
     try {
-      const doc = buildUnifiedInvoicePdf({
-        invoiceNumber: inv.invoiceNumber,
-        patientName: inv.patientName || patient?.name || "Patient",
-        serviceDate: inv.serviceDate,
-        status: inv.status,
-        items: inv.items,
-        totalAmount: inv.totalAmount,
-        notes: inv.notes,
-      });
+      const doc = buildInvoicePdf(inv);
       const pdfBlob = doc.output("blob");
       const url = URL.createObjectURL(pdfBlob);
       window.open(url, "_blank");
@@ -2509,16 +2493,16 @@ Warm regards,
                               </span>
                             </button>
 
-                            {/* 4. View Details */}
+                            {/* 4. View PDF Preview */}
                             <button
                               type="button"
-                              onClick={() => setSelectedInvoiceForView(inv)}
+                              onClick={() => handleViewInvoice(inv)}
                               className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
-                              title="View Invoice"
+                              title="View Invoice PDF"
                             >
-                              <FileText className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                               <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                View full invoice details
+                                View full invoice PDF
                               </span>
                             </button>
                           </div>
