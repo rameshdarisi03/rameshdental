@@ -726,8 +726,8 @@ function WalkInBookingContent() {
                     <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Phone / Email:</div>
                     <div className="font-extrabold text-slate-700 dark:text-slate-350 truncate">{dialCode} {formData.patientPhone}</div>
                     
-                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Gender / DOB:</div>
-                    <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.gender || "Not specified"} / {selectedPatient.dob || "N/A"}</div>
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Gender / Age:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.gender || "Not specified"} / {selectedPatient.age ? `${selectedPatient.age} yrs` : selectedPatient.dob || "N/A"}</div>
                     
                     <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Last Visited:</div>
                     <div className="font-extrabold text-slate-700 dark:text-slate-355">{selectedPatient.lastVisit || "First session"}</div>

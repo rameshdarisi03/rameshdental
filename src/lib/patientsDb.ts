@@ -19,7 +19,8 @@ export interface Patient {
   name: string;
   email: string;
   phone: string;
-  dob?: string;              // YYYY-MM-DD
+  dob?: string;              // YYYY-MM-DD (legacy)
+  age?: string | number;     // Patient age in years
   gender?: string;
   treatmentPlan: string;     // e.g. "Post-op ACL Recovery"
   status: "active" | "completed" | "pending";

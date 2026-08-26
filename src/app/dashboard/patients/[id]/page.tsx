@@ -1239,8 +1239,10 @@ PLAN:
                   <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.gender || "Not specified"}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-extrabold uppercase text-slate-400">DOB</p>
-                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.dob || "N/A"}</p>
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Age</p>
+                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">
+                    {patient.age ? `${patient.age} yrs` : patient.dob || "N/A"}
+                  </p>
                 </div>
               </div>
 
