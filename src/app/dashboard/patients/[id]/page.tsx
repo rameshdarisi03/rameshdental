@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import { 
   ArrowLeft, 
@@ -34,7 +34,8 @@ import {
   ChevronUp,
   RotateCcw,
   X,
-  Flame
+  Flame,
+  Lock
 } from "lucide-react";
 import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
@@ -203,6 +204,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [newReminder, setNewReminder] = useState("");
   const [updatingReminders, setUpdatingReminders] = useState(false);
 
+  // Dedicated Doctor Reference Scan Upload state
+  const [uploadingDoctorScan, setUploadingDoctorScan] = useState(false);
+  const doctorScanFileInputRef = useRef<HTMLInputElement>(null);
+
   const setQuickDate = (type: "today" | "yesterday") => {
     const d = new Date();
     if (type === "yesterday") {
@@ -365,6 +370,105 @@ PLAN:
     const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Dedicated direct file upload / photo capture for Doctor Reference (Hidden from Patient Hub)
+  const handleUploadDoctorScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !patient) return;
+    const file = e.target.files[0];
+    
+    if (!patient.googleDriveFolderId) {
+      setFormError("This patient does not have a linked Google Drive folder. Please edit the patient or contact admin.");
+      return;
+    }
+
+    setUploadingDoctorScan(true);
+    setFormError("");
+    setFormSuccess("");
+
+    try {
+      let fileToUpload = file;
+      if (file.type.startsWith("image/")) {
+        try {
+          fileToUpload = await compressImageFile(file);
+        } catch (compErr) {
+          console.warn("Client-side compression skipped:", compErr);
+        }
+      } else if (file.size > 4.5 * 1024 * 1024) {
+        throw new Error("File size is too large (max 4.5 MB). Please select a compressed file or image.");
+      }
+
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, "0");
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const yyyy = today.getFullYear();
+      const formattedDate = `${dd}-${mm}-${yyyy}`;
+
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", fileToUpload);
+      uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
+      uploadFormData.append("date", formattedDate);
+
+      const uploadResponse = await fetch("/api/drive/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (!uploadResponse.ok) {
+        let errTxt = "";
+        try {
+          const errRes = await uploadResponse.json();
+          errTxt = errRes.error;
+        } catch {
+          errTxt = await uploadResponse.text();
+        }
+        throw new Error(errTxt || `Upload failed with status ${uploadResponse.status}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || "File upload failed.");
+      }
+
+      // Save record in Firestore with isDoctorOnly: true
+      const savedDoc = await addMedicalRecordFile(id, {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: fileToUpload.size,
+        dateUploaded: formattedDate,
+        googleDriveFileId: uploadResult.fileId,
+        webViewLink: uploadResult.webViewLink,
+        downloadLink: uploadResult.downloadLink,
+        isDoctorOnly: true,
+        category: "DOCTOR_REFERENCE"
+      });
+
+      // Update local state
+      setFiles((prev) => [
+        {
+          id: savedDoc.id,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: fileToUpload.size,
+          dateUploaded: formattedDate,
+          googleDriveFileId: uploadResult.fileId,
+          webViewLink: uploadResult.webViewLink,
+          downloadLink: uploadResult.downloadLink,
+          isDoctorOnly: true,
+          category: "DOCTOR_REFERENCE",
+          createdAt: Timestamp.now()
+        },
+        ...prev
+      ]);
+
+      setFormSuccess(`📸 Medical file "${file.name}" uploaded successfully for Doctor's Reference.`);
+    } catch (err: any) {
+      console.error("Doctor scan upload error:", err);
+      setFormError(err?.message || "Failed to upload medical document.");
+    } finally {
+      setUploadingDoctorScan(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   // Add clinical reminder dynamic action
@@ -874,6 +978,7 @@ PLAN:
     dateStr: string;
     sizeFormatted?: string;
     raw: any;
+    isDoctorOnly?: boolean;
     onView?: () => void;
     onDownload?: () => void;
     webViewLink?: string;
@@ -995,6 +1100,7 @@ PLAN:
     const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
     const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
     const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
+    const isDocOnly = file.isDoctorOnly === true || fObj.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
 
     // Deduplicate if already present in allUnifiedFiles by fileName
     if (!allUnifiedFiles.some((f) => f.fileName === file.fileName)) {
@@ -1002,10 +1108,13 @@ PLAN:
         id: file.id || fId || Math.random().toString(),
         category: "FILE",
         fileName: file.fileName,
-        subtitle: `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
+        subtitle: isDocOnly 
+          ? `🔒 Doctor Reference • ${formatBytes(file.fileSize)}`
+          : `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
         dateStr: dateStr,
         sizeFormatted: formatBytes(file.fileSize),
         raw: file,
+        isDoctorOnly: isDocOnly,
         webViewLink: viewUrl,
         downloadLink: downloadUrl
       });
@@ -1768,34 +1877,64 @@ PLAN:
           {/* TAB 2: files list panel */}
           {activeTab === "files" && (
             <div className="space-y-4">
-              {/* Scan Doctor Referral / Prescription Action Strip */}
+              {/* Scan Doctor Referral & Dedicated Photo / Scan Upload Toolbar */}
               <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-emerald-600 dark:text-teal-400" />
+                    <Folder className="w-4 h-4 text-emerald-600 dark:text-teal-400" />
                     <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                      Scan Doctor Prescription / Referral Slip
+                      Clinical Scans, X-Rays & Medical Files
                     </h4>
-                    <span className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-teal-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                      Gemini OCR
+                    <span className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" />
+                      Doctor Only
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                    Snap a photo of an external doctor's paper referral to extract diagnosis, precautions, and auto-update provider alerts.
+                    Upload medical scans, MRI/X-Ray photos, or scan external doctor referral slips. Files saved here are kept securely for clinical reference and hidden from the patient hub.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setScannerType("DOCTOR_PRESCRIPTION");
-                    setScannerOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white px-5 py-2.5 text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 dark:text-amber-500" />
-                  <span>Scan Prescription</span>
-                </button>
+                <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                  {/* Hidden file input supporting camera capture & gallery selection */}
+                  <input
+                    ref={doctorScanFileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleUploadDoctorScan}
+                  />
+
+                  {/* Dedicated Upload / Take Photo Button */}
+                  <button
+                    type="button"
+                    disabled={uploadingDoctorScan}
+                    onClick={() => doctorScanFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
+                    title="Upload or snap medical scan/photo with device camera"
+                  >
+                    {uploadingDoctorScan ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5" />
+                    )}
+                    <span>{uploadingDoctorScan ? "Uploading..." : "Upload / Take Photo"}</span>
+                  </button>
+
+                  {/* Scan Prescription OCR Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScannerType("DOCTOR_PRESCRIPTION");
+                      setScannerOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 px-4 py-2.5 text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+                    title="Extract referral with Gemini OCR"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 dark:text-amber-500" />
+                    <span>Scan with OCR</span>
+                  </button>
+                </div>
               </div>
 
               {formSuccess && (
@@ -1852,18 +1991,22 @@ PLAN:
                               ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
                               : isInvoice
                               ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                              : file.isDoctorOnly
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300"
                               : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300"
                           }`}>
                             {isPrescription ? (
                               <FileText className="w-5 h-5" />
                             ) : isInvoice ? (
                               <Receipt className="w-5 h-5" />
+                            ) : file.isDoctorOnly ? (
+                              <Camera className="w-5 h-5" />
                             ) : (
                               <Folder className="w-5 h-5" />
                             )}
                           </div>
                           <div className="overflow-hidden">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
                                 isPrescription
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/80 dark:border-emerald-800 dark:text-emerald-300"
@@ -1873,6 +2016,12 @@ PLAN:
                               }`}>
                                 {file.category}
                               </span>
+                              {file.isDoctorOnly && (
+                                <span className="bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  <span>Doctor Reference</span>
+                                </span>
+                              )}
                             </div>
                             <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate mt-1">
                               {file.fileName}

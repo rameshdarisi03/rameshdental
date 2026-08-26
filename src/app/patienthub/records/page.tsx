@@ -283,18 +283,20 @@ export default function RecordsPage() {
     }
   });
 
-  // 3. Uploaded Medical Files / Verified Referrals (Scans, external PDFs, etc.)
-  medicalFiles.forEach((f) => {
-    allPrescriptionItems.push({
-      id: f.id || Math.random().toString(),
-      type: "file",
-      title: f.fileName,
-      subtitle: `Verified Medical Document • ${f.dateUploaded}`,
-      date: f.dateUploaded,
-      rawDate: f.dateUploaded,
-      raw: f,
+  // 3. Uploaded Medical Files / Verified Referrals (Excludes private doctor-only reference files)
+  medicalFiles
+    .filter((f) => !f.isDoctorOnly && (f as any).category !== "DOCTOR_REFERENCE")
+    .forEach((f) => {
+      allPrescriptionItems.push({
+        id: f.id || Math.random().toString(),
+        type: "file",
+        title: f.fileName,
+        subtitle: `Verified Medical Document • ${f.dateUploaded}`,
+        date: f.dateUploaded,
+        rawDate: f.dateUploaded,
+        raw: f,
+      });
     });
-  });
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto pb-12 animate-fade-in font-['Inter',sans-serif]">

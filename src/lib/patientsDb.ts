@@ -55,6 +55,8 @@ export interface MedicalRecordFile {
   googleDriveFileId: string;
   webViewLink?: string;
   downloadLink?: string;
+  isDoctorOnly?: boolean;    // true if internal doctor reference (hidden from patient hub)
+  category?: string;         // e.g. "DOCTOR_REFERENCE", "PRESCRIPTION", "INVOICE", "CASE_SHEET"
   createdAt: Timestamp;
 }
 
