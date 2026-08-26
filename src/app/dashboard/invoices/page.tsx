@@ -677,49 +677,7 @@ Warm regards,
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5 relative">
                           
-                          {/* 1. WhatsApp Button */}
-                          {inv.patientPhone && !isVoided && (
-                            <a
-                              href={getWhatsAppShareUrl(inv)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors group relative cursor-pointer shadow-2xs"
-                              title="Send WhatsApp bill to patient"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-44 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                Send WhatsApp bill & receipt directly to patient
-                              </span>
-                            </a>
-                          )}
-
-                          {/* 2. Download PDF Button */}
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadPdf(inv)}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
-                            title="Download official PDF receipt"
-                          >
-                            <Download className="h-4 w-4" />
-                            <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                              Download official A4 PDF tax receipt (₹)
-                            </span>
-                          </button>
-
-                          {/* 3. View Details Button */}
-                          <button
-                            type="button"
-                            onClick={() => setViewingInvoice(inv)}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
-                            title="View itemized breakdown"
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                              View full itemized invoice details
-                            </span>
-                          </button>
-
-                          {/* 4. Edit Button (Corrective Mechanism) */}
+                          {/* 1. Edit Button (Corrective Mechanism) - FIRST */}
                           {!isVoided && (
                             <button
                               type="button"
@@ -736,6 +694,48 @@ Warm regards,
                               </span>
                             </button>
                           )}
+
+                          {/* 2. WhatsApp Button */}
+                          {inv.patientPhone && !isVoided && (
+                            <a
+                              href={getWhatsAppShareUrl(inv)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors group relative cursor-pointer shadow-2xs"
+                              title="Send WhatsApp bill to patient"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-44 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Send WhatsApp bill & receipt directly to patient
+                              </span>
+                            </a>
+                          )}
+
+                          {/* 3. Download PDF Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadPdf(inv)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                            title="Download official PDF receipt"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                              Download official A4 PDF tax receipt (₹)
+                            </span>
+                          </button>
+
+                          {/* 4. View Details Button */}
+                          <button
+                            type="button"
+                            onClick={() => setViewingInvoice(inv)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                            title="View itemized breakdown"
+                          >
+                            <FileText className="h-4 w-4" />
+                            <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                              View full itemized invoice details
+                            </span>
+                          </button>
 
                           {/* 5. Payment Quick-Toggle */}
                           {!isVoided && (

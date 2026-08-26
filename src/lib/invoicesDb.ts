@@ -257,11 +257,26 @@ export function subscribePatientInvoices(
       return false;
     });
 
-    // Sort client-side by serviceDate or createdAt descending
+    // Sort client-side by serviceDate or createdAt descending safely
     matched.sort((a, b) => {
-      const timeA = new Date(a.serviceDate || a.createdAt).getTime();
-      const timeB = new Date(b.serviceDate || b.createdAt).getTime();
-      return timeB - timeA;
+      const getInvTime = (inv: Invoice) => {
+        if (inv.serviceDate) {
+          const t = new Date(inv.serviceDate).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        if (inv.createdAt) {
+          if (typeof (inv.createdAt as any)?.toDate === "function") {
+            return (inv.createdAt as any).toDate().getTime();
+          }
+          if ((inv.createdAt as any)?.seconds) {
+            return (inv.createdAt as any).seconds * 1000;
+          }
+          const t = new Date(inv.createdAt as any).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        return 0;
+      };
+      return getInvTime(b) - getInvTime(a);
     });
 
     callback(matched);

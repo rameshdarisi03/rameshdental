@@ -184,7 +184,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"timeline" | "files">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
   const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
   const [workoutProgress, setWorkoutProgress] = useState<PatientWorkoutProgress | null>(null);
@@ -2435,7 +2435,7 @@ Warm regards,
                     Patient Invoices & Receipts ({patientInvoices.length})
                   </h3>
                   <p className="text-xs text-slate-400 font-bold mt-0.5">
-                    Official tax invoices and payment receipts generated for {patient.name}
+                    Official tax invoices and payment receipts generated for {patient?.name || "Patient"}
                   </p>
                 </div>
                 <button
@@ -2457,7 +2457,7 @@ Warm regards,
                   <div>
                     <h4 className="text-sm font-black text-slate-800 dark:text-white">No Invoices Issued Yet</h4>
                     <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1">
-                      Generate an itemized treatment invoice for {patient.name}. It will automatically sync to their Patient Hub portal and Google Drive.
+                      Generate an itemized treatment invoice for {patient?.name || "this patient"}. It will automatically sync to their Patient Hub portal and Google Drive.
                     </p>
                   </div>
                   <button
@@ -2531,49 +2531,7 @@ Warm regards,
                           </div>
 
                           <div className="flex items-center gap-1.5">
-                            {/* WhatsApp Button */}
-                            {(inv.patientPhone || patient.phone) && !isVoided && (
-                              <a
-                                href={getWhatsAppInvoiceUrl(inv)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative"
-                                title="Send WhatsApp bill to patient"
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                  Send WhatsApp bill directly to patient
-                                </span>
-                              </a>
-                            )}
-
-                            {/* Download PDF */}
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadInvoicePdf(inv)}
-                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
-                              title="Download PDF"
-                            >
-                              <Download className="h-4 w-4" />
-                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                Download official PDF tax receipt
-                              </span>
-                            </button>
-
-                            {/* View Details */}
-                            <button
-                              type="button"
-                              onClick={() => setSelectedInvoiceForView(inv)}
-                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
-                              title="View Invoice"
-                            >
-                              <FileText className="h-4 w-4" />
-                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                View full invoice details
-                              </span>
-                            </button>
-
-                            {/* Edit Invoice */}
+                            {/* 1. Edit Invoice (FIRST) */}
                             {!isVoided && (
                               <button
                                 type="button"
@@ -2590,6 +2548,48 @@ Warm regards,
                                 </span>
                               </button>
                             )}
+
+                            {/* 2. WhatsApp Button */}
+                            {(inv.patientPhone || patient?.phone) && !isVoided && (
+                              <a
+                                href={getWhatsAppInvoiceUrl(inv)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative"
+                                title="Send WhatsApp bill to patient"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                  Send WhatsApp bill directly to patient
+                                </span>
+                              </a>
+                            )}
+
+                            {/* 3. Download PDF */}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoicePdf(inv)}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                              title="Download PDF"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Download official PDF tax receipt
+                              </span>
+                            </button>
+
+                            {/* 4. View Details */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedInvoiceForView(inv)}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                              title="View Invoice"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                View full invoice details
+                              </span>
+                            </button>
                           </div>
                         </div>
                       </div>
