@@ -11,7 +11,13 @@ import {
   getPatientPrescriptionsHistory,
   subscribePatientPrescription 
 } from "@/lib/exercisesDb";
-import { buildUnifiedPrescriptionPdf, getPrescriptionFileName, formatToDDMMYYYY } from "@/lib/prescriptionPdf";
+import { 
+  buildUnifiedPrescriptionPdf, 
+  getPrescriptionFileName, 
+  buildUnifiedInvoicePdf,
+  getInvoiceFileName,
+  formatToDDMMYYYY 
+} from "@/lib/prescriptionPdf";
 import { jsPDF } from "jspdf";
 import { 
   Receipt, 
@@ -102,99 +108,31 @@ export default function RecordsPage() {
 
   const handleDownloadInvoicePDF = (inv: Invoice) => {
     try {
-      const doc = new jsPDF({ unit: "pt", format: "a4" });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      let y = 40;
-
-      // Header Banner
-      doc.setFillColor(6, 46, 54);
-      doc.roundedRect(30, y, pageWidth - 60, 65, 8, 8, "F");
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(15);
-      doc.text("GAIT PHYSIO CLINIC", 45, y + 26);
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(249, 171, 85);
-      doc.text(`INVOICE & RECEIPT #${inv.invoiceNumber}`, 45, y + 42);
-
-      doc.setFontSize(8);
-      doc.setTextColor(220, 230, 235);
-      doc.text("Whitefield, Bengaluru • GST / Clinical Billing Dept", 45, y + 54);
-
-      y += 85;
-
-      // Invoice Meta
-      doc.setFillColor(249, 249, 247);
-      doc.setDrawColor(220, 225, 225);
-      doc.roundedRect(30, y, pageWidth - 60, 48, 6, 6, "FD");
-
-      doc.setFontSize(8);
-      doc.setTextColor(100, 110, 115);
-      doc.setFont("helvetica", "bold");
-      doc.text("BILLED TO:", 42, y + 18);
-      doc.text("SERVICE DATE:", 240, y + 18);
-      doc.text("PAYMENT STATUS:", 400, y + 18);
-
-      doc.setFontSize(9);
-      doc.setTextColor(6, 46, 54);
-      doc.setFont("helvetica", "bold");
-      doc.text(inv.patientName || patient?.name || "Patient", 42, y + 34);
-      doc.text(inv.serviceDate || "Date", 240, y + 34);
-      doc.text((inv.status || "PAID").toUpperCase(), 400, y + 34);
-
-      y += 70;
-
-      // Line Items Table Header
-      doc.setFillColor(6, 46, 54);
-      doc.roundedRect(30, y, pageWidth - 60, 24, 4, 4, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8.5);
-      doc.setFont("helvetica", "bold");
-      doc.text("SERVICE DESCRIPTION", 42, y + 16);
-      doc.text("QTY", 360, y + 16);
-      doc.text("AMOUNT", 460, y + 16);
-
-      y += 24;
-
-      // Line Items
-      const items = inv.items && inv.items.length > 0 ? inv.items : [
-        { description: inv.notes || "Physiotherapy Consultation & Rehab Session", quantity: 1, rate: inv.totalAmount || 0, amount: inv.totalAmount || 0 }
-      ];
-
-      items.forEach((item) => {
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(235, 240, 240);
-        doc.roundedRect(30, y, pageWidth - 60, 26, 0, 0, "FD");
-
-        doc.setFontSize(8.5);
-        doc.setTextColor(40, 45, 50);
-        doc.setFont("helvetica", "normal");
-        doc.text(item.description || "Physiotherapy Service", 42, y + 17);
-        doc.text(String(item.quantity || 1), 365, y + 17);
-        doc.setFont("helvetica", "bold");
-        doc.text(`₹${(item.amount || 0).toFixed(2)}`, 460, y + 17);
-
-        y += 26;
+      const doc = buildUnifiedInvoicePdf({
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        patientId: inv.patientId || patient?.id,
+        patientEmail: inv.patientEmail || patient?.email,
+        patientPhone: inv.patientPhone || patient?.phone,
+        therapistName: inv.therapistName || patient?.therapistName,
+        serviceDate: inv.serviceDate,
+        dueDate: inv.dueDate,
+        status: inv.status,
+        paymentMethod: inv.paymentMethod,
+        items: inv.items,
+        subtotal: inv.subtotal,
+        taxRate: inv.taxRate,
+        taxAmount: inv.taxAmount,
+        discount: inv.discount,
+        totalAmount: inv.totalAmount,
+        currency: inv.currency || "INR",
+        notes: inv.notes,
       });
 
-      // Total Box
-      y += 10;
-      doc.setFillColor(249, 171, 85); // Honey Gold
-      doc.roundedRect(pageWidth - 220, y, 190, 32, 6, 6, "F");
-      doc.setTextColor(6, 46, 54);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text("TOTAL PAID:", pageWidth - 205, y + 20);
-      doc.setFontSize(12);
-      doc.text(`₹${(inv.totalAmount || 0).toFixed(2)}`, pageWidth - 90, y + 20);
-
-      const fileName = `Invoice_${inv.invoiceNumber || "Receipt"}.pdf`;
+      const fileName = getInvoiceFileName(inv.patientName || patient?.name || "Patient", inv.serviceDate || new Date());
       doc.save(fileName);
     } catch (err) {
-      console.error("Invoice PDF generation failed:", err);
+      console.error("Failed to generate unified invoice PDF:", err);
     }
   };
 

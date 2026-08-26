@@ -99,12 +99,29 @@ export default function ViewInvoiceModal({
             </div>
           </div>
 
-          {/* Bill To */}
-          <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bill To Patient:</p>
-            <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{invoice.patientName}</p>
-            <p className="text-[10px] font-bold text-slate-500">{invoice.patientId || "PID: ----"}</p>
-            {invoice.patientPhone && <p className="text-[10px] font-bold text-slate-500">{invoice.patientPhone}</p>}
+          {/* Bill To & Meta Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bill To Patient:</p>
+              <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{invoice.patientName}</p>
+              <p className="text-[10px] font-bold text-slate-500">{invoice.patientId || "PID: ----"}</p>
+              {invoice.patientPhone && <p className="text-[10px] font-bold text-slate-500">{invoice.patientPhone}</p>}
+            </div>
+
+            <div className="space-y-1 sm:text-right">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Consultation Details:</p>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Therapist: <span className="font-black text-brand-green">{invoice.therapistName || "Dr. Kinnera"}</span>
+              </p>
+              <p className="text-[10px] font-bold text-slate-500">
+                Method: <span className="text-slate-800 dark:text-slate-200">{invoice.paymentMethod || "UPI"}</span>
+              </p>
+              {invoice.dueDate && (
+                <p className="text-[10px] font-bold text-slate-500">
+                  Due: <span className="text-slate-800 dark:text-slate-200">{invoice.dueDate}</span>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Items Table */}
@@ -113,6 +130,7 @@ export default function ViewInvoiceModal({
               <thead>
                 <tr className="border-b border-brand-green text-[10px] font-black uppercase text-slate-500">
                   <th className="py-2">Service Description</th>
+                  <th className="py-2 text-center">Qty</th>
                   <th className="py-2 text-right">Amount (₹)</th>
                 </tr>
               </thead>
@@ -120,6 +138,7 @@ export default function ViewInvoiceModal({
                 {(invoice.items || []).map((item, idx) => (
                   <tr key={idx}>
                     <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">{item.description}</td>
+                    <td className="py-2.5 text-center font-bold text-slate-500">{item.quantity || 1}</td>
                     <td className="py-2.5 text-right font-black text-slate-900 dark:text-white">
                       ₹{(item.amount || 0).toLocaleString("en-IN")}
                     </td>
@@ -135,20 +154,25 @@ export default function ViewInvoiceModal({
               <span>Subtotal</span>
               <span>₹{(invoice.subtotal || 0).toLocaleString("en-IN")}</span>
             </div>
-            {(invoice.taxRate || 0) > 0 && (
+            {(invoice.taxRate || 0) > 0 ? (
               <div className="flex justify-between">
                 <span>GST ({invoice.taxRate}%)</span>
                 <span>₹{(invoice.taxAmount || 0).toLocaleString("en-IN")}</span>
               </div>
+            ) : (
+              <div className="flex justify-between text-slate-400">
+                <span>GST / Tax</span>
+                <span>0% (Exempt)</span>
+              </div>
             )}
             {(invoice.discount || 0) > 0 && (
               <div className="flex justify-between text-rose-600">
-                <span>Discount</span>
+                <span>Discount Applied</span>
                 <span>-₹{(invoice.discount || 0).toLocaleString("en-IN")}</span>
               </div>
             )}
             <div className="flex justify-between py-2 border-t-2 border-brand-green font-black text-slate-900 dark:text-white text-sm">
-              <span>Total Payable</span>
+              <span>Total Amount</span>
               <span className="text-brand-green dark:text-emerald-400 text-base font-black">
                 ₹{(invoice.totalAmount || 0).toLocaleString("en-IN")}
               </span>
@@ -156,8 +180,8 @@ export default function ViewInvoiceModal({
           </div>
 
           {invoice.notes && (
-            <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl text-[11px] text-slate-500">
-              <strong>Clinical Notes:</strong> {invoice.notes}
+            <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl text-[11px] text-slate-600 dark:text-slate-300">
+              <strong className="text-slate-900 dark:text-white">Clinical Notes & Diagnosis:</strong> {invoice.notes}
             </div>
           )}
 

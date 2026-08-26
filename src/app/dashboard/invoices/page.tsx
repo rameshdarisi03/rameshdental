@@ -12,6 +12,7 @@ import {
 import { getPatients, Patient } from "@/lib/patientsDb";
 import { FEATURES } from "@/lib/features";
 import jsPDF from "jspdf";
+import { buildUnifiedInvoicePdf } from "@/lib/prescriptionPdf";
 import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
 import ViewInvoiceModal from "@/components/dashboard/invoices/ViewInvoiceModal";
 import { 
@@ -184,157 +185,28 @@ export default function ClinicalBillingPage() {
     }
   };
 
-  // Build Vector PDF Document
+  // Build Vector PDF Document via SSOT Unified Invoice PDF Generator
   const buildInvoicePdf = (inv: Invoice): jsPDF => {
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
+    return buildUnifiedInvoicePdf({
+      invoiceNumber: inv.invoiceNumber,
+      patientName: inv.patientName,
+      patientId: inv.patientId,
+      patientEmail: inv.patientEmail,
+      patientPhone: inv.patientPhone,
+      therapistName: inv.therapistName,
+      serviceDate: inv.serviceDate,
+      dueDate: inv.dueDate,
+      status: inv.status,
+      paymentMethod: inv.paymentMethod,
+      items: inv.items,
+      subtotal: inv.subtotal,
+      taxRate: inv.taxRate,
+      taxAmount: inv.taxAmount,
+      discount: inv.discount,
+      totalAmount: inv.totalAmount,
+      currency: inv.currency || "INR",
+      notes: inv.notes,
     });
-
-    const brandColor = [45, 90, 76]; // #2d5a4c
-    const textDark = [15, 23, 42]; // #0f172a
-    const textMuted = [100, 116, 139]; // #64748b
-
-    // Header Logo Icon
-    pdf.setFillColor(brandColor[0], brandColor[1], brandColor[2]);
-    pdf.roundedRect(16, 14, 14, 14, 3, 3, "F");
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("GPC", 23, 23, { align: "center" });
-
-    // Clinic text
-    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-    pdf.setFontSize(14);
-    pdf.text("Gait Physio Clinic", 34, 20);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    pdf.text("123 Clinical Wellness Way, Sector 4", 34, 25);
-    pdf.text("Bengaluru, Karnataka 560001 • +91 92066 51295", 34, 29);
-
-    // Invoice Title & Metadata
-    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.text("TAX INVOICE & RECEIPT", 130, 20);
-    
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8);
-    pdf.text(`Invoice #: ${inv.invoiceNumber}`, 130, 25);
-    pdf.text(`Date: ${inv.serviceDate}`, 130, 29);
-
-    // Divider line
-    pdf.setDrawColor(226, 232, 240);
-    pdf.setLineWidth(0.4);
-    pdf.line(16, 35, 194, 35);
-
-    // Bill To & Status
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("BILL TO PATIENT:", 16, 43);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(inv.patientName, 16, 48);
-    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    pdf.text(inv.patientId || "PID: ----", 16, 52);
-    if (inv.patientPhone) {
-      pdf.text(`Phone: ${inv.patientPhone}`, 16, 56);
-    }
-
-    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("PAYMENT STATUS:", 130, 43);
-    pdf.setFont("helvetica", "bold");
-    if (inv.status === "paid") {
-      pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-      pdf.text("PAID & SETTLED", 130, 48);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
-      pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-      pdf.text(`Method: ${inv.paymentMethod || "UPI"}`, 130, 52);
-    } else if (inv.status === "voided") {
-      pdf.setTextColor(225, 29, 72);
-      pdf.text("CANCELLED / VOIDED", 130, 48);
-    } else {
-      pdf.setTextColor(217, 119, 6);
-      pdf.text("PAYMENT PENDING", 130, 48);
-    }
-
-    // Green Divider
-    pdf.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
-    pdf.setLineWidth(0.8);
-    pdf.line(16, 62, 194, 62);
-
-    // Table Headers
-    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("Service / Treatment Description", 18, 69);
-    pdf.text("Amount (INR)", 175, 69, { align: "right" });
-
-    // Divider under header
-    pdf.setDrawColor(226, 232, 240);
-    pdf.setLineWidth(0.4);
-    pdf.line(16, 72, 194, 72);
-
-    // Table Items
-    let currentY = 80;
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9);
-    
-    (inv.items || []).forEach((item: any) => {
-      pdf.text(item.description || "Physiotherapy Service", 18, currentY);
-      pdf.text(`Rs. ${(item.amount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
-      
-      // thin line under item
-      pdf.setDrawColor(241, 245, 249);
-      pdf.line(16, currentY + 3, 194, currentY + 3);
-      currentY += 9;
-    });
-
-    // Summary section
-    currentY += 2;
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    pdf.text("Subtotal:", 135, currentY);
-    pdf.text(`Rs. ${(inv.subtotal || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
-
-    if ((inv.taxRate || 0) > 0) {
-      currentY += 6;
-      pdf.text(`GST (${inv.taxRate}%):`, 135, currentY);
-      pdf.text(`Rs. ${(inv.taxAmount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
-    }
-
-    if ((inv.discount || 0) > 0) {
-      currentY += 6;
-      pdf.text("Discount:", 135, currentY);
-      pdf.text(`-Rs. ${(inv.discount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
-    }
-
-    // Total Amount Due Box
-    currentY += 8;
-    pdf.setFillColor(248, 250, 252);
-    pdf.rect(125, currentY - 5, 69, 8, "F");
-    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.text("Total Amount:", 128, currentY);
-    pdf.text(`Rs. ${(inv.totalAmount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
-
-    // Footer Note
-    currentY += 22;
-    pdf.setFont("helvetica", "italic");
-    pdf.setFontSize(8);
-    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    pdf.text(
-      `Please quote Invoice #${inv.invoiceNumber} for your medical claims. Thank you for choosing Gait Physio Clinic!`,
-      105,
-      currentY,
-      { align: "center" }
-    );
-
-    return pdf;
   };
 
   // Download PDF Action

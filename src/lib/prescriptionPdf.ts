@@ -219,18 +219,27 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
 export interface UnifiedInvoiceParams {
   invoiceNumber: string;
   patientName: string;
+  patientId?: string;
   patientEmail?: string;
   patientPhone?: string;
   therapistName?: string;
   serviceDate?: string;
+  dueDate?: string;
   status?: string;
+  paymentMethod?: string;
   items?: Array<{
     description: string;
     quantity: number;
-    rate: number;
+    unitPrice?: number;
+    rate?: number;
     amount: number;
   }>;
+  subtotal?: number;
+  taxRate?: number;
+  taxAmount?: number;
+  discount?: number;
   totalAmount?: number;
+  currency?: string;
   notes?: string;
 }
 
@@ -243,92 +252,240 @@ export function getInvoiceFileName(patientName: string, dateInput?: any): string
 export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 40;
+  let y = 35;
 
-  // Header Banner
-  doc.setFillColor(6, 46, 54);
-  doc.roundedRect(30, y, pageWidth - 60, 65, 8, 8, "F");
+  const brandForest = [6, 46, 54]; // #062e36
+  const brandGold = [249, 171, 85]; // #f9ab55
+  const slateDark = [15, 23, 42]; // #0f172a
+  const slateMuted = [100, 116, 139]; // #64748b
+
+  // 1. Header Banner
+  doc.setFillColor(brandForest[0], brandForest[1], brandForest[2]);
+  doc.roundedRect(30, y, pageWidth - 60, 68, 8, 8, "F");
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.text("GAIT PHYSIO CLINIC", 45, y + 26);
+  doc.setFontSize(16);
+  doc.text("GAIT PHYSIO CLINIC", 48, y + 26);
 
-  doc.setFontSize(9);
+  doc.setFontSize(9.5);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(249, 171, 85);
-  doc.text(`INVOICE & TAX RECEIPT #${params.invoiceNumber || "INV-001"}`, 45, y + 42);
+  doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
+  doc.text(`TAX INVOICE & RECEIPT #${params.invoiceNumber || "INV-001"}`, 48, y + 42);
 
   doc.setFontSize(8);
   doc.setTextColor(220, 230, 235);
-  doc.text("Whitefield, Bengaluru • GST / Clinical Billing Dept", 45, y + 54);
+  doc.text("123 Clinical Wellness Way, Sector 4, Bengaluru • +91 92066 51295", 48, y + 56);
 
-  y += 85;
+  y += 82;
 
-  // Invoice Meta
-  doc.setFillColor(249, 249, 247);
-  doc.setDrawColor(220, 225, 225);
-  doc.roundedRect(30, y, pageWidth - 60, 48, 6, 6, "FD");
+  // 2. Invoice Meta & Patient Information Card
+  doc.setFillColor(249, 250, 251);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(30, y, pageWidth - 60, 64, 6, 6, "FD");
+
+  // Left: Bill To Patient
+  doc.setFontSize(7.5);
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+  doc.setFont("helvetica", "bold");
+  doc.text("BILLED TO PATIENT:", 45, y + 16);
+
+  doc.setFontSize(9.5);
+  doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
+  doc.text(params.patientName || "Valued Patient", 45, y + 30);
 
   doc.setFontSize(8);
-  doc.setTextColor(100, 110, 115);
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+  doc.setFont("helvetica", "normal");
+  const pIdLine = params.patientId ? `PID: ${params.patientId}` : "";
+  const phoneLine = params.patientPhone ? ` • ${params.patientPhone}` : "";
+  doc.text(`${pIdLine}${phoneLine}` || "Self-Pay Patient", 45, y + 44);
+
+  // Middle: Dates & Attending Therapist
+  doc.setFontSize(7.5);
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
   doc.setFont("helvetica", "bold");
-  doc.text("BILLED TO:", 42, y + 18);
-  doc.text("SERVICE DATE:", 240, y + 18);
-  doc.text("PAYMENT STATUS:", 400, y + 18);
+  doc.text("SERVICE DATE:", 240, y + 16);
+  doc.text("ATTENDING THERAPIST:", 240, y + 38);
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
+  doc.setFont("helvetica", "normal");
+  doc.text(params.serviceDate || new Date().toISOString().split("T")[0], 240, y + 27);
+  doc.text(params.therapistName || "Dr. Kinnera", 240, y + 49);
+
+  // Right: Payment Status & Method
+  doc.setFontSize(7.5);
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+  doc.setFont("helvetica", "bold");
+  doc.text("PAYMENT STATUS:", 410, y + 16);
+
+  const isPaid = (params.status || "PAID").toLowerCase() === "paid";
+  const isVoid = (params.status || "").toLowerCase() === "voided" || (params.status || "").toLowerCase() === "cancelled";
 
   doc.setFontSize(9);
-  doc.setTextColor(6, 46, 54);
-  doc.setFont("helvetica", "bold");
-  doc.text(params.patientName || "Patient", 42, y + 34);
-  doc.text(params.serviceDate || "Date", 240, y + 34);
-  doc.text((params.status || "PAID").toUpperCase(), 400, y + 34);
+  if (isPaid) {
+    doc.setTextColor(45, 90, 76);
+    doc.setFont("helvetica", "bold");
+    doc.text(`PAID (${params.paymentMethod || "UPI"})`, 410, y + 28);
+  } else if (isVoid) {
+    doc.setTextColor(225, 29, 72);
+    doc.setFont("helvetica", "bold");
+    doc.text("CANCELLED / VOIDED", 410, y + 28);
+  } else {
+    doc.setTextColor(217, 119, 6);
+    doc.setFont("helvetica", "bold");
+    doc.text(`PENDING (${params.paymentMethod || "Due"})`, 410, y + 28);
+  }
 
-  y += 70;
+  if (params.dueDate) {
+    doc.setFontSize(7.5);
+    doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Due: ${params.dueDate}`, 410, y + 42);
+  }
 
-  // Line Items Table Header
-  doc.setFillColor(6, 46, 54);
-  doc.roundedRect(30, y, pageWidth - 60, 24, 4, 4, "F");
+  y += 76;
+
+  // 3. Line Items Table Header
+  doc.setFillColor(brandForest[0], brandForest[1], brandForest[2]);
+  doc.roundedRect(30, y, pageWidth - 60, 22, 4, 4, "F");
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text("SERVICE DESCRIPTION", 42, y + 16);
-  doc.text("QTY", 360, y + 16);
-  doc.text("AMOUNT", 460, y + 16);
+  doc.text("SERVICE / TREATMENT DESCRIPTION", 45, y + 15);
+  doc.text("QTY", 330, y + 15);
+  doc.text("RATE (INR)", 390, y + 15);
+  doc.text("AMOUNT (INR)", 535, y + 15, { align: "right" });
 
-  y += 24;
+  y += 22;
 
-  // Line Items
+  // 4. Line Items Rows
   const items = params.items && params.items.length > 0 ? params.items : [
-    { description: params.notes || "Physiotherapy Consultation & Rehab Session", quantity: 1, rate: params.totalAmount || 0, amount: params.totalAmount || 0 }
+    { description: params.notes || "Physiotherapy Consultation & Treatment", quantity: 1, unitPrice: params.totalAmount || 0, amount: params.totalAmount || 0 }
   ];
 
-  items.forEach((item) => {
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(235, 240, 240);
-    doc.roundedRect(30, y, pageWidth - 60, 26, 0, 0, "FD");
+  let calculatedSubtotal = 0;
+
+  items.forEach((item, idx) => {
+    const rowBg = idx % 2 === 0 ? 255 : 250;
+    doc.setFillColor(rowBg, rowBg, rowBg);
+    doc.setDrawColor(241, 245, 249);
+    doc.rect(30, y, pageWidth - 60, 24, "FD");
+
+    const qty = Number(item.quantity) || 1;
+    const rate = Number(item.unitPrice || item.rate || (item.amount ? item.amount / qty : 0));
+    const amt = Number(item.amount || (qty * rate));
+    calculatedSubtotal += amt;
 
     doc.setFontSize(8.5);
-    doc.setTextColor(40, 45, 50);
+    doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
     doc.setFont("helvetica", "normal");
-    doc.text(item.description || "Physiotherapy Service", 42, y + 17);
-    doc.text(String(item.quantity || 1), 365, y + 17);
+    doc.text(item.description || "Clinical Physical Therapy Service", 45, y + 16);
+    doc.text(String(qty), 335, y + 16);
+    doc.text(`Rs. ${rate.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 390, y + 16);
     doc.setFont("helvetica", "bold");
-    doc.text(`₹${(item.amount || 0).toFixed(2)}`, 460, y + 17);
+    doc.text(`Rs. ${amt.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 535, y + 16, { align: "right" });
 
-    y += 26;
+    y += 24;
   });
 
-  // Total Box
+  const subtotal = params.subtotal !== undefined ? Number(params.subtotal) : calculatedSubtotal;
+  const taxRate = Number(params.taxRate) || 0;
+  const taxAmount = params.taxAmount !== undefined ? Number(params.taxAmount) : (subtotal * taxRate) / 100;
+  const discount = Number(params.discount) || 0;
+  const finalTotal = params.totalAmount !== undefined ? Number(params.totalAmount) : Math.max(subtotal + taxAmount - discount, 0);
+
   y += 10;
-  doc.setFillColor(249, 171, 85); // Honey Gold
-  doc.roundedRect(pageWidth - 220, y, 190, 32, 6, 6, "F");
-  doc.setTextColor(6, 46, 54);
-  doc.setFontSize(10);
+
+  // 5. Notes Box (Left) + Detailed Financial Summary (Right)
+  const summaryBoxY = y;
+
+  // Left: Clinical Notes / Diagnoses
+  if (params.notes && params.notes.trim()) {
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(30, summaryBoxY, 260, 75, 6, 6, "FD");
+
+    doc.setFontSize(7.5);
+    doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("CLINICAL NOTES & DIAGNOSIS:", 40, summaryBoxY + 16);
+
+    doc.setFontSize(8);
+    doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
+    doc.setFont("helvetica", "normal");
+    const splitNotes = doc.splitTextToSize(params.notes, 240);
+    doc.text(splitNotes, 40, summaryBoxY + 30);
+  }
+
+  // Right: Calculation Matrix (Subtotal, GST, Discount, Total)
+  const calcX = 310;
+  const calcWidth = pageWidth - 60 - 280;
+
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(calcX, summaryBoxY, calcWidth, 75, 6, 6, "FD");
+
+  let cY = summaryBoxY + 16;
+  doc.setFontSize(8);
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+  doc.setFont("helvetica", "normal");
+  doc.text("Subtotal:", calcX + 15, cY);
   doc.setFont("helvetica", "bold");
-  doc.text("TOTAL PAID:", pageWidth - 205, y + 20);
-  doc.setFontSize(12);
-  doc.text(`₹${(params.totalAmount || 0).toFixed(2)}`, pageWidth - 90, y + 20);
+  doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
+  doc.text(`Rs. ${subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 535, cY, { align: "right" });
+
+  cY += 14;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+  if (taxRate > 0) {
+    doc.text(`GST / Tax (${taxRate}%):`, calcX + 15, cY);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
+    doc.text(`+Rs. ${taxAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 535, cY, { align: "right" });
+  } else {
+    doc.text("GST / Tax:", calcX + 15, cY);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(45, 90, 76);
+    doc.text("0% (Exempt)", 535, cY, { align: "right" });
+  }
+
+  if (discount > 0) {
+    cY += 14;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+    doc.text("Discount Applied:", calcX + 15, cY);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(225, 29, 72);
+    doc.text(`-Rs. ${discount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 535, cY, { align: "right" });
+  }
+
+  // Total Banner Box
+  cY += 16;
+  doc.setFillColor(brandGold[0], brandGold[1], brandGold[2]);
+  doc.roundedRect(calcX + 8, cY - 10, calcWidth - 16, 24, 4, 4, "F");
+
+  doc.setTextColor(brandForest[0], brandForest[1], brandForest[2]);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text(isPaid ? "TOTAL PAID:" : "TOTAL DUE:", calcX + 16, cY + 6);
+  doc.setFontSize(11);
+  doc.text(`Rs. ${finalTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 530, cY + 6, { align: "right" });
+
+  // 6. Official Footer
+  const footerY = Math.max(summaryBoxY + 95, 780);
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7.5);
+  doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
+  doc.text(
+    `This is a computer-generated tax invoice for Gait Physio Clinic. Please quote #${params.invoiceNumber} for insurance claims.`,
+    pageWidth / 2,
+    footerY,
+    { align: "center" }
+  );
 
   return doc;
 }
