@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   Upload,
@@ -56,8 +57,13 @@ export default function FastTrackPatientImportModal({
   onSuccess,
   enrolledTherapists = ["Dr. Kinnera", "Dr. Sarah Jenkins", "Dr. Rohan Das"]
 }: FastTrackPatientImportModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"SHEET" | "CAMERA">("SHEET");
   const [step, setStep] = useState<"INPUT" | "PROCESSING" | "REVIEW" | "SUCCESS">("INPUT");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Input states
   const [pastedText, setPastedText] = useState("");
@@ -306,43 +312,43 @@ export default function FastTrackPatientImportModal({
     document.body.removeChild(link);
   };
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200 font-['Inter',sans-serif]">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200 font-['Inter',sans-serif]">
       <div
-        className={`w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${
+        className={`w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${
           isMaximized ? "max-w-full h-full rounded-none" : "max-w-6xl max-h-[92vh]"
         }`}
       >
         {/* ========================================================================= */}
         {/* MODAL HEADER                                                              */}
         {/* ========================================================================= */}
-        <div className="px-5 sm:px-6 py-4 bg-slate-50/80 dark:bg-slate-950/80 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-brand-green/10 dark:bg-emerald-950/50 text-brand-green flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5" />
+            <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
                   Fast-Track Patient Migration
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full bg-brand-green/15 text-brand-green text-[10px] font-black uppercase tracking-wider">
                   Bulk Engine
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-semibold truncate">
-                Seamlessly bulk-import your clinic roster from Excel, CSV, WhatsApp, or scanned paper registers.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-xl">
+                Seamlessly bulk-import your clinic roster from Excel, CSV, WhatsApp, or scanned prescription slips.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <button
               type="button"
               onClick={() => setIsMaximized(!isMaximized)}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer hidden sm:block"
+              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer hidden sm:block"
               title={isMaximized ? "Restore Size" : "Maximize Screen"}
             >
               {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -350,7 +356,7 @@ export default function FastTrackPatientImportModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -364,13 +370,13 @@ export default function FastTrackPatientImportModal({
           <div className="p-5 sm:p-6 overflow-y-auto overscroll-contain flex-grow space-y-5">
             
             {/* Segmented Intake Tabs */}
-            <div className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md mx-auto">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700 max-w-md mx-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab("SHEET")}
                 className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   activeTab === "SHEET"
-                    ? "bg-white dark:bg-slate-800 text-brand-green dark:text-teal-400 shadow-xs font-black"
+                    ? "bg-white dark:bg-slate-700 text-brand-green dark:text-teal-400 shadow-sm font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -383,7 +389,7 @@ export default function FastTrackPatientImportModal({
                 onClick={() => setActiveTab("CAMERA")}
                 className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   activeTab === "CAMERA"
-                    ? "bg-white dark:bg-slate-800 text-brand-green dark:text-teal-400 shadow-xs font-black"
+                    ? "bg-white dark:bg-slate-700 text-brand-green dark:text-teal-400 shadow-sm font-black"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -414,7 +420,7 @@ export default function FastTrackPatientImportModal({
                   className={`border-2 border-dashed rounded-3xl p-6 text-center cursor-pointer transition-all ${
                     isDragging
                       ? "border-brand-green bg-brand-green/5 dark:bg-emerald-950/20 scale-[1.01]"
-                      : "border-slate-200 dark:border-slate-800 hover:border-brand-green bg-slate-50/50 dark:bg-slate-950/40"
+                      : "border-slate-200 dark:border-slate-800 hover:border-brand-green bg-slate-50/60 dark:bg-slate-800/20"
                   }`}
                 >
                   <input
@@ -479,7 +485,7 @@ export default function FastTrackPatientImportModal({
                     value={pastedText}
                     onChange={(e) => setPastedText(e.target.value)}
                     placeholder={`Name, Age, Gender, Phone, Email, Condition, Therapist, Status\nRahul Sharma, 34, Male, 9876543210, rahul@example.com, Cervical Spondylosis, Dr. Kinnera, Active\nAnanya Deshmukh, 28, Female, 9811223344, , Post-op ACL Rehab, Dr. Sarah Jenkins, Active`}
-                    className="w-full text-xs font-mono p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green transition-all"
+                    className="w-full text-xs font-mono p-4 rounded-2xl border border-slate-200/80 dark:border-slate-750 bg-slate-50/50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green transition-all"
                   />
                 </div>
 
@@ -533,7 +539,7 @@ export default function FastTrackPatientImportModal({
                   className={`p-8 border-2 border-dashed rounded-3xl space-y-4 transition-all ${
                     isDragging 
                       ? "border-brand-green bg-brand-green/5 dark:bg-emerald-950/20 scale-[1.01]" 
-                      : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40"
+                      : "border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20"
                   }`}
                 >
                   <div className="h-16 w-16 rounded-3xl bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 mx-auto flex items-center justify-center">
@@ -608,16 +614,16 @@ export default function FastTrackPatientImportModal({
           <div className="flex flex-col flex-grow overflow-hidden">
             
             {/* Top Toolbar & Filter Strip */}
-            <div className="px-5 sm:px-6 py-3 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div className="px-5 sm:px-6 py-3 bg-slate-50/80 dark:bg-slate-850/80 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
               
               {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setFilterMode("ALL")}
                   className={`px-3 py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
                     filterMode === "ALL"
-                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                      ? "bg-slate-900 text-white dark:bg-slate-700 dark:text-white shadow-xs"
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
@@ -654,7 +660,7 @@ export default function FastTrackPatientImportModal({
                 <button
                   type="button"
                   onClick={handleAddNewRow}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-brand-green flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-brand-green flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Plus className="h-3.5 w-3.5 text-brand-green" />
                   <span>Add Patient Row</span>
@@ -666,7 +672,7 @@ export default function FastTrackPatientImportModal({
                     if (e.target.value) handleAutoAssignTherapist(e.target.value);
                   }}
                   defaultValue=""
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
                 >
                   <option value="" disabled>Auto-Assign Therapist To All...</option>
                   {enrolledTherapists.map((t) => (
@@ -677,7 +683,7 @@ export default function FastTrackPatientImportModal({
                 <button
                   type="button"
                   onClick={() => setStep("INPUT")}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
                 >
                   Back
                 </button>
@@ -688,8 +694,8 @@ export default function FastTrackPatientImportModal({
             {/* High-Density Interactive Data Grid */}
             <div className="overflow-x-auto overflow-y-auto flex-grow p-4 overscroll-contain">
               <table className="w-full border-collapse text-left text-xs min-w-[900px]">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                <thead className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs">
+                  <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
                     <th className="py-2.5 px-3 w-12 text-center">#</th>
                     <th className="py-2.5 px-3 min-w-[180px]">Patient Name *</th>
                     <th className="py-2.5 px-2 w-20">Age *</th>
@@ -702,14 +708,14 @@ export default function FastTrackPatientImportModal({
                     <th className="py-2.5 px-2 w-10 text-center"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredRows.map((row, idx) => {
                     const isRowValid = row.isValid;
 
                     return (
                       <tr
                         key={row.id}
-                        className={`transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-850/50 ${
+                        className={`transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40 ${
                           !isRowValid ? "bg-red-50/20 dark:bg-red-950/10" : ""
                         }`}
                       >
@@ -733,7 +739,7 @@ export default function FastTrackPatientImportModal({
                             value={row.name}
                             onChange={(e) => handleRowChange(row.id, "name", e.target.value)}
                             placeholder="Patient Full Name"
-                            className="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </td>
 
@@ -746,7 +752,7 @@ export default function FastTrackPatientImportModal({
                             value={row.age}
                             onChange={(e) => handleRowChange(row.id, "age", e.target.value)}
                             placeholder="35"
-                            className="w-full text-xs font-bold px-2 py-1.5 text-center rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full text-xs font-bold px-2 py-1.5 text-center rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </td>
 
@@ -755,7 +761,7 @@ export default function FastTrackPatientImportModal({
                           <select
                             value={row.gender}
                             onChange={(e) => handleRowChange(row.id, "gender", e.target.value)}
-                            className="w-full text-xs font-bold px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                            className="w-full text-xs font-bold px-2 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
                           >
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
@@ -770,7 +776,7 @@ export default function FastTrackPatientImportModal({
                             value={row.phone}
                             onChange={(e) => handleRowChange(row.id, "phone", e.target.value)}
                             placeholder="+91 9876543210"
-                            className="w-full text-xs font-mono font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full text-xs font-mono font-bold px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </td>
 
@@ -781,7 +787,7 @@ export default function FastTrackPatientImportModal({
                             value={row.email}
                             onChange={(e) => handleRowChange(row.id, "email", e.target.value)}
                             placeholder="Optional email"
-                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </td>
 
@@ -792,7 +798,7 @@ export default function FastTrackPatientImportModal({
                             value={row.treatmentPlan}
                             onChange={(e) => handleRowChange(row.id, "treatmentPlan", e.target.value)}
                             placeholder="e.g. Cervical Spondylosis"
-                            className="w-full text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
                           />
                         </td>
 
@@ -801,7 +807,7 @@ export default function FastTrackPatientImportModal({
                           <select
                             value={row.therapistName}
                             onChange={(e) => handleRowChange(row.id, "therapistName", e.target.value)}
-                            className="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                            className="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
                           >
                             {enrolledTherapists.map((t) => (
                               <option key={t} value={t}>{t}</option>
@@ -814,7 +820,7 @@ export default function FastTrackPatientImportModal({
                           <select
                             value={row.status}
                             onChange={(e) => handleRowChange(row.id, "status", e.target.value)}
-                            className="w-full text-[11px] font-black px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                            className="w-full text-[11px] font-black px-2 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
                           >
                             <option value="active">Active</option>
                             <option value="pending">Pending</option>
@@ -841,7 +847,7 @@ export default function FastTrackPatientImportModal({
             </div>
 
             {/* Bottom Ingestion Bar */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
+            <div className="p-4 bg-slate-50/80 dark:bg-slate-850 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
               <div className="space-y-0.5">
                 <p className="text-xs font-black text-slate-900 dark:text-white">
                   Ready to Migrate: <span className="text-brand-green">{validCount} Patients</span>
@@ -856,7 +862,7 @@ export default function FastTrackPatientImportModal({
                 <button
                   type="button"
                   onClick={() => setStep("INPUT")}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
