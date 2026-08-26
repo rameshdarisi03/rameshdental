@@ -350,6 +350,79 @@ export default function PatientsPage() {
         </div>
       </div>
 
+      {/* Top Clinical Metrics Summary Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Metric 1: Active Patients */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+              Active Patient Recovery
+            </span>
+            <div className="h-7 px-2.5 rounded-xl bg-brand-green/10 flex items-center justify-center text-brand-green font-black text-[11px]">
+              {patients.filter((p) => p.status === "active").length} Active
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-black text-brand-charcoal dark:text-white">
+              {patients.length}
+            </h3>
+            <span className="text-xs text-slate-400 font-bold uppercase">Total Enrolled</span>
+          </div>
+          <div className="mt-3 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-brand-green rounded-full transition-all duration-500"
+              style={{ width: `${patients.length > 0 ? Math.round((patients.filter((p) => p.status === "active").length / patients.length) * 100) : 0}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Metric 2: Completed Protocols */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+              Completed Protocols
+            </span>
+            <span className="text-emerald-500 font-bold text-xs">Discharged</span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-black text-brand-charcoal dark:text-white">
+              {patients.filter((p) => p.status === "completed").length}
+            </h3>
+            <span className="text-xs text-slate-400 font-bold uppercase">Recovered</span>
+          </div>
+          <div className="mt-3 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${patients.length > 0 ? Math.round((patients.filter((p) => p.status === "completed").length / patients.length) * 100) : 0}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Metric 3: Pending Intake */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+              Pending Evaluation
+            </span>
+            <div className="h-7 px-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 font-black text-[11px]">
+              {patients.filter((p) => p.status === "pending").length} In Review
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-black text-brand-charcoal dark:text-white">
+              {patients.filter((p) => p.status === "pending").length}
+            </h3>
+            <span className="text-xs text-slate-400 font-bold uppercase">Intakes Awaiting</span>
+          </div>
+          <div className="mt-3 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 rounded-full transition-all duration-500"
+              style={{ width: `${patients.length > 0 ? Math.round((patients.filter((p) => p.status === "pending").length / patients.length) * 100) : 0}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Main Container: Search, Filter Tabs & Table Grid */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] overflow-hidden">
         
@@ -413,7 +486,7 @@ export default function PatientsPage() {
         </div>
 
         {/* Directory Table Grid */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[580px] overscroll-contain relative">
           {loading ? (
             <div className="flex flex-col h-64 items-center justify-center text-slate-500 text-xs font-semibold">
               <Loader2 className="h-6 w-6 animate-spin text-brand-green mb-2" />
@@ -431,8 +504,8 @@ export default function PatientsPage() {
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/20 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs">
+                <tr className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
                   <th className="px-6 py-4">Patient Name & ID</th>
                   <th className="px-6 py-4">Treatment Plan</th>
                   <th className="px-6 py-4">Last Visit</th>
@@ -677,63 +750,6 @@ export default function PatientsPage() {
             <span>Scroll smoothly to view all records</span>
           </div>
         </div>
-      </div>
-
-      {/* Bottom Metrics Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Metric 1: Weekly New Patients */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
-              Weekly New Patients
-            </span>
-            <div className="h-8 w-8 rounded-xl bg-brand-green/10 flex items-center justify-center text-brand-green font-bold text-xs">
-              +12%
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-brand-charcoal dark:text-white">
-            32
-          </h3>
-          <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-green rounded-full" style={{ width: "65%" }} />
-          </div>
-        </div>
-
-        {/* Metric 2: Retention Rate */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
-              Retention Rate
-            </span>
-            <span className="text-emerald-500 font-bold text-xs">Stable</span>
-          </div>
-          <h3 className="text-3xl font-black text-brand-charcoal dark:text-white">
-            94.2%
-          </h3>
-          <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-green rounded-full" style={{ width: "94%" }} />
-          </div>
-        </div>
-
-        {/* Metric 3: Average Recovery Time */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
-              Average Recovery Time
-            </span>
-            <div className="h-8 w-8 rounded-xl bg-red-50 dark:bg-red-950/20 flex items-center justify-center text-red-500 font-bold text-xs">
-              -4%
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-brand-charcoal dark:text-white">
-            6.4 <span className="text-slate-400 text-sm font-black uppercase">Weeks</span>
-          </h3>
-          <div className="mt-4 h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-green rounded-full" style={{ width: "45%" }} />
-          </div>
-        </div>
-
       </div>
 
       {/* New Patient Registration Overlay Modal Dialog */}
