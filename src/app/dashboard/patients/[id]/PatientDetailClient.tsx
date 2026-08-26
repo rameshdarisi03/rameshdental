@@ -1,0 +1,2552 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { 
+  ArrowLeft, 
+  User, 
+  FileText, 
+  Calendar, 
+  Clock, 
+  Folder, 
+  Upload, 
+  Plus, 
+  Loader2, 
+  CheckCircle2, 
+  AlertCircle,
+  Download,
+  Eye,
+  ChevronRight,
+  Camera,
+  MessageSquare,
+  Activity,
+  PlusCircle,
+  Trash2,
+  BellRing,
+  Phone,
+  Mail,
+  UserCheck,
+  Dumbbell,
+  Sparkles,
+  Maximize2,
+  Minimize2,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  X,
+  Flame,
+  Lock,
+  Edit2,
+  Ban,
+  Receipt
+} from "lucide-react";
+import jsPDF from "jspdf";
+import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
+import DocumentScannerModal, { ScanResult } from "@/components/dashboard/DocumentScannerModal";
+import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
+import { 
+  getPatientById, 
+  getConsultations, 
+  getMedicalRecordFiles, 
+  addConsultation, 
+  addMedicalRecordFile, 
+  updatePatient,
+  generateActivationCode 
+} from "@/lib/patientsDb";
+import { 
+  getPatientPrescription,
+  getPatientPrescriptionsHistory,
+  subscribePatientPrescription,
+  subscribePatientWorkoutProgress, 
+  getProgramDayDateString,
+  getLocalDateString,
+  markPatientDayComplete,
+  PatientPrescription, 
+  PatientWorkoutProgress 
+} from "@/lib/exercisesDb";
+import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
+import { 
+  buildUnifiedPrescriptionPdf, 
+  getPrescriptionFileName,
+  buildUnifiedInvoicePdf,
+  getInvoiceFileName
+} from "@/lib/prescriptionPdf";
+import { getClinicConfig } from "@/lib/db";
+
+interface Patient {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  dob?: string;
+  age?: string | number;
+  gender?: string;
+  treatmentPlan: string;
+  status: "active" | "completed" | "pending";
+  googleDriveFolderId?: string;
+  therapistName?: string;
+  lastVisit?: string;
+  upcoming?: string;
+  reminders?: string[];
+  attendanceRate?: number;
+  activationCode?: string;
+  activated?: boolean;
+}
+
+interface Consultation {
+  id: string;
+  date: string;
+  summary: string;
+  therapistName: string;
+}
+
+interface MedicalFile {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  dateUploaded: string;
+  googleDriveFileId: string;
+  webViewLink?: string;
+  downloadLink?: string;
+}
+
+const compressImageFile = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1600;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const newName = file.name.replace(/\.[^/.]+$/, ".jpg");
+            const compressedFile = new File([blob], newName, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          "image/jpeg",
+          0.8
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
+export default function PatientDetailClient({ id }: { id: string }) {
+
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [files, setFiles] = useState<MedicalFile[]>([]);
+  const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
+  const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
+  const [isPatientInvoiceModalOpen, setIsPatientInvoiceModalOpen] = useState(false);
+  const [selectedInvoiceForEdit, setSelectedInvoiceForEdit] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
+  const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
+  const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
+  const [workoutProgress, setWorkoutProgress] = useState<PatientWorkoutProgress | null>(null);
+
+  // Gemini AI Document Scanner states
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerType, setScannerType] = useState<"CLINICAL_ASSESSMENT" | "DOCTOR_PRESCRIPTION">("CLINICAL_ASSESSMENT");
+
+  // New consultation log / upload form states
+  const [notes, setNotes] = useState("");
+  const [visitDate, setVisitDate] = useState("");
+  const [maxDateStr, setMaxDateStr] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formSuccess, setFormSuccess] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
+  const [selectedTherapist, setSelectedTherapist] = useState<string>("");
+
+  // Editor ergonomics & Collapsible History states
+  const [isEditorExpanded, setIsEditorExpanded] = useState(false);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+  const [expandedLogIds, setExpandedLogIds] = useState<string[]>([]);
+
+  // Reminders states
+  const [newReminder, setNewReminder] = useState("");
+  const [updatingReminders, setUpdatingReminders] = useState(false);
+
+  // Dedicated Doctor Reference Scan Upload state
+  const [uploadingDoctorScan, setUploadingDoctorScan] = useState(false);
+  const doctorScanFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Email management states
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const handleSaveEmail = async () => {
+    if (!emailInput.trim() || !patient || !id) return;
+    const cleanEmail = emailInput.trim().toLowerCase();
+    
+    // Basic email format check
+    if (!cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    setSavingEmail(true);
+    setEmailError("");
+
+    try {
+      // If patient does not have an activation code yet, generate one
+      let newActivationCode = patient.activationCode || "";
+      if (!newActivationCode && !patient.activated) {
+        newActivationCode = generateActivationCode();
+      }
+
+      await updatePatient(id, {
+        email: cleanEmail,
+        activationCode: newActivationCode,
+      });
+
+      setPatient((prev) => prev ? {
+        ...prev,
+        email: cleanEmail,
+        activationCode: newActivationCode,
+      } : null);
+
+      setIsEditingEmail(false);
+      setEmailInput("");
+    } catch (err: any) {
+      console.error("Error updating patient email:", err);
+      setEmailError(err.message || "Failed to update email.");
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleSendPortalInvite = () => {
+    if (!patient || !patient.activationCode) return;
+    let cleanPhone = patient.phone.replace(/\D/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = cleanPhone.replace(/^0+/, "");
+    }
+    if (cleanPhone.length === 10) {
+      cleanPhone = "91" + cleanPhone;
+    }
+    if (!cleanPhone || cleanPhone.length < 10) {
+      cleanPhone = "919206651295";
+    }
+
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login` : "https://gaitphysioclinic.com/patienthub/login";
+    const message = `Hello ${patient.name}, your Gait Physio Clinic Patient Hub is ready! 🎉\n\nAccess your personalized home exercises, clinical recovery progress, and appointment details online:\n🔗 ${portalUrl}\n\n🔑 Your Portal Activation Code: *${patient.activationCode}*\n\nPlease log in and activate your account.`;
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank");
+  };
+
+  const setQuickDate = (type: "today" | "yesterday") => {
+    const d = new Date();
+    if (type === "yesterday") {
+      d.setDate(d.getDate() - 1);
+    }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    setVisitDate(`${year}-${month}-${day}`);
+  };
+
+  const insertSoapSkeleton = () => {
+    const template = `SUBJECTIVE:
+• Chief Complaint: 
+• Pain Score (VAS 0-10): /10
+• Onset / Aggravating factors: 
+ 
+OBJECTIVE:
+• Range of Motion (ROM): 
+• Special Tests / Palpation: 
+• Posture & Gait Analysis: 
+
+ASSESSMENT:
+• Clinical Impression / Diagnosis: 
+
+PLAN:
+• Treatment / Modalities Given: 
+• Home Exercise Prescriptions: 
+• Next Review Date: `;
+    setNotes(template);
+  };
+
+  const toggleLogExpand = (logId: string) => {
+    setExpandedLogIds((prev) =>
+      prev.includes(logId) ? prev.filter((id) => id !== logId) : [...prev, logId]
+    );
+  };
+
+  useEffect(() => {
+    let rxUnsub = () => {};
+    let progUnsub = () => {};
+    let invUnsub = () => {};
+
+    if (id) {
+      loadPatientDetails();
+
+      rxUnsub = subscribePatientPrescription(id, (rx) => {
+        setActivePrescription(rx);
+        progUnsub();
+        progUnsub = subscribePatientWorkoutProgress(id, rx, (p) => {
+          setWorkoutProgress(p);
+        });
+      });
+    }
+
+    async function loadTherapists() {
+      try {
+        const config = await getClinicConfig();
+        if (config && config.therapists && config.therapists.length > 0) {
+          setEnrolledTherapists(config.therapists);
+        } else {
+          setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+        }
+      } catch (err) {
+        console.error("Error loading therapists list in patient details:", err);
+        setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+      }
+    }
+    loadTherapists();
+
+    return () => {
+      rxUnsub();
+      progUnsub();
+      invUnsub();
+    };
+  }, [id]);
+
+  const defaultTherapist = enrolledTherapists[0] || "Dr. Sarah Jenkins";
+
+  // Set default visit date to today
+  useEffect(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const formatted = `${year}-${month}-${day}`;
+    setVisitDate(formatted);
+    setMaxDateStr(formatted);
+  }, []);
+
+  const loadPatientDetails = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const pData = await getPatientById(id);
+      if (!pData) {
+        setError("Patient profile not found in database.");
+        return;
+      }
+      setPatient(pData as Patient);
+
+      // Fetch timelines, files, prescription & history safely
+      const [cListRes, fListRes, rxRes, rxHistRes] = await Promise.allSettled([
+        getConsultations(pData.id),
+        getMedicalRecordFiles(pData.id),
+        getPatientPrescription(pData.id),
+        getPatientPrescriptionsHistory(pData.id)
+      ]);
+
+      const cList = cListRes.status === "fulfilled" ? cListRes.value : [];
+      const fList = fListRes.status === "fulfilled" ? fListRes.value : [];
+      const rx = rxRes.status === "fulfilled" ? rxRes.value : null;
+      const rxHist = rxHistRes.status === "fulfilled" ? rxHistRes.value : [];
+
+      setConsultations(cList as Consultation[]);
+      setFiles(fList as MedicalFile[]);
+      setActivePrescription(rx);
+      setPrescriptionsHistory(rxHist);
+
+      if (pData.email || pData.id || pData.phone || pData.customId) {
+        try {
+          subscribePatientInvoices(
+            { 
+              patientId: pData.id, 
+              email: pData.email, 
+              phone: pData.phone, 
+              customId: pData.customId 
+            }, 
+            (invs) => {
+              setPatientInvoices(invs || []);
+            }
+          );
+        } catch (subErr) {
+          console.warn("Invoice subscription warning:", subErr);
+        }
+      }
+    } catch (err: any) {
+      console.error("Error loading patient details:", err);
+      setError("An error occurred while fetching details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setFormError("");
+      setFormSuccess("");
+
+      if (file.type.startsWith("image/")) {
+        try {
+          // Immediately set original file as loading state reference
+          setSelectedFile(file);
+          const compressed = await compressImageFile(file);
+          setSelectedFile(compressed);
+        } catch (err) {
+          console.error("Client side image compression failed:", err);
+          setSelectedFile(file); // fallback to original
+        }
+      } else {
+        // PDF / Document size check (Vercel has a hard 4.5MB serverless payload limit)
+        if (file.size > 4.5 * 1024 * 1024) {
+          setFormError("The selected file is too large. Direct uploads of PDFs or documents are limited to 4.5 MB. Please compress your file or upload a smaller file.");
+          setSelectedFile(null);
+          e.target.value = "";
+          return;
+        }
+        setSelectedFile(file);
+      }
+    }
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || bytes <= 0 || isNaN(bytes)) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Dedicated direct file upload / photo capture for Doctor Reference (Hidden from Patient Hub)
+  const handleUploadDoctorScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !patient) return;
+    const file = e.target.files[0];
+    
+    if (!patient.googleDriveFolderId) {
+      setFormError("This patient does not have a linked Google Drive folder. Please edit the patient or contact admin.");
+      return;
+    }
+
+    setUploadingDoctorScan(true);
+    setFormError("");
+    setFormSuccess("");
+
+    try {
+      let fileToUpload = file;
+      if (file.type.startsWith("image/")) {
+        try {
+          fileToUpload = await compressImageFile(file);
+        } catch (compErr) {
+          console.warn("Client-side compression skipped:", compErr);
+        }
+      } else if (file.size > 4.5 * 1024 * 1024) {
+        throw new Error("File size is too large (max 4.5 MB). Please select a compressed file or image.");
+      }
+
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, "0");
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const yyyy = today.getFullYear();
+      const formattedDate = `${dd}-${mm}-${yyyy}`;
+
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", fileToUpload);
+      uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
+      uploadFormData.append("date", formattedDate);
+
+      const uploadResponse = await fetch("/api/drive/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (!uploadResponse.ok) {
+        let errTxt = "";
+        try {
+          const errRes = await uploadResponse.json();
+          errTxt = errRes.error;
+        } catch {
+          errTxt = await uploadResponse.text();
+        }
+        throw new Error(errTxt || `Upload failed with status ${uploadResponse.status}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || "File upload failed.");
+      }
+
+      // Save record in Firestore with isDoctorOnly: true
+      const savedDoc = await addMedicalRecordFile(id, {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: fileToUpload.size,
+        dateUploaded: formattedDate,
+        googleDriveFileId: uploadResult.fileId,
+        webViewLink: uploadResult.webViewLink,
+        downloadLink: uploadResult.downloadLink,
+        isDoctorOnly: true,
+        category: "DOCTOR_REFERENCE"
+      });
+
+      // Update local state
+      setFiles((prev) => [
+        {
+          id: savedDoc.id,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: fileToUpload.size,
+          dateUploaded: formattedDate,
+          googleDriveFileId: uploadResult.fileId,
+          webViewLink: uploadResult.webViewLink,
+          downloadLink: uploadResult.downloadLink,
+          isDoctorOnly: true,
+          category: "DOCTOR_REFERENCE",
+          createdAt: Timestamp.now()
+        },
+        ...prev
+      ]);
+
+      setFormSuccess(`📸 Medical file "${file.name}" uploaded successfully for Doctor's Reference.`);
+    } catch (err: any) {
+      console.error("Doctor scan upload error:", err);
+      setFormError(err?.message || "Failed to upload medical document.");
+    } finally {
+      setUploadingDoctorScan(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  // Add clinical reminder dynamic action
+  const handleAddReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReminder.trim() || !patient) return;
+    setUpdatingReminders(true);
+    try {
+      const updatedReminders = [...(patient.reminders || []), newReminder.trim()];
+      await updatePatient(patient.id, { reminders: updatedReminders });
+      setPatient((prev) => (prev ? { ...prev, reminders: updatedReminders } : null));
+      setNewReminder("");
+    } catch (err) {
+      console.error("Failed to add reminder:", err);
+    } finally {
+      setUpdatingReminders(false);
+    }
+  };
+
+  // Delete clinical reminder dynamic action
+  const handleDeleteReminder = async (indexToDelete: number) => {
+    if (!patient) return;
+    setUpdatingReminders(true);
+    try {
+      const updatedReminders = (patient.reminders || []).filter((_, idx) => idx !== indexToDelete);
+      await updatePatient(patient.id, { reminders: updatedReminders });
+      setPatient((prev) => (prev ? { ...prev, reminders: updatedReminders } : null));
+    } catch (err) {
+      console.error("Failed to delete reminder:", err);
+    } finally {
+      setUpdatingReminders(false);
+    }
+  };
+
+  // Handle scanned document result from Gemini AI
+  const handleApplyScanResult = async (data: ScanResult, scannedFile?: File, previewUrl?: string) => {
+    if (!patient) return;
+
+    // 1. Auto-append pre-existing conditions / alerts to Provider Reminders in Firestore
+    if (data.providerRemindersAndAlerts && data.providerRemindersAndAlerts.length > 0) {
+      try {
+        const existing = patient.reminders || [];
+        const newAlerts = data.providerRemindersAndAlerts.filter((a) => !existing.includes(a));
+        if (newAlerts.length > 0) {
+          const combined = [...existing, ...newAlerts];
+          await updatePatient(patient.id, { reminders: combined });
+          setPatient((prev) => (prev ? { ...prev, reminders: combined } : null));
+        }
+      } catch (remErr) {
+        console.error("Error auto-syncing provider alerts from scan:", remErr);
+      }
+    }
+
+    // 2. Handle Case Sheet Mode (Consultation Timeline)
+    if (data.documentType === "CLINICAL_ASSESSMENT") {
+      if (data.formattedSoapNote) {
+        setNotes(data.formattedSoapNote);
+      } else if (data.subjectiveComplaints) {
+        setNotes(data.subjectiveComplaints);
+      }
+      if (data.visitDate) {
+        setVisitDate(data.visitDate);
+      }
+      if (scannedFile) {
+        setSelectedFile(scannedFile);
+      }
+      setActiveTab("timeline");
+      setFormSuccess("✨ Handwritten case sheet transcribed & applied! You can review the notes and save below.");
+    }
+
+    // 3. Handle Doctor Prescription / Referral Mode (Medical Scans & Files Tab - Generate & Save PDF)
+    if (data.documentType === "DOCTOR_PRESCRIPTION") {
+      setActiveTab("files");
+      setFormSuccess("");
+      setFormError("");
+
+      try {
+        const doc = new jsPDF({ unit: "pt", format: "a4" });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const currentDateStr = new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+
+        // Top Header Banner
+        doc.setFillColor(27, 61, 47); // Brand Green
+        doc.rect(0, 0, pageWidth, 75, "F");
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(17);
+        doc.text("GAIT PHYSIO CLINIC", 40, 35);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("Advanced Physiotherapy, Orthopedic & Neuro Rehabilitation Centre", 40, 50);
+        doc.text("Whitefield, Bengaluru • Contact: +91 9192939495", 40, 62);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.text("DOCTOR REFERRAL RECORD", pageWidth - 40, 48, { align: "right" });
+
+        // Patient Details Card
+        let y = 100;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(40, y, pageWidth - 80, 52, 6, 6, "FD");
+
+        doc.setTextColor(30, 41, 59);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.text(`Patient: ${patient.name || "N/A"}`, 55, y + 18);
+        doc.text(`Patient ID: ${patient.patientId || patient.id}`, 55, y + 34);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(`Age / Gender: ${patient.age || "N/A"} / ${patient.gender || "N/A"}`, pageWidth / 2 + 20, y + 18);
+        doc.text(`Recorded Date: ${currentDateStr}`, pageWidth / 2 + 20, y + 34);
+
+        y += 70;
+
+        // Referring Physician & Hospital
+        doc.setFillColor(241, 245, 249);
+        doc.rect(40, y, pageWidth - 80, 20, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text("1. REFERRING PHYSICIAN & SOURCE", 50, y + 14);
+        y += 30;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("Referring Doctor:", 50, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(data.doctorName || "External Consultant", 160, y);
+        y += 16;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Hospital / Clinic:", 50, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(data.hospitalOrClinic || "Medical Center", 160, y);
+        y += 16;
+
+        if (data.prescriptionDate) {
+          doc.setFont("helvetica", "bold");
+          doc.text("Prescription Date:", 50, y);
+          doc.setFont("helvetica", "normal");
+          doc.text(data.prescriptionDate, 160, y);
+          y += 16;
+        }
+
+        y += 8;
+
+        // Diagnosis Section
+        doc.setFillColor(241, 245, 249);
+        doc.rect(40, y, pageWidth - 80, 20, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.text("2. CLINICAL DIAGNOSIS & REASON FOR REFERRAL", 50, y + 14);
+        y += 30;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        const splitDiag = doc.splitTextToSize(data.diagnosis || "Physiotherapy referral", pageWidth - 100);
+        doc.text(splitDiag, 50, y);
+        y += splitDiag.length * 13 + 12;
+
+        // Prescribed Therapies
+        if (data.prescribedTherapies) {
+          doc.setFillColor(241, 245, 249);
+          doc.rect(40, y, pageWidth - 80, 20, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9.5);
+          doc.text("3. ADVISED PHYSICAL THERAPY & PROTOCOL", 50, y + 14);
+          y += 30;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          const splitRx = doc.splitTextToSize(data.prescribedTherapies, pageWidth - 100);
+          doc.text(splitRx, 50, y);
+          y += splitRx.length * 13 + 12;
+        }
+
+        // Precautions & Contraindications
+        if (data.precautionsAndRestrictions) {
+          doc.setFillColor(254, 242, 242);
+          doc.setDrawColor(254, 202, 202);
+          doc.roundedRect(40, y, pageWidth - 80, 32, 4, 4, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(153, 27, 27);
+          doc.text("PRECAUTIONS & CONTRAINDICATIONS:", 50, y + 13);
+          doc.setFont("helvetica", "normal");
+          const splitPrec = doc.splitTextToSize(data.precautionsAndRestrictions, pageWidth - 110);
+          doc.text(splitPrec, 50, y + 24);
+          y += 44;
+        }
+
+        // Provider Reminders & Safety Alerts
+        if (data.providerRemindersAndAlerts && data.providerRemindersAndAlerts.length > 0) {
+          const alertHeight = 18 + data.providerRemindersAndAlerts.length * 13;
+          doc.setFillColor(254, 243, 199);
+          doc.setDrawColor(253, 230, 138);
+          doc.roundedRect(40, y, pageWidth - 80, alertHeight, 4, 4, "FD");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(146, 64, 14);
+          doc.text("IDENTIFIED SAFETY ALERTS & PRE-EXISTING CONDITIONS:", 50, y + 12);
+          doc.setFont("helvetica", "normal");
+          data.providerRemindersAndAlerts.forEach((alert, aIdx) => {
+            doc.text(`• ${alert}`, 55, y + 24 + aIdx * 13);
+          });
+          y += alertHeight + 15;
+        }
+
+        // Footer note
+        doc.setTextColor(148, 163, 184);
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.text("Transcribed via Gait Physio AI Clinical OCR • Archived in Google Drive EMR", 40, doc.internal.pageSize.getHeight() - 25);
+
+        // Generate PDF Blob
+        const pdfBlob = doc.output("blob");
+        const cleanDoctorName = (data.doctorName || data.hospitalOrClinic || "Doctor").replace(/[^a-zA-Z0-9]/g, "_");
+        const dateStamp = new Date().toISOString().split("T")[0];
+        const pdfFileName = `Referral_${cleanDoctorName}_${dateStamp}.pdf`;
+        const pdfFile = new File([pdfBlob], pdfFileName, { type: "application/pdf" });
+
+        // Upload PDF directly to Google Drive
+        if (patient.googleDriveFolderId) {
+          const uploadFormData = new FormData();
+          uploadFormData.append("file", pdfFile);
+          uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
+          uploadFormData.append("date", dateStamp);
+
+          const uploadResponse = await fetch("/api/drive/upload", {
+            method: "POST",
+            body: uploadFormData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            const gFileId = uploadResult.fileId;
+            const viewLink = uploadResult.webViewLink || (gFileId ? `https://drive.google.com/file/d/${gFileId}/view` : "");
+            const dlLink = uploadResult.downloadLink || viewLink;
+
+            const newFileRecord = await addMedicalRecordFile(patient.id, {
+              fileName: pdfFileName,
+              fileType: "application/pdf",
+              fileSize: pdfFile.size,
+              dateUploaded: dateStamp,
+              googleDriveFileId: gFileId,
+              webViewLink: viewLink,
+              downloadLink: dlLink,
+            } as any);
+
+            // Instantly prepend the new PDF to local state for 0ms UI reactivity
+            setFiles((prev) => [newFileRecord as MedicalFile, ...prev]);
+            setFormSuccess(`✨ Clinical Referral PDF (${pdfFileName}) successfully generated & saved to Google Drive!`);
+          } else {
+            throw new Error("Failed to upload PDF to Google Drive.");
+          }
+        } else {
+          throw new Error("Patient does not have an assigned Google Drive folder.");
+        }
+      } catch (pdfErr: any) {
+        console.error("PDF upload error:", pdfErr);
+        setFormError(pdfErr?.message || "Failed to save prescription PDF.");
+      }
+    }
+  };
+
+  const handleLogVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notes && !selectedFile) {
+      setFormError("Please write consultation notes or select a file to upload.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError("");
+    setFormSuccess("");
+
+    try {
+      // Format HTML date input to DD-MM-YYYY
+      const dateParts = visitDate.split("-");
+      const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
+      // 1. Process Google Drive upload if file is attached
+      let driveFileRef = null;
+      if (selectedFile && selectedFile.size > 0) {
+        if (!patient?.googleDriveFolderId) {
+          throw new Error("This patient does not have a Google Drive folder. Please edit the patient or contact admin.");
+        }
+
+        console.log("[Detail Page] Uploading file to Google Drive proxy...");
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", selectedFile);
+        uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
+        uploadFormData.append("date", formattedDate);
+
+        const uploadResponse = await fetch("/api/drive/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          if (uploadResponse.status === 413) {
+            throw new Error("File size is too large. Vercel limits serverless API uploads to 4.5 MB. Please choose a smaller file.");
+          }
+          let errorText = "";
+          try {
+            const errResult = await uploadResponse.json();
+            errorText = errResult.error;
+          } catch {
+            errorText = await uploadResponse.text();
+          }
+          throw new Error(errorText || `File upload failed with status ${uploadResponse.status}`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || "File upload failed.");
+        }
+
+        console.log("[Detail Page] Google Drive Upload finished successfully.");
+        // Index file reference client-side
+        driveFileRef = await addMedicalRecordFile(id, {
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          fileSize: selectedFile.size,
+          dateUploaded: formattedDate,
+          googleDriveFileId: uploadResult.fileId,
+          webViewLink: uploadResult.webViewLink,
+          downloadLink: uploadResult.downloadLink,
+        });
+      }
+
+      // 2. Log Consultation session in Firestore client-side
+      if (notes) {
+        console.log("[Detail Page] Logging session details to Firestore...");
+        
+        let loggingTherapist = patient?.therapistName || defaultTherapist;
+        const userJson = localStorage.getItem("gpc_user");
+        if (userJson) {
+          const userObj = JSON.parse(userJson);
+          if (userObj.name) {
+            loggingTherapist = userObj.name;
+          }
+        }
+
+        await addConsultation(id, {
+          date: formattedDate,
+          summary: notes,
+          therapistName: loggingTherapist,
+        });
+
+        // Auto-generate and upload unified consultation sheet if Drive folder is linked and no file was manually uploaded
+        if (patient?.googleDriveFolderId && !selectedFile) {
+          try {
+            const rxDoc = buildUnifiedPrescriptionPdf({
+              patientName: patient.name,
+              pid: patient.id,
+              dateStr: formattedDate,
+              therapistName: loggingTherapist,
+              durationDays: activePrescription?.durationDays || 14,
+              consultationSummary: notes,
+              generalNotes: activePrescription?.generalNotes,
+              exercises: activePrescription?.exercises || []
+            });
+            const pdfBlob = rxDoc.output("blob");
+            const fileName = getPrescriptionFileName(patient.name, new Date());
+            const fileObj = new File([pdfBlob], fileName, { type: "application/pdf" });
+            const formData = new FormData();
+            formData.append("file", fileObj);
+            formData.append("parentFolderId", patient.googleDriveFolderId);
+            formData.append("date", formattedDate);
+
+            const uploadRes = await fetch("/api/drive/upload", {
+              method: "POST",
+              body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (uploadData.success) {
+              await addMedicalRecordFile(id, {
+                fileName: fileName,
+                fileType: "application/pdf",
+                fileSize: pdfBlob.size,
+                dateUploaded: formattedDate,
+                googleDriveFileId: uploadData.fileId,
+                webViewLink: uploadData.webViewLink,
+                downloadLink: uploadData.downloadLink,
+              });
+            }
+          } catch (autoUploadErr) {
+            console.warn("Auto-uploading consultation sheet to Drive failed:", autoUploadErr);
+          }
+        }
+      }
+
+      // Success Reset
+      setFormSuccess("Session logged and files synced successfully!");
+      setNotes("");
+      setSelectedFile(null);
+      // Reset file and camera input values
+      const fileInput = document.getElementById("file-input") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+      const cameraInput = document.getElementById("camera-input") as HTMLInputElement;
+      if (cameraInput) cameraInput.value = "";
+
+      // Reload
+      loadPatientDetails();
+    } catch (err: any) {
+      console.error("Error logging session:", err);
+      setFormError(err.message || "Failed to record consultation details.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDownloadPrescription = (rxItem: any) => {
+    try {
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: rxItem.displayDate || rxItem.date || "23-08-2026",
+        therapistName: rxItem.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: rxItem.durationDays || 14,
+        generalNotes: rxItem.generalNotes,
+        consultationSummary: rxItem.consultationSummary,
+        modalitiesAdministered: rxItem.modalitiesAdministered,
+        exercises: rxItem.exercises || [],
+      });
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || new Date());
+      doc.save(fileName);
+    } catch (err) {
+      console.error("Prescription download failed:", err);
+    }
+  };
+
+  const handleViewPrescription = (rxItem: any) => {
+    try {
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: rxItem.displayDate || rxItem.date || "23-08-2026",
+        therapistName: rxItem.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: rxItem.durationDays || 14,
+        generalNotes: rxItem.generalNotes,
+        consultationSummary: rxItem.consultationSummary,
+        modalitiesAdministered: rxItem.modalitiesAdministered,
+        exercises: rxItem.exercises || [],
+      });
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Prescription view failed:", err);
+    }
+  };
+
+  const buildInvoicePdf = (inv: Invoice): jsPDF => {
+    return buildUnifiedInvoicePdf({
+      invoiceNumber: inv.invoiceNumber,
+      patientName: inv.patientName || patient?.name || "Patient",
+      patientId: inv.patientId || patient?.id,
+      patientEmail: inv.patientEmail || patient?.email,
+      patientPhone: inv.patientPhone || patient?.phone,
+      therapistName: inv.therapistName || patient?.therapistName || defaultTherapist,
+      serviceDate: inv.serviceDate,
+      dueDate: inv.dueDate,
+      status: inv.status,
+      paymentMethod: inv.paymentMethod,
+      items: inv.items,
+      subtotal: inv.subtotal,
+      taxRate: inv.taxRate,
+      taxAmount: inv.taxAmount,
+      discount: inv.discount,
+      totalAmount: inv.totalAmount,
+      currency: inv.currency || "INR",
+      notes: inv.notes,
+    });
+  };
+
+  const handleDownloadInvoicePdf = (inv: Invoice) => {
+    try {
+      const pdf = buildInvoicePdf(inv);
+      const fileName = getInvoiceFileName(inv.patientName || patient?.name || "Patient", inv.serviceDate || new Date());
+      pdf.save(fileName);
+    } catch (e) {
+      console.error("Error downloading invoice PDF:", e);
+    }
+  };
+
+  const handleViewInvoicePdf = (inv: Invoice) => {
+    try {
+      const pdf = buildInvoicePdf(inv);
+      const pdfBlob = pdf.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+    } catch (e) {
+      console.error("Error viewing invoice PDF:", e);
+    }
+  };
+
+  const getWhatsAppInvoiceUrl = (inv: Invoice) => {
+    const phone = inv.patientPhone || patient?.phone;
+    if (!phone) return "#";
+    const cleanDigits = phone.replace(/\D/g, "");
+    const formattedPhone = cleanDigits.startsWith("91") && cleanDigits.length === 12
+      ? cleanDigits
+      : cleanDigits.length === 10
+      ? `91${cleanDigits}`
+      : cleanDigits;
+
+    const message = `Hello ${inv.patientName || patient?.name || "Valued Patient"},
+
+Your official treatment invoice from Gait Physio Clinic is ready:
+
+📄 *Invoice #*: ${inv.invoiceNumber}
+📅 *Date*: ${inv.serviceDate}
+👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Kinnera"}
+💳 *Total Amount*: ₹${(inv.totalAmount || 0).toLocaleString("en-IN")} (${(inv.status || "PAID").toUpperCase()})
+
+Thank you for choosing Gait Physio Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
+
+Warm regards,
+*Gait Physio Clinic, Bengaluru*
+📞 +91 92066 51295`;
+
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+  };
+
+  // Build unified items for Medical Scans & Files safely inside useMemo
+  const allUnifiedFiles = useMemo(() => {
+    const list: Array<{
+      id: string;
+      category: "PRESCRIPTION" | "INVOICE" | "FILE";
+      fileName: string;
+      subtitle: string;
+      dateStr: string;
+      sizeFormatted?: string;
+      raw: any;
+      isDoctorOnly?: boolean;
+      onView?: () => void;
+      onDownload?: () => void;
+      webViewLink?: string;
+      downloadLink?: string;
+    }> = [];
+
+    if (!patient) return list;
+
+    // 1. Active Prescription & Consultation Plan
+    const latestConsult = consultations && consultations.length > 0 ? consultations[0] : null;
+    if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
+      const rxDate = activePrescription.startDate || new Date();
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxDate);
+      list.push({
+        id: "active-prescription-doc",
+        category: "PRESCRIPTION",
+        fileName: fileName,
+        subtitle: `Prescribed by ${patient?.therapistName || defaultTherapist} • ${activePrescription.durationDays || 14} Days Protocol`,
+        dateStr: activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan",
+        raw: activePrescription,
+        onView: () => handleViewPrescription({
+          displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+          rawDate: rxDate,
+          therapistName: patient?.therapistName || defaultTherapist,
+          durationDays: activePrescription.durationDays || 14,
+          generalNotes: activePrescription.generalNotes,
+          consultationSummary: latestConsult?.summary,
+          exercises: activePrescription.exercises,
+        }),
+        onDownload: () => handleDownloadPrescription({
+          displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+          rawDate: rxDate,
+          therapistName: patient?.therapistName || defaultTherapist,
+          durationDays: activePrescription.durationDays || 14,
+          generalNotes: activePrescription.generalNotes,
+          consultationSummary: latestConsult?.summary,
+          exercises: activePrescription.exercises,
+        })
+      });
+    } else if (latestConsult) {
+      const consultDate = latestConsult.date || new Date();
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
+      list.push({
+        id: latestConsult.id || "consult-doc",
+        category: "PRESCRIPTION",
+        fileName: fileName,
+        subtitle: `Clinical Session Notes • Logged by ${latestConsult.therapistName || defaultTherapist}`,
+        dateStr: latestConsult.date || "Recorded",
+        raw: latestConsult,
+        onView: () => handleViewPrescription({
+          displayDate: latestConsult.date,
+          rawDate: consultDate,
+          therapistName: latestConsult.therapistName || defaultTherapist,
+          durationDays: 14,
+          consultationSummary: latestConsult.summary,
+          exercises: [],
+        }),
+        onDownload: () => handleDownloadPrescription({
+          displayDate: latestConsult.date,
+          rawDate: consultDate,
+          therapistName: latestConsult.therapistName || defaultTherapist,
+          durationDays: 14,
+          consultationSummary: latestConsult.summary,
+          exercises: [],
+        })
+      });
+    }
+
+    // 2. Historical Prescriptions
+    (prescriptionsHistory || []).forEach((hist, idx) => {
+      if (hist && hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
+        const hDate = hist.startDate || new Date();
+        const fileName = getPrescriptionFileName(patient?.name || "Patient", hDate);
+        list.push({
+          id: `hist-rx-${idx}`,
+          category: "PRESCRIPTION",
+          fileName: fileName,
+          subtitle: `Past Prescription v${prescriptionsHistory.length - idx} • ${hist.durationDays || 14} Days Protocol`,
+          dateStr: hist.prescribedDateFormatted || hist.startDate || "Past Plan",
+          raw: hist,
+          onView: () => handleViewPrescription({
+            displayDate: hist.prescribedDateFormatted || hist.startDate,
+            rawDate: hDate,
+            therapistName: patient?.therapistName || defaultTherapist,
+            durationDays: hist.durationDays || 14,
+            generalNotes: hist.generalNotes,
+            exercises: hist.exercises || [],
+          }),
+          onDownload: () => handleDownloadPrescription({
+            displayDate: hist.prescribedDateFormatted || hist.startDate,
+            rawDate: hDate,
+            therapistName: patient?.therapistName || defaultTherapist,
+            durationDays: hist.durationDays || 14,
+            generalNotes: hist.generalNotes,
+            exercises: hist.exercises || [],
+          })
+        });
+      }
+    });
+
+    // 3. Invoices
+    (patientInvoices || []).forEach((inv) => {
+      if (!inv) return;
+      const invDate = inv.serviceDate || new Date();
+      const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", invDate);
+      list.push({
+        id: inv.id || `inv-${Math.random()}`,
+        category: "INVOICE",
+        fileName: fileName,
+        subtitle: `Invoice #${inv.invoiceNumber} • Rs. ${(inv.totalAmount || 0).toLocaleString("en-IN")} • ${(inv.status || "PAID").toUpperCase()}`,
+        dateStr: inv.serviceDate || "Recorded",
+        raw: inv,
+        onView: () => handleViewInvoicePdf(inv),
+        onDownload: () => handleDownloadInvoicePdf(inv)
+      });
+    });
+
+    // 4. Uploaded Medical Files / Scans
+    (files || []).forEach((file) => {
+      if (!file) return;
+      const fObj = file as any;
+      const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
+      const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
+      const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
+      const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
+      const isDocOnly = file.isDoctorOnly === true || fObj.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
+
+      if (!list.some((f) => f.fileName === file.fileName)) {
+        list.push({
+          id: file.id || fId || Math.random().toString(),
+          category: "FILE",
+          fileName: file.fileName || "Medical Document",
+          subtitle: isDocOnly 
+            ? `Doctor Reference • ${formatBytes(file.fileSize)}`
+            : `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
+          dateStr: dateStr,
+          sizeFormatted: formatBytes(file.fileSize),
+          raw: file,
+          isDoctorOnly: isDocOnly,
+          webViewLink: viewUrl,
+          downloadLink: downloadUrl
+        });
+      }
+    });
+
+    return list;
+  }, [patient, consultations, activePrescription, prescriptionsHistory, patientInvoices, files]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-96 items-center justify-center text-slate-500 text-xs font-semibold">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-green mb-3" />
+        <span>Loading clinical patient profile...</span>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="flex flex-col h-96 items-center justify-center text-red-500 text-xs font-semibold">
+        <AlertCircle className="h-8 w-8 text-red-400 mb-3" />
+        <span>{error || "Failed to load patient detail profile."}</span>
+        <Link 
+          href="/dashboard/patients" 
+          className="mt-4 px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 flex items-center gap-1.5 font-black text-slate-700"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Directory
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-page-fade max-w-7xl mx-auto">
+      
+      {/* Back to Directory Link */}
+      <div className="flex items-center gap-2 text-xs font-bold text-slate-400 select-none">
+        <Link href="/dashboard/patients" className="hover:text-brand-green transition-colors">
+          Patients Database
+        </Link>
+        <ChevronRight className="w-3.5 h-3.5" />
+        <span className="text-slate-500 font-extrabold">{patient.name}</span>
+      </div>
+
+      {/* Main Clinical Profile Header */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-[#1b3d2f] text-white flex items-center justify-center font-black text-xl uppercase ring-4 ring-emerald-500/10 shrink-0">
+            {patient.name.charAt(0)}
+          </div>
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-black text-brand-charcoal dark:text-white tracking-tight">
+                {patient.name}
+              </h1>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                patient.status === "active" 
+                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/35" 
+                  : patient.status === "pending"
+                    ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200/30"
+                    : "bg-slate-100 text-slate-655 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/30"
+              }`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {patient.status}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 font-bold mt-1">
+              Patient ID: <span className="text-brand-charcoal dark:text-white uppercase font-black">{patient.id}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap self-start md:self-center">
+          <button
+            onClick={() => setIsPrescriberOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all shadow-md cursor-pointer"
+          >
+            <Dumbbell className="h-4.5 w-4.5" />
+            Prescribe Exercises
+          </button>
+
+          {patient.googleDriveFolderId ? (
+            <a
+              href={`https://drive.google.com/drive/folders/${patient.googleDriveFolderId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-300 hover:text-brand-green hover:border-brand-green/30 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all shadow-sm"
+            >
+              <Folder className="h-4.5 w-4.5 text-brand-green" />
+              View Drive Folder
+            </a>
+          ) : (
+            <span className="text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200/50 dark:border-slate-800 select-none">
+              No Drive Folder Associated
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Main Grid: Left Side Clinical details, Right Side History tabs */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+        
+        {/* Left Column: Basic Patient Clinical Info (Span 4) */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Card 1: Patient Information */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-5">
+            <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+              Patient Information
+            </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-[9px] font-extrabold uppercase text-slate-400">Treatment Plan</p>
+                <p className="text-xs font-bold text-brand-green mt-1 bg-brand-bg dark:bg-brand-green/10 border border-brand-green/10 px-2.5 py-1 rounded-xl inline-block lowercase">
+                  {patient.treatmentPlan}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-850 pt-3">
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Gender</p>
+                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.gender || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Age</p>
+                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">
+                    {patient.age ? `${patient.age} yrs` : patient.dob || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
+                <p className="text-[9px] font-extrabold uppercase text-slate-400">Contact Number</p>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
+                  <button
+                    onClick={() => {
+                      let cleanPhone = patient.phone.replace(/\D/g, "");
+                      if (cleanPhone.startsWith("0")) {
+                        cleanPhone = cleanPhone.replace(/^0+/, "");
+                      }
+                      if (cleanPhone.length === 10) {
+                        cleanPhone = "91" + cleanPhone;
+                      }
+                      if (!cleanPhone || cleanPhone.length < 10) {
+                        cleanPhone = "919206651295";
+                      }
+                      const waUrl = `https://wa.me/${cleanPhone}`;
+                      window.open(waUrl, "_blank");
+                    }}
+                    className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-sand/50 dark:bg-brand-green/20 px-2.5 py-1 rounded-lg hover:bg-brand-sand transition-colors cursor-pointer"
+                    title="Chat on WhatsApp"
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Email Address</p>
+                  {!patient.email && (
+                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.5 rounded-md">
+                      Missing
+                    </span>
+                  )}
+                </div>
+
+                {isEditingEmail ? (
+                  <div className="mt-1.5 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="email"
+                        placeholder="patient@gmail.com"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveEmail}
+                        disabled={savingEmail || !emailInput.trim()}
+                        className="px-3 py-1.5 rounded-xl bg-brand-green text-white text-[10px] font-black cursor-pointer hover:bg-brand-green-hover disabled:opacity-50 active:scale-95 shrink-0"
+                      >
+                        {savingEmail ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingEmail(false);
+                          setEmailError("");
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {emailError && (
+                      <p className="text-[10px] font-bold text-red-500">{emailError}</p>
+                    )}
+                  </div>
+                ) : patient.email ? (
+                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                    <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 truncate">{patient.email}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput(patient.email);
+                        setIsEditingEmail(true);
+                      }}
+                      className="text-[10px] font-black text-slate-400 hover:text-brand-green cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs text-slate-400 italic font-semibold">Not registered yet</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmailInput("");
+                        setIsEditingEmail(true);
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-green/10 hover:bg-brand-green hover:text-white px-2.5 py-1 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add Email</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
+                <p className="text-[9px] font-extrabold uppercase text-slate-400">Primary Therapist</p>
+                <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.therapistName || defaultTherapist}</p>
+              </div>
+
+              {/* Patient Hub Portal Status / Activation Code */}
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
+                <p className="text-[9px] font-extrabold uppercase text-slate-400">Patient Hub Portal</p>
+                {patient.activated ? (
+                  <div className="flex items-center gap-1.5 mt-1 text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>Active Profile</span>
+                  </div>
+                ) : patient.email && patient.activationCode ? (
+                  <div className="space-y-1.5 mt-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-black text-slate-700 dark:text-slate-200 font-mono tracking-wider bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-lg">
+                        {patient.activationCode}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (patient.activationCode) {
+                            navigator.clipboard.writeText(patient.activationCode);
+                            alert("Portal activation code copied to clipboard!");
+                          }
+                        }}
+                        className="text-[10px] font-black text-brand-green hover:underline cursor-pointer border-0 bg-transparent"
+                      >
+                        Copy Code
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSendPortalInvite}
+                      className="w-full flex items-center justify-center gap-1.5 text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-1.5 rounded-xl hover:bg-emerald-100 transition-colors cursor-pointer active:scale-95"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      <span>Send WhatsApp Invite</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                      <Lock className="w-3 h-3 shrink-0" />
+                      <span>Locked (Missing Email)</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-semibold leading-tight">
+                      Add patient email above to generate Patient Hub activation code.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Care Metrics (Forest Green Mockup layout) */}
+          <div className="bg-[#1b3d2f] text-white rounded-3xl p-6 shadow-md border border-brand-green/10 space-y-4">
+            <div className="flex items-center gap-2 text-white font-extrabold text-xs select-none">
+              <Activity className="h-4.5 w-4.5 text-emerald-400 animate-pulse" />
+              <span>Care Metrics</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="bg-white/10 dark:bg-slate-950/40 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[9px] font-black uppercase text-white/60 tracking-wider">Total Visits</p>
+                <p className="text-3xl font-black text-white mt-1.5">{consultations.length}</p>
+                <p className="text-[8.5px] font-bold text-white/50 mt-1 uppercase tracking-wide">All-time logs</p>
+              </div>
+              
+              <div className="bg-white/10 dark:bg-slate-950/40 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[9px] font-black uppercase text-white/60 tracking-wider">Reliability</p>
+                <p className="text-3xl font-black text-emerald-400 mt-1.5">{patient.attendanceRate || 92}%</p>
+                <p className="text-[8.5px] font-bold text-white/50 mt-1 uppercase tracking-wide">Appt. Kept</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Provider Reminders (Dashed Border Mockup layout) */}
+          <div className="border border-dashed border-slate-350 dark:border-slate-800 rounded-3xl p-6 bg-slate-50/50 dark:bg-slate-950/10 space-y-4">
+            <div className="flex items-center gap-2 text-brand-charcoal dark:text-white font-black text-[11px] uppercase tracking-wider select-none">
+              <BellRing className="h-4 w-4 text-amber-500" />
+              <span>Provider Reminders</span>
+            </div>
+
+            {/* List */}
+            <div className="space-y-2.5 max-h-48 overflow-y-auto pr-0.5">
+              {(!patient.reminders || patient.reminders.length === 0) ? (
+                <div className="text-[11px] font-semibold text-slate-400 italic py-2 pl-1 select-none">
+                  No custom reminders configured. Add below.
+                </div>
+              ) : (
+                patient.reminders.map((rem, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-start justify-between gap-3 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200/50 dark:border-slate-850 shadow-sm relative group"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0 mt-1.5" />
+                      <span className="leading-normal">{rem}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteReminder(idx)}
+                      disabled={updatingReminders}
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 p-0.5 rounded transition-all shrink-0 cursor-pointer"
+                      title="Delete Reminder"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add input form */}
+            <form onSubmit={handleAddReminder} className="flex items-center gap-2 pt-2 border-t border-slate-200/40 dark:border-slate-800/40">
+              <input
+                type="text"
+                placeholder="Add clinical reminder..."
+                value={newReminder}
+                onChange={(e) => setNewReminder(e.target.value)}
+                disabled={updatingReminders}
+                required
+                className="flex-grow rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold outline-none focus:border-brand-green text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+              <button
+                type="submit"
+                disabled={updatingReminders || !newReminder.trim()}
+                className="p-2.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer shrink-0"
+                title="Add Reminder"
+              >
+                {updatingReminders ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Plus className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Card 4: Home Workout Adherence & Patient Compliance Matrix (Pure Read-Only Mirror of Patient Hub SSOT) */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-black text-xs uppercase tracking-wider">
+                <Dumbbell className="h-4 w-4 text-brand-green dark:text-teal-400" />
+                <span>Home Workout Adherence</span>
+              </div>
+              <button
+                onClick={() => setIsPrescriberOpen(true)}
+                className="text-[10px] font-black text-brand-green dark:text-teal-400 hover:underline cursor-pointer"
+              >
+                {activePrescription ? "Adjust Plan" : "+ Prescribe"}
+              </button>
+            </div>
+
+            {activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0 ? (
+              <div className="space-y-3.5">
+                {/* Program Summary Header */}
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-slate-900 dark:text-white">
+                      {activePrescription.durationDays || 14}-Day Care Protocol
+                    </span>
+                    <span className="text-[10px] font-black text-brand-green dark:text-teal-400 bg-brand-green/10 dark:bg-teal-950 px-2 py-0.5 rounded-md">
+                      Day {workoutProgress?.currentDayNumber || 1} of {activePrescription.durationDays || 14}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    Prescribed: {activePrescription.prescribedDateFormatted} • {activePrescription.exercises.length} Exercises
+                  </p>
+                </div>
+
+                {/* Adherence Score & Streak */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 p-3 rounded-2xl text-center">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                      Adherence
+                    </span>
+                    <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      {workoutProgress?.adherencePercent || 0}%
+                    </p>
+                    <p className="text-[8.5px] font-bold text-emerald-600/70 dark:text-emerald-400/70">
+                      {workoutProgress?.completedDaysCount || 0} of {activePrescription.durationDays || 14} Days Done
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 p-3 rounded-2xl text-center">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                      Active Streak
+                    </span>
+                    <p className="text-xl font-black text-amber-700 dark:text-amber-400 mt-0.5 flex items-center justify-center gap-1">
+                      <Flame className="h-4 w-4 fill-current text-orange-500" />
+                      <span>{workoutProgress?.streakDays || 0}d</span>
+                    </p>
+                    <p className="text-[8.5px] font-bold text-amber-600/70 dark:text-amber-400/70">
+                      Consecutive Log
+                    </p>
+                  </div>
+                </div>
+
+                {/* Compliance Matrix with Live Day Ticks */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    <span>Patient Compliance Matrix</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{workoutProgress?.completedDaysCount || 0} Days Completed</span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {Array.from({ length: Math.min(activePrescription.durationDays || 14, 28) }).map((_, idx) => {
+                      const dayNum = idx + 1;
+                      const startDate = activePrescription.startDate || getLocalDateString();
+                      const dayDateStr = getProgramDayDateString(startDate, idx);
+                      const dayLog = workoutProgress?.dailyLogs?.[dayDateStr];
+                      const isDone = dayLog?.isFullyCompleted === true || (dayLog?.completedExerciseIds && dayLog.completedExerciseIds.length > 0);
+                      const isCurrent = dayNum === (workoutProgress?.currentDayNumber || 1);
+                      const isPassed = dayNum < (workoutProgress?.currentDayNumber || 1);
+                      const isMissed = isPassed && !isDone;
+
+                      return (
+                        <div
+                          key={dayNum}
+                          className={`h-7 rounded-xl flex items-center justify-center text-[10px] font-black transition-all shadow-xs ${
+                            isDone
+                              ? "bg-emerald-500 text-white font-black shadow-xs"
+                              : isCurrent
+                              ? "bg-[#f9ab55] text-[#062e36] ring-2 ring-[#f9ab55]/80 animate-pulse font-black"
+                              : isMissed
+                              ? "bg-rose-50 dark:bg-rose-950/30 text-rose-500 border border-rose-200 dark:border-rose-900/40"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                          }`}
+                          title={`Day ${dayNum} (${dayDateStr}): ${
+                            isDone 
+                              ? `Completed (${dayLog?.completedExerciseIds?.length || 0} exercises)` 
+                              : isCurrent 
+                              ? "Active Today" 
+                              : isMissed 
+                              ? "Incomplete / Skipped" 
+                              : "Scheduled"
+                          }`}
+                        >
+                          {isDone ? "✓" : dayNum}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Prescribed List Preview */}
+                <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                    Assigned Routine:
+                  </p>
+                  {activePrescription.exercises.map((ex, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300">
+                      <span className="font-semibold truncate max-w-[180px]">{ex.title}</span>
+                      <span className="text-[10px] font-bold text-slate-400">{ex.sets}x{ex.repsOrHold}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/30">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                  No active routine prescribed yet.
+                </p>
+                <button
+                  onClick={() => setIsPrescriberOpen(true)}
+                  className="mt-2 text-xs font-black text-brand-green dark:text-teal-400 hover:underline cursor-pointer"
+                >
+                  + Create Rehabilitation Plan
+                </button>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* Right Column: Timelines & File Upload Form (Span 8) */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* Tab Selector Navigation */}
+          <div className="border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab("timeline")}
+                className={`pb-4 text-xs font-black relative transition-all ${
+                  activeTab === "timeline"
+                    ? "text-brand-green border-b-2 border-brand-green"
+                    : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
+                }`}
+              >
+                Consultation
+              </button>
+              <button
+                onClick={() => setActiveTab("files")}
+                className={`pb-4 text-xs font-black relative transition-all ${
+                  activeTab === "files"
+                    ? "text-brand-green border-b-2 border-brand-green"
+                    : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
+                }`}
+              >
+                Medical Scans & Files ({allUnifiedFiles.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("invoices")}
+                className={`pb-4 text-xs font-black relative transition-all ${
+                  activeTab === "invoices"
+                    ? "text-brand-green border-b-2 border-brand-green"
+                    : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
+                }`}
+              >
+                Invoices & Billing ({patientInvoices.length})
+              </button>
+            </div>
+          </div>
+
+          {/* TAB 1: timeline panel */}
+          {activeTab === "timeline" && (
+            <div className="space-y-6">
+              
+              {/* Form to Log a New Consultation */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                  <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-wider flex items-center gap-2">
+                    <PlusCircle className="w-5 h-5 text-brand-green" />
+                    Log Consultation & Clinical Notes
+                  </h3>
+                </div>
+
+                <form onSubmit={handleLogVisit} className="space-y-4">
+                  {formSuccess && (
+                    <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-2xl flex items-center gap-2 animate-fade-in">
+                      <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{formSuccess}</span>
+                    </div>
+                  )}
+                  {formError && (
+                    <div className="p-3.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 text-xs font-bold rounded-2xl flex items-center gap-2 animate-shake">
+                      <AlertCircle className="w-4.5 h-4.5 text-red-500 shrink-0" />
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
+                  {/* Top Controls Toolbar: Date Picker, Quick Presets, Template & Expand */}
+                  <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    
+                    {/* Date Input with [Today] and [Yesterday] quick buttons */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="text-[10px] font-black uppercase text-slate-400 mr-1 select-none">
+                        Date:
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        max={maxDateStr}
+                        value={visitDate}
+                        onChange={(e) => setVisitDate(e.target.value)}
+                        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-bold outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                      />
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setQuickDate("today")}
+                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-brand-green hover:text-brand-green transition-all cursor-pointer"
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQuickDate("yesterday")}
+                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-brand-green hover:text-brand-green transition-all cursor-pointer"
+                        >
+                          Yesterday
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Quick Format & Layout Actions */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={insertSoapSkeleton}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:border-brand-green hover:text-brand-green transition-all cursor-pointer"
+                        title="Insert SOAP Clinical Note Template"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-brand-green" />
+                        <span>+ SOAP Template</span>
+                      </button>
+
+                      {notes && (
+                        <button
+                          type="button"
+                          onClick={() => setNotes("")}
+                          className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-bold text-slate-400 hover:text-red-500 transition-all cursor-pointer"
+                          title="Clear notes"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsEditorExpanded(!isEditorExpanded)}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${
+                          isEditorExpanded
+                            ? "bg-brand-green text-white border-brand-green"
+                            : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-brand-green"
+                        }`}
+                        title={isEditorExpanded ? "Collapse Editor View" : "Expand Editor View"}
+                      >
+                        {isEditorExpanded ? (
+                          <>
+                            <Minimize2 className="w-3.5 h-3.5" />
+                            <span>Compact</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            <span>Expand View</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* Spacious Clinical Notes Area */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Session Details & SOAP Clinical Recovery Notes
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        {notes.length > 0 ? `${notes.length} characters` : "Auto-expand supported"}
+                      </span>
+                    </div>
+                    <textarea
+                      placeholder="Type clinical session notes (Subjective complaints, Range of motion measurements, Modalities administered, and Home Exercise prescriptions) or click 'Scan Case Sheet' below."
+                      rows={isEditorExpanded ? 16 : 8}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 text-xs sm:text-sm font-mono sm:font-sans font-medium outline-none focus:border-brand-green focus:ring-2 focus:ring-brand-green/10 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 leading-relaxed shadow-inner transition-all"
+                    />
+                  </div>
+
+                  {/* Drag-and-drop / File upload & AI Scanner Box */}
+                  <div className="border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-5 bg-slate-50/30 dark:bg-slate-950/20 flex flex-col items-center justify-center gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-950/30 transition-all">
+                    <div className="flex flex-col items-center text-center">
+                      <p className="text-[11px] font-black text-slate-600 dark:text-slate-300">
+                        {selectedFile ? `Attached file: ${selectedFile.name}` : "Attach physical case sheet, medical scan, or prescription"}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {selectedFile ? `File size: ${formatBytes(selectedFile.size)} • Will upload to Google Drive` : "Select an option below to transcribe handwriting or upload to Drive"}
+                      </p>
+                      {selectedFile && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFile(null)}
+                          className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[10px] font-bold hover:bg-red-100 transition-all cursor-pointer border border-red-200 dark:border-red-900"
+                        >
+                          <X className="w-3 h-3" />
+                          <span>Remove / Clear File</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-lg pt-1">
+                      {/* Option 1: AI Case Sheet Scanner */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScannerType("CLINICAL_ASSESSMENT");
+                          setScannerOpen(true);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white shadow-md shadow-orange-500/20 px-4 py-2.5 text-xs font-black transition-all cursor-pointer active:scale-95"
+                      >
+                        <Sparkles className="w-4 h-4 text-amber-200" />
+                        <span>Scan Case Sheet</span>
+                        <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase font-extrabold tracking-wider">
+                          AI
+                        </span>
+                      </button>
+
+                      {/* Option 2: Choose File */}
+                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
+                        <Upload className="w-4 h-4 text-brand-green" />
+                        <span>Choose File</span>
+                        <input
+                          type="file"
+                          id="file-input"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+
+                      {/* Option 3: Camera Capture */}
+                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
+                        <Camera className="w-4 h-4 text-brand-green" />
+                        <span>Take Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={submitting || (!notes.trim() && !selectedFile)}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Saving Session...</span>
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircle className="w-4 h-4" />
+                          <span>Log Consultation</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Collapsible Consultation Timeline History */}
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
+                  className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-left transition-all hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Calendar className="w-4.5 h-4.5 text-brand-green" />
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                      Consultation History ({consultations.length})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold">
+                    <span>{isHistoryCollapsed ? "Show Timeline" : "Collapse Timeline"}</span>
+                    {isHistoryCollapsed ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </div>
+                </button>
+
+                {!isHistoryCollapsed && (
+                  <div className="space-y-4 relative pl-6 border-l-2 border-slate-200 dark:border-slate-800 ml-2 pt-2 animate-fade-in">
+                    {consultations.length === 0 ? (
+                      <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+                        <FileText className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+                        <span>No visit logs recorded for this patient yet.</span>
+                      </div>
+                    ) : (
+                      consultations.map((consult) => {
+                        const isExpanded = expandedLogIds.includes(consult.id);
+                        const isLong = consult.summary && consult.summary.length > 220;
+
+                        return (
+                          <div 
+                            key={consult.id} 
+                            className="relative group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300"
+                          >
+                            {/* Circle Dot Marker */}
+                            <span className="absolute -left-[31px] top-6.5 h-3.5 w-3.5 rounded-full bg-white dark:bg-slate-950 border-4 border-[#1b3d2f] ring-2 ring-emerald-500/20" />
+                            
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-3">
+                              <div className="flex items-center gap-2 text-xs text-brand-green font-black">
+                                <Calendar className="w-4 h-4" />
+                                <span>{consult.date}</span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-850">
+                                Logged by: {consult.therapistName}
+                              </span>
+                            </div>
+
+                            <p className={`text-xs font-medium text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed ${
+                              !isExpanded && isLong ? "line-clamp-3" : ""
+                            }`}>
+                              {consult.summary}
+                            </p>
+
+                            {isLong && (
+                              <button
+                                type="button"
+                                onClick={() => toggleLogExpand(consult.id)}
+                                className="mt-2.5 text-[11px] font-bold text-brand-green hover:underline cursor-pointer border-0 bg-transparent flex items-center gap-1"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <span>Show Less</span>
+                                    <ChevronUp className="w-3 h-3" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Read Full Note</span>
+                                    <ChevronDown className="w-3 h-3" />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: files list panel */}
+          {activeTab === "files" && (
+            <div className="space-y-4">
+              {/* Scan Doctor Referral & Dedicated Photo / Scan Upload Toolbar */}
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50/40 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 border border-emerald-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Folder className="w-4 h-4 text-emerald-600 dark:text-teal-400" />
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                      Clinical Scans, X-Rays & Medical Files
+                    </h4>
+                    <span className="bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" />
+                      Doctor Only
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    Upload medical scans, MRI/X-Ray photos, or scan external doctor referral slips. Files saved here are kept securely for clinical reference and hidden from the patient hub.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+                  {/* Hidden file input supporting camera capture & gallery selection */}
+                  <input
+                    ref={doctorScanFileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleUploadDoctorScan}
+                  />
+
+                  {/* Dedicated Upload / Take Photo Button */}
+                  <button
+                    type="button"
+                    disabled={uploadingDoctorScan}
+                    onClick={() => doctorScanFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2.5 text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
+                    title="Upload or snap medical scan/photo with device camera"
+                  >
+                    {uploadingDoctorScan ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5" />
+                    )}
+                    <span>{uploadingDoctorScan ? "Uploading..." : "Upload / Take Photo"}</span>
+                  </button>
+
+                  {/* Scan Prescription OCR Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScannerType("DOCTOR_PRESCRIPTION");
+                      setScannerOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white px-4 py-2.5 text-xs font-black transition-all shadow-md shadow-orange-500/20 active:scale-95 cursor-pointer shrink-0"
+                    title="Extract referral with Gemini OCR"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                    <span>Scan with OCR</span>
+                    <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase font-extrabold tracking-wider">
+                      AI
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {formSuccess && (
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-2xl flex items-center justify-between gap-2 animate-fade-in shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>{formSuccess}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormSuccess("")}
+                    className="text-emerald-600 hover:text-emerald-800 p-1 rounded-md cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {formError && (
+                <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 text-xs font-bold rounded-2xl flex items-center justify-between gap-2 animate-shake shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormError("")}
+                    className="text-red-600 hover:text-red-800 p-1 rounded-md cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {allUnifiedFiles.length === 0 ? (
+                <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+                  <Folder className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <span>No medical records uploaded for this patient.</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {allUnifiedFiles.map((file) => {
+                    const isPrescription = file.category === "PRESCRIPTION";
+                    const isInvoice = file.category === "INVOICE";
+
+                    return (
+                      <div 
+                        key={file.id} 
+                        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
+                      >
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                            isPrescription 
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              : isInvoice
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                              : file.isDoctorOnly
+                              ? "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300"
+                              : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300"
+                          }`}>
+                            {isPrescription ? (
+                              <FileText className="w-5 h-5" />
+                            ) : isInvoice ? (
+                              <Receipt className="w-5 h-5" />
+                            ) : file.isDoctorOnly ? (
+                              <Camera className="w-5 h-5" />
+                            ) : (
+                              <Folder className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div className="overflow-hidden">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                isPrescription
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/80 dark:border-emerald-800 dark:text-emerald-300"
+                                  : isInvoice
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/80 dark:border-amber-800 dark:text-amber-300"
+                                  : "bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                              }`}>
+                                {file.category}
+                              </span>
+                              {file.isDoctorOnly && (
+                                <span className="bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  <span>Doctor Reference</span>
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate mt-1">
+                              {file.fileName}
+                            </h4>
+                            <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-0.5 truncate">
+                              {file.subtitle}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* View Button */}
+                          {file.webViewLink ? (
+                            <a
+                              href={file.webViewLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="View Document"
+                            >
+                              <Eye className="w-4.5 h-4.5" />
+                            </a>
+                          ) : file.onView ? (
+                            <button
+                              type="button"
+                              onClick={file.onView}
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="Preview PDF"
+                            >
+                              <Eye className="w-4.5 h-4.5" />
+                            </button>
+                          ) : null}
+
+                          {/* Download Button */}
+                          {file.downloadLink ? (
+                            <a
+                              href={file.downloadLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="Download File"
+                            >
+                              <Download className="w-4.5 h-4.5" />
+                            </a>
+                          ) : file.onDownload ? (
+                            <button
+                              type="button"
+                              onClick={file.onDownload}
+                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
+                              title="Download PDF"
+                            >
+                              <Download className="w-4.5 h-4.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: Invoices & Billing */}
+          {activeTab === "invoices" && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Patient Invoices & Receipts ({patientInvoices.length})
+                  </h3>
+                  <p className="text-xs text-slate-400 font-bold mt-0.5">
+                    Official tax invoices and payment receipts generated for {patient.name}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedInvoiceForEdit(null);
+                    setIsPatientInvoiceModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Invoice</span>
+                </button>
+              </div>
+
+              {patientInvoices.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                  <Receipt className="h-10 w-10 text-brand-green mx-auto" />
+                  <div>
+                    <h4 className="text-sm font-black text-slate-800 dark:text-white">No Invoices Issued Yet</h4>
+                    <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1">
+                      Generate an itemized treatment invoice for {patient.name}. It will automatically sync to their Patient Hub portal and Google Drive.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedInvoiceForEdit(null);
+                      setIsPatientInvoiceModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-green text-white text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer hover:bg-brand-green-hover transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Generate First Invoice</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {patientInvoices.map((inv) => {
+                    const isPaid = inv.status === "paid";
+                    const isVoided = inv.status === "voided" || inv.status === "cancelled";
+
+                    return (
+                      <div
+                        key={inv.id}
+                        className={`p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50 hover:bg-white dark:hover:bg-slate-850 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isVoided ? "opacity-60 bg-rose-50/10" : ""
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-slate-900 dark:text-white">
+                              {inv.invoiceNumber}
+                            </span>
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                Paid
+                              </span>
+                            ) : isVoided ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-400 text-[10px] font-black uppercase" title={inv.voidReason || "Voided"}>
+                                <Ban className="w-2.5 h-2.5" />
+                                Voided
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase">
+                                <Clock className="w-2.5 h-2.5" />
+                                Pending
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {inv.serviceDate} • {inv.paymentMethod || "UPI"}
+                            </span>
+                          </div>
+
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            {inv.items?.map((it) => it.description).filter(Boolean).join(", ") || "Physiotherapy Treatment"}
+                          </p>
+
+                          <div className="text-[11px] font-bold text-slate-400">
+                            Therapist: <span className="text-slate-600 dark:text-slate-200">{inv.therapistName || "Dr. Kinnera"}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-800">
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                              Total Amount
+                            </span>
+                            <span className={`text-sm font-black ${isVoided ? "line-through text-slate-400" : "text-brand-green dark:text-emerald-400"}`}>
+                              ₹{(inv.totalAmount || 0).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {/* 1. Edit Invoice (FIRST) */}
+                            {!isVoided && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedInvoiceForEdit(inv);
+                                  setIsPatientInvoiceModalOpen(true);
+                                }}
+                                className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                                title="Edit Invoice"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                  Edit / Correct invoice items
+                                </span>
+                              </button>
+                            )}
+
+                            {/* 2. WhatsApp Button */}
+                            {(inv.patientPhone || patient.phone) && !isVoided && (
+                              <a
+                                href={getWhatsAppInvoiceUrl(inv)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative"
+                                title="Send WhatsApp bill to patient"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                  Send WhatsApp bill directly to patient
+                                </span>
+                              </a>
+                            )}
+
+                            {/* 3. Download PDF */}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoicePdf(inv)}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                              title="Download PDF"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Download official PDF tax receipt
+                              </span>
+                            </button>
+
+                            {/* 4. View PDF Preview */}
+                            <button
+                              type="button"
+                              onClick={() => handleViewInvoicePdf(inv)}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                              title="View Invoice PDF"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                View full invoice PDF
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+      {/* Exercise Prescriber Modal */}
+      {patient && (
+        <ExercisePrescriberModal
+          isOpen={isPrescriberOpen}
+          onClose={() => setIsPrescriberOpen(false)}
+          patientId={patient.id}
+          patientName={patient.name}
+          pid={patient.id}
+          lastSeen={patient.lastVisit || "Today"}
+          googleDriveFolderId={patient.googleDriveFolderId}
+          therapistName={patient.therapistName || defaultTherapist || "Dr. Kinnera"}
+          onPrescriptionSaved={() => {
+            loadPatientDetails();
+          }}
+        />
+      )}
+
+      {/* Gemini AI Document Scanner Modal */}
+      {patient && (
+        <DocumentScannerModal
+          isOpen={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          documentType={scannerType}
+          patientName={patient.name}
+          onApply={handleApplyScanResult}
+        />
+      )}
+
+      {/* Create & Edit Invoice Modal for Patient Profile */}
+      {isPatientInvoiceModalOpen && patient && (
+        <CreateEditInvoiceModal
+          isOpen={isPatientInvoiceModalOpen}
+          initialInvoice={selectedInvoiceForEdit}
+          initialPatient={patient}
+          patients={[patient]}
+          onClose={() => {
+            setIsPatientInvoiceModalOpen(false);
+            setSelectedInvoiceForEdit(null);
+          }}
+          onSuccess={(msg) => {
+            setIsPatientInvoiceModalOpen(false);
+            setSelectedInvoiceForEdit(null);
+            setFormSuccess(msg);
+            setTimeout(() => setFormSuccess(""), 4000);
+          }}
+          buildInvoicePdf={buildInvoicePdf}
+        />
+      )}
+
+    </div>
+  );
+}
