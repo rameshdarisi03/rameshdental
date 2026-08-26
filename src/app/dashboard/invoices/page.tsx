@@ -4,42 +4,33 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
   subscribeInvoices, 
-  createInvoice, 
   updateInvoiceStatus, 
+  voidInvoice,
   deleteInvoice, 
-  generateInvoiceNumber, 
-  CLINICAL_SERVICES_PRESETS, 
-  Invoice, 
-  InvoiceItem 
+  Invoice 
 } from "@/lib/invoicesDb";
 import { getPatients, Patient } from "@/lib/patientsDb";
 import { FEATURES } from "@/lib/features";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
+import ViewInvoiceModal from "@/components/dashboard/invoices/ViewInvoiceModal";
 import { 
   Receipt, 
   Plus, 
-  Trash2, 
   CheckCircle2, 
   Clock, 
   AlertCircle, 
   Search, 
-  Printer, 
   Download, 
-  Share2, 
-  Send, 
-  MoreVertical, 
   CreditCard, 
-  Building2, 
-  User, 
-  Calendar, 
-  FileText, 
-  DollarSign, 
-  Sparkles, 
   Loader2, 
-  ArrowLeft,
   MessageSquare,
-  Mail
+  HelpCircle,
+  Edit2,
+  Ban,
+  Check,
+  FileText,
+  X
 } from "lucide-react";
 
 export default function ClinicalBillingPage() {
@@ -58,46 +49,22 @@ export default function ClinicalBillingPage() {
   const [loading, setLoading] = useState(true);
 
   // Filter & Search States
-  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "overdue">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "overdue" | "voided">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Invoice Form Builder States
-  const [currentInvNumber, setCurrentInvNumber] = useState("");
-  const [selectedPatientId, setSelectedPatientId] = useState("");
-  const [patientSearchText, setPatientSearchText] = useState("");
-  const [patientDropdownOpen, setPatientDropdownOpen] = useState(false);
-  
-  const [patientName, setPatientName] = useState("");
-  const [patientPid, setPatientPid] = useState("");
-  const [patientEmail, setPatientEmail] = useState("");
-  const [patientPhone, setPatientPhone] = useState("");
-  const [therapistName, setTherapistName] = useState("Dr. Kinnera");
+  // Modal States
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [voidingInvoice, setVoidingInvoice] = useState<Invoice | null>(null);
+  const [voidReason, setVoidReason] = useState("");
 
-  const [serviceDate, setServiceDate] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  
-  const [items, setItems] = useState<InvoiceItem[]>([
-    { id: "1", description: "Initial Physiotherapy Assessment", quantity: 1, unitPrice: 120, amount: 120 }
-  ]);
+  // Quick Payment Menu State
+  const [activePaymentMenuId, setActivePaymentMenuId] = useState<string | null>(null);
 
-  const [taxRate, setTaxRate] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<Invoice["paymentMethod"]>("UPI");
-  const [notes, setNotes] = useState("");
-
-  const [submitting, setSubmitting] = useState(false);
+  // Global Action Feedback
   const [actionSuccess, setActionSuccess] = useState("");
   const [actionError, setActionError] = useState("");
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-
-  // Initialize dates and invoice number
-  useEffect(() => {
-    setCurrentInvNumber(generateInvoiceNumber());
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    setServiceDate(todayStr);
-    setDueDate(todayStr);
-  }, []);
 
   // Subscribe to real-time invoices & load patients
   useEffect(() => {
@@ -120,164 +87,105 @@ export default function ClinicalBillingPage() {
     return () => unsubscribe();
   }, []);
 
-  // Filtered patients for autocomplete (matches Name, PID, or Mobile Phone Number)
-  const filteredPatients = useMemo(() => {
-    if (!patientSearchText.trim()) return patients;
-    const q = patientSearchText.toLowerCase();
-    return patients.filter(
-      (p) => p.name.toLowerCase().includes(q) || 
-             (p.customId && p.customId.toLowerCase().includes(q)) ||
-             (p.phone && p.phone.toLowerCase().includes(q))
-    );
-  }, [patients, patientSearchText]);
-
-  // Handle selecting patient from dropdown
-  const handleSelectPatient = (p: Patient) => {
-    setSelectedPatientId(p.id);
-    setPatientName(p.name);
-    setPatientPid(p.customId || `GPC-${p.id.slice(0, 5).toUpperCase()}`);
-    setPatientEmail(p.email || "");
-    setPatientPhone(p.phone || "");
-    setPatientSearchText(p.name);
-    setPatientDropdownOpen(false);
-  };
-
-  // Line item helpers
-  const handleAddItem = (preset?: { description: string; price: number }) => {
-    const newItem: InvoiceItem = {
-      id: Date.now().toString(),
-      description: preset ? preset.description : "",
-      quantity: 1,
-      unitPrice: preset ? preset.price : 0,
-      amount: preset ? preset.price : 0,
-    };
-    setItems((prev) => [...prev, newItem]);
-  };
-
-  const handleUpdateItem = (id: string, field: keyof InvoiceItem, val: any) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const updated = { ...item, [field]: val };
-        if (field === "quantity" || field === "unitPrice") {
-          const qty = field === "quantity" ? Number(val) : item.quantity;
-          const price = field === "unitPrice" ? Number(val) : item.unitPrice;
-          updated.amount = qty * price;
-        }
-        return updated;
-      })
-    );
-  };
-
-  const handleRemoveItem = (id: string) => {
-    if (items.length <= 1) return;
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  // Financial calculations
-  const subtotal = useMemo(() => {
-    return items.reduce((acc, item) => acc + (item.amount || 0), 0);
-  }, [items]);
-
-  const taxAmount = useMemo(() => {
-    return Math.round((subtotal * (taxRate / 100)) * 100) / 100;
-  }, [subtotal, taxRate]);
-
-  const totalAmount = useMemo(() => {
-    const total = subtotal + taxAmount - (discount || 0);
-    return total > 0 ? Math.round(total * 100) / 100 : 0;
-  }, [subtotal, taxAmount, discount]);
-
-  // Executive KPI summary calculations
-  const stats = useMemo(() => {
-    let unpaidCount = 0;
-    let unpaidTotal = 0;
-    let revenueMtd = 0;
-    let pendingCount = 0;
-    let overdueCount = 0;
-
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    invoices.forEach((inv) => {
-      if (inv.status === "pending" || inv.status === "overdue") {
-        unpaidCount++;
-        unpaidTotal += inv.totalAmount || 0;
-      }
-      if (inv.status === "pending") {
-        pendingCount++;
-      }
-      if (inv.status === "overdue") {
-        overdueCount++;
-      }
-
-      if (inv.status === "paid") {
-        const invDate = new Date(inv.serviceDate || inv.createdAt?.toDate?.() || Date.now());
-        if (invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear) {
-          revenueMtd += inv.totalAmount || 0;
-        }
-      }
-    });
-
-    return { unpaidCount, unpaidTotal, revenueMtd, pendingCount, overdueCount };
-  }, [invoices]);
-
-  // Filtered invoices table list (matches Invoice #, Patient Name, PID, or Mobile Phone Number)
+  // Filter Invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
-      if (statusFilter !== "all" && inv.status !== statusFilter) return false;
+      // 1. Status Filter
+      if (statusFilter === "paid" && inv.status !== "paid") return false;
+      if (statusFilter === "pending" && inv.status !== "pending") return false;
+      if (statusFilter === "overdue" && inv.status !== "overdue") return false;
+      if (statusFilter === "voided" && (inv.status !== "voided" && inv.status !== "cancelled")) return false;
+
+      // 2. Search Query (matches invoice number, patient name, PID, or phone)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const matchesInv = inv.invoiceNumber.toLowerCase().includes(q);
-        const matchesPatient = inv.patientName.toLowerCase().includes(q);
-        const matchesPid = inv.patientId.toLowerCase().includes(q);
-        const matchesPhone = inv.patientPhone && inv.patientPhone.toLowerCase().includes(q);
-        return matchesInv || matchesPatient || matchesPid || matchesPhone;
+        const numMatch = (inv.invoiceNumber || "").toLowerCase().includes(q);
+        const nameMatch = (inv.patientName || "").toLowerCase().includes(q);
+        const pidMatch = (inv.patientId || "").toLowerCase().includes(q);
+        const phoneMatch = (inv.patientPhone || "").toLowerCase().includes(q);
+        const therapistMatch = (inv.therapistName || "").toLowerCase().includes(q);
+        return numMatch || nameMatch || pidMatch || phoneMatch || therapistMatch;
       }
+
       return true;
     });
   }, [invoices, statusFilter, searchQuery]);
 
-  // Reset form
-  const handleResetForm = () => {
-    setCurrentInvNumber(generateInvoiceNumber());
-    setSelectedPatientId("");
-    setPatientSearchText("");
-    setPatientName("");
-    setPatientPid("");
-    setPatientEmail("");
-    setPatientPhone("");
-    const todayStr = new Date().toISOString().split("T")[0];
-    setServiceDate(todayStr);
-    setDueDate(todayStr);
-    setItems([{ id: Date.now().toString(), description: "Initial Physiotherapy Assessment", quantity: 1, unitPrice: 120, amount: 120 }]);
-    setTaxRate(0);
-    setDiscount(0);
-    setNotes("");
-    setActionSuccess("");
-    setActionError("");
+  // Executive KPI Calculations
+  const stats = useMemo(() => {
+    let unpaidTotal = 0;
+    let unpaidCount = 0;
+    let revenueMtd = 0;
+    let pendingCount = 0;
+    let overdueCount = 0;
+    let voidedCount = 0;
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    invoices.forEach((inv) => {
+      const invTotal = inv.totalAmount || 0;
+      const invDate = new Date(inv.serviceDate || Date.now());
+
+      if (inv.status === "voided" || inv.status === "cancelled") {
+        voidedCount++;
+        return; // Don't count voided in revenue
+      }
+
+      if (inv.status === "paid") {
+        if (invDate.getMonth() === currentMonth && invDate.getFullYear() === currentYear) {
+          revenueMtd += invTotal;
+        }
+      } else if (inv.status === "pending") {
+        pendingCount++;
+        unpaidCount++;
+        unpaidTotal += invTotal;
+      } else if (inv.status === "overdue") {
+        overdueCount++;
+        unpaidCount++;
+        unpaidTotal += invTotal;
+      }
+    });
+
+    return { unpaidTotal, unpaidCount, revenueMtd, pendingCount, overdueCount, voidedCount };
+  }, [invoices]);
+
+  // Handle Quick Status Change
+  const handleQuickPaymentChange = async (
+    inv: Invoice, 
+    newStatus: Invoice["status"], 
+    newMethod?: Invoice["paymentMethod"]
+  ) => {
+    try {
+      await updateInvoiceStatus(inv.id, newStatus, newMethod);
+      setActivePaymentMenuId(null);
+      setActionSuccess(`Invoice ${inv.invoiceNumber} updated to ${newStatus.toUpperCase()}!`);
+      setTimeout(() => setActionSuccess(""), 3000);
+    } catch (err: any) {
+      console.error("Error updating invoice status:", err);
+      setActionError("Failed to update status.");
+      setTimeout(() => setActionError(""), 3000);
+    }
   };
 
-  // Generate professional, vector-based PDF document using jsPDF (no HTML2Canvas, 100% resilient to CSS lab/oklch parser issues)
-  const buildInvoicePdfDocument = (inv: {
-    invoiceNumber: string;
-    patientId: string;
-    patientName: string;
-    patientEmail: string;
-    patientPhone: string;
-    therapistName: string;
-    serviceDate: string;
-    dueDate: string;
-    items: InvoiceItem[];
-    subtotal: number;
-    taxRate: number;
-    taxAmount: number;
-    discount: number;
-    totalAmount: number;
-    paymentMethod: string;
-    notes?: string;
-  }) => {
+  // Handle Void Confirmation
+  const handleConfirmVoid = async () => {
+    if (!voidingInvoice) return;
+    try {
+      await voidInvoice(voidingInvoice.id, voidReason || "Voided by clinic administrator");
+      setVoidingInvoice(null);
+      setVoidReason("");
+      setActionSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED.`);
+      setTimeout(() => setActionSuccess(""), 3000);
+    } catch (err: any) {
+      console.error("Error voiding invoice:", err);
+      setActionError("Failed to void invoice.");
+      setTimeout(() => setActionError(""), 3000);
+    }
+  };
+
+  // Build Vector PDF Document
+  const buildInvoicePdf = (inv: Invoice): jsPDF => {
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -285,93 +193,104 @@ export default function ClinicalBillingPage() {
     });
 
     const brandColor = [45, 90, 76]; // #2d5a4c
-    const textDark = [30, 41, 59]; // slate-800
-    const textMuted = [100, 116, 139]; // slate-500
+    const textDark = [15, 23, 42]; // #0f172a
+    const textMuted = [100, 116, 139]; // #64748b
 
-    // GPC logo header box
+    // Header Logo Icon
     pdf.setFillColor(brandColor[0], brandColor[1], brandColor[2]);
-    pdf.roundedRect(16, 16, 14, 14, 2, 2, "F");
-    
+    pdf.roundedRect(16, 14, 14, 14, 3, 3, "F");
     pdf.setTextColor(255, 255, 255);
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.text("GPC", 19, 25);
+    pdf.setFontSize(9);
+    pdf.text("GPC", 23, 23, { align: "center" });
 
     // Clinic text
     pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
     pdf.setFontSize(14);
-    pdf.text("Gait Physio Clinic", 34, 21);
+    pdf.text("Gait Physio Clinic", 34, 20);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(8);
     pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    pdf.text("123 Clinical Wellness Way, Sector 4", 34, 26);
-    pdf.text("Bangalore, KA 560001 • +91 92066 51295", 34, 30);
+    pdf.text("123 Clinical Wellness Way, Sector 4", 34, 25);
+    pdf.text("Bengaluru, Karnataka 560001 • +91 92066 51295", 34, 29);
 
     // Invoice Title & Metadata
     pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
-    pdf.text("INVOICE", 145, 21);
+    pdf.text("TAX INVOICE & RECEIPT", 130, 20);
     
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(8);
-    pdf.text(`Invoice #: ${inv.invoiceNumber}`, 145, 26);
-    pdf.text(`Date: ${inv.serviceDate}`, 145, 30);
+    pdf.text(`Invoice #: ${inv.invoiceNumber}`, 130, 25);
+    pdf.text(`Date: ${inv.serviceDate}`, 130, 29);
 
     // Divider line
     pdf.setDrawColor(226, 232, 240);
     pdf.setLineWidth(0.4);
-    pdf.line(16, 36, 194, 36);
+    pdf.line(16, 35, 194, 35);
 
     // Bill To & Status
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
-    pdf.text("BILL TO PATIENT:", 16, 44);
+    pdf.text("BILL TO PATIENT:", 16, 43);
     pdf.setFont("helvetica", "normal");
-    pdf.text(inv.patientName, 16, 49);
+    pdf.text(inv.patientName, 16, 48);
     pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
-    pdf.text(inv.patientId || "PID: ----", 16, 53);
+    pdf.text(inv.patientId || "PID: ----", 16, 52);
     if (inv.patientPhone) {
-      pdf.text(inv.patientPhone, 16, 57);
+      pdf.text(`Phone: ${inv.patientPhone}`, 16, 56);
     }
 
     pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
     pdf.setFont("helvetica", "bold");
-    pdf.text("PAYMENT STATUS:", 145, 44);
+    pdf.text("PAYMENT STATUS:", 130, 43);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-    pdf.text("UNPAID / DRAFT", 145, 49);
+    if (inv.status === "paid") {
+      pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+      pdf.text("PAID & SETTLED", 130, 48);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+      pdf.text(`Method: ${inv.paymentMethod || "UPI"}`, 130, 52);
+    } else if (inv.status === "voided") {
+      pdf.setTextColor(225, 29, 72);
+      pdf.text("CANCELLED / VOIDED", 130, 48);
+    } else {
+      pdf.setTextColor(217, 119, 6);
+      pdf.text("PAYMENT PENDING", 130, 48);
+    }
 
     // Green Divider
     pdf.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
     pdf.setLineWidth(0.8);
-    pdf.line(16, 64, 194, 64);
+    pdf.line(16, 62, 194, 62);
 
     // Table Headers
     pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
-    pdf.text("Service Description", 18, 71);
-    pdf.text("Amount", 175, 71, { align: "right" });
+    pdf.text("Service / Treatment Description", 18, 69);
+    pdf.text("Amount (INR)", 175, 69, { align: "right" });
 
     // Divider under header
     pdf.setDrawColor(226, 232, 240);
     pdf.setLineWidth(0.4);
-    pdf.line(16, 74, 194, 74);
+    pdf.line(16, 72, 194, 72);
 
     // Table Items
-    let currentY = 82;
+    let currentY = 80;
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(9);
     
-    inv.items.forEach((item: any) => {
-      pdf.text(item.description || "Service Item", 18, currentY);
-      pdf.text(`$${(item.amount || 0).toFixed(2)}`, 175, currentY, { align: "right" });
+    (inv.items || []).forEach((item: any) => {
+      pdf.text(item.description || "Physiotherapy Service", 18, currentY);
+      pdf.text(`Rs. ${(item.amount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
       
       // thin line under item
       pdf.setDrawColor(241, 245, 249);
       pdf.line(16, currentY + 3, 194, currentY + 3);
-      currentY += 10;
+      currentY += 9;
     });
 
     // Summary section
@@ -379,37 +298,37 @@ export default function ClinicalBillingPage() {
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
     pdf.text("Subtotal:", 135, currentY);
-    pdf.text(`$${inv.subtotal.toFixed(2)}`, 175, currentY, { align: "right" });
+    pdf.text(`Rs. ${(inv.subtotal || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
 
-    if (inv.taxRate > 0) {
+    if ((inv.taxRate || 0) > 0) {
       currentY += 6;
-      pdf.text(`Tax (${inv.taxRate}%):`, 135, currentY);
-      pdf.text(`$${inv.taxAmount.toFixed(2)}`, 175, currentY, { align: "right" });
+      pdf.text(`GST (${inv.taxRate}%):`, 135, currentY);
+      pdf.text(`Rs. ${(inv.taxAmount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
     }
 
-    if (inv.discount > 0) {
+    if ((inv.discount || 0) > 0) {
       currentY += 6;
       pdf.text("Discount:", 135, currentY);
-      pdf.text(`-$${inv.discount.toFixed(2)}`, 175, currentY, { align: "right" });
+      pdf.text(`-Rs. ${(inv.discount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
     }
 
     // Total Amount Due Box
     currentY += 8;
     pdf.setFillColor(248, 250, 252);
-    pdf.rect(130, currentY - 5, 64, 8, "F");
+    pdf.rect(125, currentY - 5, 69, 8, "F");
     pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(10);
-    pdf.text("Total Amount Due:", 132, currentY);
-    pdf.text(`$${inv.totalAmount.toFixed(2)}`, 175, currentY, { align: "right" });
+    pdf.text("Total Amount:", 128, currentY);
+    pdf.text(`Rs. ${(inv.totalAmount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
 
     // Footer Note
-    currentY += 24;
+    currentY += 22;
     pdf.setFont("helvetica", "italic");
     pdf.setFontSize(8);
     pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
     pdf.text(
-      `Please include Invoice ID #${inv.invoiceNumber} in all payments. Thank you for choosing Gait Physio Clinic!`,
+      `Please quote Invoice #${inv.invoiceNumber} for your medical claims. Thank you for choosing Gait Physio Clinic!`,
       105,
       currentY,
       { align: "center" }
@@ -418,801 +337,223 @@ export default function ClinicalBillingPage() {
     return pdf;
   };
 
-  // Submit & Finalize Invoice (Saves to Firestore & Uploads PDF Copy to Patient's Google Drive)
-  const handleSaveInvoice = async (targetStatus: "paid" | "pending") => {
-    if (!patientName.trim()) {
-      setActionError("Please enter or select a patient name.");
-      return;
-    }
-    if (items.length === 0 || subtotal <= 0) {
-      setActionError("Please add at least one valid billing line item.");
-      return;
-    }
-
-    setSubmitting(true);
-    setActionError("");
-    setActionSuccess("");
-
+  // Download PDF Action
+  const handleDownloadPdf = (inv: Invoice) => {
     try {
-      const invoiceData = {
-        invoiceNumber: currentInvNumber,
-        patientId: patientPid || "GPC-GUEST",
-        patientName: patientName.trim(),
-        patientEmail: patientEmail.trim(),
-        patientPhone: patientPhone.trim(),
-        therapistName: therapistName,
-        serviceDate: serviceDate || new Date().toISOString().split("T")[0],
-        dueDate: dueDate || new Date().toISOString().split("T")[0],
-        items: items,
-        subtotal: subtotal,
-        taxRate: taxRate,
-        taxAmount: taxAmount,
-        discount: discount,
-        totalAmount: totalAmount,
-        currency: "USD",
-        status: targetStatus,
-        paymentMethod: paymentMethod,
-        notes: notes.trim(),
-      };
-
-      // 1. Create Invoice in Firestore
-      const newInvId = await createInvoice(invoiceData);
-
-      // 2. Automatically generate PDF Blob & upload copy to Patient's Google Drive
-      const selectedP = patients.find(
-        (p) => p.id === selectedPatientId || p.name.toLowerCase() === patientName.toLowerCase()
-      );
-      const driveFolderId = selectedP?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
-
-      if (driveFolderId) {
-        try {
-          const pdf = buildInvoicePdfDocument(invoiceData);
-          const pdfBlob = pdf.output("blob");
-          const pdfFile = new File([pdfBlob], `${currentInvNumber}_Invoice.pdf`, {
-            type: "application/pdf",
-          });
-
-          const driveFormData = new FormData();
-          driveFormData.append("file", pdfFile);
-          driveFormData.append("parentFolderId", driveFolderId);
-          driveFormData.append("date", serviceDate || new Date().toISOString().split("T")[0]);
-
-          await fetch("/api/drive/upload", {
-            method: "POST",
-            body: driveFormData,
-          });
-        } catch (driveErr) {
-          console.warn("Google Drive invoice PDF archiving warning:", driveErr);
-        }
-      }
-
-      setActionSuccess(`Invoice ${currentInvNumber} finalized, saved, and archived to Google Drive!`);
-      handleResetForm();
-    } catch (err: any) {
-      console.error("Error finalizing invoice:", err);
-      setActionError(err.message || "Failed to finalize invoice.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Pixel-Perfect PDF Download Handler (Using reliable jsPDF vector drawing)
-  const handleDownloadPdf = async () => {
-    try {
-      setSubmitting(true);
-      setActionError("");
-      setActionSuccess("");
-
-      const pdf = buildInvoicePdfDocument({
-        invoiceNumber: currentInvNumber,
-        patientId: patientPid || "GPC-GUEST",
-        patientName: patientName.trim(),
-        patientEmail: patientEmail.trim(),
-        patientPhone: patientPhone.trim(),
-        therapistName: therapistName,
-        serviceDate: serviceDate || new Date().toISOString().split("T")[0],
-        dueDate: dueDate || new Date().toISOString().split("T")[0],
-        items: items,
-        subtotal: subtotal,
-        taxRate: taxRate,
-        taxAmount: taxAmount,
-        discount: discount,
-        totalAmount: totalAmount,
-        paymentMethod: paymentMethod,
-        notes: notes.trim(),
-      });
-
-      const fileName = `${currentInvNumber}_${patientName ? patientName.replace(/[^a-zA-Z0-9]/g, "_") : "Invoice"}.pdf`;
-      pdf.save(fileName);
-      setActionSuccess(`Downloaded ${fileName} successfully!`);
+      const pdf = buildInvoicePdf(inv);
+      pdf.save(`${inv.invoiceNumber}_GaitPhysio.pdf`);
+      setActionSuccess(`Downloaded ${inv.invoiceNumber} PDF!`);
+      setTimeout(() => setActionSuccess(""), 3000);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
-      setActionError(`PDF export error: ${err.message || "Failed to generate PDF"}`);
-    } finally {
-      setSubmitting(false);
+      setActionError("Failed to generate PDF.");
+      setTimeout(() => setActionError(""), 3000);
     }
   };
 
-  // Status toggle handler
-  const handleStatusChange = async (id: string, newStatus: Invoice["status"]) => {
-    try {
-      await updateInvoiceStatus(id, newStatus);
-      setActiveMenuId(null);
-    } catch (err) {
-      console.error("Failed to update status:", err);
-    }
-  };
+  // WhatsApp Pre-filled URL Generator
+  const getWhatsAppShareUrl = (inv: Invoice) => {
+    if (!inv.patientPhone) return "#";
+    const cleanDigits = inv.patientPhone.replace(/\D/g, "");
+    const formattedPhone = cleanDigits.startsWith("91") && cleanDigits.length === 12
+      ? cleanDigits
+      : cleanDigits.length === 10
+      ? `91${cleanDigits}`
+      : cleanDigits;
 
-  // Delete handler
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this invoice?")) return;
-    try {
-      await deleteInvoice(id);
-      setActiveMenuId(null);
-    } catch (err) {
-      console.error("Failed to delete invoice:", err);
-    }
-  };
+    const message = `Hello ${inv.patientName || "Valued Patient"},
 
-  // Direct Native Print Function via clean isolated iframe (0 Popup Blocker Delays, 0 blank page css conflicts)
-  const handlePrint = () => {
-    const previewEl = document.getElementById("invoice-preview");
-    if (!previewEl) return;
+Your official treatment invoice from Gait Physio Clinic is ready:
 
-    // Create a temporary hidden iframe
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "absolute";
-    iframe.style.width = "0px";
-    iframe.style.height = "0px";
-    iframe.style.border = "none";
-    document.body.appendChild(iframe);
+📄 *Invoice #*: ${inv.invoiceNumber}
+📅 *Date*: ${inv.serviceDate}
+👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Kinnera"}
+💳 *Total Amount*: ₹${(inv.totalAmount || 0).toLocaleString("en-IN")} (${(inv.status || "PAID").toUpperCase()})
 
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
+Thank you for choosing Gait Physio Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
 
-    // Write clean HTML content with style tags
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Invoice #${currentInvNumber}</title>
-          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-            body { 
-              font-family: 'Inter', sans-serif; 
-              padding: 40px; 
-              background: #ffffff; 
-              color: #000000;
-              -webkit-print-color-adjust: exact !important; 
-              print-color-adjust: exact !important; 
-            }
-            .bg-\\[\\#2d5a4c\\] { background-color: #2d5a4c !important; }
-            .text-\\[\\#2d5a4c\\] { color: #2d5a4c !important; }
-            .border-\\[\\#2d5a4c\\] { border-color: #2d5a4c !important; }
-            .invoice-watermark { display: none !important; }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="max-w-2xl mx-auto border border-slate-200 p-8 rounded-2xl">
-            ${previewEl.innerHTML}
-          </div>
-          <script>
-            window.onload = function() {
-              window.focus();
-              window.print();
-              setTimeout(function() {
-                window.parent.document.body.removeChild(iframe);
-              }, 1000);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    doc.close();
-  };
+Warm regards,
+*Gait Physio Clinic, Bengaluru*
+📞 +91 92066 51295`;
 
-  // WhatsApp pre-formatted share link
-  const getWhatsAppShareUrl = (inv: { patientPhone: string; patientName: string; invoiceNumber: string; totalAmount: number; serviceDate: string }) => {
-    const rawPhone = inv.patientPhone.replace(/\D/g, "");
-    const formattedPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
-    const msg = `Hello ${inv.patientName}, your invoice ${inv.invoiceNumber} for Gait Physio Clinic on ${inv.serviceDate} has been generated. Total Amount: $${inv.totalAmount.toFixed(2)}. View or download your receipt directly inside your Patient Hub portal: https://gait-physio-clinic-v1.vercel.app/patienthub/login`;
-    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 select-none animate-fade-in">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-['Inter',sans-serif]">
       
-      {/* Printable Area Styling */}
-      <style jsx global>{`
-        @media print {
-          nav, header, footer, aside, .no-print {
-            display: none !important;
-          }
-          body, main {
-            background: white !important;
-            color: black !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-          }
-          #invoice-preview {
-            display: block !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 24px !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: white !important;
-            color: black !important;
-            z-index: 999999 !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-        }
-      `}</style>
-
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-5 no-print">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-[#2d5a4c] text-white flex items-center justify-center shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="h-10 w-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-md shrink-0">
               <Receipt className="h-5 w-5" />
             </div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Clinical Billing Center
-            </h1>
-            <span className="bg-[#2d5a4c]/10 text-[#2d5a4c] dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-              MODULAR_INVOICING
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 font-bold mt-1">
-            Generate itemized billing statements, track clinic revenue, & sync real-time receipts to Patient Hub.
-          </p>
-        </div>
-
-        {/* Global Search Bar */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search invoice # or patient..."
-            className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 pl-10 pr-4 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-[#2d5a4c] transition-colors"
-          />
-        </div>
-      </div>
-
-      {/* Executive KPI Summary Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
-        {/* Unpaid Invoices */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl">
-            <Clock className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unpaid Invoices</p>
-            <h3 className="text-xl font-black text-slate-900 dark:text-white">{stats.unpaidCount} <span className="text-xs font-bold text-slate-400">(${stats.unpaidTotal.toFixed(2)})</span></h3>
-          </div>
-        </div>
-
-        {/* Total Revenue MTD */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-[#2d5a4c]/10 text-[#2d5a4c] dark:text-emerald-400 rounded-2xl">
-            <DollarSign className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revenue (MTD)</p>
-            <h3 className="text-xl font-black text-[#2d5a4c] dark:text-emerald-400">${stats.revenueMtd.toFixed(2)}</h3>
-          </div>
-        </div>
-
-        {/* Pending Claims */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl">
-            <CreditCard className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending Statements</p>
-            <h3 className="text-xl font-black text-slate-900 dark:text-white">{stats.pendingCount}</h3>
-          </div>
-        </div>
-
-        {/* Overdue Invoices */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-2xl">
-            <AlertCircle className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Overdue Statements</p>
-            <h3 className="text-xl font-black text-rose-600 dark:text-rose-400">{stats.overdueCount}</h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Bento Grid: Form Builder (Left) + Interactive Live Paper Preview (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start no-print">
-        
-        {/* Left 7 Columns: Invoice Form Builder */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden">
-            
-            {/* Header */}
-            <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
+            <div>
               <div className="flex items-center gap-2">
-                <Plus className="h-5 w-5 text-[#2d5a4c]" />
-                <h3 className="text-base font-black text-slate-900 dark:text-white">Create New Clinical Invoice</h3>
-              </div>
-              <span className="text-xs font-black bg-[#2d5a4c]/10 text-[#2d5a4c] dark:text-emerald-400 px-3 py-1 rounded-full border border-[#2d5a4c]/20">
-                {currentInvNumber}
-              </span>
-            </div>
-
-            {/* Form Content */}
-            <div className="p-6 space-y-5">
-              
-              {/* Alert Feedback */}
-              {actionError && (
-                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-xs font-bold text-rose-600 dark:text-rose-400">
-                  {actionError}
-                </div>
-              )}
-              {actionSuccess && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  {actionSuccess}
-                </div>
-              )}
-
-              {/* Row 1: Patient Autocomplete Search & Therapist */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* Searchable Patient Autocomplete */}
-                <div className="space-y-1 relative">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Search / Name *</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={patientSearchText}
-                      onChange={(e) => {
-                        setPatientSearchText(e.target.value);
-                        setPatientName(e.target.value);
-                        setPatientDropdownOpen(true);
-                      }}
-                      onFocus={() => setPatientDropdownOpen(true)}
-                      placeholder="Type patient name or PID..."
-                      className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 pl-4 pr-10 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-[#2d5a4c]"
-                    />
-                    <Search className="absolute right-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
-                  </div>
-
-                  {/* Autocomplete Dropdown List */}
-                  {patientDropdownOpen && filteredPatients.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl z-30 max-h-48 overflow-y-auto">
-                      {filteredPatients.map((p) => (
-                        <div
-                          key={p.id}
-                          onClick={() => handleSelectPatient(p)}
-                          className="px-4 py-2.5 hover:bg-[#2d5a4c]/10 cursor-pointer flex items-center justify-between transition-colors"
-                        >
-                          <div>
-                            <p className="text-xs font-black text-slate-900 dark:text-white">{p.name}</p>
-                            <p className="text-[9px] font-bold text-slate-400">{p.phone || "No phone"} • {p.email || "No email"}</p>
-                          </div>
-                          <span className="text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full">
-                            {p.customId || `GPC-${p.id.slice(0,4)}`}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Primary Therapist Selector */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Attending Therapist</label>
-                  <select
-                    value={therapistName}
-                    onChange={(e) => setTherapistName(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-[#2d5a4c]"
-                  >
-                    <option value="Dr. Kinnera">Dr. Kinnera</option>
-                    <option value="Dr. Sarah Jenkins">Dr. Sarah Jenkins</option>
-                    <option value="Dr. Rohan Das">Dr. Rohan Das</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Row 2: Service Date & Due Date */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Service Date</label>
-                  <input
-                    type="date"
-                    value={serviceDate}
-                    onChange={(e) => {
-                      setServiceDate(e.target.value);
-                      setDueDate(e.target.value);
-                    }}
-                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-[#2d5a4c]"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Due Date</label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-[#2d5a4c]"
-                  />
-                </div>
-              </div>
-
-              {/* Itemized Billing Breakdown Table */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-2">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Billing Items Breakdown
-                  </h4>
-
-                  {/* Preset Items Quick Dropdown */}
-                  <div className="flex items-center gap-2">
-                    <select
-                      onChange={(e) => {
-                        const idx = Number(e.target.value);
-                        if (!isNaN(idx) && CLINICAL_SERVICES_PRESETS[idx]) {
-                          handleAddItem(CLINICAL_SERVICES_PRESETS[idx]);
-                          e.target.value = "";
-                        }
-                      }}
-                      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-[10px] font-bold text-slate-700 dark:text-slate-300 px-3 py-1 outline-none"
-                    >
-                      <option value="">+ Add Preset Treatment...</option>
-                      {CLINICAL_SERVICES_PRESETS.map((preset, idx) => (
-                        <option key={idx} value={idx}>
-                          {preset.description} (${preset.price})
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => handleAddItem()}
-                      className="p-1 text-[#2d5a4c] hover:bg-[#2d5a4c]/10 rounded-lg transition-colors"
-                      title="Add Custom Item"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Line Items List */}
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-slate-50/60 dark:bg-slate-950/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-850">
-                      <div className="col-span-8">
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) => handleUpdateItem(item.id, "description", e.target.value)}
-                          placeholder="Treatment or Service Description..."
-                          className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unitPrice}
-                          onChange={(e) => handleUpdateItem(item.id, "unitPrice", e.target.value)}
-                          placeholder="Amount ($)"
-                          className="w-full text-right rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none"
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(item.id)}
-                          disabled={items.length <= 1}
-                          className="text-slate-400 hover:text-rose-500 disabled:opacity-30 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Row 3: Tax, Discount & Payment Method */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tax Rate (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(Number(e.target.value))}
-                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Discount ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={discount}
-                    onChange={(e) => setDiscount(Number(e.target.value))}
-                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Method</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                  >
-                    <option value="UPI">UPI Payment</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Credit/Debit Card</option>
-                    <option value="Net Banking">Net Banking</option>
-                    <option value="Insurance Claim">Insurance Claim</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Notes / Diagnosis Codes */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Clinical Notes / ICD-10 Diagnosis Codes</label>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. M54.5 Low Back Pain, GPC Posture Protocol applied..."
-                  className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none resize-none"
-                />
-              </div>
-
-            </div>
-
-            {/* Form Footer Action Bar */}
-            <div className="p-5 bg-slate-50/50 dark:bg-slate-950/40 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handleResetForm}
-                className="text-xs font-black text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 uppercase tracking-wider cursor-pointer"
-              >
-                Clear Form
-              </button>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => handleSaveInvoice("pending")}
-                  className="px-5 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white hover:bg-slate-100 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
-                >
-                  Save as Pending
-                </button>
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => handleSaveInvoice("paid")}
-                  className="px-6 py-2.5 rounded-2xl bg-[#2d5a4c] hover:bg-[#23473c] text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
-                >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  FINALIZE
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Right 5 Columns: Live Interactive Paper Preview (Sticky Window) */}
-        <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden flex flex-col min-h-[580px] relative">
-            
-            {/* Window Top Bar */}
-            <div className="p-4 bg-slate-900 text-white flex items-center justify-between select-none">
-              <span className="text-xs font-black uppercase tracking-wider flex items-center gap-2 text-emerald-400">
-                <Sparkles className="h-4 w-4 text-emerald-400" />
-                PREVIEW
-              </span>
-              <div className="flex gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-              </div>
-            </div>
-
-            {/* Invoice Paper Document Content */}
-            <div id="invoice-preview" className="flex-1 p-6 flex flex-col justify-between bg-white text-slate-900 relative">
-              
-              {/* Background Watermark Stamp */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-[0.03] -rotate-12 invoice-watermark">
-                <span className="border-2 border-[#2d5a4c] text-[#2d5a4c] font-black text-5xl px-6 py-3 rounded-2xl uppercase tracking-widest">
-                  GAIT PHYSIO
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Clinical Billing Center
+                </h1>
+                <span className="bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider hidden sm:inline-flex">
+                  ₹ INR
                 </span>
               </div>
-
-              <div>
-                {/* Clinic Header & Invoice ID */}
-                <div className="flex justify-between items-start border-b border-slate-200 pb-5 mb-5 relative z-10">
-                  <div>
-                    <div className="h-10 w-10 bg-[#2d5a4c] text-white rounded-xl flex items-center justify-center font-black text-lg mb-2">
-                      GPC
-                    </div>
-                    <h4 className="font-black text-[#2d5a4c] text-base leading-tight">Gait Physio Clinic</h4>
-                    <p className="text-[10px] font-bold text-slate-500 leading-normal mt-0.5">
-                      123 Clinical Wellness Way, Sector 4<br />
-                      Bangalore, KA 560001 • +91 92066 51295
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">INVOICE</h2>
-                    <p className="text-xs font-black text-[#2d5a4c] mt-0.5">#{currentInvNumber}</p>
-                    <p className="text-[10px] font-bold text-slate-500">Date: {serviceDate || "--/--/----"}</p>
-                  </div>
-                </div>
-
-                {/* Bill To & Status Section */}
-                <div className="grid grid-cols-2 gap-4 border-b border-slate-200 pb-4 mb-4 relative z-10">
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bill To Patient:</p>
-                    <p className="text-xs font-black text-[#2d5a4c] mt-0.5">{patientName || "Waiting for patient..."}</p>
-                    <p className="text-[10px] font-extrabold text-slate-500">{patientPid || "PID: ----"}</p>
-                    {patientPhone && <p className="text-[10px] font-bold text-slate-500">{patientPhone}</p>}
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Payment Status:</p>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase mt-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                      UNPAID / DRAFT
-                    </span>
-                  </div>
-                </div>
-
-                {/* Line Items Table Preview */}
-                <div className="relative z-10">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-[#2d5a4c] text-[10px] font-black uppercase tracking-wider text-slate-700">
-                        <th className="py-2">Service Description</th>
-                        <th className="py-2 text-right">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {items.map((item, idx) => (
-                        <tr key={idx}>
-                          <td className="py-2.5">
-                            <p className="text-xs font-bold text-slate-800">{item.description || "Service Item"}</p>
-                          </td>
-                          <td className="py-2.5 text-right text-xs font-black text-slate-900">${(item.amount || 0).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Summary Calculations & Footer */}
-              <div className="mt-6 pt-4 border-t border-slate-200 relative z-10 space-y-1.5">
-                <div className="flex justify-between text-xs font-bold text-slate-600">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-
-                {taxRate > 0 && (
-                  <div className="flex justify-between text-xs font-bold text-slate-600">
-                    <span>Tax ({taxRate}%)</span>
-                    <span>${taxAmount.toFixed(2)}</span>
-                  </div>
-                )}
-
-                {discount > 0 && (
-                  <div className="flex justify-between text-xs font-bold text-rose-600">
-                    <span>Discount</span>
-                    <span>-${discount.toFixed(2)}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between py-2 border-t-2 border-[#2d5a4c] mt-2 font-black text-slate-900 text-sm">
-                  <span>Total Amount Due</span>
-                  <span className="text-[#2d5a4c] text-base">${totalAmount.toFixed(2)}</span>
-                </div>
-
-                <p className="text-[9px] text-center font-extrabold text-slate-400 italic pt-3">
-                  Please include Invoice ID #{currentInvNumber} in all payments. Thank you for choosing Gait Physio Clinic!
-                </p>
-              </div>
-
+              <p className="text-xs text-slate-500 font-bold mt-0.5">
+                Generate itemized treatment bills, track clinic revenue, & sync real-time receipts to Patient Hub.
+              </p>
             </div>
+          </div>
+        </div>
 
-            {/* Document Toolbar Actions */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800 flex justify-center items-center gap-3 no-print">
-              <button
-                type="button"
-                onClick={() => alert(`Email Integration Placeholder:\n\nThis will send Invoice #${currentInvNumber} to the patient's registered email address: ${patientEmail || "(No email address entered)"} using the Resend API once configured.`)}
-                className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-                title={patientEmail ? `Send to ${patientEmail}` : "No email address configured"}
-              >
-                <Mail className="h-4 w-4 text-[#2d5a4c]" />
-                Email
-              </button>
+        {/* Top Actions: Search + Create Button */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search invoice, patient, or phone..."
+              className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 pl-10 pr-4 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none focus:border-brand-green transition-colors"
+            />
+          </div>
 
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-              >
-                <Download className="h-4 w-4 text-[#2d5a4c]" />
-                Download PDF
-              </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingInvoice(null);
+              setIsCreateModalOpen(true);
+            }}
+            className="px-4 py-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-102 active:scale-98 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+            title="Create a new clinical invoice"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Create Invoice</span>
+            <span className="sm:hidden">New</span>
+          </button>
+        </div>
+      </div>
 
-              {patientPhone && (
-                <a
-                  href={getWhatsAppShareUrl({
-                    patientPhone,
-                    patientName,
-                    invoiceNumber: currentInvNumber,
-                    totalAmount,
-                    serviceDate
-                  })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  WhatsApp
-                </a>
-              )}
+      {/* Global Alerts Feedback */}
+      {actionSuccess && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          <span>{actionSuccess}</span>
+        </div>
+      )}
+      {actionError && (
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-2 animate-in fade-in">
+          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+          <span>{actionError}</span>
+        </div>
+      )}
+
+      {/* Executive KPI Summary Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Total Revenue MTD */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-brand-green/10 text-brand-green dark:text-emerald-400 rounded-2xl shrink-0">
+            <Receipt className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Collected (MTD)</p>
+              <span className="group relative cursor-help">
+                <HelpCircle className="h-3 w-3 text-slate-400" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-30 text-center">
+                  Total revenue collected from paid invoices in the current month.
+                </span>
+              </span>
             </div>
+            <h3 className="text-xl font-black text-brand-green dark:text-emerald-400 truncate">
+              ₹{stats.revenueMtd.toLocaleString("en-IN")}
+            </h3>
+          </div>
+        </div>
 
+        {/* Unpaid Invoices */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl shrink-0">
+            <Clock className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Unpaid Invoices</p>
+              <span className="group relative cursor-help">
+                <HelpCircle className="h-3 w-3 text-slate-400" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-30 text-center">
+                  Total outstanding balance across all pending and overdue bills.
+                </span>
+              </span>
+            </div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white truncate">
+              {stats.unpaidCount} <span className="text-xs font-bold text-slate-400">(₹{stats.unpaidTotal.toLocaleString("en-IN")})</span>
+            </h3>
+          </div>
+        </div>
+
+        {/* Pending Statements */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl shrink-0">
+            <CreditCard className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Pending Claims</p>
+              <span className="group relative cursor-help">
+                <HelpCircle className="h-3 w-3 text-slate-400" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-30 text-center">
+                  Invoices awaiting patient payment or insurance claim settlement.
+                </span>
+              </span>
+            </div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white truncate">{stats.pendingCount}</h3>
+          </div>
+        </div>
+
+        {/* Voided / Cancelled Invoices */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-2xl shrink-0">
+            <Ban className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">Voided / Corrected</p>
+              <span className="group relative cursor-help">
+                <HelpCircle className="h-3 w-3 text-slate-400" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block w-48 p-2 bg-slate-900 text-white text-[10px] rounded-lg shadow-xl z-30 text-center">
+                  Bills that were voided due to typos or duplicate entries.
+                </span>
+              </span>
+            </div>
+            <h3 className="text-xl font-black text-slate-900 dark:text-white truncate">{stats.voidedCount}</h3>
           </div>
         </div>
 
       </div>
 
-      {/* Data-Dense Recent Invoices Table (Full Width Bottom Card) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden no-print">
+      {/* Full-Width Invoices Ledger Card */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xl overflow-hidden">
         
-        {/* Table Header Controls */}
-        <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-950/40">
+        {/* Table Header & Filter Strip */}
+        <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/40">
           <div className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-[#2d5a4c]" />
+            <Receipt className="h-5 w-5 text-brand-green" />
             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-              Recent Clinical Invoices Database ({filteredInvoices.length})
+              Clinical Invoices Ledger ({filteredInvoices.length})
             </h3>
           </div>
 
           {/* Filter Status Tabs */}
-          <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-800 p-1 rounded-2xl">
-            {(["all", "paid", "pending", "overdue"] as const).map((st) => (
+          <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-800 p-1 rounded-2xl overflow-x-auto self-start sm:self-auto">
+            {(["all", "paid", "pending", "overdue", "voided"] as const).map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                   statusFilter === st
-                    ? "bg-white dark:bg-slate-900 text-[#2d5a4c] dark:text-emerald-400 shadow-sm"
+                    ? "bg-white dark:bg-slate-900 text-brand-green dark:text-emerald-400 shadow-sm"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -1222,106 +563,350 @@ export default function ClinicalBillingPage() {
           </div>
         </div>
 
-        {/* Table View */}
+        {/* Table Content */}
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12 text-slate-400 text-xs font-bold space-y-2">
-            <Loader2 className="h-6 w-6 animate-spin text-[#2d5a4c]" />
+            <Loader2 className="h-6 w-6 animate-spin text-brand-green" />
             <span>Loading live invoice records...</span>
           </div>
         ) : filteredInvoices.length === 0 ? (
-          <div className="p-12 text-center text-xs font-bold text-slate-400">
-            No invoices match the current search filter.
+          <div className="p-12 text-center text-xs font-bold text-slate-400 space-y-2">
+            <Receipt className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto" />
+            <p>No invoices match the selected filter.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[860px]">
               <thead className="bg-slate-50/80 dark:bg-slate-950/60 border-b border-slate-200/80 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="px-5 py-3">Invoice ID</th>
-                  <th className="px-5 py-3">Patient</th>
-                  <th className="px-5 py-3">Service Date</th>
-                  <th className="px-5 py-3">Method</th>
-                  <th className="px-5 py-3">Total Amount</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <th className="px-5 py-3.5">Invoice #</th>
+                  <th className="px-5 py-3.5">Patient Details</th>
+                  <th className="px-5 py-3.5">Service Date</th>
+                  <th className="px-5 py-3.5">Therapist</th>
+                  <th className="px-5 py-3.5">Payment Method</th>
+                  <th className="px-5 py-3.5">Total (₹)</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
-                {filteredInvoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-850/40 transition-colors">
-                    <td className="px-5 py-3.5 font-black text-xs text-[#2d5a4c] dark:text-emerald-400">
-                      #{inv.invoiceNumber}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <p className="text-xs font-black text-slate-900 dark:text-white leading-tight">{inv.patientName}</p>
-                      <p className="text-[10px] font-bold text-slate-400">{inv.patientId}</p>
-                    </td>
-                    <td className="px-5 py-3.5 text-xs font-bold text-slate-600 dark:text-slate-350">
-                      {inv.serviceDate}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs font-bold text-slate-500">
-                      {inv.paymentMethod}
-                    </td>
-                    <td className="px-5 py-3.5 font-black text-xs text-slate-900 dark:text-white">
-                      ${(inv.totalAmount || 0).toFixed(2)}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {inv.status === "paid" && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px] font-black uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" /> Paid
+                {filteredInvoices.map((inv) => {
+                  const isVoided = inv.status === "voided" || inv.status === "cancelled";
+                  const isPaid = inv.status === "paid";
+
+                  return (
+                    <tr 
+                      key={inv.id}
+                      className={`hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors ${
+                        isVoided ? "opacity-60 bg-rose-50/10" : ""
+                      }`}
+                    >
+                      {/* Invoice ID */}
+                      <td className="px-5 py-4">
+                        <span className="text-xs font-black text-slate-900 dark:text-white">
+                          {inv.invoiceNumber}
                         </span>
-                      )}
-                      {inv.status === "pending" && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[10px] font-black uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-600" /> Pending
+                        {inv.revision && inv.revision > 1 && (
+                          <span className="ml-1.5 text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
+                            v{inv.revision}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Patient Details */}
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-xs text-slate-900 dark:text-white">
+                          {inv.patientName}
+                        </div>
+                        <div className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5">
+                          <span>{inv.patientId || "PID: ----"}</span>
+                          {inv.patientPhone && (
+                            <>
+                              <span>•</span>
+                              <span>{inv.patientPhone}</span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Service Date */}
+                      <td className="px-5 py-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {inv.serviceDate || "----"}
+                      </td>
+
+                      {/* Therapist */}
+                      <td className="px-5 py-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {inv.therapistName || "Dr. Kinnera"}
+                      </td>
+
+                      {/* Payment Method */}
+                      <td className="px-5 py-4">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {inv.paymentMethod || "UPI"}
                         </span>
-                      )}
-                      {inv.status === "overdue" && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 text-[10px] font-black uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-600" /> Overdue
+                      </td>
+
+                      {/* Total Amount */}
+                      <td className="px-5 py-4">
+                        <span className={`text-xs font-black ${isVoided ? "line-through text-slate-400" : "text-brand-green dark:text-emerald-400"}`}>
+                          ₹{(inv.totalAmount || 0).toLocaleString("en-IN")}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 text-right relative">
-                      <div className="flex items-center justify-end gap-2">
-                        {inv.status !== "paid" && (
+                      </td>
+
+                      {/* Status Badge */}
+                      <td className="px-5 py-4">
+                        {isPaid ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                            Paid
+                          </span>
+                        ) : isVoided ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-400 text-[10px] font-black uppercase" title={inv.voidReason || "Voided"}>
+                            <Ban className="w-2.5 h-2.5" />
+                            Voided
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase">
+                            <Clock className="w-2.5 h-2.5" />
+                            Pending
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Action Buttons with Contextual Help Tooltips */}
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 relative">
+                          
+                          {/* 1. WhatsApp Button */}
+                          {inv.patientPhone && !isVoided && (
+                            <a
+                              href={getWhatsAppShareUrl(inv)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors group relative cursor-pointer shadow-2xs"
+                              title="Send WhatsApp bill to patient"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-44 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Send WhatsApp bill & receipt directly to patient
+                              </span>
+                            </a>
+                          )}
+
+                          {/* 2. Download PDF Button */}
                           <button
                             type="button"
-                            onClick={() => handleStatusChange(inv.id, "paid")}
-                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[10px] font-black rounded-lg transition-colors cursor-pointer"
+                            onClick={() => handleDownloadPdf(inv)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                            title="Download official PDF receipt"
                           >
-                            Mark Paid
+                            <Download className="h-4 w-4" />
+                            <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                              Download official A4 PDF tax receipt (₹)
+                            </span>
                           </button>
-                        )}
-                        {inv.patientPhone && (
-                          <a
-                            href={getWhatsAppShareUrl(inv)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                            title="Share on WhatsApp"
+
+                          {/* 3. View Details Button */}
+                          <button
+                            type="button"
+                            onClick={() => setViewingInvoice(inv)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                            title="View itemized breakdown"
                           >
-                            <MessageSquare className="h-4 w-4" />
-                          </a>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(inv.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-                          title="Delete Invoice"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <FileText className="h-4 w-4" />
+                            <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                              View full itemized invoice details
+                            </span>
+                          </button>
+
+                          {/* 4. Edit Button (Corrective Mechanism) */}
+                          {!isVoided && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingInvoice(inv);
+                                setIsCreateModalOpen(true);
+                              }}
+                              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                              title="Edit / Correct invoice"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Edit items, discounts, or correct mistakes
+                              </span>
+                            </button>
+                          )}
+
+                          {/* 5. Payment Quick-Toggle */}
+                          {!isVoided && (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setActivePaymentMenuId(activePaymentMenuId === inv.id ? null : inv.id)}
+                                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                                title="Update Payment Status"
+                              >
+                                <CreditCard className="h-4 w-4" />
+                                <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                  Mark as Paid or change payment method
+                                </span>
+                              </button>
+
+                              {/* Payment Dropdown Menu */}
+                              {activePaymentMenuId === inv.id && (
+                                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-40 space-y-1 text-left">
+                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider px-2 py-1">Set Payment Status</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickPaymentChange(inv, "paid", "UPI")}
+                                    className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                  >
+                                    <span>Paid via UPI</span>
+                                    <Check className="h-3 w-3 text-emerald-600" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickPaymentChange(inv, "paid", "Cash")}
+                                    className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                  >
+                                    <span>Paid via Cash</span>
+                                    <Check className="h-3 w-3 text-emerald-600" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickPaymentChange(inv, "paid", "Card")}
+                                    className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                  >
+                                    <span>Paid via Card</span>
+                                    <Check className="h-3 w-3 text-emerald-600" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickPaymentChange(inv, "pending")}
+                                    className="w-full px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                  >
+                                    <span>Mark as Pending</span>
+                                    <Clock className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* 6. Cancel Bill (Void) Button */}
+                          {!isVoided && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setVoidingInvoice(inv);
+                                setVoidReason("");
+                              }}
+                              className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 transition-colors group relative cursor-pointer shadow-2xs"
+                              title="Cancel / Void this bill"
+                            >
+                              <Ban className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Cancel / Void bill safely with audit reason
+                              </span>
+                            </button>
+                          )}
+
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* CREATE & EDIT INVOICE MODAL                                               */}
+      {/* ========================================================================= */}
+      {isCreateModalOpen && (
+        <CreateEditInvoiceModal
+          isOpen={isCreateModalOpen}
+          initialInvoice={editingInvoice}
+          patients={patients}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setEditingInvoice(null);
+          }}
+          onSuccess={(msg) => {
+            setIsCreateModalOpen(false);
+            setEditingInvoice(null);
+            setActionSuccess(msg);
+            setTimeout(() => setActionSuccess(""), 4000);
+          }}
+          buildInvoicePdf={buildInvoicePdf}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW INVOICE MODAL                                                        */}
+      {/* ========================================================================= */}
+      {viewingInvoice && (
+        <ViewInvoiceModal
+          invoice={viewingInvoice}
+          onClose={() => setViewingInvoice(null)}
+          onDownload={() => handleDownloadPdf(viewingInvoice)}
+          whatsappUrl={getWhatsAppShareUrl(viewingInvoice)}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* VOID CONFIRMATION MODAL                                                   */}
+      {/* ========================================================================= */}
+      {voidingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-3 bg-rose-100 dark:bg-rose-950/50 rounded-2xl">
+                <Ban className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">Cancel / Void Invoice</h3>
+                <p className="text-xs text-slate-500 font-semibold">{voidingInvoice.invoiceNumber}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Voiding this bill preserves your accounting audit trail while zeroing out revenue stats for <strong>{voidingInvoice.patientName}</strong> (₹{(voidingInvoice.totalAmount || 0).toLocaleString("en-IN")}).
+            </p>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Reason for Cancellation</label>
+              <input
+                type="text"
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="e.g., Wrong treatment billed, duplicate entry..."
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:border-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setVoidingInvoice(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmVoid}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-sm"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

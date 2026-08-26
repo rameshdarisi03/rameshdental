@@ -1,0 +1,193 @@
+"use client";
+
+import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
+import { Invoice } from "@/lib/invoicesDb";
+import { X, Download, MessageSquare, Receipt, CheckCircle2, Clock, Ban } from "lucide-react";
+
+export interface ViewInvoiceModalProps {
+  invoice: Invoice | null;
+  onClose: () => void;
+  onDownload: () => void;
+  whatsappUrl: string;
+}
+
+export default function ViewInvoiceModal({
+  invoice,
+  onClose,
+  onDownload,
+  whatsappUrl
+}: ViewInvoiceModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Smartphone native back-button interception
+  useEffect(() => {
+    if (!invoice) return;
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+
+    window.history.pushState({ modalOpen: "viewInvoiceModal" }, "");
+    const handlePopState = () => onClose();
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      document.body.style.overflow = originalStyle;
+      window.removeEventListener("popstate", handlePopState);
+      if (window.history.state?.modalOpen === "viewInvoiceModal") {
+        window.history.back();
+      }
+    };
+  }, [invoice, onClose]);
+
+  if (!mounted || !invoice) return null;
+
+  const isPaid = invoice.status === "paid";
+  const isVoided = invoice.status === "voided" || invoice.status === "cancelled";
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in font-['Inter',sans-serif]">
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-950/40 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-brand-green text-white flex items-center justify-center font-black text-xs shadow-sm">
+              GPC
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Tax Invoice & Receipt</h3>
+              <p className="text-[10px] font-bold text-slate-500">{invoice.invoiceNumber}</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Invoice Voucher Body */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-900 dark:text-white">
+          
+          {/* Top Row: Clinic & Patient */}
+          <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-5">
+            <div>
+              <h4 className="font-black text-brand-green text-sm">Gait Physio Clinic</h4>
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-0.5">
+                123 Clinical Wellness Way, Sector 4<br />
+                Bengaluru, Karnataka 560001 • +91 92066 51295
+              </p>
+            </div>
+            <div className="text-right">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                isPaid 
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400"
+                  : isVoided
+                  ? "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-400"
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400"
+              }`}>
+                {invoice.status.toUpperCase()}
+              </span>
+              <p className="text-[10px] font-bold text-slate-400 mt-1">Date: {invoice.serviceDate}</p>
+            </div>
+          </div>
+
+          {/* Bill To */}
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bill To Patient:</p>
+            <p className="text-xs font-black text-slate-900 dark:text-white mt-0.5">{invoice.patientName}</p>
+            <p className="text-[10px] font-bold text-slate-500">{invoice.patientId || "PID: ----"}</p>
+            {invoice.patientPhone && <p className="text-[10px] font-bold text-slate-500">{invoice.patientPhone}</p>}
+          </div>
+
+          {/* Items Table */}
+          <div>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-brand-green text-[10px] font-black uppercase text-slate-500">
+                  <th className="py-2">Service Description</th>
+                  <th className="py-2 text-right">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {(invoice.items || []).map((item, idx) => (
+                  <tr key={idx}>
+                    <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">{item.description}</td>
+                    <td className="py-2.5 text-right font-black text-slate-900 dark:text-white">
+                      ₹{(item.amount || 0).toLocaleString("en-IN")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Totals */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>₹{(invoice.subtotal || 0).toLocaleString("en-IN")}</span>
+            </div>
+            {(invoice.taxRate || 0) > 0 && (
+              <div className="flex justify-between">
+                <span>GST ({invoice.taxRate}%)</span>
+                <span>₹{(invoice.taxAmount || 0).toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {(invoice.discount || 0) > 0 && (
+              <div className="flex justify-between text-rose-600">
+                <span>Discount</span>
+                <span>-₹{(invoice.discount || 0).toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            <div className="flex justify-between py-2 border-t-2 border-brand-green font-black text-slate-900 dark:text-white text-sm">
+              <span>Total Payable</span>
+              <span className="text-brand-green dark:text-emerald-400 text-base font-black">
+                ₹{(invoice.totalAmount || 0).toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
+
+          {invoice.notes && (
+            <div className="p-3 bg-slate-50 dark:bg-slate-850 rounded-xl text-[11px] text-slate-500">
+              <strong>Clinical Notes:</strong> {invoice.notes}
+            </div>
+          )}
+
+        </div>
+
+        {/* Actions Footer */}
+        <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5 shrink-0">
+          {invoice.patientPhone && !isVoided && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>WhatsApp</span>
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={onDownload}
+            className="px-4 py-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+          >
+            <Download className="h-4 w-4" />
+            <span>Download PDF</span>
+          </button>
+        </div>
+
+      </div>
+    </div>,
+    document.body
+  );
+}

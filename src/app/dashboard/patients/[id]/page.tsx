@@ -61,6 +61,9 @@ import {
   PatientWorkoutProgress 
 } from "@/lib/exercisesDb";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
+import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
+import ViewInvoiceModal from "@/components/dashboard/invoices/ViewInvoiceModal";
+import jsPDF from "jspdf";
 import { 
   buildUnifiedPrescriptionPdf, 
   getPrescriptionFileName,
@@ -175,6 +178,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const [files, setFiles] = useState<MedicalFile[]>([]);
   const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
+  const [isPatientInvoiceModalOpen, setIsPatientInvoiceModalOpen] = useState(false);
+  const [selectedInvoiceForEdit, setSelectedInvoiceForEdit] = useState<Invoice | null>(null);
+  const [selectedInvoiceForView, setSelectedInvoiceForView] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -392,11 +398,17 @@ PLAN:
       setActivePrescription(rx);
       setPrescriptionsHistory(rxHist);
 
-      if (pData.email) {
-        subscribePatientInvoices(pData.email, (invs) => {
+      subscribePatientInvoices(
+        { 
+          patientId: pData.id, 
+          email: pData.email, 
+          phone: pData.phone, 
+          customId: pData.customId 
+        }, 
+        (invs) => {
           setPatientInvoices(invs);
-        });
-      }
+        }
+      );
     } catch (err: any) {
       console.error("Error loading patient details:", err);
       setError("An error occurred while fetching details.");
@@ -1037,6 +1049,165 @@ PLAN:
     } catch (err) {
       console.error("Invoice view failed:", err);
     }
+  };
+
+  const buildInvoicePdf = (inv: Invoice): jsPDF => {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const brandColor = [45, 90, 76];
+    const textDark = [15, 23, 42];
+    const textMuted = [100, 116, 139];
+
+    pdf.setFillColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.roundedRect(16, 14, 14, 14, 3, 3, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("GPC", 23, 23, { align: "center" });
+
+    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.setFontSize(14);
+    pdf.text("Gait Physio Clinic", 34, 20);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text("123 Clinical Wellness Way, Sector 4", 34, 25);
+    pdf.text("Bengaluru, Karnataka 560001 • +91 92066 51295", 34, 29);
+
+    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.text("TAX INVOICE & RECEIPT", 130, 20);
+    
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text(`Invoice #: ${inv.invoiceNumber}`, 130, 25);
+    pdf.text(`Date: ${inv.serviceDate}`, 130, 29);
+
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.4);
+    pdf.line(16, 35, 194, 35);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("BILL TO PATIENT:", 16, 43);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(inv.patientName || patient?.name || "Patient", 16, 48);
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text(inv.patientId || patient?.id || "PID: ----", 16, 52);
+    if (inv.patientPhone || patient?.phone) {
+      pdf.text(`Phone: ${inv.patientPhone || patient?.phone}`, 16, 56);
+    }
+
+    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("PAYMENT STATUS:", 130, 43);
+    if (inv.status === "paid") {
+      pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+      pdf.text("PAID & SETTLED", 130, 48);
+    } else if (inv.status === "voided") {
+      pdf.setTextColor(225, 29, 72);
+      pdf.text("CANCELLED / VOIDED", 130, 48);
+    } else {
+      pdf.setTextColor(217, 119, 6);
+      pdf.text("PAYMENT PENDING", 130, 48);
+    }
+
+    pdf.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.setLineWidth(0.8);
+    pdf.line(16, 62, 194, 62);
+
+    pdf.setTextColor(textDark[0], textDark[1], textDark[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("Service / Treatment Description", 18, 69);
+    pdf.text("Amount (INR)", 175, 69, { align: "right" });
+
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.4);
+    pdf.line(16, 72, 194, 72);
+
+    let currentY = 80;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    
+    (inv.items || []).forEach((item: any) => {
+      pdf.text(item.description || "Physiotherapy Service", 18, currentY);
+      pdf.text(`Rs. ${(item.amount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
+      pdf.setDrawColor(241, 245, 249);
+      pdf.line(16, currentY + 3, 194, currentY + 3);
+      currentY += 9;
+    });
+
+    currentY += 2;
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(textMuted[0], textMuted[1], textMuted[2]);
+    pdf.text("Subtotal:", 135, currentY);
+    pdf.text(`Rs. ${(inv.subtotal || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
+
+    if ((inv.taxRate || 0) > 0) {
+      currentY += 6;
+      pdf.text(`GST (${inv.taxRate}%):`, 135, currentY);
+      pdf.text(`Rs. ${(inv.taxAmount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
+    }
+
+    if ((inv.discount || 0) > 0) {
+      currentY += 6;
+      pdf.text("Discount:", 135, currentY);
+      pdf.text(`-Rs. ${(inv.discount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
+    }
+
+    currentY += 8;
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(125, currentY - 5, 69, 8, "F");
+    pdf.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("Total Amount:", 128, currentY);
+    pdf.text(`Rs. ${(inv.totalAmount || 0).toLocaleString("en-IN")}`, 175, currentY, { align: "right" });
+
+    return pdf;
+  };
+
+  const handleDownloadInvoicePdf = (inv: Invoice) => {
+    try {
+      const pdf = buildInvoicePdf(inv);
+      pdf.save(`${inv.invoiceNumber}_GaitPhysio.pdf`);
+    } catch (e) {
+      console.error("Error generating invoice PDF:", e);
+    }
+  };
+
+  const getWhatsAppInvoiceUrl = (inv: Invoice) => {
+    const phone = inv.patientPhone || patient?.phone;
+    if (!phone) return "#";
+    const cleanDigits = phone.replace(/\D/g, "");
+    const formattedPhone = cleanDigits.startsWith("91") && cleanDigits.length === 12
+      ? cleanDigits
+      : cleanDigits.length === 10
+      ? `91${cleanDigits}`
+      : cleanDigits;
+
+    const message = `Hello ${inv.patientName || patient?.name || "Valued Patient"},
+
+Your official treatment invoice from Gait Physio Clinic is ready:
+
+📄 *Invoice #*: ${inv.invoiceNumber}
+📅 *Date*: ${inv.serviceDate}
+👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Kinnera"}
+💳 *Total Amount*: ₹${(inv.totalAmount || 0).toLocaleString("en-IN")} (${(inv.status || "PAID").toUpperCase()})
+
+Thank you for choosing Gait Physio Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
+
+Warm regards,
+*Gait Physio Clinic, Bengaluru*
+📞 +91 92066 51295`;
+
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
 
   // Build unified items for Medical Scans & Files
@@ -2257,38 +2428,175 @@ PLAN:
 
           {/* TAB 3: Invoices & Billing */}
           {activeTab === "invoices" && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                    Patient Billing History
+                    Patient Invoices & Receipts ({patientInvoices.length})
                   </h3>
                   <p className="text-xs text-slate-400 font-bold mt-0.5">
-                    Generate & manage billing statements for {patient.name}
+                    Official tax invoices and payment receipts generated for {patient.name}
                   </p>
                 </div>
-                <Link
-                  href={`/dashboard/invoices`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedInvoiceForEdit(null);
+                    setIsPatientInvoiceModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="h-4 w-4" />
-                  Create Invoice
-                </Link>
+                  <span>Create Invoice</span>
+                </button>
               </div>
 
-              <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                <Receipt className="h-10 w-10 text-[#2d5a4c] mx-auto mb-3" />
-                <h4 className="text-sm font-black text-slate-800 dark:text-white">Clinical Billing Hub Active</h4>
-                <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1 mb-4">
-                  All invoices generated for {patient.name} automatically sync to their Patient Hub portal in real time.
-                </p>
-                <Link
-                  href="/dashboard/invoices"
-                  className="inline-flex items-center gap-1.5 text-xs font-black text-[#2d5a4c] dark:text-emerald-400 hover:underline"
-                >
-                  Open Billing Center & Issue Statement →
-                </Link>
-              </div>
+              {patientInvoices.length === 0 ? (
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                  <Receipt className="h-10 w-10 text-brand-green mx-auto" />
+                  <div>
+                    <h4 className="text-sm font-black text-slate-800 dark:text-white">No Invoices Issued Yet</h4>
+                    <p className="text-xs font-bold text-slate-400 max-w-md mx-auto mt-1">
+                      Generate an itemized treatment invoice for {patient.name}. It will automatically sync to their Patient Hub portal and Google Drive.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedInvoiceForEdit(null);
+                      setIsPatientInvoiceModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-green text-white text-xs font-black uppercase tracking-wider shadow-sm cursor-pointer hover:bg-brand-green-hover transition-all"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Create First Invoice</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {patientInvoices.map((inv) => {
+                    const isVoided = inv.status === "voided" || inv.status === "cancelled";
+                    const isPaid = inv.status === "paid";
+
+                    return (
+                      <div
+                        key={inv.id}
+                        className={`p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                          isVoided ? "opacity-60 bg-rose-50/10" : ""
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-slate-900 dark:text-white">
+                              {inv.invoiceNumber}
+                            </span>
+                            {isPaid ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                Paid
+                              </span>
+                            ) : isVoided ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-400 text-[10px] font-black uppercase" title={inv.voidReason || "Voided"}>
+                                <Ban className="w-2.5 h-2.5" />
+                                Voided
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase">
+                                <Clock className="w-2.5 h-2.5" />
+                                Pending
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {inv.serviceDate} • {inv.paymentMethod || "UPI"}
+                            </span>
+                          </div>
+
+                          <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            {inv.items?.map((it) => it.description).filter(Boolean).join(", ") || "Physiotherapy Treatment"}
+                          </p>
+
+                          <div className="text-[11px] font-bold text-slate-400">
+                            Therapist: <span className="text-slate-600 dark:text-slate-200">{inv.therapistName || "Dr. Kinnera"}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-800">
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                              Total Amount
+                            </span>
+                            <span className={`text-sm font-black ${isVoided ? "line-through text-slate-400" : "text-brand-green dark:text-emerald-400"}`}>
+                              ₹{(inv.totalAmount || 0).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {/* WhatsApp Button */}
+                            {(inv.patientPhone || patient.phone) && !isVoided && (
+                              <a
+                                href={getWhatsAppInvoiceUrl(inv)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative"
+                                title="Send WhatsApp bill to patient"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                  Send WhatsApp bill directly to patient
+                                </span>
+                              </a>
+                            )}
+
+                            {/* Download PDF */}
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoicePdf(inv)}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                              title="Download PDF"
+                            >
+                              <Download className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Download official PDF tax receipt
+                              </span>
+                            </button>
+
+                            {/* View Details */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedInvoiceForView(inv)}
+                              className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                              title="View Invoice"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-32 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                View full invoice details
+                              </span>
+                            </button>
+
+                            {/* Edit Invoice */}
+                            {!isVoided && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedInvoiceForEdit(inv);
+                                  setIsPatientInvoiceModalOpen(true);
+                                }}
+                                className="p-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer shadow-2xs group relative"
+                                title="Edit Invoice"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                  Edit / Correct invoice items
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -2321,6 +2629,37 @@ PLAN:
           documentType={scannerType}
           patientName={patient.name}
           onApply={handleApplyScanResult}
+        />
+      )}
+
+      {/* Create & Edit Invoice Modal for Patient Profile */}
+      {isPatientInvoiceModalOpen && patient && (
+        <CreateEditInvoiceModal
+          isOpen={isPatientInvoiceModalOpen}
+          initialInvoice={selectedInvoiceForEdit}
+          initialPatient={patient}
+          patients={[patient]}
+          onClose={() => {
+            setIsPatientInvoiceModalOpen(false);
+            setSelectedInvoiceForEdit(null);
+          }}
+          onSuccess={(msg) => {
+            setIsPatientInvoiceModalOpen(false);
+            setSelectedInvoiceForEdit(null);
+            setFormSuccess(msg);
+            setTimeout(() => setFormSuccess(""), 4000);
+          }}
+          buildInvoicePdf={buildInvoicePdf}
+        />
+      )}
+
+      {/* View Invoice Modal for Patient Profile */}
+      {selectedInvoiceForView && (
+        <ViewInvoiceModal
+          invoice={selectedInvoiceForView}
+          onClose={() => setSelectedInvoiceForView(null)}
+          onDownload={() => handleDownloadInvoicePdf(selectedInvoiceForView)}
+          whatsappUrl={getWhatsAppInvoiceUrl(selectedInvoiceForView)}
         />
       )}
 
