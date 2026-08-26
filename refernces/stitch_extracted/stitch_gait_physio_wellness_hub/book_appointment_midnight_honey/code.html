@@ -1,0 +1,358 @@
+<!DOCTYPE html><html lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Book Appointment - Gait Physio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-tertiary-fixed": "#2e1502",
+                "outline": "#71787a",
+                "on-surface-variant": "#41484A",
+                "surface-container": "#eeeeee",
+                "surface-container-high": "#e8e8e8",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed-dim": "#ecbd9b",
+                "midnight-charcoal": "#1A1C1B",
+                "error": "#ba1a1a",
+                "cream-surface": "#F9F9F7",
+                "secondary-fixed-dim": "#ffb86d",
+                "inverse-on-surface": "#f1f0f1",
+                "tertiary-fixed": "#ffdcc3",
+                "on-tertiary": "#ffffff",
+                "on-error": "#ffffff",
+                "on-error-container": "#93000a",
+                "background": "#faf9f9",
+                "soft-apricot": "#FFE5D4",
+                "inverse-primary": "#a9ccd7",
+                "secondary": "#8a5100",
+                "on-secondary-container": "#744300",
+                "surface-bright": "#faf9f9",
+                "on-secondary-fixed-variant": "#693c00",
+                "tertiary": "#250f00",
+                "surface-dim": "#dadada",
+                "on-tertiary-fixed-variant": "#604025",
+                "surface-container-highest": "#e2e2e3",
+                "surface-tint": "#41646c",
+                "on-primary-fixed-variant": "#294c54",
+                "primary-fixed-dim": "#a9ccd7",
+                "deep-teal": "#21444D",
+                "tertiary-container": "#3e230b",
+                "outline-variant": "#c1c8ca",
+                "on-background": "#1a1c1c",
+                "primary-container": "#062e36",
+                "on-secondary-fixed": "#2c1600",
+                "surface-container-low": "#f4f3f4",
+                "primary-fixed": "#c4e9f3",
+                "on-primary-container": "#7396a0",
+                "surface-variant": "#e2e2e3",
+                "on-primary": "#ffffff",
+                "on-surface": "#1a1c1c",
+                "surface": "#faf9f9",
+                "inverse-surface": "#2f3131",
+                "secondary-fixed": "#ffdcbd",
+                "on-tertiary-container": "#b18869",
+                "on-secondary": "#ffffff",
+                "primary": "#00181e",
+                "on-primary-fixed": "#001f26",
+                "secondary-container": "#ffb05a",
+                "error-container": "#ffdad6"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-desktop": "40px",
+                "margin-mobile": "20px",
+                "section-gap": "32px",
+                "card-padding": "24px",
+                "base-unit": "8px",
+                "gutter": "16px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "Inter"
+                ],
+                "body-md": [
+                        "Inter"
+                ],
+                "label-md": [
+                        "Inter"
+                ],
+                "headline-lg-mobile": [
+                        "Plus Jakarta Sans"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "display-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "0.01em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-md": [
+                        "20px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 20px rgba(0, 24, 30, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col font-body-md text-body-md pb-24">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-mobile h-16 sticky top-0 z-50 backdrop-blur-xl bg-background/80 md:hidden">
+<button class="text-deep-teal hover:bg-secondary-container/50 p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-deep-teal">Gait Physio</h1>
+<button class="text-deep-teal hover:bg-secondary-container/50 p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<!-- Desktop Nav (Hidden on Mobile) -->
+<nav class="hidden md:flex justify-between items-center w-full px-margin-desktop h-20 sticky top-0 z-50 backdrop-blur-xl bg-background/80 shadow-sm">
+<h1 class="font-headline-lg text-headline-lg font-bold text-deep-teal">Gait Physio</h1>
+<div class="flex space-x-8">
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-deep-teal transition-colors" href="#">Home</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-deep-teal transition-colors" href="#">Exercises</a>
+<a class="text-deep-teal font-label-md text-label-md font-bold border-b-2 border-deep-teal pb-1" href="#">Book</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-deep-teal transition-colors" href="#">Records</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-deep-teal transition-colors" href="#">Profile</a>
+</div>
+<button class="text-deep-teal hover:bg-secondary-container/50 p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</nav>
+<main class="flex-grow px-margin-mobile md:px-margin-desktop max-w-screen-lg mx-auto w-full mt-6">
+<div class="mb-8">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-deep-teal mb-2">Book Appointment</h2>
+<p class="text-on-surface-variant">Select a specialist and time for your session.</p>
+</div>
+<!-- Therapist Selection -->
+<section class="mb-10">
+<h3 class="font-headline-md text-headline-md text-on-background mb-4">Select Specialist</h3>
+<div class="flex overflow-x-auto gap-4 pb-4 hide-scrollbar -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0">
+<!-- Specialist Card 1 (Active) -->
+<div class="flex-shrink-0 w-64 glass-card rounded-2xl p-4 border-2 border-deep-teal relative cursor-pointer transform transition hover:scale-105">
+<div class="absolute top-3 right-3 bg-deep-teal text-secondary-container rounded-full w-6 h-6 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex items-center gap-4 mb-3">
+<img class="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white" data-alt="A professional headshot of a female physical therapist in a bright, modern clinical setting. She is wearing a light mint green scrub top and smiling warmly. The lighting is soft and natural, creating a welcoming and trusting mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxfDEZfcPlh7WNQX3XGKnc12jV6enrMoUGSOItyGXunr8FT0Xrrxf94pFAG_c9ZypIgypxmDb_5LqwLw4oTrdZ44q9z_iWxPthB19YiaGgRBgFLJLMfRcjy4426Fn6req4naFWOZSXuq5rCpl0Q_AoAzhxb5uNup3cEIdLFsTYMWey5BswK5N8Tkc67RdAKPPxkwRHHEpLwwraX9Yw4CrvWE2X4caP-K3NVsYJ-qvcgal6lbVVTAAnYA">
+<div>
+<h4 class="font-label-md text-label-md font-bold text-deep-teal">Dr. Sarah Johnson</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Sports Rehabilitation</p>
+</div>
+</div>
+<div class="flex items-center gap-1 text-primary-container font-label-sm text-label-sm bg-primary-container/10 px-2 py-1 rounded-full w-fit">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                        4.9 (120 reviews)
+                    </div>
+</div>
+<!-- Specialist Card 2 -->
+<div class="flex-shrink-0 w-64 glass-card rounded-2xl p-4 border-2 border-transparent cursor-pointer transform transition hover:scale-105 opacity-80 hover:opacity-100">
+<div class="flex items-center gap-4 mb-3">
+<img class="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white" data-alt="A professional headshot of a male physical therapist in a bright, modern clinical setting. He has a neat beard and is wearing a white lab coat over a dark shirt. The background is a soft blur of a clean, well-lit clinic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXuPsUvzHFQyak813giTrR1cVxah3BrPoPHjca7_eDIs_SZ8rdksbMjx6kuDq1xqXZMZXbUeeYvnhyhEStvg7qdkMItgEaA6QEXNmZpqA1IteLz-rEzJqEnHf_0QMco2MjpPR9-JDQURT-YC8GPQ9Va2g9g-T-Lb-nuoW89YxtNfG-be5-LLntiugIo275QGtXnoueBra7a-gBaF8a0sq3rikcgeqN4d-44vyWakN-STbesDT2At10OA">
+<div>
+<h4 class="font-label-md text-label-md font-bold text-deep-teal">Dr. Michael Chen</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Post-Op Recovery</p>
+</div>
+</div>
+<div class="flex items-center gap-1 text-primary-container font-label-sm text-label-sm bg-primary-container/10 px-2 py-1 rounded-full w-fit">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                        4.8 (85 reviews)
+                    </div>
+</div>
+<!-- Specialist Card 3 -->
+<div class="flex-shrink-0 w-64 glass-card rounded-2xl p-4 border-2 border-transparent cursor-pointer transform transition hover:scale-105 opacity-80 hover:opacity-100">
+<div class="flex items-center gap-4 mb-3">
+<img class="w-16 h-16 rounded-full object-cover shadow-md border-2 border-white" data-alt="A professional headshot of a female physical therapist in a bright, modern clinical setting. She has short dark hair and is wearing a light grey scrub top. The background is a soft, airy medical office environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCejieOBkK7fkwd51yk_4ICWDsNRWHNDZsFL-GKxuU7qdGKPP9G-O_7U_Z7NOEtsvrESoZ22edUTYWypcDTJZMmdaKEH5BLwOPrswHXGoZkOpJ76CLJ3YluxN4_93fnlvdLlO51Tj29cwPDSh2OPR4nj0vPbH0SHH62eKL1n0BzmHHu9d3LkP-3PCCSth_5IgOWowC0jik2iPUopth9KirO6LTgMut50BVDg9ywFFMXTnEe9XcsGJfpkg">
+<div>
+<h4 class="font-label-md text-label-md font-bold text-deep-teal">Dr. Emily Davis</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Geriatric Therapy</p>
+</div>
+</div>
+<div class="flex items-center gap-1 text-primary-container font-label-sm text-label-sm bg-primary-container/10 px-2 py-1 rounded-full w-fit">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                        4.9 (210 reviews)
+                    </div>
+</div>
+</div>
+</section>
+<!-- Date & Time Selection -->
+<section class="glass-card rounded-2xl p-6 mb-8">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md text-on-background">Select Date</h3>
+<div class="flex gap-2">
+<button class="p-1 rounded-full bg-surface-variant text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<span class="font-label-md text-label-md font-bold self-center">October 2023</span>
+<button class="p-1 rounded-full bg-surface-variant text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Calendar Grid (Simplified) -->
+<div class="grid grid-cols-7 gap-2 text-center mb-6">
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">S</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">M</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">T</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">W</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">T</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">F</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant py-2">S</div>
+<!-- Empty days -->
+<div></div><div></div>
+<!-- Days -->
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">1</button>
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">2</button>
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">3</button>
+<button class="p-2 rounded-full bg-deep-teal text-secondary-container font-bold shadow-md transform scale-110">4</button>
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">5</button>
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">6</button>
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">7</button>
+<button class="p-2 rounded-full text-on-surface hover:bg-secondary-container transition-colors">8</button>
+<!-- ... more days would go here in a real app ... -->
+</div>
+<h3 class="font-headline-md text-headline-md text-on-background mb-4">Available Times</h3>
+<div class="flex flex-wrap gap-3">
+<button class="px-4 py-2 rounded-xl border border-outline-variant text-on-surface-variant hover:border-deep-teal hover:text-deep-teal transition-colors font-label-md text-label-md">09:00 AM</button>
+<button class="px-4 py-2 rounded-xl border border-outline-variant text-on-surface-variant hover:border-deep-teal hover:text-deep-teal transition-colors font-label-md text-label-md">10:30 AM</button>
+<button class="px-4 py-2 rounded-xl bg-deep-teal text-secondary-container border-2 border-secondary-container font-label-md text-label-md font-bold shadow-sm">01:00 PM</button>
+<button class="px-4 py-2 rounded-xl border border-outline-variant text-on-surface-variant hover:border-deep-teal hover:text-deep-teal transition-colors font-label-md text-label-md">02:30 PM</button>
+<button class="px-4 py-2 rounded-xl border border-outline-variant text-on-surface-variant hover:border-deep-teal hover:text-deep-teal transition-colors font-label-md text-label-md opacity-50 cursor-not-allowed">04:00 PM</button>
+</div>
+</section>
+<!-- Confirm Action -->
+<div class="flex justify-center mt-8 mb-12">
+<button class="bg-deep-teal text-secondary-container font-label-md text-label-md font-bold py-4 px-12 rounded-full shadow-lg hover:bg-midnight-charcoal transition-colors w-full md:w-auto flex items-center justify-center gap-2">
+                Confirm Booking
+                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-deep-teal border-t border-white/10 shadow-lg md:hidden rounded-t-xl">
+  <a class="flex flex-col items-center justify-center text-secondary-container/70 hover:text-secondary-container transition-all duration-300" href="#">
+    <span class="material-symbols-outlined">home</span>
+    <span class="font-label-sm text-label-sm mt-1">Home</span>
+  </a>
+  <a class="flex flex-col items-center justify-center text-secondary-container/70 hover:text-secondary-container transition-all duration-300" href="#">
+    <span class="material-symbols-outlined">fitness_center</span>
+    <span class="font-label-sm text-label-sm mt-1">Exercises</span>
+  </a>
+  <a class="flex flex-col items-center justify-center bg-secondary-container text-deep-teal rounded-full px-4 py-1 scale-90 transition-all duration-300" href="#">
+    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+    <span class="font-label-sm text-label-sm mt-1 font-bold">Book</span>
+  </a>
+  <a class="flex flex-col items-center justify-center text-secondary-container/70 hover:text-secondary-container transition-all duration-300" href="#">
+    <span class="material-symbols-outlined">assignment</span>
+    <span class="font-label-sm text-label-sm mt-1">Records</span>
+  </a>
+  <a class="flex flex-col items-center justify-center text-secondary-container/70 hover:text-secondary-container transition-all duration-300" href="#">
+    <span class="material-symbols-outlined">person</span>
+    <span class="font-label-sm text-label-sm mt-1">Profile</span>
+  </a>
+</nav>
+
+
+</body></html>

@@ -19,8 +19,18 @@ import {
   getPatients,
   createPatient,
   updatePatient,
+  checkDuplicatePatient,
+  DuplicateCheckResult,
   Patient
 } from "@/lib/patientsDb";
+import { 
+  sanitizePhone, 
+  sanitizeName, 
+  sanitizeText, 
+  sanitizeEmail, 
+  isValidIndianPhone, 
+  isValidEmail 
+} from "@/lib/sanitizer";
 import Link from "next/link";
 import { 
   Calendar as CalendarIcon, 
@@ -35,7 +45,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Search,
-  UserCheck
+  UserCheck,
+  AlertCircle
 } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
@@ -259,11 +270,43 @@ function WalkInBookingContent() {
     return getRemainingCapacity(time) <= 0;
   };
 
+  // Real-time duplicate check state
+  const [duplicateInfo, setDuplicateInfo] = useState<DuplicateCheckResult | null>(null);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+
+      if (patientType === "new" && (name === "patientPhone" || name === "patientName")) {
+        const cleanPhone = sanitizePhone(name === "patientPhone" ? value : prev.patientPhone);
+        const cleanName = sanitizeName(name === "patientName" ? value : prev.patientName);
+
+        if (cleanPhone.length >= 10 || cleanName.length >= 3) {
+          checkDuplicatePatient(cleanPhone, cleanName).then((res) => {
+            setDuplicateInfo(res.isDuplicate ? res : null);
+          });
+        } else {
+          setDuplicateInfo(null);
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleSelectDuplicatePatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setPatientType("existing");
+    setDuplicateInfo(null);
+    setFormData((prev) => ({
+      ...prev,
+      patientName: patient.name,
+      patientPhone: patient.phone.replace(/^\+91\s*/, ""),
+      patientEmail: patient.email || "",
+      assignedTherapist: patient.therapistName || prev.assignedTherapist,
+    }));
   };
 
   const handleSlotSelect = (time: string) => {
@@ -338,19 +381,39 @@ function WalkInBookingContent() {
       return;
     }
 
+    const cleanName = sanitizeName(formData.patientName);
+    const cleanPhone = sanitizePhone(formData.patientPhone);
+    const cleanEmail = sanitizeEmail(formData.patientEmail);
+    const cleanNotes = sanitizeText(formData.notes, 2000);
+
+    if (!cleanName || cleanName.length < 2) {
+      setErrorMessage("Please enter a valid patient name.");
+      return;
+    }
+
+    if (dialCode === "+91" && !isValidIndianPhone(cleanPhone)) {
+      setErrorMessage("Please enter a valid 10-digit Indian mobile number (e.g. 98765 43210).");
+      return;
+    }
+
+    if (cleanEmail && !isValidEmail(cleanEmail)) {
+      setErrorMessage("Please enter a valid email address.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage("");
     try {
-      const fullPhone = dialCode + formData.patientPhone.replace(/\D/g, "");
+      const fullPhone = dialCode + cleanPhone;
       
       const newBooking: any = {
-        patientName: formData.patientName.trim(),
+        patientName: cleanName,
         patientPhone: fullPhone,
-        patientEmail: formData.patientEmail?.trim() || "",
+        patientEmail: cleanEmail || "",
         serviceId: formData.serviceId,
         date: formData.date,
         slot: formData.slot,
-        notes: formData.notes?.trim() || "",
+        notes: cleanNotes || "",
         status: "approved" as const,
         type: "manual" as const,
         createdAt: Timestamp.now(),
@@ -683,6 +746,30 @@ function WalkInBookingContent() {
                       className="flex-grow rounded-r-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
                   </div>
+
+                  {/* Real-time duplicate patient warning card */}
+                  {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && patientType === "new" && (
+                    <div className="mt-2.5 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                      <AlertCircle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1 text-xs">
+                        <p className="font-black text-amber-900 dark:text-amber-200">
+                          ⚠️ Patient Already Exists in Database ({duplicateInfo.matchType === "phone" ? "Matching Phone" : "Matching Name"})
+                        </p>
+                        <p className="text-amber-800 dark:text-amber-300 font-semibold">
+                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>)
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectDuplicatePatient(duplicateInfo.existingPatient!)}
+                            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded-xl shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <span>✓ Load & Select Existing Patient</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>

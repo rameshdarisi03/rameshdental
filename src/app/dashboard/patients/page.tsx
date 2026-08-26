@@ -25,8 +25,9 @@ import {
   Sparkles,
   X
 } from "lucide-react";
-import { getPatients, createPatient, updatePatient } from "@/lib/patientsDb";
+import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult } from "@/lib/patientsDb";
 import { getClinicConfig } from "@/lib/db";
+import { sanitizePhone, sanitizeName, isValidIndianPhone, isValidEmail } from "@/lib/sanitizer";
 import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
 
 interface Patient {
@@ -217,25 +218,64 @@ export default function PatientsPage() {
     }
   };
 
+  // Duplicate detection state
+  const [duplicateInfo, setDuplicateInfo] = useState<DuplicateCheckResult | null>(null);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      
+      // Trigger real-time duplicate check if phone or name is entered
+      if (name === "phone" || name === "name") {
+        const cleanPhone = sanitizePhone(name === "phone" ? value : prev.phone);
+        const cleanName = sanitizeName(name === "name" ? value : prev.name);
+
+        if (cleanPhone.length >= 10 || cleanName.length >= 3) {
+          checkDuplicatePatient(cleanPhone, cleanName).then((res) => {
+            setDuplicateInfo(res.isDuplicate ? res : null);
+          });
+        } else {
+          setDuplicateInfo(null);
+        }
+      }
+      return next;
+    });
   };
-
-
 
   const handleCreatePatient = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setFormError("");
 
+    const cleanPhone = sanitizePhone(formData.phone);
+    const cleanName = sanitizeName(formData.name);
+
+    if (!cleanName || cleanName.length < 2) {
+      setFormError("Please enter a valid patient name.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (dialCode === "+91" && !isValidIndianPhone(cleanPhone)) {
+      setFormError("Please enter a valid 10-digit Indian mobile number (e.g. 98765 43210).");
+      setSubmitting(false);
+      return;
+    }
+
+    if (formData.email && formData.email.trim() && !isValidEmail(formData.email)) {
+      setFormError("Please enter a valid email address.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      // 1. Create Patient in Firestore Client-side (rules are satisfied because user is signed in)
-      console.log("[Client Page] Creating patient profile in Firestore...", formData.name);
+      // 1. Create Patient in Firestore Client-side
+      console.log("[Client Page] Creating patient profile in Firestore...", cleanName);
       const newPatient = await createPatient({
-        name: formData.name,
-        email: formData.email.trim().toLowerCase(),
-        phone: `${dialCode} ${formData.phone.trim()}`,
+        name: cleanName,
+        email: formData.email ? formData.email.trim().toLowerCase() : "",
+        phone: `${dialCode} ${cleanPhone}`,
         age: formData.age ? String(formData.age).trim() : "",
         gender: formData.gender,
         treatmentPlan: formData.treatmentPlan,
@@ -867,6 +907,30 @@ export default function PatientsPage() {
                       className="flex-grow rounded-r-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
                   </div>
+
+                  {/* Real-Time Duplicate Patient Alert Banner */}
+                  {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && (
+                    <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                      <AlertCircle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1 text-xs">
+                        <p className="font-black text-amber-900 dark:text-amber-200">
+                          ⚠️ Patient Already Exists ({duplicateInfo.matchType === "phone" ? "Matching Mobile Number" : "Matching Name"})
+                        </p>
+                        <p className="text-amber-800 dark:text-amber-300 font-semibold">
+                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>) is already registered in the system.
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Link
+                            href={`/dashboard/patients/${duplicateInfo.existingPatient.id}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded-xl shadow-2xs transition-colors"
+                          >
+                            <span>Open Existing Profile ↗</span>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Patient Age */}

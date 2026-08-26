@@ -11,6 +11,7 @@ import {
   updateInvoice
 } from "@/lib/invoicesDb";
 import { Patient } from "@/lib/patientsDb";
+import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeText } from "@/lib/sanitizer";
 import jsPDF from "jspdf";
 import { 
   Receipt, 
@@ -120,7 +121,7 @@ export default function CreateEditInvoiceModal({
 
   // Smartphone native back-button interception
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || typeof window === "undefined" || !document?.body) return;
     const originalStyle = window.getComputedStyle(document.body).overflow;
     document.body.style.overflow = "hidden";
 
@@ -129,10 +130,14 @@ export default function CreateEditInvoiceModal({
     window.addEventListener("popstate", handlePopState);
 
     return () => {
-      document.body.style.overflow = originalStyle;
-      window.removeEventListener("popstate", handlePopState);
-      if (window.history.state?.modalOpen === "invoiceModal") {
-        window.history.back();
+      if (typeof document !== "undefined" && document.body) {
+        document.body.style.overflow = originalStyle;
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("popstate", handlePopState);
+        if (window.history.state?.modalOpen === "invoiceModal") {
+          window.history.back();
+        }
       }
     };
   }, [isOpen, onClose]);
@@ -223,16 +228,24 @@ export default function CreateEditInvoiceModal({
     setModalError("");
 
     try {
+      const sanitizedItems = items.map((item) => ({
+        ...item,
+        description: sanitizeText(item.description, 200),
+        amount: Math.max(0, Number(item.amount) || 0),
+        quantity: Math.max(1, Number(item.quantity) || 1),
+        rate: Math.max(0, Number(item.rate) || 0)
+      }));
+
       const invoicePayload = {
         invoiceNumber: currentInvNumber,
         patientId: patientPid || "GPC-GUEST",
-        patientName: patientName.trim(),
-        patientEmail: patientEmail.trim(),
-        patientPhone: patientPhone.trim(),
+        patientName: sanitizeName(patientName),
+        patientEmail: sanitizeEmail(patientEmail),
+        patientPhone: sanitizePhone(patientPhone),
         therapistName: therapistName,
         serviceDate: serviceDate || new Date().toISOString().split("T")[0],
         dueDate: dueDate || new Date().toISOString().split("T")[0],
-        items: items,
+        items: sanitizedItems,
         subtotal: subtotal,
         taxRate: taxRate,
         taxAmount: taxAmount,
@@ -241,7 +254,7 @@ export default function CreateEditInvoiceModal({
         currency: "INR",
         status: targetStatus,
         paymentMethod: paymentMethod,
-        notes: notes.trim(),
+        notes: sanitizeText(notes, 2000),
         revision: isEditMode ? ((initialInvoice?.revision || 1) + 1) : 1
       };
 

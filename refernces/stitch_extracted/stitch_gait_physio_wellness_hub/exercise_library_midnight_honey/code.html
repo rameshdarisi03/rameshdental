@@ -1,0 +1,367 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Exercise Library - Gait Physio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-tertiary-fixed": "#2e1502",
+                "outline": "#71787a",
+                "on-surface-variant": "#41484A",
+                "surface-container": "#eeeeee",
+                "surface-container-high": "#e8e8e8",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed-dim": "#ecbd9b",
+                "midnight-charcoal": "#1A1C1B",
+                "error": "#ba1a1a",
+                "cream-surface": "#F9F9F7",
+                "secondary-fixed-dim": "#ffb86d",
+                "inverse-on-surface": "#f1f0f1",
+                "tertiary-fixed": "#ffdcc3",
+                "on-tertiary": "#ffffff",
+                "on-error": "#ffffff",
+                "on-error-container": "#93000a",
+                "background": "#faf9f9",
+                "soft-apricot": "#FFE5D4",
+                "inverse-primary": "#a9ccd7",
+                "secondary": "#8a5100",
+                "on-secondary-container": "#744300",
+                "surface-bright": "#faf9f9",
+                "on-secondary-fixed-variant": "#693c00",
+                "tertiary": "#250f00",
+                "surface-dim": "#dadada",
+                "on-tertiary-fixed-variant": "#604025",
+                "surface-container-highest": "#e2e2e3",
+                "surface-tint": "#41646c",
+                "on-primary-fixed-variant": "#294c54",
+                "primary-fixed-dim": "#a9ccd7",
+                "deep-teal": "#21444D",
+                "tertiary-container": "#3e230b",
+                "outline-variant": "#c1c8ca",
+                "on-background": "#1a1c1c",
+                "primary-container": "#062e36",
+                "on-secondary-fixed": "#2c1600",
+                "surface-container-low": "#f4f3f4",
+                "primary-fixed": "#c4e9f3",
+                "on-primary-container": "#7396a0",
+                "surface-variant": "#e2e2e3",
+                "on-primary": "#ffffff",
+                "on-surface": "#1a1c1c",
+                "surface": "#faf9f9",
+                "inverse-surface": "#2f3131",
+                "secondary-fixed": "#ffdcbd",
+                "on-tertiary-container": "#b18869",
+                "on-secondary": "#ffffff",
+                "primary": "#00181e",
+                "on-primary-fixed": "#001f26",
+                "secondary-container": "#ffb05a",
+                "error-container": "#ffdad6"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-desktop": "40px",
+                "margin-mobile": "20px",
+                "section-gap": "32px",
+                "card-padding": "24px",
+                "base-unit": "8px",
+                "gutter": "16px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "Inter"
+                ],
+                "body-md": [
+                        "Inter"
+                ],
+                "label-md": [
+                        "Inter"
+                ],
+                "headline-lg-mobile": [
+                        "Plus Jakarta Sans"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "display-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "0.01em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-md": [
+                        "20px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #faf9f9;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .ambient-shadow {
+            box-shadow: 0 4px 20px rgba(0, 24, 30, 0.04);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-on-surface antialiased pb-24 md:pb-0 bg-background">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 sticky top-0 z-50 backdrop-blur-xl bg-background/80 flat no shadows">
+<button aria-label="Menu" class="text-deep-teal hover:bg-secondary-container/20 p-2 rounded-full transition-colors flex items-center justify-center group">
+<span class="material-symbols-outlined group-active:scale-95 transition-transform duration-200">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold text-deep-teal">Gait Physio</h1>
+<button aria-label="Notifications" class="text-deep-teal hover:bg-secondary-container/20 p-2 rounded-full transition-colors flex items-center justify-center group">
+<span class="material-symbols-outlined group-active:scale-95 transition-transform duration-200">notifications</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="max-w-[1200px] mx-auto px-margin-mobile md:px-margin-desktop pt-4 pb-8">
+<!-- Page Title & Search -->
+<div class="mb-8">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-deep-teal mb-6">Exercise Library</h2>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container border-none rounded-full py-4 pl-12 pr-4 font-body-md text-body-md text-on-surface focus:ring-1 focus:ring-deep-teal focus:bg-white transition-all outline-none placeholder:text-on-surface-variant/70" placeholder="Search exercises, pain areas..." type="text">
+</div>
+</div>
+<!-- Categories (Horizontal Scroll) -->
+<section class="mb-10">
+<h3 class="font-headline-md text-headline-md text-deep-teal mb-4">Categories</h3>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0">
+<!-- Category 1: Knee -->
+<button class="flex-none w-32 h-32 rounded-[24px] bg-deep-teal p-4 flex flex-col justify-between items-start text-white relative overflow-hidden group hover:-translate-y-1 transition-transform ambient-shadow">
+<div class="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">directions_run</span>
+</div>
+<span class="font-label-md text-label-md font-bold z-10">Knee &amp; Leg</span>
+<div class="absolute -bottom-4 -right-4 w-20 h-20 bg-secondary-container/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+</button>
+<!-- Category 2: Back -->
+<button class="flex-none w-32 h-32 rounded-[24px] bg-soft-apricot p-4 flex flex-col justify-between items-start text-deep-teal relative overflow-hidden group hover:-translate-y-1 transition-transform ambient-shadow">
+<div class="bg-deep-teal/10 p-2 rounded-full backdrop-blur-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">accessibility_new</span>
+</div>
+<span class="font-label-md text-label-md font-bold z-10">Lower Back</span>
+<div class="absolute -bottom-4 -right-4 w-20 h-20 bg-deep-teal/5 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+</button>
+<!-- Category 3: Shoulder -->
+<button class="flex-none w-32 h-32 rounded-[24px] bg-secondary-container p-4 flex flex-col justify-between items-start text-deep-teal relative overflow-hidden group hover:-translate-y-1 transition-transform ambient-shadow">
+<div class="bg-white/30 p-2 rounded-full backdrop-blur-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">front_hand</span>
+</div>
+<span class="font-label-md text-label-md font-bold z-10">Shoulder</span>
+<div class="absolute -bottom-4 -right-4 w-20 h-20 bg-white/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+</button>
+<!-- Category 4: Mobility -->
+<button class="flex-none w-32 h-32 rounded-[24px] bg-surface-variant p-4 flex flex-col justify-between items-start text-deep-teal relative overflow-hidden group hover:-translate-y-1 transition-transform ambient-shadow">
+<div class="bg-white/50 p-2 rounded-full backdrop-blur-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">self_improvement</span>
+</div>
+<span class="font-label-md text-label-md font-bold z-10">Mobility</span>
+<div class="absolute -bottom-4 -right-4 w-20 h-20 bg-white/40 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+</button>
+</div>
+</section>
+<!-- Recommended Exercises Grid -->
+<section>
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md text-deep-teal">Recommended for you</h3>
+<button class="font-label-md text-label-md text-deep-teal hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Video Card 1 -->
+<div class="bg-white rounded-[24px] overflow-hidden ambient-shadow cursor-pointer group">
+<div class="relative h-48 w-full overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A bright, high-quality photograph of a physical therapist demonstrating a lower back stretch in a modern, light-filled studio. The color palette features soft mint greens and warm whites. The mood is calm and instructional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9X_cCgljq6idRKHUV5m3qJDO9ET8itgA5At4zDw6NlixtdelDtTNjeoadAKwjrEWU-9fnxZNRxht6YOQpUR-QFlrVYZCKPAZwohgqx-PeC4ByI9-IkujGomloWPIjzRi-pe6AjlsoZy_TOkg5YsFdR0hTxWqUe5ab3MCdatufnQ1taNS7m0wvJ8-ghY9MmuesrXddCPZy8OU9SdhVdqY7IbbiETCCEzSuSeN-LBHmLFdsgNGwPJJVsQ">
+<div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-deep-teal shadow-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="absolute bottom-3 right-3 bg-deep-teal/80 text-white font-label-sm text-label-sm px-2 py-1 rounded-md backdrop-blur-sm">
+                            05:30
+                        </div>
+</div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline-md text-headline-md text-deep-teal">Lower Back Release</h4>
+<span class="bg-secondary-container text-deep-teal font-label-sm text-label-sm px-2 py-1 rounded-full">Beginner</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-4">Gentle stretches to relieve tension in the lumbar region and improve flexibility.</p>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">accessibility_new</span>
+<span class="">Target: Lumbar Spine</span>
+</div>
+</div>
+</div>
+<!-- Video Card 2 -->
+<div class="bg-white rounded-[24px] overflow-hidden ambient-shadow cursor-pointer group">
+<div class="relative h-48 w-full overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A bright, high-quality photograph of a person performing a knee stabilization exercise using a resistance band in a modern, light-filled studio. Soft mint greens and pastel tones dominate the scene." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBlpy8OBIjC3XEnssIoe1BcRCL20rY4QD-KMqVzDvlVhtSOE5uGqCaRTnaQlxXft30inGOCdkj5k28ZdNQ8DgAHZPy_f5l09W1foQ9N469gtfxunyf4RlOopzkMdJIB4R0hifLnqTXpsjKj_m3OY0hfp4D8tDOTKVjeuPLLlBzWzbcvGTSdrFYVeHuPfHD7PAdfOa-JAtGolIhqPiMLLgKHKZjB6GsylaFbM9t2sMBHGQhsA0GSk3sjQ">
+<div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-deep-teal shadow-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="absolute bottom-3 right-3 bg-deep-teal/80 text-white font-label-sm text-label-sm px-2 py-1 rounded-md backdrop-blur-sm">
+                            08:15
+                        </div>
+</div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline-md text-headline-md text-deep-teal">Knee Stabilization</h4>
+<span class="bg-soft-apricot text-deep-teal font-label-sm text-label-sm px-2 py-1 rounded-full">Intermediate</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-4">Build strength around the patella to improve walking gait and reduce pain.</p>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">directions_run</span>
+<span class="">Target: Patellar Tendon</span>
+</div>
+</div>
+</div>
+<!-- Video Card 3 -->
+<div class="bg-white rounded-[24px] overflow-hidden ambient-shadow cursor-pointer group hidden md:block">
+<div class="relative h-48 w-full overflow-hidden">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A close up shot of hands demonstrating a shoulder mobility exercise with a small weighted ball. The setting is clean, modern, and bathed in soft natural light with subtle green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcLyzFR8T8mNgV8ISanFKwAdAAeQ8Xi9VKiKx0khWzeHAvahqkEq8Fzp5D0YXiDC8GSNYZGkBGDYG6cQqHEv9HYuL57UPTgpgubdhDj4BLaB6OOA1IB39aZFBdZ6noxoS3Wp3a_tr6GPbGJiSE42pGTh5iNPMKUDFWqgWqJtWwhJ8lceE-1Pye5iXcr-kU076UmxQupS4IyDpLkA9_g4JQwPb0ey4Y4P7LWnh0MuYMuChXGIa9DdZ_dQ">
+<div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+<div class="w-12 h-12 bg-secondary-container rounded-full flex items-center justify-center text-deep-teal shadow-lg">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<div class="absolute bottom-3 right-3 bg-deep-teal/80 text-white font-label-sm text-label-sm px-2 py-1 rounded-md backdrop-blur-sm">
+                            12:00
+                        </div>
+</div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline-md text-headline-md text-deep-teal">Rotator Cuff Flow</h4>
+<span class="bg-surface-variant text-deep-teal font-label-sm text-label-sm px-2 py-1 rounded-full">Advanced</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-4">A comprehensive routine to restore full range of motion in the shoulder joint.</p>
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">front_hand</span>
+<span class="">Target: Deltoids</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/30 shadow-lg rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-300">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-deep-teal text-secondary rounded-full px-4 py-1 transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-300" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="font-label-sm text-label-sm">Exercises</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-300">calendar_month</span>
+<span class="font-label-sm text-label-sm">Book</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-300">assignment</span>
+<span class="font-label-sm text-label-sm">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-colors group" href="#">
+<span class="material-symbols-outlined mb-1 group-active:scale-90 transition-all duration-300">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+
+
+</body></html>

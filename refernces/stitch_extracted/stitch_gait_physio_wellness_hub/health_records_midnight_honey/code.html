@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Health Records - Gait Physio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "soft-apricot": "#FFE5D4",
+                "primary-fixed": "#c4e9f3",
+                "cream-surface": "#F9F9F7",
+                "inverse-surface": "#2f3131",
+                "surface-bright": "#faf9f9",
+                "secondary": "#8a5100",
+                "on-primary": "#ffffff",
+                "tertiary": "#250f00",
+                "on-surface-variant": "#41484A",
+                "primary": "#00181e",
+                "midnight-charcoal": "#1A1C1B",
+                "primary-container": "#062e36",
+                "deep-teal": "#21444D",
+                "surface-variant": "#e2e2e3",
+                "on-primary-container": "#7396a0",
+                "background": "#faf9f9",
+                "on-secondary-fixed": "#2c1600",
+                "surface-container-highest": "#e2e2e3",
+                "surface-container-low": "#f4f3f4",
+                "on-error-container": "#93000a",
+                "tertiary-container": "#3e230b",
+                "on-secondary": "#ffffff",
+                "error-container": "#ffdad6",
+                "on-primary-fixed-variant": "#294c54",
+                "on-tertiary": "#ffffff",
+                "surface": "#faf9f9",
+                "primary-fixed-dim": "#a9ccd7",
+                "on-secondary-fixed-variant": "#693c00",
+                "error": "#ba1a1a",
+                "secondary-fixed": "#ffdcbd",
+                "surface-tint": "#41646c",
+                "outline": "#71787a",
+                "surface-container-high": "#e8e8e8",
+                "on-secondary-container": "#744300",
+                "on-surface": "#1a1c1c",
+                "on-tertiary-container": "#b18869",
+                "inverse-on-surface": "#f1f0f1",
+                "on-tertiary-fixed-variant": "#604025",
+                "secondary-container": "#ffb05a",
+                "tertiary-fixed-dim": "#ecbd9b",
+                "secondary-fixed-dim": "#ffb86d",
+                "on-error": "#ffffff",
+                "on-tertiary-fixed": "#2e1502",
+                "surface-container": "#eeeeee",
+                "tertiary-fixed": "#ffdcc3",
+                "on-background": "#1a1c1c",
+                "outline-variant": "#c1c8ca",
+                "surface-dim": "#dadada",
+                "surface-container-lowest": "#ffffff",
+                "inverse-primary": "#a9ccd7",
+                "on-primary-fixed": "#001f26"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-mobile": "20px",
+                "margin-desktop": "40px",
+                "base-unit": "8px",
+                "card-padding": "24px",
+                "gutter": "16px",
+                "section-gap": "32px",
+                "card-gap": "12px",
+                "unit": "8px",
+                "container-padding-mobile": "20px",
+                "container-padding-desktop": "40px"
+        },
+        "fontFamily": {
+                "label-sm": [
+                        "Inter"
+                ],
+                "body-md": [
+                        "Inter"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "headline-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "headline-lg-mobile": [
+                        "Plus Jakarta Sans"
+                ],
+                "display-lg": [
+                        "Plus Jakarta Sans"
+                ],
+                "label-md": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Plus Jakarta Sans"
+                ]
+        },
+        "fontSize": {
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "0.01em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-md": [
+                        "20px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        .custom-shadow {
+            box-shadow: 0 4px 20px rgba(20, 66, 45, 0.04);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased pb-24">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-container-padding-mobile h-16 sticky top-0 z-50 backdrop-blur-xl bg-background/80">
+<button class="text-on-surface-variant hover:bg-secondary-container/50 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-md text-headline-md-mobile font-bold text-deep-teal">Gait Physio</h1>
+<button class="text-on-surface-variant hover:bg-secondary-container/50 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-container-padding-mobile py-6 max-w-[1200px] mx-auto w-full md:px-container-padding-desktop">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-deep-teal mb-6">My Records</h2>
+<!-- Tabs -->
+<div class="flex space-x-2 bg-surface-container-low p-1 rounded-xl mb-8">
+<button class="flex-1 py-3 text-center rounded-lg bg-secondary text-white font-label-md text-label-md shadow-sm transition-all" id="tab-invoices" onclick="switchTab('invoices')">
+                Invoices
+            </button>
+<button class="flex-1 py-3 text-center rounded-lg text-deep-teal hover:bg-deep-teal/10 font-label-md text-label-md transition-all" id="tab-prescriptions" onclick="switchTab('prescriptions')">
+                Prescriptions
+            </button>
+</div>
+<!-- Invoices List -->
+<div class="space-y-4" id="content-invoices">
+<!-- Invoice Item 1 -->
+<div class="bg-surface rounded-[24px] p-5 custom-shadow flex items-center justify-between border border-outline-variant/20 hover:border-deep-teal/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface font-semibold">Session - Knee Rehab</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Oct 24, 2023 • INV-0042</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label-md text-label-md text-deep-teal font-semibold">$120.00</span>
+<button class="p-2 text-deep-teal bg-secondary-container hover:bg-secondary-container/80 transition-colors rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">download</span>
+</button>
+</div>
+</div>
+<!-- Invoice Item 2 -->
+<div class="bg-surface rounded-[24px] p-5 custom-shadow flex items-center justify-between border border-outline-variant/20 hover:border-deep-teal/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface font-semibold">Initial Consultation</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Oct 10, 2023 • INV-0038</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label-md text-label-md text-deep-teal font-semibold">$150.00</span>
+<button class="p-2 text-deep-teal bg-secondary-container hover:bg-secondary-container/80 transition-colors rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">download</span>
+</button>
+</div>
+</div>
+<!-- Invoice Item 3 -->
+<div class="bg-surface rounded-[24px] p-5 custom-shadow flex items-center justify-between border border-outline-variant/20 hover:border-deep-teal/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface font-semibold">Massage Therapy</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Sep 28, 2023 • INV-0021</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label-md text-label-md text-deep-teal font-semibold">$90.00</span>
+<button class="p-2 text-deep-teal bg-secondary-container hover:bg-secondary-container/80 transition-colors rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">download</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Prescriptions List (Hidden by default) -->
+<div class="space-y-4 hidden" id="content-prescriptions">
+<!-- Prescription Item 1 -->
+<div class="bg-surface rounded-[24px] p-5 custom-shadow flex items-center justify-between border border-outline-variant/20 hover:border-deep-teal/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface font-semibold">Home Exercise Plan v2</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Dr. Smith • Oct 24, 2023</p>
+</div>
+</div>
+<button class="p-2 text-deep-teal bg-secondary-container hover:bg-secondary-container/80 transition-colors rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">download</span>
+</button>
+</div>
+<!-- Prescription Item 2 -->
+<div class="bg-surface rounded-[24px] p-5 custom-shadow flex items-center justify-between border border-outline-variant/20 hover:border-deep-teal/30 transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container/30 flex items-center justify-center text-deep-teal">
+<span class="material-symbols-outlined">medical_services</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface font-semibold">Anti-inflammatory Meds</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Dr. Smith • Oct 10, 2023</p>
+</div>
+</div>
+<button class="p-2 text-deep-teal bg-secondary-container hover:bg-secondary-container/80 transition-colors rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">download</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-surface/80 backdrop-blur-xl border-t border-outline-variant/30 shadow-lg rounded-t-xl md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="fitness_center">fitness_center</span>
+<span class="font-label-sm text-label-sm mt-1">Exercises</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-sm text-label-sm mt-1">Book</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary text-white rounded-full px-4 py-1 scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="assignment" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-label-sm text-label-sm mt-1">Records</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-deep-teal transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+<script>
+        function switchTab(tab) {
+            const invoicesTab = document.getElementById('tab-invoices');
+            const prescriptionsTab = document.getElementById('tab-prescriptions');
+            const invoicesContent = document.getElementById('content-invoices');
+            const prescriptionsContent = document.getElementById('content-prescriptions');
+
+            if (tab === 'invoices') {
+                // Update Tab Styles
+                invoicesTab.className = 'flex-1 py-3 text-center rounded-lg bg-deep-teal text-white font-label-md text-label-md shadow-sm transition-all';
+                prescriptionsTab.className = 'flex-1 py-3 text-center rounded-lg text-deep-teal hover:bg-deep-teal/10 font-label-md text-label-md transition-all';
+                
+                // Update Content Visibility
+                invoicesContent.classList.remove('hidden');
+                prescriptionsContent.classList.add('hidden');
+            } else {
+                // Update Tab Styles
+                prescriptionsTab.className = 'flex-1 py-3 text-center rounded-lg bg-deep-teal text-white font-label-md text-label-md shadow-sm transition-all';
+                invoicesTab.className = 'flex-1 py-3 text-center rounded-lg text-deep-teal hover:bg-deep-teal/10 font-label-md text-label-md transition-all';
+                
+                // Update Content Visibility
+                prescriptionsContent.classList.remove('hidden');
+                invoicesContent.classList.add('hidden');
+            }
+        }
+    </script>
+
+
+</body></html>

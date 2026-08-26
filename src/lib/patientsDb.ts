@@ -107,22 +107,78 @@ async function generateUniquePatientId(): Promise<string> {
   return patientId;
 }
 
+import { sanitizePatientPayload, sanitizePhone, sanitizeName } from "./sanitizer";
+
+export interface DuplicateCheckResult {
+  isDuplicate: boolean;
+  matchType?: "phone" | "name";
+  existingPatient?: Patient;
+}
+
+export async function checkDuplicatePatient(phone?: string, name?: string): Promise<DuplicateCheckResult> {
+  try {
+    const cleanPhone = sanitizePhone(phone);
+    const cleanName = sanitizeName(name).toLowerCase();
+    
+    if (!cleanPhone && !cleanName) {
+      return { isDuplicate: false };
+    }
+
+    const all = await getDocs(collection(db, "patients"));
+    
+    // First Priority: Phone match (Exact 10 digits)
+    if (cleanPhone && cleanPhone.length === 10) {
+      for (const d of all.docs) {
+        const data = d.data() as Patient;
+        const pPhone = sanitizePhone(data.phone);
+        if (pPhone === cleanPhone) {
+          return {
+            isDuplicate: true,
+            matchType: "phone",
+            existingPatient: { id: d.id, ...data },
+          };
+        }
+      }
+    }
+
+    // Second Priority: Name match (Exact match)
+    if (cleanName && cleanName.length > 2) {
+      for (const d of all.docs) {
+        const data = d.data() as Patient;
+        if ((data.name || "").trim().toLowerCase() === cleanName) {
+          return {
+            isDuplicate: true,
+            matchType: "name",
+            existingPatient: { id: d.id, ...data },
+          };
+        }
+      }
+    }
+
+    return { isDuplicate: false };
+  } catch (err) {
+    console.warn("Duplicate check failed safely:", err);
+    return { isDuplicate: false };
+  }
+}
+
 // Register a new patient in Firestore
 export async function createPatient(patientData: Omit<Patient, "createdAt" | "id">): Promise<Patient> {
   try {
     const patientId = await generateUniquePatientId();
     const docRef = doc(db, "patients", patientId);
 
-    const hasEmail = Boolean(patientData.email && patientData.email.trim());
+    const sanitizedData = sanitizePatientPayload(patientData);
+    const hasEmail = Boolean(sanitizedData.email && sanitizedData.email.trim());
     const activationCode = hasEmail
-      ? patientData.activationCode || generateActivationCode()
+      ? sanitizedData.activationCode || generateActivationCode()
       : "";
 
     const newPatient: Patient = {
-      ...patientData,
+      ...sanitizedData,
       id: patientId,
       activationCode,
-      activated: patientData.activated || false,
+      activated: sanitizedData.activated || false,
       createdAt: Timestamp.now(),
     };
 
@@ -138,7 +194,8 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
 export async function updatePatient(patientId: string, updates: Partial<Patient>): Promise<void> {
   try {
     const docRef = doc(db, "patients", patientId);
-    await updateDoc(docRef, updates);
+    const sanitizedUpdates = sanitizePatientPayload(updates);
+    await updateDoc(docRef, sanitizedUpdates);
   } catch (error) {
     console.error("Error updating patient in Firestore:", error);
     throw error;

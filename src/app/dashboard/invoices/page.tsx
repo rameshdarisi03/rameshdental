@@ -31,7 +31,8 @@ import {
   Ban,
   Check,
   FileText,
-  X
+  X,
+  MoreVertical
 } from "lucide-react";
 
 export default function ClinicalBillingPage() {
@@ -59,6 +60,7 @@ export default function ClinicalBillingPage() {
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [voidingInvoice, setVoidingInvoice] = useState<Invoice | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [mobileActionInvoice, setMobileActionInvoice] = useState<Invoice | null>(null);
 
   // Quick Payment Menu State
   const [activePaymentMenuId, setActivePaymentMenuId] = useState<string | null>(null);
@@ -66,6 +68,26 @@ export default function ClinicalBillingPage() {
   // Global Action Feedback
   const [actionSuccess, setActionSuccess] = useState("");
   const [actionError, setActionError] = useState("");
+
+  // Outside click listener for payment menu
+  useEffect(() => {
+    if (!activePaymentMenuId) return;
+
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-payment-menu]")) {
+        setActivePaymentMenuId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [activePaymentMenuId]);
 
   // Subscribe to real-time invoices & load patients
   useEffect(() => {
@@ -547,28 +569,25 @@ Warm regards,
 
                       {/* Action Buttons with Contextual Help Tooltips */}
                       <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5 relative">
-                          
-                          {/* 1. Edit Button (Corrective Mechanism) - FIRST */}
+                        {/* Desktop Action Toolbar (hidden on mobile) */}
+                        <div className="hidden md:flex items-center gap-1.5 justify-end">
+                          {/* 1. Edit Button (FIRST) */}
                           {!isVoided && (
                             <button
                               type="button"
-                              onClick={() => {
-                                setEditingInvoice(inv);
-                                setIsCreateModalOpen(true);
-                              }}
+                              onClick={() => setEditingInvoice(inv)}
                               className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
-                              title="Edit / Correct invoice"
+                              title="Edit / Correct Invoice"
                             >
                               <Edit2 className="h-4 w-4" />
-                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                Edit items, discounts, or correct mistakes
+                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-36 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Edit or correct items & discounts
                               </span>
                             </button>
                           )}
 
                           {/* 2. WhatsApp Button */}
-                          {inv.patientPhone && !isVoided && (
+                          {(inv.patientPhone) && !isVoided && (
                             <a
                               href={getWhatsAppShareUrl(inv)}
                               target="_blank"
@@ -609,13 +628,17 @@ Warm regards,
                             </span>
                           </button>
 
-                          {/* 5. Payment Quick-Toggle */}
+                          {/* 5. Payment Quick-Toggle (With Click-Outside Protection) */}
                           {!isVoided && (
-                            <div className="relative">
+                            <div className="relative" data-payment-menu>
                               <button
                                 type="button"
                                 onClick={() => setActivePaymentMenuId(activePaymentMenuId === inv.id ? null : inv.id)}
-                                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors group relative cursor-pointer shadow-2xs"
+                                className={`p-2 rounded-xl transition-colors group relative cursor-pointer shadow-2xs ${
+                                  activePaymentMenuId === inv.id
+                                    ? "bg-brand-green text-white"
+                                    : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                }`}
                                 title="Update Payment Status"
                               >
                                 <CreditCard className="h-4 w-4" />
@@ -626,39 +649,42 @@ Warm regards,
 
                               {/* Payment Dropdown Menu */}
                               {activePaymentMenuId === inv.id && (
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-40 space-y-1 text-left">
-                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider px-2 py-1">Set Payment Status</p>
+                                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-left animate-slide-down">
+                                  <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-slate-800/80">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Set Payment Status</p>
+                                    <span className="text-[9px] text-slate-400 font-bold">Tap outside to close</span>
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => handleQuickPaymentChange(inv, "paid", "UPI")}
-                                    className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                    className="w-full px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                                   >
                                     <span>Paid via UPI</span>
-                                    <Check className="h-3 w-3 text-emerald-600" />
+                                    <Check className="h-3.5 w-3.5 text-emerald-600" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleQuickPaymentChange(inv, "paid", "Cash")}
-                                    className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                    className="w-full px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                                   >
                                     <span>Paid via Cash</span>
-                                    <Check className="h-3 w-3 text-emerald-600" />
+                                    <Check className="h-3.5 w-3.5 text-emerald-600" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleQuickPaymentChange(inv, "paid", "Card")}
-                                    className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                    className="w-full px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                                   >
                                     <span>Paid via Card</span>
-                                    <Check className="h-3 w-3 text-emerald-600" />
+                                    <Check className="h-3.5 w-3.5 text-emerald-600" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleQuickPaymentChange(inv, "pending")}
-                                    className="w-full px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
+                                    className="w-full px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl flex items-center justify-between transition-colors cursor-pointer"
                                   >
                                     <span>Mark as Pending</span>
-                                    <Clock className="h-3 w-3" />
+                                    <Clock className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
                               )}
@@ -682,8 +708,46 @@ Warm regards,
                               </span>
                             </button>
                           )}
-
                         </div>
+
+                        {/* Mobile Action Controls (Visible on mobile only) */}
+                        <div className="flex md:hidden items-center gap-1.5 justify-end">
+                          {/* 1. Quick Edit */}
+                          {!isVoided && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingInvoice(inv)}
+                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          )}
+
+                          {/* 2. Quick WhatsApp */}
+                          {inv.patientPhone && !isVoided && (
+                            <a
+                              href={getWhatsAppShareUrl(inv)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400"
+                              title="WhatsApp"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </a>
+                          )}
+
+                          {/* 3. Mobile Action Drawer Trigger */}
+                          <button
+                            type="button"
+                            onClick={() => setMobileActionInvoice(inv)}
+                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            title="More Actions"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </div>
+
                       </td>
                     </tr>
                   );
@@ -775,6 +839,176 @@ Warm regards,
               >
                 Confirm Cancellation
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ========================================================================= */}
+      {/* MOBILE ACTION SHEET MODAL                                                 */}
+      {/* ========================================================================= */}
+      {mobileActionInvoice && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+          onClick={() => setMobileActionInvoice(null)}
+        >
+          <div
+            className="w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                  Invoice #{mobileActionInvoice.invoiceNumber}
+                </h4>
+                <p className="text-xs text-slate-400 font-bold">
+                  {mobileActionInvoice.patientName} • ₹{(mobileActionInvoice.totalAmount || 0).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileActionInvoice(null)}
+                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Actions List */}
+            <div className="space-y-1.5">
+              {/* 1. Edit */}
+              {mobileActionInvoice.status !== "voided" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingInvoice(mobileActionInvoice);
+                    setMobileActionInvoice(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-xs font-black text-slate-800 dark:text-white transition-colors"
+                >
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600">
+                    <Edit2 className="h-4 w-4" />
+                  </div>
+                  <span>Edit / Correct Invoice</span>
+                </button>
+              )}
+
+              {/* 2. WhatsApp */}
+              {mobileActionInvoice.status !== "voided" && (
+                <a
+                  href={getWhatsAppShareUrl(mobileActionInvoice)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileActionInvoice(null)}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-xs font-black text-emerald-700 dark:text-emerald-400 transition-colors"
+                >
+                  <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <span>Send Bill on WhatsApp</span>
+                </a>
+              )}
+
+              {/* 3. Download PDF */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleDownloadPdf(mobileActionInvoice);
+                  setMobileActionInvoice(null);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-xs font-black text-slate-800 dark:text-white transition-colors"
+              >
+                <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600">
+                  <Download className="h-4 w-4" />
+                </div>
+                <span>Download PDF Tax Receipt</span>
+              </button>
+
+              {/* 4. View Breakdown */}
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingInvoice(mobileActionInvoice);
+                  setMobileActionInvoice(null);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 text-xs font-black text-slate-800 dark:text-white transition-colors"
+              >
+                <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <span>View Full Itemized Voucher</span>
+              </button>
+
+              {/* 5. Set Payment Status Options */}
+              {mobileActionInvoice.status !== "voided" && (
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                  <p className="text-[10px] font-black uppercase text-slate-400 px-1">Quick Payment Mode</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleQuickPaymentChange(mobileActionInvoice, "paid", "UPI");
+                        setMobileActionInvoice(null);
+                      }}
+                      className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Paid (UPI)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleQuickPaymentChange(mobileActionInvoice, "paid", "Cash");
+                        setMobileActionInvoice(null);
+                      }}
+                      className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Paid (Cash)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleQuickPaymentChange(mobileActionInvoice, "paid", "Card");
+                        setMobileActionInvoice(null);
+                      }}
+                      className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Paid (Card)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleQuickPaymentChange(mobileActionInvoice, "pending");
+                        setMobileActionInvoice(null);
+                      }}
+                      className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center justify-center gap-1.5"
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>Pending</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. Void / Cancel */}
+              {mobileActionInvoice.status !== "voided" && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVoidingInvoice(mobileActionInvoice);
+                      setVoidReason("");
+                      setMobileActionInvoice(null);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-black"
+                  >
+                    <Ban className="h-4 w-4" />
+                    <span>Void / Cancel This Bill</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
