@@ -43,7 +43,7 @@ export default function ViewInvoiceModal({
     };
   }, [invoice, onClose]);
 
-  if (!mounted || !invoice) return null;
+  if (!mounted || !invoice || typeof window === "undefined" || !document?.body) return null;
 
   const isPaid = invoice.status === "paid";
   const isVoided = invoice.status === "voided" || invoice.status === "cancelled";

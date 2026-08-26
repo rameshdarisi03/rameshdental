@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { 
   ArrowLeft, 
   User, 
@@ -170,8 +171,24 @@ const compressImageFile = (file: File): Promise<File> => {
   });
 };
 
-export default function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function PatientDetailPage({ params }: { params?: Promise<{ id: string }> | { id: string } }) {
+  const routeParams = useParams();
+  let resolvedId = (routeParams?.id as string) || "";
+
+  if (!resolvedId && params) {
+    try {
+      if (typeof (params as any)?.then === "function") {
+        const unwrapped = use(params as Promise<{ id: string }>);
+        resolvedId = unwrapped?.id || "";
+      } else {
+        resolvedId = (params as any)?.id || "";
+      }
+    } catch {
+      resolvedId = "";
+    }
+  }
+
+  const id = resolvedId;
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -378,6 +395,10 @@ PLAN:
     setLoading(true);
     setError("");
     try {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       const pData = await getPatientById(id);
       if (!pData) {
         setError("Patient profile not found in database.");
@@ -385,30 +406,39 @@ PLAN:
       }
       setPatient(pData as Patient);
 
-      // Fetch timelines, files, prescription & history
-      const [cList, fList, rx, rxHist] = await Promise.all([
-        getConsultations(id),
-        getMedicalRecordFiles(id),
-        getPatientPrescription(id),
-        getPatientPrescriptionsHistory(id)
+      // Fetch timelines, files, prescription & history safely
+      const [cListRes, fListRes, rxRes, rxHistRes] = await Promise.allSettled([
+        getConsultations(pData.id),
+        getMedicalRecordFiles(pData.id),
+        getPatientPrescription(pData.id),
+        getPatientPrescriptionsHistory(pData.id)
       ]);
+
+      const cList = cListRes.status === "fulfilled" ? cListRes.value : [];
+      const fList = fListRes.status === "fulfilled" ? fListRes.value : [];
+      const rx = rxRes.status === "fulfilled" ? rxRes.value : null;
+      const rxHist = rxHistRes.status === "fulfilled" ? rxHistRes.value : [];
 
       setConsultations(cList as Consultation[]);
       setFiles(fList as MedicalFile[]);
       setActivePrescription(rx);
       setPrescriptionsHistory(rxHist);
 
-      subscribePatientInvoices(
-        { 
-          patientId: pData.id, 
-          email: pData.email, 
-          phone: pData.phone, 
-          customId: pData.customId 
-        }, 
-        (invs) => {
-          setPatientInvoices(invs);
-        }
-      );
+      try {
+        subscribePatientInvoices(
+          { 
+            patientId: pData.id, 
+            email: pData.email, 
+            phone: pData.phone, 
+            customId: pData.customId 
+          }, 
+          (invs) => {
+            setPatientInvoices(invs || []);
+          }
+        );
+      } catch (subErr) {
+        console.warn("Invoice subscription warning:", subErr);
+      }
     } catch (err: any) {
       console.error("Error loading patient details:", err);
       setError("An error occurred while fetching details.");

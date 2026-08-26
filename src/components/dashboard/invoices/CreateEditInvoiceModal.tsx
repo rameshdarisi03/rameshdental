@@ -139,13 +139,16 @@ export default function CreateEditInvoiceModal({
 
   // Autocomplete patient filter
   const filteredPatients = useMemo(() => {
-    if (!patientSearchText.trim()) return patients;
-    const q = patientSearchText.toLowerCase();
-    return patients.filter(
-      (p) => p.name.toLowerCase().includes(q) || 
-             (p.customId && p.customId.toLowerCase().includes(q)) ||
-             (p.phone && p.phone.toLowerCase().includes(q))
-    );
+    if (!patients || !Array.isArray(patients)) return [];
+    if (!patientSearchText || !patientSearchText.trim()) return patients;
+    const q = (patientSearchText || "").toLowerCase().trim();
+    return patients.filter((p) => {
+      if (!p) return false;
+      const nameMatch = p.name && p.name.toLowerCase().includes(q);
+      const customIdMatch = p.customId && p.customId.toLowerCase().includes(q);
+      const phoneMatch = p.phone && p.phone.toLowerCase().includes(q);
+      return Boolean(nameMatch || customIdMatch || phoneMatch);
+    });
   }, [patients, patientSearchText]);
 
   const handleSelectPatient = (p: Patient) => {
@@ -289,7 +292,7 @@ export default function CreateEditInvoiceModal({
     }
   };
 
-  if (!mounted || !isOpen) return null;
+  if (!mounted || !isOpen || typeof window === "undefined" || !document?.body) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in font-['Inter',sans-serif]">
