@@ -22,10 +22,12 @@ import {
   CheckCircle2,
   AlertCircle,
   MessageSquare,
+  Sparkles,
   X
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient } from "@/lib/patientsDb";
 import { getClinicConfig } from "@/lib/db";
+import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
 
 interface Patient {
   id: string;
@@ -64,6 +66,9 @@ export default function PatientsPage() {
   const [therapistFilter, setTherapistFilter] = useState("all");
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
+
+  // Fast-Track Migration modal state
+  const [fastTrackOpen, setFastTrackOpen] = useState(false);
 
   // Registration modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -321,13 +326,25 @@ export default function PatientsPage() {
           </p>
         </div>
         
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-5 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
-        >
-          <UserPlus className="h-4 w-4" />
-          New Patient
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setFastTrackOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4 text-amber-300 dark:text-amber-500" />
+            <span>Fast-Track Migration</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-5 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>New Patient</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Container: Search, Filter Tabs & Table Grid */}
@@ -950,6 +967,16 @@ export default function PatientsPage() {
         </div>,
         document.body
       )}
+
+      {/* Fast-Track Migration Engine Modal */}
+      <FastTrackPatientImportModal
+        isOpen={fastTrackOpen}
+        onClose={() => setFastTrackOpen(false)}
+        onSuccess={() => {
+          fetchPatientsList();
+        }}
+        enrolledTherapists={enrolledTherapists}
+      />
 
     </div>
   );
