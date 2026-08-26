@@ -171,24 +171,9 @@ const compressImageFile = (file: File): Promise<File> => {
   });
 };
 
-export default function PatientDetailPage({ params }: { params?: Promise<{ id: string }> | { id: string } }) {
+export default function PatientDetailPage() {
   const routeParams = useParams();
-  let resolvedId = (routeParams?.id as string) || "";
-
-  if (!resolvedId && params) {
-    try {
-      if (typeof (params as any)?.then === "function") {
-        const unwrapped = use(params as Promise<{ id: string }>);
-        resolvedId = unwrapped?.id || "";
-      } else {
-        resolvedId = (params as any)?.id || "";
-      }
-    } catch {
-      resolvedId = "";
-    }
-  }
-
-  const id = resolvedId;
+  const id = (routeParams?.id as string) || "";
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -284,7 +269,7 @@ export default function PatientDetailPage({ params }: { params?: Promise<{ id: s
 
   const handleSendPortalInvite = () => {
     if (!patient || !patient.activationCode) return;
-    let cleanPhone = patient.phone.replace(/\D/g, "");
+    let cleanPhone = (patient?.phone || "").replace(/\D/g, "");
     if (cleanPhone.startsWith("0")) {
       cleanPhone = cleanPhone.replace(/^0+/, "");
     }
@@ -476,11 +461,11 @@ PLAN:
     }
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || bytes <= 0 || isNaN(bytes)) return "0 Bytes";
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
@@ -1125,157 +1110,164 @@ Warm regards,
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
 
-  // Build unified items for Medical Scans & Files
-  const allUnifiedFiles: Array<{
-    id: string;
-    category: "PRESCRIPTION" | "INVOICE" | "FILE";
-    fileName: string;
-    subtitle: string;
-    dateStr: string;
-    sizeFormatted?: string;
-    raw: any;
-    isDoctorOnly?: boolean;
-    onView?: () => void;
-    onDownload?: () => void;
-    webViewLink?: string;
-    downloadLink?: string;
-  }> = [];
+  // Build unified items for Medical Scans & Files safely inside useMemo
+  const allUnifiedFiles = useMemo(() => {
+    const list: Array<{
+      id: string;
+      category: "PRESCRIPTION" | "INVOICE" | "FILE";
+      fileName: string;
+      subtitle: string;
+      dateStr: string;
+      sizeFormatted?: string;
+      raw: any;
+      isDoctorOnly?: boolean;
+      onView?: () => void;
+      onDownload?: () => void;
+      webViewLink?: string;
+      downloadLink?: string;
+    }> = [];
 
-  // 1. Active Prescription & Consultation Plan
-  const latestConsult = consultations.length > 0 ? consultations[0] : null;
-  if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
-    const rxDate = activePrescription.startDate || new Date();
-    const fileName = getPrescriptionFileName(patient?.name || "Patient", rxDate);
-    allUnifiedFiles.push({
-      id: "active-prescription-doc",
-      category: "PRESCRIPTION",
-      fileName: fileName,
-      subtitle: `Prescribed by ${patient?.therapistName || defaultTherapist} • ${activePrescription.durationDays || 14} Days Protocol`,
-      dateStr: activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan",
-      raw: activePrescription,
-      onView: () => handleViewPrescription({
-        displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
-        rawDate: rxDate,
-        therapistName: patient?.therapistName || defaultTherapist,
-        durationDays: activePrescription.durationDays || 14,
-        generalNotes: activePrescription.generalNotes,
-        consultationSummary: latestConsult?.summary,
-        exercises: activePrescription.exercises,
-      }),
-      onDownload: () => handleDownloadPrescription({
-        displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
-        rawDate: rxDate,
-        therapistName: patient?.therapistName || defaultTherapist,
-        durationDays: activePrescription.durationDays || 14,
-        generalNotes: activePrescription.generalNotes,
-        consultationSummary: latestConsult?.summary,
-        exercises: activePrescription.exercises,
-      })
-    });
-  } else if (latestConsult) {
-    const consultDate = latestConsult.date || new Date();
-    const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
-    allUnifiedFiles.push({
-      id: latestConsult.id,
-      category: "PRESCRIPTION",
-      fileName: fileName,
-      subtitle: `Clinical Session Notes • Logged by ${latestConsult.therapistName || defaultTherapist}`,
-      dateStr: latestConsult.date || "Recorded",
-      raw: latestConsult,
-      onView: () => handleViewPrescription({
-        displayDate: latestConsult.date,
-        rawDate: consultDate,
-        therapistName: latestConsult.therapistName || defaultTherapist,
-        durationDays: 14,
-        consultationSummary: latestConsult.summary,
-        exercises: [],
-      }),
-      onDownload: () => handleDownloadPrescription({
-        displayDate: latestConsult.date,
-        rawDate: consultDate,
-        therapistName: latestConsult.therapistName || defaultTherapist,
-        durationDays: 14,
-        consultationSummary: latestConsult.summary,
-        exercises: [],
-      })
-    });
-  }
+    if (!patient) return list;
 
-  // 2. Historical Prescriptions
-  prescriptionsHistory.forEach((hist, idx) => {
-    if (hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
-      const hDate = hist.startDate || new Date();
-      const fileName = getPrescriptionFileName(patient?.name || "Patient", hDate);
-      allUnifiedFiles.push({
-        id: `hist-rx-${idx}`,
+    // 1. Active Prescription & Consultation Plan
+    const latestConsult = consultations && consultations.length > 0 ? consultations[0] : null;
+    if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
+      const rxDate = activePrescription.startDate || new Date();
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxDate);
+      list.push({
+        id: "active-prescription-doc",
         category: "PRESCRIPTION",
         fileName: fileName,
-        subtitle: `Past Prescription v${prescriptionsHistory.length - idx} • ${hist.durationDays || 14} Days Protocol`,
-        dateStr: hist.prescribedDateFormatted || hist.startDate || "Past Plan",
-        raw: hist,
+        subtitle: `Prescribed by ${patient?.therapistName || defaultTherapist} • ${activePrescription.durationDays || 14} Days Protocol`,
+        dateStr: activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan",
+        raw: activePrescription,
         onView: () => handleViewPrescription({
-          displayDate: hist.prescribedDateFormatted || hist.startDate,
-          rawDate: hDate,
+          displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+          rawDate: rxDate,
           therapistName: patient?.therapistName || defaultTherapist,
-          durationDays: hist.durationDays || 14,
-          generalNotes: hist.generalNotes,
-          exercises: hist.exercises || [],
+          durationDays: activePrescription.durationDays || 14,
+          generalNotes: activePrescription.generalNotes,
+          consultationSummary: latestConsult?.summary,
+          exercises: activePrescription.exercises,
         }),
         onDownload: () => handleDownloadPrescription({
-          displayDate: hist.prescribedDateFormatted || hist.startDate,
-          rawDate: hDate,
+          displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate,
+          rawDate: rxDate,
           therapistName: patient?.therapistName || defaultTherapist,
-          durationDays: hist.durationDays || 14,
-          generalNotes: hist.generalNotes,
-          exercises: hist.exercises || [],
+          durationDays: activePrescription.durationDays || 14,
+          generalNotes: activePrescription.generalNotes,
+          consultationSummary: latestConsult?.summary,
+          exercises: activePrescription.exercises,
+        })
+      });
+    } else if (latestConsult) {
+      const consultDate = latestConsult.date || new Date();
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
+      list.push({
+        id: latestConsult.id || "consult-doc",
+        category: "PRESCRIPTION",
+        fileName: fileName,
+        subtitle: `Clinical Session Notes • Logged by ${latestConsult.therapistName || defaultTherapist}`,
+        dateStr: latestConsult.date || "Recorded",
+        raw: latestConsult,
+        onView: () => handleViewPrescription({
+          displayDate: latestConsult.date,
+          rawDate: consultDate,
+          therapistName: latestConsult.therapistName || defaultTherapist,
+          durationDays: 14,
+          consultationSummary: latestConsult.summary,
+          exercises: [],
+        }),
+        onDownload: () => handleDownloadPrescription({
+          displayDate: latestConsult.date,
+          rawDate: consultDate,
+          therapistName: latestConsult.therapistName || defaultTherapist,
+          durationDays: 14,
+          consultationSummary: latestConsult.summary,
+          exercises: [],
         })
       });
     }
-  });
 
-  // 3. Invoices
-  patientInvoices.forEach((inv) => {
-    const invDate = inv.serviceDate || new Date();
-    const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", invDate);
-    allUnifiedFiles.push({
-      id: inv.id,
-      category: "INVOICE",
-      fileName: fileName,
-      subtitle: `Invoice #${inv.invoiceNumber} • ₹${(inv.totalAmount || 0).toFixed(2)} • ${(inv.status || "PAID").toUpperCase()}`,
-      dateStr: inv.serviceDate || "Recorded",
-      raw: inv,
-      onView: () => handleViewInvoice(inv),
-      onDownload: () => handleDownloadInvoice(inv)
+    // 2. Historical Prescriptions
+    (prescriptionsHistory || []).forEach((hist, idx) => {
+      if (hist && hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
+        const hDate = hist.startDate || new Date();
+        const fileName = getPrescriptionFileName(patient?.name || "Patient", hDate);
+        list.push({
+          id: `hist-rx-${idx}`,
+          category: "PRESCRIPTION",
+          fileName: fileName,
+          subtitle: `Past Prescription v${prescriptionsHistory.length - idx} • ${hist.durationDays || 14} Days Protocol`,
+          dateStr: hist.prescribedDateFormatted || hist.startDate || "Past Plan",
+          raw: hist,
+          onView: () => handleViewPrescription({
+            displayDate: hist.prescribedDateFormatted || hist.startDate,
+            rawDate: hDate,
+            therapistName: patient?.therapistName || defaultTherapist,
+            durationDays: hist.durationDays || 14,
+            generalNotes: hist.generalNotes,
+            exercises: hist.exercises || [],
+          }),
+          onDownload: () => handleDownloadPrescription({
+            displayDate: hist.prescribedDateFormatted || hist.startDate,
+            rawDate: hDate,
+            therapistName: patient?.therapistName || defaultTherapist,
+            durationDays: hist.durationDays || 14,
+            generalNotes: hist.generalNotes,
+            exercises: hist.exercises || [],
+          })
+        });
+      }
     });
-  });
 
-  // 4. Uploaded Medical Files / Scans
-  files.forEach((file) => {
-    const fObj = file as any;
-    const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
-    const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
-    const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
-    const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
-    const isDocOnly = file.isDoctorOnly === true || fObj.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
-
-    // Deduplicate if already present in allUnifiedFiles by fileName
-    if (!allUnifiedFiles.some((f) => f.fileName === file.fileName)) {
-      allUnifiedFiles.push({
-        id: file.id || fId || Math.random().toString(),
-        category: "FILE",
-        fileName: file.fileName,
-        subtitle: isDocOnly 
-          ? `🔒 Doctor Reference • ${formatBytes(file.fileSize)}`
-          : `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
-        dateStr: dateStr,
-        sizeFormatted: formatBytes(file.fileSize),
-        raw: file,
-        isDoctorOnly: isDocOnly,
-        webViewLink: viewUrl,
-        downloadLink: downloadUrl
+    // 3. Invoices
+    (patientInvoices || []).forEach((inv) => {
+      if (!inv) return;
+      const invDate = inv.serviceDate || new Date();
+      const fileName = getInvoiceFileName(patient?.name || inv.patientName || "Patient", invDate);
+      list.push({
+        id: inv.id || `inv-${Math.random()}`,
+        category: "INVOICE",
+        fileName: fileName,
+        subtitle: `Invoice #${inv.invoiceNumber} • Rs. ${(inv.totalAmount || 0).toLocaleString("en-IN")} • ${(inv.status || "PAID").toUpperCase()}`,
+        dateStr: inv.serviceDate || "Recorded",
+        raw: inv,
+        onView: () => handleViewInvoice(inv),
+        onDownload: () => handleDownloadInvoice(inv)
       });
-    }
-  });
+    });
+
+    // 4. Uploaded Medical Files / Scans
+    (files || []).forEach((file) => {
+      if (!file) return;
+      const fObj = file as any;
+      const fId = file.googleDriveFileId || fObj.driveFileId || fObj.fileId;
+      const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
+      const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
+      const dateStr = file.dateUploaded || fObj.uploadedAt?.split("T")[0] || "Uploaded";
+      const isDocOnly = file.isDoctorOnly === true || fObj.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
+
+      if (!list.some((f) => f.fileName === file.fileName)) {
+        list.push({
+          id: file.id || fId || Math.random().toString(),
+          category: "FILE",
+          fileName: file.fileName || "Medical Document",
+          subtitle: isDocOnly 
+            ? `Doctor Reference • ${formatBytes(file.fileSize)}`
+            : `Verified Medical Scan / Doc • ${formatBytes(file.fileSize)}`,
+          dateStr: dateStr,
+          sizeFormatted: formatBytes(file.fileSize),
+          raw: file,
+          isDoctorOnly: isDocOnly,
+          webViewLink: viewUrl,
+          downloadLink: downloadUrl
+        });
+      }
+    });
+
+    return list;
+  }, [patient, consultations, activePrescription, prescriptionsHistory, patientInvoices, files]);
 
   if (loading) {
     return (
@@ -1408,7 +1400,7 @@ Warm regards,
                   <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
                   <button
                     onClick={() => {
-                      let cleanPhone = patient.phone.replace(/\D/g, "");
+                      let cleanPhone = (patient?.phone || "").replace(/\D/g, "");
                       if (cleanPhone.startsWith("0")) {
                         cleanPhone = cleanPhone.replace(/^0+/, "");
                       }
