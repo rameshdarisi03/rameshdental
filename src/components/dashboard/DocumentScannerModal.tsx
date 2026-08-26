@@ -102,8 +102,22 @@ export default function DocumentScannerModal({
     if (!isOpen) return;
     const originalStyle = window.getComputedStyle(document.body).overflow;
     document.body.style.overflow = "hidden";
+
+    // Push state so phone hardware back button closes modal instead of navigating away
+    window.history.pushState({ modalOpen: "docScannerModal" }, "");
+
+    const handlePopState = () => {
+      handleCloseAndReset();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
     return () => {
       document.body.style.overflow = originalStyle;
+      window.removeEventListener("popstate", handlePopState);
+      if (window.history.state?.modalOpen === "docScannerModal") {
+        window.history.back();
+      }
     };
   }, [isOpen]);
 
@@ -283,44 +297,46 @@ export default function DocumentScannerModal({
         }`}
       >
         {/* Modal Header */}
-        <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
-              <Sparkles className="w-5 h-5" />
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2.5 sm:gap-3 bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-brand-green text-white flex items-center justify-center shadow-sm shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">
-                  {isPrescriptionMode ? "Scan Doctor Referral / Prescription" : "Scan Handwritten Case Sheet"}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base truncate">
+                  {isPrescriptionMode ? "Scan Prescription / Referral" : "Scan Case Sheet"}
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-purple-600/20 border border-orange-400/30 text-orange-700 dark:text-amber-300 text-[10px] font-extrabold tracking-wider uppercase flex items-center gap-1">
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-purple-600/20 border border-orange-400/30 text-orange-700 dark:text-amber-300 text-[10px] font-extrabold tracking-wider uppercase items-center gap-1 shrink-0">
                   <Sparkles className="w-2.5 h-2.5 text-amber-500" /> AI Vision
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                 {patientName ? `Patient: ${patientName} • ` : ""}
                 {isPrescriptionMode
                   ? "Transcribes diagnosis, doctor, restrictions & alerts"
-                  : "Transcribes VAS pain score, ROM, findings & EMR SOAP notes"}
+                  : "Transcribes VAS pain score, ROM, findings & SOAP notes"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <div className="flex items-center gap-1.5 shrink-0 ml-1">
             <button
               type="button"
               onClick={() => setIsMaximized(!isMaximized)}
-              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer hidden sm:block"
               title={isMaximized ? "Restore size" : "Maximize view"}
             >
-              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
             <button
               type="button"
               onClick={handleCloseAndReset}
-              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 sm:p-2.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              aria-label="Close modal"
+              title="Close"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </div>
         </div>
