@@ -388,7 +388,7 @@ export default function FastTrackPatientImportModal({
                 }`}
               >
                 <Camera className="h-4 w-4" />
-                <span>Scan Register (AI OCR)</span>
+                <span>Prescriptions & Scans (AI OCR)</span>
               </button>
             </div>
 
@@ -541,10 +541,10 @@ export default function FastTrackPatientImportModal({
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                      Physical Register, Patient Sheets & PDF Ledgers
+                      Doctor Prescriptions, Referral Papers & Patient Sheets
                     </h4>
                     <p className="text-xs text-slate-500 font-semibold max-w-md mx-auto">
-                      Drop single/multiple photos of handwritten patient notebooks, appointment ledgers, or multi-page PDF rosters. Gemini AI automatically transcribes them into the interactive table.
+                      Drop or snap single/multiple photos of doctor prescription slips, hospital referral letters, or patient intake papers. Gemini AI automatically extracts patient names, ages, phone numbers, and diagnosis into the registration table.
                     </p>
                   </div>
 

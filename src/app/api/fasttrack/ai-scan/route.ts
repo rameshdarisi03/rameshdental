@@ -88,50 +88,43 @@ export async function POST(req: NextRequest) {
       const expandedImages = await expandMultiPagePdfs(images);
 
       const prompt = `
-You are Gait Physio Clinic's Specialist Clinical Document & Register Ingestion AI.
-Analyze the provided handwritten OPD registers, clinic appointment books, reception sheets, Excel printouts, or patient intake forms and extract EVERY SINGLE patient entry into a structured JSON list.
+You are Gait Physio Clinic's Specialist Clinical Document, Prescription & Register Ingestion AI.
+The provided documents may be:
+1. Individual Doctor Prescription Slips / Hospital Referral Letters (one per photo/page).
+2. Handwritten OPD Registers, Appointment Books, or Reception Ledger Sheets (multiple entries per page).
+3. Patient Clinical Intake Forms, Assessment Sheets, or Discharge Summaries.
+
+Analyze the documents and extract EVERY patient into a structured JSON list for clinic registration.
 
 ==================================================================
-1. DOMAIN VOCABULARY & CLINICAL ENTITY MAPPING
+1. PRESCRIPTION SLIP RECOGNITION RULES
 ==================================================================
-- Patient Names: Handwritten or printed full names (e.g. "Rahul Sharma", "Smt. Kamala", "Ananya D"). Strip serial numbers like "1. Rahul" -> "Rahul".
-- Age terms: "Age", "Yrs", "Y", "34 Yrs", "28 F", "52/M", "45". Extract plain integer (e.g. 34).
-- Gender terms: "M", "F", "Male", "Female", "Woman", "Man", "Boy", "Girl".
-- Phone terms: "Phone", "Mobile", "Contact", "Ph", "Mob", "Tel", "WhatsApp", 10-digit Indian numbers starting with 6/7/8/9.
-- Email: Patient email address if written.
-- Chief Complaints / Diagnosis: "Diagnosis", "Complaint", "Condition", "Problem", "Rx", "Treatment", e.g. "Cervical Spondylosis", "ACL Rehab", "Frozen Shoulder", "Knee OA", "Lumbar Disc Herniation", "Sciatica", "Stroke Rehab", "Post-op Fracture".
-- Therapist / Doctor terms: "Dr. Kinnera", "Dr. Sarah Jenkins", "Dr. Rohan", "Consultant", "Therapist", "Attending". Match closest clinic therapist: [${enrolledTherapists.join(", ")}].
-- Status terms: "Active", "Completed", "Pending", "Discharged", "New", "Follow-up".
+- If the document is an individual DOCTOR PRESCRIPTION / REFERRAL SLIP:
+  * Look at the top/header section for Patient Demographics: "Patient Name / Name: [Name]", "Age: [Age]", "Sex/Gender: [M/F]", "Date", "Phone/Mobile: [Number]".
+  * Look at the clinical body / diagnosis section for: "Diagnosis:", "Impression:", "C/O (Complaints):", "Adv: Physiotherapy for...", "Rx: ...", e.g., "Cervical Spondylosis", "Bilateral Knee Osteoarthritis", "ACL Tear Rehab", "Frozen Shoulder", "Sciatica", "Lower Back Pain", "Stroke Hemiplegia Rehab".
+  * Look at the letterhead or signature for the Prescribing / Attending Doctor or Department.
+  * Extract this as 1 complete patient entry.
 
 ==================================================================
-2. SEMANTIC REASONING & SYNONYM FLEXIBILITY RULE
+2. MULTI-ROW REGISTER RECOGNITION RULES
 ==================================================================
-- If headers are missing, deduce field meanings from the data values:
-  * 10 digits starting with 6/7/8/9 -> Phone Number
-  * 1-3 digits following name or under age column -> Age
-  * Medical phrases (Neck pain, Knee pain, ACL, Physio) -> Treatment Plan
-  * Indian names -> Full Name
+- If the document is an OPD REGISTER / LEDGER TABLE:
+  * Extract EVERY handwritten or printed patient row on the page.
 
 ==================================================================
-3. FIELD-BY-FIELD EXTRACTION SPECIFICATIONS
+3. DOMAIN VOCABULARY & ENTITY MAPPING
 ==================================================================
-1. "name" (string): Full name in Title Case (e.g. "Rahul Sharma"). Strip stray prefix numbers.
-2. "age" (string): Plain integer string (e.g. "34"). If missing, default "35".
-3. "gender" (string): "Male" | "Female" | "Other".
-4. "phone" (string): Clean 10-digit Indian mobile number (e.g. "9876543210"). Strip "+91", "0", spaces, hyphens.
-5. "email" (string): Email if written, else "".
-6. "treatmentPlan" (string): Chief complaint or treatment protocol (e.g. "Cervical Spondylosis", "Post-op ACL Recovery").
-7. "therapistName" (string): Matched clinic therapist or "${defaultTherapist}".
-8. "status" (string): "active" | "completed" | "pending".
+- Patient Names: Title Case (e.g. "Rahul Sharma", "Smt. Kamala", "Ananya D"). Strip prefixes like "1. Rahul", "Pt: Rahul" -> "Rahul".
+- Age terms: "Age", "Yrs", "Y", "34 Yrs", "28 F", "52/M", "45". Extract plain integer string (e.g. "34"). If missing, default "35".
+- Gender terms: "M", "F", "Male", "Female", "Woman", "Man". Extract "Male", "Female", or "Other".
+- Phone terms: "Phone", "Mobile", "Contact", "Ph", "Mob", "Tel", "WhatsApp", 10-digit Indian numbers starting with 6/7/8/9. If omitted, return "".
+- Email: Email if written, else "".
+- Chief Complaints / Diagnosis / Treatment Plan: Extract clinical diagnosis, symptoms, or advised physiotherapy protocol (e.g. "Cervical Spondylosis", "Post-op ACL Recovery").
+- Therapist / Doctor terms: Match closest clinic therapist: [${enrolledTherapists.join(", ")}] or default to "${defaultTherapist}".
+- Status terms: "active" (default), "completed", "pending".
 
 ==================================================================
-4. STRICT ROW INTEGRITY
-==================================================================
-- Extract ONLY rows with actual handwritten or printed patient entries.
-- Do NOT generate fake or placeholder records.
-
-==================================================================
-5. OUTPUT JSON SCHEMA ONLY (NO MARKDOWN WRAPPERS)
+4. OUTPUT JSON SCHEMA ONLY (NO MARKDOWN WRAPPERS)
 ==================================================================
 {
   "patients": [
