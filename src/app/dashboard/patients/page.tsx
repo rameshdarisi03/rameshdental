@@ -330,10 +330,13 @@ export default function PatientsPage() {
           <button
             type="button"
             onClick={() => setFastTrackOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-3 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+            className="px-5 py-3 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white text-xs font-black transition-all shadow-md shadow-orange-500/20 flex items-center gap-2 active:scale-95 cursor-pointer"
           >
-            <Sparkles className="h-4 w-4 text-amber-300 dark:text-amber-500" />
-            <span>Fast-Track Migration</span>
+            <Sparkles className="w-4 h-4 text-amber-200" />
+            <span>FastTrack Migration</span>
+            <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase font-extrabold tracking-wider">
+              AI
+            </span>
           </button>
 
           <button

@@ -293,8 +293,8 @@ export default function DocumentScannerModal({
                 <h3 className="font-bold text-slate-900 dark:text-white text-base">
                   {isPrescriptionMode ? "Scan Doctor Referral / Prescription" : "Scan Handwritten Case Sheet"}
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
-                  <Sparkles className="w-2.5 h-2.5" /> AI Vision
+                <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-purple-600/20 border border-orange-400/30 text-orange-700 dark:text-amber-300 text-[10px] font-extrabold tracking-wider uppercase flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 text-amber-500" /> AI Vision
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -422,7 +422,7 @@ export default function DocumentScannerModal({
                     <button
                       onClick={handleScan}
                       disabled={isScanning}
-                      className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-6 py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white px-6 py-2.5 text-xs font-black shadow-md shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {isScanning ? (
                         <>
@@ -431,8 +431,11 @@ export default function DocumentScannerModal({
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-4 w-4 text-amber-300" />
-                          Extract Medical Data
+                          <Sparkles className="h-4 w-4 text-amber-200" />
+                          <span>Extract Medical Data</span>
+                          <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase font-extrabold tracking-wider">
+                            AI
+                          </span>
                         </>
                       )}
                     </button>

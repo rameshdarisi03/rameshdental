@@ -1731,10 +1731,13 @@ PLAN:
                           setScannerType("CLINICAL_ASSESSMENT");
                           setScannerOpen(true);
                         }}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-green/10 dark:bg-teal-500/20 hover:bg-brand-green hover:text-white text-brand-green dark:text-teal-300 border border-brand-green/30 px-4 py-2.5 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white shadow-md shadow-orange-500/20 px-4 py-2.5 text-xs font-black transition-all cursor-pointer active:scale-95"
                       >
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        <span>Scan Case Sheet (AI OCR)</span>
+                        <Sparkles className="w-4 h-4 text-amber-200" />
+                        <span>Scan Case Sheet</span>
+                        <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase font-extrabold tracking-wider">
+                          AI
+                        </span>
                       </button>
 
                       {/* Option 2: Choose File */}
@@ -1930,11 +1933,14 @@ PLAN:
                       setScannerType("DOCTOR_PRESCRIPTION");
                       setScannerOpen(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 px-4 py-2.5 text-xs font-black transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white px-4 py-2.5 text-xs font-black transition-all shadow-md shadow-orange-500/20 active:scale-95 cursor-pointer shrink-0"
                     title="Extract referral with Gemini OCR"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300 dark:text-amber-500" />
+                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
                     <span>Scan with OCR</span>
+                    <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase font-extrabold tracking-wider">
+                      AI
+                    </span>
                   </button>
                 </div>
               </div>

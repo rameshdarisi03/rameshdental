@@ -489,9 +489,9 @@ export default function FastTrackPatientImportModal({
                     type="button"
                     disabled={!pastedText.trim()}
                     onClick={() => handleStartParsing()}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
                   >
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4 text-amber-200" />
                     <span>Analyze & Review Patients</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -553,12 +553,12 @@ export default function FastTrackPatientImportModal({
                       type="button"
                       disabled={ocrLoading}
                       onClick={() => cameraInputRef.current?.click()}
-                      className="px-6 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white text-xs font-black inline-flex items-center gap-2 shadow-md transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 hover:opacity-95 text-white text-xs font-black inline-flex items-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
                     >
                       {ocrLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Camera className="h-4 w-4" />
+                        <Sparkles className="h-4 w-4 text-amber-200" />
                       )}
                       <span>{ocrLoading ? "Scanning with AI..." : "Take Photos / Select Files (PDF & Images)"}</span>
                     </button>
