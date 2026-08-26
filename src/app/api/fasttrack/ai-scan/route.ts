@@ -171,17 +171,35 @@ Analyze the documents and extract EVERY patient into a structured JSON list for 
             }
           };
 
-          const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            }
-          );
+          const modelsToAttempt = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"];
+          let textResponse = "";
 
-          const result = await response.json();
-          const textResponse = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+          for (const modelName of modelsToAttempt) {
+            try {
+              const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload)
+                }
+              );
+
+              if (!response.ok) {
+                const errJson = await response.json().catch(() => ({}));
+                console.warn(`Model ${modelName} returned status ${response.status}:`, errJson?.error?.message || errJson);
+                continue;
+              }
+
+              const result = await response.json();
+              textResponse = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              if (textResponse) {
+                break; // Found working model!
+              }
+            } catch (fetchErr) {
+              console.warn(`Model ${modelName} fetch attempt failed:`, fetchErr);
+            }
+          }
 
           if (textResponse) {
             const cleanJson = textResponse.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();

@@ -79,6 +79,7 @@ export default function FastTrackPatientImportModal({
   // Parsing & Processing state
   const [processingStatus, setProcessingStatus] = useState("Analyzing patient data structure...");
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const [editableRows, setEditableRows] = useState<FastTrackPatientRow[]>([]);
   const [filterMode, setFilterMode] = useState<"ALL" | "READY" | "ISSUES">("ALL");
 
@@ -183,6 +184,7 @@ export default function FastTrackPatientImportModal({
     if (fileArray.length === 0) return;
 
     setOcrLoading(true);
+    setProcessingError(null);
     setStep("PROCESSING");
     setProcessingProgress(15);
     setProcessingStatus(`Loading ${fileArray.length} document(s)...`);
@@ -232,9 +234,7 @@ export default function FastTrackPatientImportModal({
       }
     } catch (err: any) {
       console.error("AI OCR Scan Error:", err);
-      setProcessingStatus(`AI recognition notice: ${err.message || "Failed to scan"}`);
-      await new Promise((r) => setTimeout(r, 1800));
-      setStep("INPUT");
+      setProcessingError(err.message || "Failed to scan documents. Please check your image or network.");
     } finally {
       setOcrLoading(false);
     }
@@ -596,30 +596,56 @@ export default function FastTrackPatientImportModal({
         {/* STEP 2: PROCESSING SCREEN                                                 */}
         {/* ========================================================================= */}
         {step === "PROCESSING" && (
-          <div className="p-12 flex flex-col items-center justify-center space-y-6 flex-grow my-auto text-center">
-            <div className="relative">
-              <div className="h-20 w-20 rounded-full bg-brand-green/10 flex items-center justify-center animate-pulse">
-                <Sparkles className="h-10 w-10 text-brand-green" />
+          <div className="p-8 sm:p-12 flex flex-col items-center justify-center space-y-6 flex-grow my-auto text-center max-w-md mx-auto w-full">
+            {!processingError ? (
+              <>
+                <div className="relative">
+                  <div className="h-20 w-20 rounded-full bg-brand-green/10 flex items-center justify-center animate-pulse">
+                    <Sparkles className="h-10 w-10 text-brand-green" />
+                  </div>
+                  <div className="absolute inset-0 rounded-full border-2 border-brand-green border-t-transparent animate-spin" />
+                </div>
+
+                <div className="space-y-2 max-w-sm">
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Parsing Patient Records
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold min-h-[1.5rem]">
+                    {processingStatus}
+                  </p>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full max-w-md bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-200/80 dark:border-slate-700">
+                  <div
+                    className="bg-gradient-to-r from-orange-500 via-amber-500 to-purple-600 h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${Math.max(processingProgress, 10)}%` }}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="p-6 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-3xl text-center space-y-4 w-full animate-in fade-in">
+                <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-rose-950 dark:text-rose-200">AI Document Scan Notice</h4>
+                  <p className="text-xs text-rose-700 dark:text-rose-300 mt-1">{processingError}</p>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("INPUT");
+                      setProcessingError(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer shadow-2xs"
+                  >
+                    Back to Upload
+                  </button>
+                </div>
               </div>
-              <div className="absolute inset-0 rounded-full border-2 border-brand-green border-t-transparent animate-spin" />
-            </div>
-
-            <div className="space-y-2 max-w-sm">
-              <h3 className="text-base font-black text-slate-900 dark:text-white">
-                Parsing Patient Records
-              </h3>
-              <p className="text-xs text-slate-500 font-semibold">
-                {processingStatus}
-              </p>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="w-full max-w-md bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-              <div
-                className="bg-brand-green h-full transition-all duration-300 rounded-full"
-                style={{ width: `${processingProgress}%` }}
-              />
-            </div>
+            )}
           </div>
         )}
 
