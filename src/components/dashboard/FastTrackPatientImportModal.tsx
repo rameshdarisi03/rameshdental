@@ -614,14 +614,14 @@ export default function FastTrackPatientImportModal({
           <div className="flex flex-col flex-grow overflow-hidden">
             
             {/* Top Toolbar & Filter Strip */}
-            <div className="px-5 sm:px-6 py-3 bg-slate-50/80 dark:bg-slate-850/80 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div className="px-4 sm:px-6 py-3 bg-slate-50/80 dark:bg-slate-850/80 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
               
               {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setFilterMode("ALL")}
-                  className={`px-3 py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                     filterMode === "ALL"
                       ? "bg-slate-900 text-white dark:bg-slate-700 dark:text-white shadow-xs"
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -632,7 +632,7 @@ export default function FastTrackPatientImportModal({
                 <button
                   type="button"
                   onClick={() => setFilterMode("READY")}
-                  className={`px-3 py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                     filterMode === "READY"
                       ? "bg-emerald-600 text-white shadow-xs"
                       : "text-slate-500 hover:text-emerald-600"
@@ -644,7 +644,7 @@ export default function FastTrackPatientImportModal({
                   <button
                     type="button"
                     onClick={() => setFilterMode("ISSUES")}
-                    className={`px-3 py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                       filterMode === "ISSUES"
                         ? "bg-red-600 text-white shadow-xs"
                         : "text-slate-500 hover:text-red-600"
@@ -660,9 +660,9 @@ export default function FastTrackPatientImportModal({
                 <button
                   type="button"
                   onClick={handleAddNewRow}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-brand-green flex items-center gap-1 cursor-pointer transition-colors"
+                  className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:border-brand-green flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
                 >
-                  <Plus className="h-3.5 w-3.5 text-brand-green" />
+                  <Plus className="h-4 w-4 text-brand-green" />
                   <span>Add Patient Row</span>
                 </button>
 
@@ -672,7 +672,7 @@ export default function FastTrackPatientImportModal({
                     if (e.target.value) handleAutoAssignTherapist(e.target.value);
                   }}
                   defaultValue=""
-                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+                  className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none cursor-pointer shadow-2xs"
                 >
                   <option value="" disabled>Auto-Assign Therapist To All...</option>
                   {enrolledTherapists.map((t) => (
@@ -683,7 +683,7 @@ export default function FastTrackPatientImportModal({
                 <button
                   type="button"
                   onClick={() => setStep("INPUT")}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer shadow-2xs"
                 >
                   Back
                 </button>
@@ -692,20 +692,20 @@ export default function FastTrackPatientImportModal({
             </div>
 
             {/* High-Density Interactive Data Grid */}
-            <div className="overflow-x-auto overflow-y-auto flex-grow p-4 overscroll-contain">
-              <table className="w-full border-collapse text-left text-xs min-w-[900px]">
+            <div className="overflow-x-auto overflow-y-auto flex-grow p-3 sm:p-4 overscroll-contain">
+              <table className="w-full border-collapse text-left text-xs min-w-[1350px]">
                 <thead className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs">
                   <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    <th className="py-2.5 px-3 w-12 text-center">#</th>
-                    <th className="py-2.5 px-3 min-w-[180px]">Patient Name *</th>
-                    <th className="py-2.5 px-2 w-20">Age *</th>
-                    <th className="py-2.5 px-2 w-24">Gender</th>
-                    <th className="py-2.5 px-3 min-w-[150px]">Phone Number *</th>
-                    <th className="py-2.5 px-3 min-w-[160px]">Email</th>
-                    <th className="py-2.5 px-3 min-w-[200px]">Chief Complaint / Treatment Plan</th>
-                    <th className="py-2.5 px-3 min-w-[160px]">Assigned Therapist</th>
-                    <th className="py-2.5 px-2 w-28">Status</th>
-                    <th className="py-2.5 px-2 w-10 text-center"></th>
+                    <th className="py-3 px-3 w-12 text-center">#</th>
+                    <th className="py-3 px-3 min-w-[210px]">Patient Name *</th>
+                    <th className="py-3 px-3 min-w-[95px] text-center">Age *</th>
+                    <th className="py-3 px-3 min-w-[130px]">Gender</th>
+                    <th className="py-3 px-3 min-w-[180px]">Phone Number *</th>
+                    <th className="py-3 px-3 min-w-[200px]">Email</th>
+                    <th className="py-3 px-3 min-w-[260px]">Chief Complaint / Treatment Plan</th>
+                    <th className="py-3 px-3 min-w-[200px]">Assigned Therapist</th>
+                    <th className="py-3 px-3 min-w-[145px] text-center">Status</th>
+                    <th className="py-3 px-2 w-12 text-center"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -720,10 +720,10 @@ export default function FastTrackPatientImportModal({
                         }`}
                       >
                         {/* Index & Valid Indicator */}
-                        <td className="py-2 px-3 text-center font-bold text-slate-400">
-                          <div className="flex items-center justify-center gap-1">
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-400">
+                          <div className="flex items-center justify-center gap-1.5">
                             <span
-                              className={`h-2 w-2 rounded-full shrink-0 ${
+                              className={`h-2.5 w-2.5 rounded-full shrink-0 ${
                                 isRowValid ? "bg-emerald-500" : "bg-red-500 animate-pulse"
                               }`}
                               title={isRowValid ? "Valid Record" : row.warnings.join(", ")}
@@ -733,18 +733,18 @@ export default function FastTrackPatientImportModal({
                         </td>
 
                         {/* Name Input */}
-                        <td className="py-1.5 px-2">
+                        <td className="py-2 px-2">
                           <input
                             type="text"
                             value={row.name}
                             onChange={(e) => handleRowChange(row.id, "name", e.target.value)}
                             placeholder="Patient Full Name"
-                            className="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full min-w-[190px] text-xs font-bold px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green shadow-2xs"
                           />
                         </td>
 
                         {/* Age Input */}
-                        <td className="py-1.5 px-1.5">
+                        <td className="py-2 px-2 text-center">
                           <input
                             type="number"
                             min="1"
@@ -752,16 +752,16 @@ export default function FastTrackPatientImportModal({
                             value={row.age}
                             onChange={(e) => handleRowChange(row.id, "age", e.target.value)}
                             placeholder="35"
-                            className="w-full text-xs font-bold px-2 py-1.5 text-center rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-20 px-2 py-2 text-center text-xs font-bold rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green shadow-2xs mx-auto"
                           />
                         </td>
 
                         {/* Gender Select */}
-                        <td className="py-1.5 px-1.5">
+                        <td className="py-2 px-2">
                           <select
                             value={row.gender}
                             onChange={(e) => handleRowChange(row.id, "gender", e.target.value)}
-                            className="w-full text-xs font-bold px-2 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                            className="w-28 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer shadow-2xs"
                           >
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
@@ -770,44 +770,44 @@ export default function FastTrackPatientImportModal({
                         </td>
 
                         {/* Phone Input */}
-                        <td className="py-1.5 px-2">
+                        <td className="py-2 px-2">
                           <input
                             type="text"
                             value={row.phone}
                             onChange={(e) => handleRowChange(row.id, "phone", e.target.value)}
                             placeholder="+91 9876543210"
-                            className="w-full text-xs font-mono font-bold px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full min-w-[160px] text-xs font-mono font-bold px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green shadow-2xs"
                           />
                         </td>
 
                         {/* Email Input */}
-                        <td className="py-1.5 px-2">
+                        <td className="py-2 px-2">
                           <input
                             type="email"
                             value={row.email}
                             onChange={(e) => handleRowChange(row.id, "email", e.target.value)}
                             placeholder="Optional email"
-                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full min-w-[180px] text-xs px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green shadow-2xs"
                           />
                         </td>
 
                         {/* Treatment Plan / Complaint */}
-                        <td className="py-1.5 px-2">
+                        <td className="py-2 px-2">
                           <input
                             type="text"
                             value={row.treatmentPlan}
                             onChange={(e) => handleRowChange(row.id, "treatmentPlan", e.target.value)}
                             placeholder="e.g. Cervical Spondylosis"
-                            className="w-full text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            className="w-full min-w-[240px] text-xs font-medium px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green shadow-2xs"
                           />
                         </td>
 
                         {/* Therapist Select */}
-                        <td className="py-1.5 px-2">
+                        <td className="py-2 px-2">
                           <select
                             value={row.therapistName}
                             onChange={(e) => handleRowChange(row.id, "therapistName", e.target.value)}
-                            className="w-full text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                            className="w-full min-w-[180px] text-xs font-bold px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer shadow-2xs"
                           >
                             {enrolledTherapists.map((t) => (
                               <option key={t} value={t}>{t}</option>
@@ -816,11 +816,11 @@ export default function FastTrackPatientImportModal({
                         </td>
 
                         {/* Status Select */}
-                        <td className="py-1.5 px-1.5">
+                        <td className="py-2 px-2 text-center">
                           <select
                             value={row.status}
                             onChange={(e) => handleRowChange(row.id, "status", e.target.value)}
-                            className="w-full text-[11px] font-black px-2 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
+                            className="w-32 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer shadow-2xs mx-auto"
                           >
                             <option value="active">Active</option>
                             <option value="pending">Pending</option>
@@ -829,14 +829,14 @@ export default function FastTrackPatientImportModal({
                         </td>
 
                         {/* Delete Row */}
-                        <td className="py-1.5 px-2 text-center">
+                        <td className="py-2 px-2 text-center">
                           <button
                             type="button"
                             onClick={() => handleDeleteRow(row.id)}
-                            className="p-1 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
                             title="Delete row"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
