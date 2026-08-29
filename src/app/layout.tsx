@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono, Great_Vibes, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/public/Navbar";
 import Footer from "@/components/public/Footer";
+import FloatingSocials from "@/components/public/FloatingSocials";
+import PWARegistry from "@/components/PWARegistry";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,18 +29,122 @@ const serifFont = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Gait Physio Clinic | Premium Physiotherapy & Gait Analysis",
-  description: "Experience specialized physiotherapy, gait analysis, posture correction, and rehabilitation at Gait Physio Clinic. Book your appointment online today.",
-  keywords: ["physiotherapy", "gait analysis", "posture correction", "sports injury rehab", "orthotics", "bangalore physiotherapy"],
+  metadataBase: new URL("https://gaitphysioclinic.com"),
+  title: {
+    default: "Gait Physio Clinic | Advanced Physiotherapy & Gait Analysis",
+    template: "%s | Gait Physio Clinic",
+  },
+  description:
+    "Experience specialized physiotherapy, biomechanical gait analysis, posture correction, and sports rehabilitation at Gait Physio Clinic. Book your session online today.",
+  keywords: [
+    "physiotherapy clinic",
+    "gait analysis",
+    "sports injury rehabilitation",
+    "posture correction",
+    "orthopedic physio",
+    "ACL rehabilitation",
+    "back pain physiotherapy",
+    "Dr. Kinnera physiotherapist",
+    "Gait Physio Clinic",
+  ],
+  authors: [{ name: "Dr. Kinnera", url: "https://gaitphysioclinic.com" }],
+  creator: "Gait Physio Clinic",
+  publisher: "Gait Physio Clinic",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   icons: {
     icon: "/images/gait_physio_logo.png",
     shortcut: "/images/gait_physio_logo.png",
     apple: "/images/gait_physio_logo.png",
   },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: "https://gaitphysioclinic.com",
+    title: "Gait Physio Clinic | Advanced Physiotherapy & Gait Analysis",
+    description:
+      "Specialized physiotherapy, biomechanical gait analysis, posture correction, and sports rehabilitation.",
+    siteName: "Gait Physio Clinic",
+    images: [
+      {
+        url: "/images/hero_physio_session.webp",
+        width: 1200,
+        height: 630,
+        alt: "Gait Physio Clinic - Specialized Physiotherapy & Biomechanical Gait Analysis",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Gait Physio Clinic | Advanced Physiotherapy & Gait Analysis",
+    description:
+      "Specialized physiotherapy, biomechanical gait analysis, and rehabilitation. Book online today.",
+    images: ["/images/hero_physio_session.webp"],
+  },
+  alternates: {
+    canonical: "https://gaitphysioclinic.com",
+  },
 };
 
-import FloatingSocials from "@/components/public/FloatingSocials";
-import PWARegistry from "@/components/PWARegistry";
+const clinicStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "PhysiotherapyClinic",
+  name: "Gait Physio Clinic",
+  alternateName: "Gait Physio & Rehab",
+  url: "https://gaitphysioclinic.com",
+  logo: "https://gaitphysioclinic.com/images/gait_physio_logo.png",
+  image: "https://gaitphysioclinic.com/images/hero_physio_session.webp",
+  description:
+    "Specialized physiotherapy, biomechanical gait analysis, sports injury rehabilitation, and post-operative orthopedic recovery at Gait Physio Clinic.",
+  telephone: "+91 92066 51295",
+  priceRange: "₹₹",
+  medicalSpecialty: [
+    "Physiotherapy",
+    "Orthopedic Rehabilitation",
+    "Sports Medicine",
+    "Neurological Rehabilitation",
+    "Biomechanical Gait Analysis",
+  ],
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ],
+      opens: "09:00",
+      closes: "20:00",
+    },
+  ],
+  founder: {
+    "@type": "Person",
+    name: "Dr. Kinnera",
+    jobTitle: "Lead Physiotherapist & Gait Specialist",
+  },
+  potentialAction: {
+    "@type": "ReserveAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://gaitphysioclinic.com/book",
+      inLanguage: "en-US",
+      actionPlatform: [
+        "http://schema.org/DesktopWebPlatform",
+        "http://schema.org/MobileWebPlatform",
+      ],
+    },
+    result: {
+      "@type": "MedicalReservation",
+      name: "Book Physiotherapy Consultation",
+    },
+  },
+};
 
 export default function RootLayout({
   children,
@@ -56,6 +162,12 @@ export default function RootLayout({
         <meta name="theme-color" content="#1b3d2f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(clinicStructuredData),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -84,4 +196,3 @@ export default function RootLayout({
     </html>
   );
 }
-
