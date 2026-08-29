@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono, Great_Vibes, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/public/Navbar";
@@ -37,17 +37,18 @@ export const metadata: Metadata = {
   description:
     "Experience specialized physiotherapy, biomechanical gait analysis, posture correction, and sports rehabilitation at Gait Physio Clinic. Book your session online today.",
   keywords: [
-    "physiotherapy clinic",
-    "gait analysis",
-    "sports injury rehabilitation",
-    "posture correction",
-    "orthopedic physio",
-    "ACL rehabilitation",
-    "back pain physiotherapy",
-    "Dr. Kinnera physiotherapist",
-    "Gait Physio Clinic",
+    "physiotherapy clinic Whitefield",
+    "physiotherapist near Hope Farm Whitefield",
+    "gait analysis Bangalore",
+    "sports injury rehabilitation ITPL",
+    "posture correction Whitefield",
+    "orthopedic physio Bangalore",
+    "ACL rehabilitation Whitefield",
+    "back pain physiotherapy ITPL Bangalore",
+    "Dr. Madem Kinnera physiotherapist",
+    "Dr. Kinnera Gait Physio Clinic",
   ],
-  authors: [{ name: "Dr. Kinnera", url: "https://gaitphysioclinic.com" }],
+  authors: [{ name: "Dr. Madem Kinnera", url: "https://gaitphysioclinic.com" }],
   creator: "Gait Physio Clinic",
   publisher: "Gait Physio Clinic",
   formatDetection: {
@@ -64,16 +65,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     url: "https://gaitphysioclinic.com",
-    title: "Gait Physio Clinic | Advanced Physiotherapy & Gait Analysis",
+    title: "Gait Physio Clinic | Advanced Physiotherapy & Gait Analysis in Whitefield, Bangalore",
     description:
-      "Specialized physiotherapy, biomechanical gait analysis, posture correction, and sports rehabilitation.",
+      "Specialized physiotherapy, biomechanical gait analysis, sports rehabilitation, and orthopedic recovery by Dr. Madem Kinnera in Whitefield, Bangalore.",
     siteName: "Gait Physio Clinic",
     images: [
       {
         url: "/images/hero_physio_session.webp",
         width: 1200,
         height: 630,
-        alt: "Gait Physio Clinic - Specialized Physiotherapy & Biomechanical Gait Analysis",
+        alt: "Gait Physio Clinic - Specialized Physiotherapy & Biomechanical Gait Analysis in Whitefield, Bangalore",
       },
     ],
   },
@@ -81,7 +82,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Gait Physio Clinic | Advanced Physiotherapy & Gait Analysis",
     description:
-      "Specialized physiotherapy, biomechanical gait analysis, and rehabilitation. Book online today.",
+      "Specialized physiotherapy, biomechanical gait analysis, and rehabilitation in Whitefield, Bangalore. Book online today.",
     images: ["/images/hero_physio_session.webp"],
   },
   alternates: {
@@ -98,9 +99,33 @@ const clinicStructuredData = {
   logo: "https://gaitphysioclinic.com/images/gait_physio_logo.png",
   image: "https://gaitphysioclinic.com/images/hero_physio_session.webp",
   description:
-    "Specialized physiotherapy, biomechanical gait analysis, sports injury rehabilitation, and post-operative orthopedic recovery at Gait Physio Clinic.",
+    "Specialized physiotherapy, biomechanical gait analysis, sports injury rehabilitation, and post-operative orthopedic recovery at Gait Physio Clinic, Whitefield, Bangalore.",
   telephone: "+91 92066 51295",
   priceRange: "₹₹",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress:
+      "Shop No. 26, 2nd Floor & Shop No. 06, 3rd Floor, ITPL Main Road, Prasanth Extension, Near Hope Farm Signal",
+    addressLocality: "Whitefield",
+    addressRegion: "Bangalore, Karnataka",
+    postalCode: "560066",
+    addressCountry: "IN",
+  },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: 12.9847,
+    longitude: 77.7523,
+  },
+  areaServed: [
+    "Whitefield",
+    "ITPL",
+    "Hope Farm",
+    "Kadugodi",
+    "Hoodi",
+    "Brookefield",
+    "Mahadevapura",
+    "Bangalore",
+  ],
   medicalSpecialty: [
     "Physiotherapy",
     "Orthopedic Rehabilitation",
@@ -125,7 +150,7 @@ const clinicStructuredData = {
   ],
   founder: {
     "@type": "Person",
-    name: "Dr. Kinnera",
+    name: "Dr. Madem Kinnera",
     jobTitle: "Lead Physiotherapist & Gait Specialist",
   },
   potentialAction: {
