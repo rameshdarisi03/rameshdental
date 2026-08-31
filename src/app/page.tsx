@@ -729,10 +729,12 @@ export default function Home() {
                 className="flex items-center gap-2 sm:gap-3 p-2.5 sm:px-4 sm:py-3 rounded-2xl bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 hover:border-brand-green shadow-2xs hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all group text-left"
                 title="View Verified Practo Patient Stories"
               >
-                {/* Practo P Emblem */}
-                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-brand-green text-white font-black flex items-center justify-center shrink-0 shadow-2xs text-xs sm:text-sm">
-                  P
-                </div>
+                {/* Official Practo Health Logo */}
+                <img
+                  src="/images/practo_logo.png"
+                  alt="Practo Logo"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-contain shrink-0 shadow-2xs"
+                />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1">
                     <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-none">5.0</span>
@@ -1419,9 +1421,11 @@ export default function Home() {
             {/* Practo Rating Trust Badge Card */}
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-wrap sm:flex-nowrap items-center gap-5 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-2xl bg-brand-green text-white font-black flex items-center justify-center shrink-0 shadow-sm text-lg">
-                  P
-                </div>
+                <img
+                  src="/images/practo_logo.png"
+                  alt="Practo Official Logo"
+                  className="h-11 w-11 rounded-2xl object-contain shrink-0 shadow-sm"
+                />
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xl font-black text-slate-900 dark:text-white leading-none">5.0</span>
