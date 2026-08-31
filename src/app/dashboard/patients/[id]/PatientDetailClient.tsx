@@ -1296,7 +1296,7 @@ Warm regards,
       {/* Main Clinical Profile Header */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-[#1b3d2f] text-white flex items-center justify-center font-black text-xl uppercase ring-4 ring-emerald-500/10 shrink-0">
+          <div className="h-16 w-16 rounded-2xl bg-brand-green text-white flex items-center justify-center font-black text-xl uppercase ring-4 ring-brand-green/10 shrink-0">
             {patient.name.charAt(0)}
           </div>
           <div>
@@ -1541,10 +1541,10 @@ Warm regards,
             </div>
           </div>
 
-          {/* Card 2: Care Metrics (Forest Green Mockup layout) */}
-          <div className="bg-[#1b3d2f] text-white rounded-3xl p-6 shadow-md border border-brand-green/10 space-y-4">
+          {/* Card 2: Care Metrics (Brand Green Mockup layout) */}
+          <div className="bg-brand-green text-white rounded-3xl p-6 shadow-md border border-brand-green/10 space-y-4">
             <div className="flex items-center gap-2 text-white font-extrabold text-xs select-none">
-              <Activity className="h-4.5 w-4.5 text-emerald-400 animate-pulse" />
+              <Activity className="h-4.5 w-4.5 text-white/80 animate-pulse" />
               <span>Care Metrics</span>
             </div>
             
@@ -2058,7 +2058,7 @@ Warm regards,
                             className="relative group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300"
                           >
                             {/* Circle Dot Marker */}
-                            <span className="absolute -left-[31px] top-6.5 h-3.5 w-3.5 rounded-full bg-white dark:bg-slate-950 border-4 border-[#1b3d2f] ring-2 ring-emerald-500/20" />
+                            <span className="absolute -left-[31px] top-6.5 h-3.5 w-3.5 rounded-full bg-white dark:bg-slate-950 border-4 border-brand-green ring-2 ring-brand-green/20" />
                             
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-3">
                               <div className="flex items-center gap-2 text-xs text-brand-green font-black">

@@ -876,7 +876,7 @@ export default function Home() {
                   alt={`${therapistProfiles[teamIndex].name} Standing in GPC Clinic`}
                   className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.25)] border-4 border-white dark:border-slate-900 transition-all duration-300"
                 />
-                <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-[#1b3d2f] text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
+                <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-brand-green text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
                   <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{therapistProfiles[teamIndex].years}</span>
                   <span className="text-[7.5px] font-black uppercase tracking-wider mt-1.5 leading-tight">
                     Years of<br />Expertise

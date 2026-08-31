@@ -7,6 +7,7 @@ import { Menu, X, Activity, Phone, Moon, Sun, MessageSquare } from "lucide-react
 import { FEATURES } from "@/lib/features";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
 import ThemeSwitcher from "./ThemeSwitcher";
+import { syncMetaThemeColor } from "@/lib/themeHelper";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,10 +36,12 @@ export default function Navbar() {
       root.classList.remove("dark");
       localStorage.setItem("theme", "light");
       setIsDark(false);
+      syncMetaThemeColor(undefined, false);
     } else {
       root.classList.add("dark");
       localStorage.setItem("theme", "dark");
       setIsDark(true);
+      syncMetaThemeColor(undefined, true);
     }
   };
 

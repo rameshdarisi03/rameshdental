@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Palette, Check, ChevronDown } from "lucide-react";
 
+import { syncMetaThemeColor } from "@/lib/themeHelper";
+
 export type ThemeKey = "sage" | "teal" | "royal" | "office";
 
 export interface ThemeOption {
@@ -55,6 +57,7 @@ export default function ThemeSwitcher() {
       const saved = (localStorage.getItem("gpc_public_theme") as ThemeKey) || "sage";
       setCurrentTheme(saved);
       document.documentElement.setAttribute("data-theme", saved);
+      syncMetaThemeColor(saved);
     }
   }, []);
 
@@ -79,6 +82,7 @@ export default function ThemeSwitcher() {
     if (typeof window !== "undefined") {
       localStorage.setItem("gpc_public_theme", themeId);
       document.documentElement.setAttribute("data-theme", themeId);
+      syncMetaThemeColor(themeId);
     }
     setIsOpen(false);
   };

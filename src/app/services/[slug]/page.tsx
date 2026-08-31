@@ -453,7 +453,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                   </div>
 
                   <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-850 pt-3">
-                    <div className="h-9 w-9 rounded-xl bg-[#1b3d2f]/10 text-[#1b3d2f] dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <div className="h-9 w-9 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
                       <img
                         src="/images/dr-kinnera-portrait.jpg"
                         alt="Dr. Kinnera Profile Thumbnail"
@@ -469,7 +469,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
               </div>
 
               {/* Book session CTA Card */}
-              <div className="bg-[#1b3d2f] text-white p-6 rounded-[2rem] border border-brand-green/10 text-center space-y-4 shadow-md">
+              <div className="bg-brand-green text-white p-6 rounded-[2rem] border border-brand-green/10 text-center space-y-4 shadow-md">
                 <h4 className="text-sm font-black tracking-tight leading-tight">Ready to Begin Your Recovery?</h4>
                 <p className="text-[10px] sm:text-xs text-white/70 leading-normal font-normal">
                   Schedule your comprehensive clinical consultation directly with Dr. Kinnera.

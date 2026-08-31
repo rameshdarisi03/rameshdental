@@ -521,7 +521,7 @@ export default function DashboardAppointments() {
                     {app.patientPhone}
                   </span>
                   {app.assignedTherapist && (
-                    <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg text-[11px] font-bold">
+                    <span className="flex items-center gap-1.5 text-brand-green bg-brand-green/10 dark:bg-brand-green/20 px-2 py-0.5 rounded-lg text-[11px] font-bold">
                       <User className="h-3.5 w-3.5" />
                       {app.assignedTherapist}
                     </span>

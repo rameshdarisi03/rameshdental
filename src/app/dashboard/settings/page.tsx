@@ -297,7 +297,7 @@ export default function DashboardSettings() {
       {/* Top Configuration Header Bar */}
       <header className="flex h-16 items-center justify-between border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 sm:px-8 shrink-0 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <Settings className="h-4.5 w-4.5 text-[#1b3d2f] dark:text-emerald-450" />
+          <Settings className="h-4.5 w-4.5 text-brand-green" />
           <span className="text-xs sm:text-sm font-black text-brand-charcoal dark:text-white select-none">Clinic Configuration</span>
         </div>
         
@@ -340,7 +340,7 @@ export default function DashboardSettings() {
         
         {/* Title and Intro */}
         <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-black text-[#1b3d2f] dark:text-white tracking-tight">Configuration Center</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-brand-charcoal dark:text-white tracking-tight">Configuration Center</h1>
           <p className="text-xs text-slate-500 leading-relaxed font-normal">
             Refine your clinic's operational heart. Adjust shift patterns, holiday schedules, and manage your team of world-class therapists.
           </p>
@@ -460,7 +460,7 @@ export default function DashboardSettings() {
                     <Info className="h-4 w-4" />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] font-black text-[#1b3d2f] dark:text-emerald-450 tracking-wider uppercase block">
+                    <span className="text-[9px] font-black text-brand-green tracking-wider uppercase block">
                       Operating Status
                     </span>
                     <p className="text-[11px] text-slate-655 dark:text-slate-355 leading-relaxed font-semibold">
@@ -523,7 +523,7 @@ export default function DashboardSettings() {
                 {/* Evening Session */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#1b3d2f]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
                     <span className="text-[10px] font-black text-brand-charcoal dark:text-slate-300 tracking-wider uppercase">
                       Evening Session
                     </span>
@@ -960,7 +960,7 @@ export default function DashboardSettings() {
                 <button
                   type="button"
                   onClick={() => setShowAddForm((prev) => !prev)}
-                  className="h-7 w-7 rounded-full bg-[#1b3d2f] text-white hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-sm border-0"
+                  className="h-7 w-7 rounded-full bg-brand-green text-white hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-sm border-0"
                   title="Add Staff Therapist"
                 >
                   <Plus className="h-4 w-4" />
@@ -1012,7 +1012,7 @@ export default function DashboardSettings() {
                           setIsDirty(true);
                           setSavedSuccess(false);
                         }}
-                        className="px-3.5 py-1 bg-[#1b3d2f] text-white font-black rounded-lg cursor-pointer border-0 shadow-sm"
+                        className="px-3.5 py-1 bg-brand-green text-white font-black rounded-lg cursor-pointer border-0 shadow-sm"
                       >
                         Add Therapist
                       </button>

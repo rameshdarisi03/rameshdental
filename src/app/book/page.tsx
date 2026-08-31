@@ -287,7 +287,7 @@ function BookingFormContent() {
         />
         <div className="flex-grow flex items-center justify-center p-6 my-8">
           <div className="max-w-md w-full bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-8 text-center shadow-xl space-y-6 animate-fade-in-up">
-            <div className="h-16 w-16 bg-emerald-50 dark:bg-emerald-950/40 text-brand-green rounded-full flex items-center justify-center mx-auto ring-8 ring-emerald-50/50 dark:ring-emerald-950/20">
+            <div className="h-16 w-16 bg-brand-green/10 dark:bg-brand-green/20 text-brand-green rounded-full flex items-center justify-center mx-auto ring-8 ring-brand-green/10 dark:ring-brand-green/15">
               <Phone className="h-8 w-8 text-brand-green" />
             </div>
             <div className="space-y-2">
@@ -537,7 +537,7 @@ function BookingFormContent() {
                             >
                               <span className="leading-tight">{time}</span>
                               {!disabled && (
-                                <span className={`text-[9px] font-bold tracking-tight ${isSelected ? "text-emerald-100" : "text-emerald-700 dark:text-emerald-400"}`}>
+                                <span className={`text-[9px] font-bold tracking-tight ${isSelected ? "text-white/90" : "text-brand-green opacity-90"}`}>
                                   {remaining} {remaining === 1 ? "slot" : "slots"} left
                                 </span>
                               )}

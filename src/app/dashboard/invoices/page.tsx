@@ -288,7 +288,7 @@ Warm regards,
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                   Clinical Billing Center
                 </h1>
-                <span className="bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider hidden sm:inline-flex">
+                <span className="bg-brand-green/10 text-brand-green px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider hidden sm:inline-flex">
                   ₹ INR
                 </span>
               </div>
@@ -347,7 +347,7 @@ Warm regards,
         
         {/* Total Revenue MTD */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-brand-green/10 text-brand-green dark:text-emerald-400 rounded-2xl shrink-0">
+          <div className="p-3 bg-brand-green/10 text-brand-green rounded-2xl shrink-0">
             <Receipt className="h-6 w-6" />
           </div>
           <div className="min-w-0">
@@ -360,7 +360,7 @@ Warm regards,
                 </span>
               </span>
             </div>
-            <h3 className="text-xl font-black text-brand-green dark:text-emerald-400 truncate">
+            <h3 className="text-xl font-black text-brand-green truncate">
               ₹{stats.revenueMtd.toLocaleString("en-IN")}
             </h3>
           </div>
@@ -447,7 +447,7 @@ Warm regards,
                 onClick={() => setStatusFilter(st)}
                 className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                   statusFilter === st
-                    ? "bg-white dark:bg-slate-900 text-brand-green dark:text-emerald-400 shadow-sm"
+                    ? "bg-white dark:bg-slate-900 text-brand-green shadow-sm"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -490,7 +490,7 @@ Warm regards,
 
                   return (
                     <tr 
-                      key={inv.id}
+                      key={inv.id} 
                       className={`hover:bg-slate-50/80 dark:hover:bg-slate-850/50 transition-colors ${
                         isVoided ? "opacity-60 bg-rose-50/10" : ""
                       }`}
@@ -542,7 +542,7 @@ Warm regards,
 
                       {/* Total Amount */}
                       <td className="px-5 py-4">
-                        <span className={`text-xs font-black ${isVoided ? "line-through text-slate-400" : "text-brand-green dark:text-emerald-400"}`}>
+                        <span className={`text-xs font-black ${isVoided ? "line-through text-slate-400" : "text-brand-green"}`}>
                           ₹{(inv.totalAmount || 0).toLocaleString("en-IN")}
                         </span>
                       </td>

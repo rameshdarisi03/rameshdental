@@ -604,7 +604,7 @@ function WalkInBookingContent() {
               }}
               className={`flex-1 rounded-lg py-2 text-xs font-black transition-all ${
                 patientType === "new"
-                  ? "bg-[#1b3d2f] text-white shadow-sm"
+                  ? "bg-brand-green text-white shadow-sm"
                   : "text-slate-500 hover:text-brand-green"
               }`}
             >
@@ -620,7 +620,7 @@ function WalkInBookingContent() {
               }}
               className={`flex-1 rounded-lg py-2 text-xs font-black transition-all ${
                 patientType === "existing"
-                  ? "bg-[#1b3d2f] text-white shadow-sm"
+                  ? "bg-brand-green text-white shadow-sm"
                   : "text-slate-500 hover:text-brand-green"
               }`}
             >
