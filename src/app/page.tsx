@@ -693,6 +693,58 @@ export default function Home() {
                 </a>
               )}
             </div>
+
+            {/* 2 Side-by-Side Review Gateway Buttons (Always 50/50 on Mobile & Desktop) */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 pt-1 animate-fade-in-up w-full max-w-lg" style={{ animationDelay: '650ms' }}>
+              
+              {/* Google Reviews Gateway Button */}
+              <a
+                href="#testimonials"
+                className="flex items-center gap-2 sm:gap-3 p-2.5 sm:px-4 sm:py-3 rounded-2xl bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 hover:border-brand-green shadow-2xs hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all group text-left"
+                title="View Verified Google Reviews"
+              >
+                {/* Google 4-Color G Emblem */}
+                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center shrink-0 shadow-2xs">
+                  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 sm:h-5 sm:w-5">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-none">4.9</span>
+                    <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                  </div>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 truncate mt-0.5 group-hover:text-brand-green transition-colors">
+                    117+ Google Reviews
+                  </p>
+                </div>
+              </a>
+
+              {/* Practo Stories Gateway Button */}
+              <a
+                href="#practo-reviews"
+                className="flex items-center gap-2 sm:gap-3 p-2.5 sm:px-4 sm:py-3 rounded-2xl bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 hover:border-brand-green shadow-2xs hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all group text-left"
+                title="View Verified Practo Patient Stories"
+              >
+                {/* Practo P Emblem */}
+                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-brand-green text-white font-black flex items-center justify-center shrink-0 shadow-2xs text-xs sm:text-sm">
+                  P
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-none">5.0</span>
+                    <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                  </div>
+                  <p className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-300 truncate mt-0.5 group-hover:text-brand-green transition-colors">
+                    48+ Practo Stories
+                  </p>
+                </div>
+              </a>
+
+            </div>
           </div>
         </div>
       </section>
