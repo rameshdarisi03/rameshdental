@@ -521,59 +521,59 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="max-w-2xl space-y-8 text-center sm:text-left">
             
-            {/* Official Clinic Brand Identity Lockup (Single-Line Balanced) */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3.5 sm:gap-5 animate-fade-in-up">
+            {/* Official Clinic Brand Identity Lockup with Aligned 3 Core Services */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 animate-fade-in-up">
               <img
                 src="/images/gait_physio_logo.png"
                 alt="Gait Physio Clinic Official Logo"
-                className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
+                className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300 sm:mt-1"
               />
-              <div className="min-w-0">
-                <h1 className="text-2xl sm:text-4xl lg:text-[42px] xl:text-[48px] font-black tracking-tight leading-none text-brand-green whitespace-nowrap drop-shadow-2xs">
+              
+              <div className="space-y-4 sm:space-y-5 text-center sm:text-left min-w-0">
+                {/* Brand Name */}
+                <h1 className="text-3xl sm:text-4xl lg:text-[44px] xl:text-[50px] font-black tracking-tight leading-none text-brand-green whitespace-nowrap drop-shadow-2xs">
                   Gait Physio Clinic
                 </h1>
+
+                {/* 3 Core Services directly aligned under clinic title */}
+                <div className="flex items-center justify-center sm:justify-start gap-x-3.5 sm:gap-x-5 text-base sm:text-xl lg:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
+                  <span className="hover:text-brand-green transition-colors">Neuro Rehab</span>
+                  <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
+                  <span className="hover:text-brand-green transition-colors">Ortho Rehab</span>
+                  <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
+                  <span className="hover:text-brand-green transition-colors">Sports Rehab</span>
+                </div>
+
+                {/* Action Buttons: "Our Services" FIRST, WhatsApp / Book SECOND */}
+                <div className="flex flex-col sm:flex-row gap-3.5 justify-center sm:justify-start pt-2">
+                  <a
+                    href="#services"
+                    className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  >
+                    Our Services
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </a>
+
+                  {clinicConfig.enablePublicBooking !== false ? (
+                    <Link
+                      href="/book"
+                      className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
+                    >
+                      Book Free Consultation
+                    </Link>
+                  ) : (
+                    <a
+                      href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
+                    >
+                      <MessageSquare className="h-5 w-5" />
+                      Book via WhatsApp
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {/* 3 Core Clinical Rehabilitation Specializations (Single-Line Balanced) */}
-            <div className="pt-1 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-              <div className="flex items-center justify-center sm:justify-start gap-x-3 sm:gap-x-4 text-sm sm:text-base lg:text-lg font-black text-slate-800 dark:text-slate-100 tracking-tight whitespace-nowrap">
-                <span className="hover:text-brand-green transition-colors">Neuro Rehab</span>
-                <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
-                <span className="hover:text-brand-green transition-colors">Ortho Rehab</span>
-                <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
-                <span className="hover:text-brand-green transition-colors">Sports Rehab</span>
-              </div>
-            </div>
-
-            {/* Action Buttons: "Our Services" FIRST, WhatsApp / Book SECOND */}
-            <div className="flex flex-col sm:flex-row gap-3.5 justify-center sm:justify-start pt-2 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-              <a
-                href="#services"
-                className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-              >
-                Our Services
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </a>
-
-              {clinicConfig.enablePublicBooking !== false ? (
-                <Link
-                  href="/book"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
-                >
-                  Book Free Consultation
-                </Link>
-              ) : (
-                <a
-                  href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
-                >
-                  <MessageSquare className="h-5 w-5" />
-                  Book via WhatsApp
-                </a>
-              )}
             </div>
           </div>
         </div>
