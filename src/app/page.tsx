@@ -480,17 +480,35 @@ export default function Home() {
         .delay-200 { transition-delay: 200ms; }
         .delay-300 { transition-delay: 300ms; }
         .delay-400 { transition-delay: 400ms; }
+        .hero-blurred-bg {
+          filter: blur(16px);
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 90%);
+          -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 90%);
+          transform: scale(1.05); /* Prevents edge bleeding */
+        }
+        @media (min-width: 640px) {
+          .hero-blurred-bg {
+            mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 75%);
+            -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 75%);
+          }
+        }
       `}</style>
 
       {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
       <section id="home" className="relative overflow-hidden min-h-[580px] lg:min-h-[660px] flex items-center py-20 sm:py-28 text-brand-charcoal bg-slate-950">
-        {/* Full-Bleed Panoramic Clinic Cover Image (Option 1: Spine Assessment) */}
+        {/* Layer 1: Sharp Background Image (Option 1: Spine Assessment) */}
         <div 
           className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center transition-all duration-700" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
+
+        {/* Layer 2: Selective Blurred Image Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
+          style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
+        />
         
-        {/* Sophisticated Gradient Scrim Overlay: Crisp white on left for text legibility, crystal clear on right to see Dr. Kinnera */}
+        {/* Layer 3: Sophisticated Gradient Scrim Overlay: Crisp white on left for text legibility, crystal clear on right to see Dr. Kinnera */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/98 via-white/90 to-white/40 sm:bg-gradient-to-r sm:from-white/98 sm:via-white/85 sm:to-white/10 dark:from-slate-950/98 dark:via-slate-950/85 dark:to-slate-950/20" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
@@ -500,7 +518,7 @@ export default function Home() {
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-brand-green dark:bg-brand-green/20 dark:text-teal-300 border border-brand-green/15 animate-fade-in-up">
                 <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-                Bangalore's Premier Movement Clinic
+                Bangalore&apos;s Premier Movement Clinic
               </span>
             </div>
             
