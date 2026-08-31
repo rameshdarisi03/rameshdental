@@ -8,6 +8,8 @@
   --color-brand-charcoal: var(--brand-charcoal);
   --color-brand-muted: var(--brand-muted);
   --color-brand-accent: var(--brand-accent);
+  --color-brand-shadow: var(--brand-shadow);
+  --color-brand-shadow-hover: var(--brand-shadow-hover);
 
   /* Midnight & Honey Wellness Palette (Dedicated for Patient Hub & Hero accents) */
   --color-midnight-teal: #062e36;
@@ -29,6 +31,8 @@
   --brand-charcoal: #1a2620;
   --brand-muted: #d8dbd9;
   --brand-accent: #2f5c4f;
+  --brand-shadow: rgba(93, 122, 109, 0.12);
+  --brand-shadow-hover: rgba(93, 122, 109, 0.22);
   --background: #f7faf8;
   --foreground: #1a2620;
 }
@@ -42,6 +46,8 @@
   --brand-charcoal: #112026;
   --brand-muted: #d0e0e3;
   --brand-accent: #3a98b9;
+  --brand-shadow: rgba(14, 94, 111, 0.12);
+  --brand-shadow-hover: rgba(14, 94, 111, 0.22);
   --background: #f8fafb;
   --foreground: #112026;
 }
@@ -55,21 +61,25 @@
   --brand-charcoal: #0f172a;
   --brand-muted: #cbd5e1;
   --brand-accent: #0284c7;
+  --brand-shadow: rgba(26, 75, 132, 0.12);
+  --brand-shadow-hover: rgba(26, 75, 132, 0.22);
   --background: #ffffff;
   --foreground: #0f172a;
 }
 
-/* 🏛️ 4. Palette: Midnight Navy */
-[data-theme="midnight"] {
-  --brand-green: #0a2540;
-  --brand-green-hover: #071c33;
-  --brand-bg: #fcfdfe;
-  --brand-sand: #f7f9fc;
-  --brand-charcoal: #1a202c;
-  --brand-muted: #e2e8f0;
-  --brand-accent: #00a3c4;
-  --background: #fcfdfe;
-  --foreground: #1a202c;
+/* 🏢 4. Palette: Office Suite Blue (Microsoft 365 / Fluent Blue) */
+[data-theme="office"] {
+  --brand-green: #0078d4;
+  --brand-green-hover: #106ebe;
+  --brand-bg: #f8fbfd;
+  --brand-sand: #eff6fc;
+  --brand-charcoal: #1f2937;
+  --brand-muted: #c7e0f4;
+  --brand-accent: #005a9e;
+  --brand-shadow: rgba(0, 120, 212, 0.12);
+  --brand-shadow-hover: rgba(0, 120, 212, 0.22);
+  --background: #f8fbfd;
+  --foreground: #1f2937;
 }
 
 /* Manual Dark Mode variables (applied smoothly on top of any theme) */
@@ -91,10 +101,10 @@
   --brand-charcoal: #f8fafc;
 }
 
-.dark[data-theme="midnight"] {
-  --background: #060e18;
-  --foreground: #f1f5f9;
-  --brand-charcoal: #f1f5f9;
+.dark[data-theme="office"] {
+  --background: #0b1320;
+  --foreground: #f0f6ff;
+  --brand-charcoal: #f0f6ff;
 }
 
 /* Tie Tailwind's dark utility variant strictly to the .dark class (disables OS automatic mode) */

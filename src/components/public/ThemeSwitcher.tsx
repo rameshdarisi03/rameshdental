@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef } from "react";
 import { Palette, Check, ChevronDown } from "lucide-react";
 
-export type ThemeKey = "sage" | "teal" | "royal" | "midnight";
+export type ThemeKey = "sage" | "teal" | "royal" | "office";
 
 export interface ThemeOption {
   id: ThemeKey;
@@ -36,11 +36,11 @@ export const THEME_OPTIONS: ThemeOption[] = [
     accentColor: "#0284c7",
   },
   {
-    id: "midnight",
-    name: "Midnight Navy",
-    badge: "Executive",
-    primaryColor: "#0a2540",
-    accentColor: "#00a3c4",
+    id: "office",
+    name: "Office Suite Blue",
+    badge: "Software",
+    primaryColor: "#0078d4",
+    accentColor: "#eff6fc",
   },
 ];
 
