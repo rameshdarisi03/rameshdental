@@ -522,44 +522,29 @@ export default function Home() {
           <div className="max-w-2xl space-y-8 text-center sm:text-left">
             
             {/* Official Clinic Brand Identity Lockup */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-5 animate-fade-in-up">
+            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 animate-fade-in-up">
               <img
                 src="/images/gait_physio_logo.png"
                 alt="Gait Physio Clinic Official Logo"
-                className="h-16 w-16 sm:h-20 sm:w-20 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
+                className="h-20 w-20 sm:h-24 sm:w-24 lg:h-28 lg:w-28 object-contain shrink-0 drop-shadow-lg hover:scale-105 transition-transform duration-300"
               />
-              <div className="space-y-1">
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-brand-green drop-shadow-2xs">
+              <div>
+                <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none text-brand-green drop-shadow-2xs">
                   Gait Physio Clinic
                 </h1>
-                <p className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                  Advanced Physical & Neurological Rehabilitation Center
-                </p>
               </div>
             </div>
 
-            {/* Core Clinical Rehabilitation Specializations (From Official Board) */}
-            <div className="pt-2 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-              <div className="inline-flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
-                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-                  Neuro Rehab
-                </span>
-                <span className="hidden sm:inline text-slate-300 dark:text-slate-700 font-bold">|</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
-                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-                  Ortho Rehab
-                </span>
-                <span className="hidden sm:inline text-slate-300 dark:text-slate-700 font-bold">|</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
-                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-                  Sports Rehab
-                </span>
-                <span className="hidden sm:inline text-slate-300 dark:text-slate-700 font-bold">|</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
-                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-                  Pain Management
-                </span>
+            {/* Core Clinical Rehabilitation Specializations (Unboxed, Bold Typography) */}
+            <div className="pt-1 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3.5 sm:gap-x-5 gap-y-2 text-base sm:text-xl lg:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                <span className="hover:text-brand-green transition-colors">Neuro Rehab</span>
+                <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
+                <span className="hover:text-brand-green transition-colors">Ortho Rehab</span>
+                <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
+                <span className="hover:text-brand-green transition-colors">Sports Rehab</span>
+                <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
+                <span className="hover:text-brand-green transition-colors">Pain Management</span>
               </div>
             </div>
 
