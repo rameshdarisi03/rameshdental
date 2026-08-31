@@ -499,45 +499,42 @@ export default function Home() {
       `}</style>
 
       {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
-      <section id="home" className="relative overflow-hidden min-h-[520px] lg:min-h-[660px] flex items-center py-16 sm:py-28 text-brand-charcoal bg-brand-bg dark:bg-slate-950">
-        {/* Layer 1: Sharp Background Image (Tablet & Desktop Only) */}
+      <section id="home" className="relative overflow-hidden min-h-[500px] lg:min-h-[660px] flex items-center py-14 sm:py-28 text-brand-charcoal bg-slate-950">
+        {/* Layer 1: Full-Bleed Background Image (Desktop Sharp / Mobile 50% Ambient) */}
         <div 
-          className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700" 
+          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center opacity-50 sm:opacity-100 transition-all duration-700" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
 
-        {/* Layer 2: Selective Blurred Image Overlay (Tablet & Desktop Only) */}
+        {/* Layer 2: Selective Blurred Image Overlay (Desktop & Mobile Ambient Depth) */}
         <div 
-          className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
+          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center opacity-40 sm:opacity-100 transition-all duration-700 hero-blurred-bg" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
         
-        {/* Layer 3: Sophisticated Gradient Scrim Overlay for Desktop */}
-        <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-white/98 via-white/85 to-white/10 dark:from-slate-950/98 dark:via-slate-950/85 dark:to-slate-950/20" />
-
-        {/* Mobile Ambient Glow */}
-        <div className="sm:hidden absolute inset-0 bg-gradient-to-b from-brand-green/5 via-transparent to-brand-green/10 dark:from-brand-green/10 dark:to-slate-950" />
+        {/* Layer 3: Sophisticated Gradient Scrim: Crisp 50% frosted light on mobile, directional gradient on desktop */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/92 via-white/70 to-white/45 sm:bg-gradient-to-r sm:from-white/98 sm:via-white/85 sm:to-white/10 dark:from-slate-950/94 dark:via-slate-950/75 dark:to-slate-950/40" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="max-w-2xl space-y-8 text-center sm:text-left">
+          <div className="max-w-2xl space-y-6 sm:space-y-8 text-center sm:text-left">
             
-            {/* Official Clinic Brand Identity Lockup (Expansive Top Row) */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 animate-fade-in-up">
+            {/* Official Clinic Brand Identity Lockup (Smartphone & Desktop Optimized) */}
+            <div className="flex flex-row items-center justify-center sm:justify-start gap-2.5 sm:gap-6 animate-fade-in-up">
               <img
                 src="/images/gait_physio_logo.png"
                 alt="Gait Physio Clinic Official Logo"
-                className="h-16 w-16 sm:h-20 sm:w-20 lg:h-24 lg:w-24 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
+                className="h-11 w-11 sm:h-18 sm:w-18 lg:h-24 lg:w-24 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
               />
               <div className="min-w-0">
-                <h1 className="text-3xl sm:text-5xl lg:text-[52px] xl:text-[58px] font-black tracking-tight leading-none text-brand-green whitespace-nowrap drop-shadow-2xs">
+                <h1 className="text-[23px] sm:text-4xl lg:text-[52px] xl:text-[58px] font-black tracking-tight leading-none text-brand-green whitespace-nowrap drop-shadow-2xs">
                   Gait Physio Clinic
                 </h1>
               </div>
             </div>
 
-            {/* 3 Core Services (Brought Down with Ample Spacing & Larger Typography) */}
-            <div className="pt-2 sm:pt-3 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-              <div className="flex items-center justify-center sm:justify-start gap-x-4 sm:gap-x-6 text-lg sm:text-2xl lg:text-[26px] font-black text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
+            {/* 3 Core Services (Crisp, High-Contrast Typography) */}
+            <div className="pt-1 sm:pt-2 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
+              <div className="flex items-center justify-center sm:justify-start gap-x-2.5 sm:gap-x-6 text-[13px] sm:text-xl lg:text-[26px] font-black text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
                 <span className="hover:text-brand-green transition-colors">Neuro Rehab</span>
                 <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
                 <span className="hover:text-brand-green transition-colors">Ortho Rehab</span>
@@ -547,19 +544,19 @@ export default function Home() {
             </div>
 
             {/* Action Buttons: "Our Services" FIRST, WhatsApp / Book SECOND */}
-            <div className="flex flex-col sm:flex-row gap-3.5 justify-center sm:justify-start pt-3 sm:pt-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-3.5 justify-center sm:justify-start pt-2 sm:pt-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
               <a
                 href="#services"
-                className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
               >
                 Our Services
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </a>
 
               {clinicConfig.enablePublicBooking !== false ? (
                 <Link
                   href="/book"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
                 >
                   Book Free Consultation
                 </Link>
@@ -568,9 +565,9 @@ export default function Home() {
                   href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
                 >
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                   Book via WhatsApp
                 </a>
               )}
