@@ -1089,13 +1089,9 @@ export default function Home() {
           {/* Header Row: Title & Official Google Rating Trust Summary */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 reveal-on-scroll">
             <div className="space-y-3 max-w-2xl">
-              <div className="flex items-center gap-2">
+              <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 dark:bg-brand-green/20 px-3.5 py-1.5 rounded-full">
                   Verified Patient Stories
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/60">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  100% Real Google Reviews
                 </span>
               </div>
               <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
@@ -1412,10 +1408,6 @@ export default function Home() {
                 <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
                 Verified Practo Patient Stories
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                100% Real Practo Feedback
-              </span>
             </div>
 
             {/* Practo Rating Trust Badge Card */}
@@ -1446,7 +1438,7 @@ export default function Home() {
                   href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95"
                 >
                   <span>View on Practo</span>
                   <ArrowRight className="w-3.5 h-3.5" />
