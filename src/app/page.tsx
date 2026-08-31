@@ -201,25 +201,21 @@ export default function Home() {
     {
       title: "Body-Weight Supported Gait Training Lab",
       category: "Neuro & Gait Rehab",
-      desc: "Dynamic unweighting suspension harness and parallel bars for early motor retraining and safe stride correction.",
       image: "/images/gallery/gait_harness_station.webp",
     },
     {
       title: "Functional Ramp & Stair Mobility Trainer",
       category: "Post-Surgical Rehab",
-      desc: "Specialized dual-incline ramps, stability balls, and step rehabilitation stations for joint recovery and balance confidence.",
       image: "/images/gallery/ramp_stairs_trainer.webp",
     },
     {
       title: "Orthopedic Wall & Spine Ladder Station",
       category: "Orthopedics & Spine",
-      desc: "Swedish ladder, shoulder rotation wheel, and cervical-lumbar posture realignment stations.",
       image: "/images/gallery/swedish_wall_ladder.webp",
     },
     {
       title: "Advanced Physical Rehabilitation Floor",
       category: "Sports & Functional Gym",
-      desc: "Sanitised, climate-controlled rehabilitation gym engineered for comprehensive athletic recovery and neuro recovery.",
       image: "/images/gallery/rehab_gym_wide.webp",
     },
   ];
@@ -931,18 +927,11 @@ export default function Home() {
                   </div>
 
                   {/* Floating Title Inside Image on Mobile/Desktop */}
-                  <div className="absolute bottom-4 left-4 right-4 z-10">
-                    <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug drop-shadow-md text-white">
+                  <div className="absolute bottom-5 left-5 right-5 z-10">
+                    <h3 className="text-base sm:text-xl font-black tracking-tight leading-snug drop-shadow-md text-white">
                       {item.title}
                     </h3>
                   </div>
-                </div>
-                
-                {/* Description Body */}
-                <div className="p-6 space-y-2 flex-grow bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80">
-                  <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
-                    {item.desc}
-                  </p>
                 </div>
               </div>
             ))}
