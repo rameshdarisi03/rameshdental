@@ -1354,8 +1354,8 @@ export default function Home() {
           {/* Header Row: Clean Title & Practo Rating Trust Card */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 reveal-on-scroll">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-xs font-black uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/60 px-4 py-1.5 rounded-full flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-wider text-brand-green bg-brand-green/10 dark:bg-brand-green/20 border border-brand-green/20 px-4 py-1.5 rounded-full flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
                 Verified Practo Patient Stories
               </span>
               <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
@@ -1367,7 +1367,7 @@ export default function Home() {
             {/* Practo Rating Trust Badge Card */}
             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-wrap sm:flex-nowrap items-center gap-5 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-2xl bg-sky-500 text-white font-black flex items-center justify-center shrink-0 shadow-sm text-lg">
+                <div className="h-11 w-11 rounded-2xl bg-brand-green text-white font-black flex items-center justify-center shrink-0 shadow-sm text-lg">
                   P
                 </div>
                 <div>
@@ -1390,7 +1390,7 @@ export default function Home() {
                   href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95"
                 >
                   <span>View on Practo</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1412,7 +1412,7 @@ export default function Home() {
               {/* Left Nav Arrow */}
               <button
                 onClick={handlePrevPractoDesktop}
-                className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition-all shadow-sm active:scale-90 cursor-pointer"
+                className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green transition-all shadow-sm active:scale-90 cursor-pointer"
                 aria-label="Previous Practo review pair"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -1421,7 +1421,7 @@ export default function Home() {
               {/* Right Nav Arrow */}
               <button
                 onClick={handleNextPractoDesktop}
-                className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition-all shadow-sm active:scale-90 cursor-pointer"
+                className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green transition-all shadow-sm active:scale-90 cursor-pointer"
                 aria-label="Next Practo review pair"
               >
                 <ChevronRight className="h-5 w-5" />
@@ -1452,7 +1452,7 @@ export default function Home() {
                                 <h3 className="font-black text-slate-900 dark:text-white text-base">
                                   {review.name}
                                 </h3>
-                                <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md border border-sky-200/60 dark:border-sky-800/50">
+                                <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 dark:bg-brand-green/20 px-1.5 py-0.5 rounded-md border border-brand-green/20">
                                   Verified
                                 </span>
                               </div>
@@ -1470,7 +1470,7 @@ export default function Home() {
                         {/* Condition Badge */}
                         <div>
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200/80 dark:border-slate-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
                             {review.condition}
                           </span>
                         </div>
@@ -1483,7 +1483,7 @@ export default function Home() {
 
                       {/* Card Bottom */}
                       <div className="pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                        <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 font-bold">
+                        <span className="flex items-center gap-1 text-brand-green font-bold">
                           <CheckCircle2 className="w-3 h-3" />
                           Verified Practo Patient
                         </span>
@@ -1516,7 +1516,7 @@ export default function Home() {
                                 <h3 className="font-black text-slate-900 dark:text-white text-sm">
                                   {review.name}
                                 </h3>
-                                <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md border border-sky-200/60 dark:border-sky-800/50">
+                                <span className="text-[9px] font-bold text-brand-green bg-brand-green/10 dark:bg-brand-green/20 px-1.5 py-0.5 rounded-md border border-brand-green/20">
                                   Verified
                                 </span>
                               </div>
@@ -1533,7 +1533,7 @@ export default function Home() {
 
                         <div>
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold border border-slate-200/80 dark:border-slate-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
                             {review.condition}
                           </span>
                         </div>
@@ -1544,7 +1544,7 @@ export default function Home() {
                       </div>
 
                       <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                        <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 font-bold">
+                        <span className="flex items-center gap-1 text-brand-green font-bold">
                           <CheckCircle2 className="w-3 h-3" />
                           Verified Practo Patient
                         </span>
@@ -1559,7 +1559,7 @@ export default function Home() {
               <div className="flex items-center justify-between pt-4 px-1">
                 <button
                   onClick={handlePrevPractoMobile}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white transition-all shadow-sm active:scale-90"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm active:scale-90"
                   aria-label="Previous Practo review"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -1572,7 +1572,7 @@ export default function Home() {
                       onClick={() => setMobilePractoIndex(i)}
                       className={`h-2 rounded-full transition-all duration-300 ${
                         mobilePractoIndex === i
-                          ? "bg-sky-600 w-5"
+                          ? "bg-brand-green w-5"
                           : "bg-slate-300 dark:bg-slate-700 w-2"
                       }`}
                       aria-label={`Go to Practo review ${i + 1}`}
@@ -1582,7 +1582,7 @@ export default function Home() {
 
                 <button
                   onClick={handleNextPractoMobile}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white transition-all shadow-sm active:scale-90"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm active:scale-90"
                   aria-label="Next Practo review"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -1597,7 +1597,7 @@ export default function Home() {
               href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 px-6 py-3 text-xs font-black text-sky-700 dark:text-sky-300 hover:bg-sky-600 hover:text-white transition-all shadow-sm"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-3 text-xs font-black text-brand-charcoal dark:text-white hover:border-brand-green dark:hover:border-teal-400 hover:text-brand-green transition-all shadow-sm"
             >
               <span>Read all 48+ Patient Stories on Practo</span>
               <ArrowRight className="w-3.5 h-3.5" />
