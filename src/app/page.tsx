@@ -916,7 +916,7 @@ export default function Home() {
                     src={item.image}
                     alt={item.title}
                     loading="lazy"
-                    className="w-full h-full object-cover animate-ken-burns group-hover:scale-110 transition-transform duration-700 ease-out"
+                    className={`w-full h-full object-cover animate-ken-burns-${(idx % 4) + 1} group-hover-ken-burns`}
                   />
                   
                   {/* Subtle Gradient Overlays for High-End Contrast */}
