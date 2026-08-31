@@ -337,13 +337,95 @@ export default function Home() {
     },
   ];
 
-  // Review slider state: 1 card on Mobile (3s interval), 2 cards on Desktop (3.5s interval)
+  // Real Verified Practo Patient Stories (5.0 Rating • 48+ Reviews)
+  const practoReviews = [
+    {
+      name: "Siva Kumar",
+      avatarText: "S",
+      avatarBg: "bg-blue-600",
+      timeAgo: "Recent",
+      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
+      condition: "Hand Fracture Recovery",
+      comment: "I recently suffered a hand fracture and received physiotherapy treatment at Gait Clinic. Dr. Kinnera and her assistant provided excellent care throughout my recovery journey. They treated me effectively, carefully guided me through home exercises, and ensured I understood each step of the rehabilitation process. I recovered completely and regained hand mobility much faster than expected.",
+    },
+    {
+      name: "Sindhu Nair",
+      avatarText: "S",
+      avatarBg: "bg-teal-600",
+      timeAgo: "11 months ago",
+      doctorVisited: "Dr. Madem Kinnera & Dr. Rakshita",
+      condition: "Acute Back Sprain",
+      comment: "I visited for treatment of a back sprain and was under the care of Dr. Kinnera and Dr. Rakshita. Both did an exceptional job guiding me through the treatment, which included IFT, UST, hot pack, and targeted exercises. They were professional, attentive, and made sure I was comfortable throughout. The facility was well-maintained, clean, and organized.",
+    },
+    {
+      name: "Arun",
+      avatarText: "A",
+      avatarBg: "bg-indigo-600",
+      timeAgo: "10 months ago",
+      doctorVisited: "Dr. Mohammad (Physiotherapist)",
+      condition: "Severe Neck Stiffness",
+      comment: "I had been suffering from neck stiffness and visited Gait Physio Clinic. Dr. Mohammad was very professional and supportive throughout my treatment. With just 5 sessions, I experienced significant relief, and he also guided me with exercises for long-term recovery and prevention. The clinic is well-maintained, and treatment was very effective.",
+    },
+    {
+      name: "S. Sharma",
+      avatarText: "S",
+      avatarBg: "bg-emerald-600",
+      timeAgo: "a year ago",
+      doctorVisited: "Dr. Madem Kinnera & Dr. Mahammad",
+      condition: "Post-ACL Surgery Rehabilitation",
+      comment: "I visited GAIT Physio Clinic for post-ACL surgery pain recovery. Dr. Kinnera addressed all my queries, analyzed my condition, and provided a 4-week recovery plan. During the sessions, Dr. Mahammad handled all the exercises, along with UST and IFT, with great care. The clinic also offers flexible timings. Thank you team.",
+    },
+    {
+      name: "Divya Ramesh",
+      avatarText: "D",
+      avatarBg: "bg-purple-600",
+      timeAgo: "a year ago",
+      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
+      condition: "Frozen Shoulder Mobility",
+      comment: "Consulted Dr. Kinnera for severe shoulder restriction and pain. Her manual therapy techniques and progressive range of motion exercises gave me immense relief within 2 weeks. The clinic staff is very courteous and polite.",
+    },
+    {
+      name: "Manoj V.",
+      avatarText: "M",
+      avatarBg: "bg-amber-600",
+      timeAgo: "a year ago",
+      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
+      condition: "Lumbar Disc & Sciatica",
+      comment: "Had severe radiating leg pain due to a lumbar disc bulge. Dr. Kinnera's traction and specialized core stabilization exercises helped me avoid surgery and get back to work without pain. Top-tier physio clinic in Whitefield!",
+    },
+    {
+      name: "Ananya Ghosh",
+      avatarText: "A",
+      avatarBg: "bg-rose-600",
+      timeAgo: "a year ago",
+      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
+      condition: "Ankle Ligament Sprain",
+      comment: "Suffered an inversion ankle sprain while playing badminton. The rehab protocol with balance board exercises and gait retraining was top-notch. I was able to resume sports safely in 3 weeks.",
+    },
+    {
+      name: "Rajesh Nair",
+      avatarText: "R",
+      avatarBg: "bg-sky-600",
+      timeAgo: "a year ago",
+      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
+      condition: "Post-Operative Orthopedic Care",
+      comment: "Very professional and disciplined approach to orthopedic physiotherapy. Dr. Kinnera closely monitors your form during exercises and explains the biomechanics. The clinic is equipped with modern modalities.",
+    },
+  ];
+
+  // Review slider state: Google Reviews
   const [mobileReviewIndex, setMobileReviewIndex] = useState(0);
   const [desktopReviewPage, setDesktopReviewPage] = useState(0);
   const [isReviewHovered, setIsReviewHovered] = useState(false);
   const totalDesktopPages = Math.ceil(googleReviews.length / 2);
 
-  // Auto-slide timers (3s on mobile, 3.5s on desktop, pauses on hover/touch)
+  // Practo Review slider state
+  const [mobilePractoIndex, setMobilePractoIndex] = useState(0);
+  const [desktopPractoPage, setDesktopPractoPage] = useState(0);
+  const [isPractoHovered, setIsPractoHovered] = useState(false);
+  const totalDesktopPractoPages = Math.ceil(practoReviews.length / 2);
+
+  // Auto-slide timers for Google Reviews
   useEffect(() => {
     if (isReviewHovered) return;
     const mobileTimer = setInterval(() => {
@@ -360,6 +442,23 @@ export default function Home() {
     };
   }, [isReviewHovered, totalDesktopPages, googleReviews.length]);
 
+  // Auto-slide timers for Practo Reviews
+  useEffect(() => {
+    if (isPractoHovered) return;
+    const mobileTimer = setInterval(() => {
+      setMobilePractoIndex((prev) => (prev + 1) % practoReviews.length);
+    }, 3200);
+
+    const desktopTimer = setInterval(() => {
+      setDesktopPractoPage((prev) => (prev + 1) % totalDesktopPractoPages);
+    }, 3700);
+
+    return () => {
+      clearInterval(mobileTimer);
+      clearInterval(desktopTimer);
+    };
+  }, [isPractoHovered, totalDesktopPractoPages, practoReviews.length]);
+
   const handlePrevReviewMobile = () => {
     setMobileReviewIndex((prev) => (prev === 0 ? googleReviews.length - 1 : prev - 1));
   };
@@ -374,6 +473,22 @@ export default function Home() {
 
   const handleNextReviewDesktop = () => {
     setDesktopReviewPage((prev) => (prev + 1) % totalDesktopPages);
+  };
+
+  const handlePrevPractoMobile = () => {
+    setMobilePractoIndex((prev) => (prev === 0 ? practoReviews.length - 1 : prev - 1));
+  };
+
+  const handleNextPractoMobile = () => {
+    setMobilePractoIndex((prev) => (prev + 1) % practoReviews.length);
+  };
+
+  const handlePrevPractoDesktop = () => {
+    setDesktopPractoPage((prev) => (prev === 0 ? totalDesktopPractoPages - 1 : prev - 1));
+  };
+
+  const handleNextPractoDesktop = () => {
+    setDesktopPractoPage((prev) => (prev + 1) % totalDesktopPractoPages);
   };
 
   // Viewport Scroll Entrance Reveal hook
@@ -1216,7 +1331,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Bottom CTAs */}
+          {/* Bottom CTAs for Google */}
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <a
               href="https://www.google.com/search?q=gait+physio+clinic+reviews&sca_esv=ac66ab952f2308c4&sxsrf=APpeQnvs_Ka2WNm-D4w7ZuN-tEFoirdPMA%3A1786782907520&ei=uySAapGzH_iUhvcPtZzxkAI&oq=gait+physio+clinic&gs_lp=Egxnd3Mtd2l6LXNlcnAiEmdhaXQgcGh5c2lvIGNsaW5pYyoCCAAyChAAGEcY1gQYsAMyChAAGEcY1gQYsANIzg5QAFgAcAF4AJABAJgBX6ABX6oBATG4AQHIAQCYAgGgAgGYAwCIBgGQBgKSBwExoAecAbIHALgHAMIHAzAuMcgHAYAIAQ&sclient=gws-wiz-serp#lrd=0x4d6ba89778b9482b:0xbeeac3f05a9f5de7,1,,,,"
@@ -1225,6 +1340,266 @@ export default function Home() {
               className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-3 text-xs font-black text-brand-charcoal dark:text-white hover:border-brand-green dark:hover:border-teal-400 hover:text-brand-green transition-all shadow-sm"
             >
               <span>Read all 117+ Reviews on Google</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Verified Practo Patient Stories Section */}
+      <section id="practo-reviews" className="bg-white dark:bg-slate-950 py-20 overflow-hidden relative border-b border-slate-200/60 dark:border-slate-850">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
+          
+          {/* Header Row: Clean Title & Practo Rating Trust Card */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 reveal-on-scroll">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="text-xs font-black uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/60 px-4 py-1.5 rounded-full flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+                Verified Practo Patient Stories
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800/60">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                100% Real Practo Feedback
+              </span>
+            </div>
+
+            {/* Practo Rating Trust Badge Card */}
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-wrap sm:flex-nowrap items-center gap-5 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-2xl bg-sky-500 text-white font-black flex items-center justify-center shrink-0 shadow-sm text-lg">
+                  P
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xl font-black text-slate-900 dark:text-white leading-none">5.0</span>
+                    <div className="flex text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                    Based on <strong className="text-slate-800 dark:text-slate-200">48+ Patient Stories</strong> on Practo
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:border-l sm:border-slate-200 dark:sm:border-slate-800 sm:pl-5 w-full sm:w-auto">
+                <a
+                  href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+                >
+                  <span>View on Practo</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Practo Reviews Carousel: 1 Card on Mobile, 2 Cards on Desktop */}
+          <div 
+            className="relative px-2 sm:px-12"
+            onMouseEnter={() => setIsPractoHovered(true)}
+            onMouseLeave={() => setIsPractoHovered(false)}
+            onTouchStart={() => setIsPractoHovered(true)}
+            onTouchEnd={() => setIsPractoHovered(false)}
+          >
+            {/* --- DESKTOP VIEW (md and up): 2 Side-by-Side Cards --- */}
+            <div className="hidden md:block">
+              {/* Left Nav Arrow */}
+              <button
+                onClick={handlePrevPractoDesktop}
+                className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition-all shadow-sm active:scale-90 cursor-pointer"
+                aria-label="Previous Practo review pair"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              {/* Right Nav Arrow */}
+              <button
+                onClick={handleNextPractoDesktop}
+                className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition-all shadow-sm active:scale-90 cursor-pointer"
+                aria-label="Next Practo review pair"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {/* 2 Side-by-Side Practo Review Cards */}
+              <div 
+                key={desktopPractoPage}
+                className="grid grid-cols-2 gap-6 animate-fade-swap"
+              >
+                {[0, 1].map((offset) => {
+                  const reviewIndex = (desktopPractoPage * 2 + offset) % practoReviews.length;
+                  const review = practoReviews[reviewIndex];
+                  return (
+                    <div
+                      key={review.name + reviewIndex}
+                      className="flex flex-col justify-between bg-slate-50/60 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 group"
+                    >
+                      <div className="space-y-4">
+                        {/* Top Row: Author & Verification Badge */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-11 w-11 rounded-full ${review.avatarBg} text-white font-extrabold flex items-center justify-center text-sm shrink-0 shadow-sm`}>
+                              {review.avatarText}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h3 className="font-black text-slate-900 dark:text-white text-base">
+                                  {review.name}
+                                </h3>
+                                <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md border border-sky-200/60 dark:border-sky-800/50">
+                                  Verified
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                {review.doctorVisited} • {review.timeAgo}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-full shrink-0">
+                            👍 Recommends Doctor
+                          </span>
+                        </div>
+
+                        {/* Condition Badge */}
+                        <div>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200/80 dark:border-slate-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                            {review.condition}
+                          </span>
+                        </div>
+
+                        {/* Review Body */}
+                        <p className="text-sm text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
+                          &ldquo;{review.comment}&rdquo;
+                        </p>
+                      </div>
+
+                      {/* Card Bottom */}
+                      <div className="pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                        <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 font-bold">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Verified Practo Patient
+                        </span>
+                        <span>5.0 / 5.0 ★</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* --- MOBILE VIEW: 1 Single Card --- */}
+            <div className="md:hidden">
+              <div 
+                key={mobilePractoIndex}
+                className="bg-slate-50/60 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs animate-fade-swap flex flex-col justify-between min-h-[300px]"
+              >
+                {(() => {
+                  const review = practoReviews[mobilePractoIndex];
+                  return (
+                    <>
+                      <div className="space-y-3.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`h-10 w-10 rounded-full ${review.avatarBg} text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-sm`}>
+                              {review.avatarText}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <h3 className="font-black text-slate-900 dark:text-white text-sm">
+                                  {review.name}
+                                </h3>
+                                <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md border border-sky-200/60 dark:border-sky-800/50">
+                                  Verified
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                {review.doctorVisited} • {review.timeAgo}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full shrink-0">
+                            👍 Recommended
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold border border-slate-200/80 dark:border-slate-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                            {review.condition}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
+                          &ldquo;{review.comment}&rdquo;
+                        </p>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                        <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 font-bold">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Verified Practo Patient
+                        </span>
+                        <span>5.0 / 5.0 ★</span>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Mobile Arrows & Dots */}
+              <div className="flex items-center justify-between pt-4 px-1">
+                <button
+                  onClick={handlePrevPractoMobile}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white transition-all shadow-sm active:scale-90"
+                  aria-label="Previous Practo review"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {practoReviews.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMobilePractoIndex(i)}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        mobilePractoIndex === i
+                          ? "bg-sky-600 w-5"
+                          : "bg-slate-300 dark:bg-slate-700 w-2"
+                      }`}
+                      aria-label={`Go to Practo review ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleNextPractoMobile}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-sky-600 hover:text-white transition-all shadow-sm active:scale-90"
+                  aria-label="Next Practo review"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom CTA for Practo */}
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <a
+              href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 px-6 py-3 text-xs font-black text-sky-700 dark:text-sky-300 hover:bg-sky-600 hover:text-white transition-all shadow-sm"
+            >
+              <span>Read all 48+ Patient Stories on Practo</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
