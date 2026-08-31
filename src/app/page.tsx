@@ -587,9 +587,10 @@ export default function Home() {
             <div className="lg:col-span-5 flex justify-center">
               <div className="relative rounded-3xl p-2.5 bg-white/40 dark:bg-brand-charcoal/40 backdrop-blur-md border border-brand-green/10 dark:border-white/20 shadow-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-500 animate-slide-in-card w-full">
                 <img 
-                  src="/images/hero-therapist.jpg" 
-                  alt="Therapist helping patient with mobility exercises" 
+                  src="/images/hero_physio_session.webp" 
+                  alt="Dr. Kinnera guiding patient active mobility exercises at Gait Physio Clinic" 
                   className="rounded-2xl w-full h-auto object-cover shadow-inner"
+                  loading="eager"
                 />
                 
                 {/* Floating Micro-Badge */}
