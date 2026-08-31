@@ -29,14 +29,18 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo & Description */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-2 font-semibold text-brand-green dark:text-teal-400">
-              <Activity className="h-6 w-6 text-brand-green" />
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Gait <span className="text-brand-green dark:text-teal-400">Physio</span>
+            <Link href="/" className="flex items-center gap-2.5 font-semibold group select-none">
+              <img
+                src="/images/gait_physio_logo.png"
+                alt="Gait Physio Clinic Logo"
+                className="h-9 w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+              />
+              <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                Gait Physio <span className="text-brand-green">Clinic</span>
               </span>
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Premium physiotherapy and gait analysis clinic helping you move better, live pain-free, and perform at your highest potential.
+              Specialized physiotherapy, biomechanical gait analysis, and sports rehabilitation clinic helping you move better, live pain-free, and perform at your highest potential.
             </p>
           </div>
 

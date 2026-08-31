@@ -102,10 +102,14 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-semibold text-brand-green dark:text-teal-400">
-          <Activity className="h-6 w-6 text-brand-green" />
-          <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Gait <span className="text-brand-green dark:text-teal-400">Physio</span>
+        <Link href="/" className="flex items-center gap-2.5 font-semibold group select-none">
+          <img
+            src="/images/gait_physio_logo.png"
+            alt="Gait Physio Clinic Emblem Logo"
+            className="h-9 w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+          />
+          <span className="text-lg sm:text-xl font-black tracking-tight text-slate-900 dark:text-white">
+            Gait Physio <span className="text-brand-green">Clinic</span>
           </span>
         </Link>
 

@@ -101,10 +101,14 @@ export default function DashboardLayout({
     <div className="flex h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex h-16 items-center gap-2 px-6 border-b border-slate-100 dark:border-slate-850 text-brand-green dark:text-teal-400 font-semibold">
-          <Activity className="h-6 w-6 text-brand-green" />
-          <span className="text-lg font-black tracking-tight text-brand-charcoal dark:text-white">
-            GPC <span className="text-brand-green dark:text-teal-400">Portal</span>
+        <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-100 dark:border-slate-850 text-brand-green font-semibold">
+          <img
+            src="/images/gait_physio_logo.png"
+            alt="Gait Physio Clinic"
+            className="h-7 w-7 object-contain shrink-0"
+          />
+          <span className="text-base font-black tracking-tight text-brand-charcoal dark:text-white">
+            Gait Physio <span className="text-brand-green">Clinic</span>
           </span>
         </div>
 
