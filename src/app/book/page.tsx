@@ -342,7 +342,7 @@ function BookingFormContent() {
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start">
             
             {/* Left Card: Personal Details */}
-            <div className="lg:col-span-5 border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-950/40 p-6 sm:p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] space-y-5">
+            <div className="lg:col-span-5 border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-950/40 p-6 sm:p-8 shadow-[0_6px_25px_-6px_var(--brand-shadow)] space-y-5">
               <h3 className="text-lg font-black text-brand-charcoal dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
                 <span className="h-6 w-6 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-black">1</span>
                 Patient Details
@@ -471,7 +471,7 @@ function BookingFormContent() {
             </div>
 
             {/* Right Card: Date & Slot Selection */}
-            <div className="lg:col-span-7 border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-950/40 p-6 sm:p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] space-y-6 relative overflow-hidden">
+            <div className="lg:col-span-7 border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-950/40 p-6 sm:p-8 shadow-[0_6px_25px_-6px_var(--brand-shadow)] space-y-6 relative overflow-hidden">
               <h3 className="text-lg font-black text-brand-charcoal dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2">
                 <span className="h-6 w-6 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-black">2</span>
                 Choose Date & Time Slot

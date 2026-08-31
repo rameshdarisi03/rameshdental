@@ -252,7 +252,7 @@ export default function DashboardStaff() {
         {staffList.map((member) => (
           <div
             key={member.uid}
-            className="bg-white dark:bg-slate-905 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl flex items-start justify-between gap-4 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:-translate-y-0.5 transition-all duration-300"
+            className="bg-white dark:bg-slate-905 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl flex items-start justify-between gap-4 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-0.5 transition-all duration-300"
           >
             <div className="flex items-start gap-4">
               <div className="h-11 w-11 rounded-full bg-brand-sand text-brand-green ring-4 ring-brand-sand/30 flex items-center justify-center shrink-0">

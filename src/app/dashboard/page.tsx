@@ -115,7 +115,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Pending Requests */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] transition-all duration-350 flex items-center gap-4 cursor-default">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-350 flex items-center gap-4 cursor-default">
           <div className="h-11 w-11 rounded-full bg-amber-50 text-amber-600 ring-4 ring-amber-100/30 flex items-center justify-center shrink-0">
             <Inbox className="h-5 w-5" />
           </div>
@@ -128,7 +128,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Today's Appointments */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] transition-all duration-350 flex items-center gap-4 cursor-default">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-350 flex items-center gap-4 cursor-default">
           <div className="h-11 w-11 rounded-full bg-brand-sand text-brand-green ring-4 ring-brand-sand/30 flex items-center justify-center shrink-0">
             <Calendar className="h-5 w-5" />
           </div>
@@ -141,8 +141,8 @@ export default function DashboardHome() {
         </div>
 
         {/* Total Bookings */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] transition-all duration-350 flex items-center gap-4 cursor-default">
-          <div className="h-11 w-11 rounded-full bg-[#f0f4f2] text-brand-green ring-4 ring-[#f0f4f2]/30 flex items-center justify-center shrink-0">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-350 flex items-center gap-4 cursor-default">
+          <div className="h-11 w-11 rounded-full bg-brand-sand/50 text-brand-green ring-4 ring-brand-sand/30 flex items-center justify-center shrink-0">
             <Activity className="h-5 w-5" />
           </div>
           <div>
@@ -154,7 +154,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Active Blocks */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] transition-all duration-350 flex items-center gap-4 cursor-default">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-1 hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-350 flex items-center gap-4 cursor-default">
           <div className="h-11 w-11 rounded-full bg-rose-50 text-rose-600 ring-4 ring-rose-100/30 flex items-center justify-center shrink-0">
             <Clock className="h-5 w-5" />
           </div>
@@ -172,7 +172,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Pending Requests Queue Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:-translate-y-0.5 transition-all duration-300 space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-0.5 transition-all duration-300 space-y-4">
           <h3 className="font-black text-brand-charcoal dark:text-white text-lg">Appointment Approvals</h3>
           <p className="text-xs text-slate-500 leading-relaxed font-semibold">
             Review online appointment requests, approve slots to trigger patient WhatsApp links, or reject overlapping bookings.
@@ -189,7 +189,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Blocks & Closures Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:-translate-y-0.5 transition-all duration-300 space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-0.5 transition-all duration-300 space-y-4">
           <h3 className="font-black text-brand-charcoal dark:text-white text-lg">Schedule Closures</h3>
           <p className="text-xs text-slate-500 leading-relaxed font-semibold">
             Block specific clinic hours (morning/evening shifts) or full calendar dates for holidays and physician unavailable days.

@@ -48,7 +48,7 @@ export default function ArticlesPage() {
             {filteredArticles.map((article) => (
               <article
                 key={article.slug}
-                className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-850 overflow-hidden shadow-[0_8px_30px_-6px_rgba(93,122,109,0.06)] hover:shadow-[0_12px_40px_-6px_rgba(93,122,109,0.12)] transition-all duration-300 flex flex-col group"
+                className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-850 overflow-hidden shadow-[0_8px_30px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_40px_-6px_var(--brand-shadow-hover)] transition-all duration-300 flex flex-col group"
               >
                 {/* Thumbnail Image */}
                 <Link href={`/articles/${article.slug}`} className="block relative h-56 w-full overflow-hidden bg-slate-100 dark:bg-slate-950">

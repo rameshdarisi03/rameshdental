@@ -873,7 +873,7 @@ export default function DaySnapshot() {
   return (
     <div className="space-y-6">
       {/* Header Panel with Integrated Day Stats Toolbar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white">Day Snapshot</h1>
           <p className="text-xs text-slate-500 font-semibold mt-1">

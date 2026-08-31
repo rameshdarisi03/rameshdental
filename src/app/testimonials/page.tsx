@@ -51,7 +51,7 @@ export default function Testimonials() {
       <section className="py-20 bg-brand-bg dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           {/* Overview Rating Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-center shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-center shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
             <div className="space-y-1">
               <p className="text-3xl font-black text-brand-charcoal dark:text-white">4.9 / 5.0</p>
               <div className="flex justify-center text-yellow-500">
@@ -78,7 +78,7 @@ export default function Testimonials() {
             {reviews.map((r) => (
               <div
                 key={r.name}
-                className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 space-y-4 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350"
+                className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 space-y-4 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350"
               >
                 <div className="flex justify-between items-start gap-4">
                   <div>

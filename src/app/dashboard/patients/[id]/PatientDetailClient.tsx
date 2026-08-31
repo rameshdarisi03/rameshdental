@@ -1294,7 +1294,7 @@ Warm regards,
       </div>
 
       {/* Main Clinical Profile Header */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-2xl bg-brand-green text-white flex items-center justify-center font-black text-xl uppercase ring-4 ring-brand-green/10 shrink-0">
             {patient.name.charAt(0)}
@@ -2043,7 +2043,7 @@ Warm regards,
                 {!isHistoryCollapsed && (
                   <div className="space-y-4 relative pl-6 border-l-2 border-slate-200 dark:border-slate-800 ml-2 pt-2 animate-fade-in">
                     {consultations.length === 0 ? (
-                      <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+                      <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
                         <FileText className="w-6 h-6 text-slate-300 mx-auto mb-2" />
                         <span>No visit logs recorded for this patient yet.</span>
                       </div>
@@ -2205,7 +2205,7 @@ Warm regards,
               )}
 
               {allUnifiedFiles.length === 0 ? (
-                <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+                <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
                   <Folder className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                   <span>No medical records uploaded for this patient.</span>
                 </div>

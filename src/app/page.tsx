@@ -792,11 +792,11 @@ export default function Home() {
             {services.map((svc, index) => (
               <div
                 key={svc.title}
-                className={`group relative overflow-hidden rounded-3xl border p-8 bg-white dark:bg-slate-900 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] transition-all duration-350 hover:-translate-y-1.5 reveal-on-scroll ${
+                className={`group relative overflow-hidden rounded-3xl border p-8 bg-white dark:bg-slate-900 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-350 hover:-translate-y-1.5 reveal-on-scroll ${
                   index === 0 ? "" : index === 1 ? "delay-100" : "delay-200"
                 } ${
                   svc.highlight
-                    ? "border-brand-green ring-2 ring-brand-green/10 shadow-[0_6px_25px_-4px_rgba(93,122,109,0.18)] hover:shadow-[0_12px_35px_-6px_rgba(93,122,109,0.26)]"
+                    ? "border-brand-green ring-2 ring-brand-green/10 shadow-[0_6px_25px_-4px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-6px_var(--brand-shadow-hover)]"
                     : "border-slate-200/80 dark:border-brand-charcoal/60"
                 }`}
               >
@@ -874,7 +874,7 @@ export default function Home() {
                 <img
                   src={therapistProfiles[teamIndex].image}
                   alt={`${therapistProfiles[teamIndex].name} Standing in GPC Clinic`}
-                  className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_rgba(93,122,109,0.25)] border-4 border-white dark:border-slate-900 transition-all duration-300"
+                  className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_var(--brand-shadow-hover)] border-4 border-white dark:border-slate-900 transition-all duration-300"
                 />
                 <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-brand-green text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
                   <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{therapistProfiles[teamIndex].years}</span>
@@ -1005,7 +1005,7 @@ export default function Home() {
             {galleryItems.map((item) => (
               <div
                 key={item.title}
-                className="overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col group shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll"
+                className="overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col group shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll"
               >
                 <div className={`h-56 bg-gradient-to-br ${item.gradient} flex flex-col items-center justify-center border-b border-slate-100 dark:border-slate-855 p-6 relative overflow-hidden`}>
                   <item.icon className="h-16 w-16 text-brand-green dark:text-teal-400 z-10 group-hover:scale-110 transition-transform duration-300" />
@@ -1129,7 +1129,7 @@ export default function Home() {
                   return (
                     <div
                       key={review.name + reviewIndex}
-                      className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 sm:p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.18)] hover:-translate-y-1 transition-all duration-300 group"
+                      className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 sm:p-8 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-300 group"
                     >
                       <div className="space-y-4">
                         {/* Reviewer Header */}
@@ -1219,7 +1219,7 @@ export default function Home() {
               {/* Single Review Card */}
               <div 
                 key={mobileReviewIndex}
-                className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] animate-fade-swap"
+                className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-[0_6px_25px_-6px_var(--brand-shadow)] animate-fade-swap"
               >
                 {(() => {
                   const review = googleReviews[mobileReviewIndex];
@@ -1360,7 +1360,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-850 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] reveal-on-scroll">
+          <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-850 shadow-[0_6px_25px_-6px_var(--brand-shadow)] reveal-on-scroll">
             {faqs.map((faq, index) => {
               const isOpen = faqOpenIndex === index;
               return (
@@ -1492,7 +1492,7 @@ export default function Home() {
 
             {/* Right side: Dynamic Map Frame */}
             <div className="lg:col-span-7 flex flex-col gap-6 w-full reveal-on-scroll">
-              <div className="h-[450px] w-full rounded-3xl border border-slate-250/85 dark:border-slate-800 bg-white dark:bg-slate-955 relative overflow-hidden shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)]">
+              <div className="h-[450px] w-full rounded-3xl border border-slate-250/85 dark:border-slate-800 bg-white dark:bg-slate-955 relative overflow-hidden shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
                 {clinicConfig.googleMapsEmbed ? (
                   <iframe
                     src={clinicConfig.googleMapsEmbed}

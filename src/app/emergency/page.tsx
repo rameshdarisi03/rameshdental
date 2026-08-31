@@ -40,25 +40,25 @@ export default function Emergency() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
-              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350">
+              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350">
                 <h4 className="font-black text-brand-green dark:text-white text-sm">1. Protect (P)</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                   Protect the injured area from further damage. Stop the activity immediately and use a brace, splint, or crutches if necessary.
                 </p>
               </div>
-              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350">
+              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350">
                 <h4 className="font-black text-brand-green dark:text-white text-sm">2. Rest (R)</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                   Avoid putting weight or stress on the injured muscle or joint. Rest is essential for the initial tissue-healing phase.
                 </p>
               </div>
-              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350">
+              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350">
                 <h4 className="font-black text-brand-green dark:text-white text-sm">3. Ice (I)</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                   Apply a cold pack or wrapped ice to the injured area for 15-20 minutes every 2-3 hours. This decreases pain and local inflammation.
                 </p>
               </div>
-              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350">
+              <div className="border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl bg-white dark:bg-slate-900 space-y-2 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350">
                 <h4 className="font-black text-brand-green dark:text-white text-sm">4. Compress & Elevate (C & E)</h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                   Lightly wrap the area with an elastic bandage to control swelling. Elevate the injured limb above heart level whenever resting.
@@ -68,7 +68,7 @@ export default function Emergency() {
           </div>
 
           {/* Medical Disclaimer */}
-          <div className="flex gap-3 bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-450 leading-relaxed shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)]">
+          <div className="flex gap-3 bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-450 leading-relaxed shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
             <ShieldAlert className="h-5 w-5 text-brand-green shrink-0 mt-0.5" />
             <p className="font-semibold">
               <strong className="text-brand-charcoal font-black">Disclaimer:</strong> The first-aid information on this page is for educational purposes only and does not replace clinical diagnosis. For life-threatening emergencies, severe fractures, chest pain, or head trauma, immediately call standard government emergency numbers or visit the nearest multi-specialty emergency room.

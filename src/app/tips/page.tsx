@@ -47,7 +47,7 @@ export default function Tips() {
             {articles.map((article) => (
               <div
                 key={article.title}
-                className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 flex flex-col shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] hover:shadow-[0_12px_35px_-8px_rgba(93,122,109,0.22)] hover:-translate-y-1 transition-all duration-350"
+                className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 flex flex-col shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="inline-flex items-center rounded-full bg-brand-green/10 border border-brand-green/20 px-3 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">

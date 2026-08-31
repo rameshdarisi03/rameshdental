@@ -393,7 +393,7 @@ export default function PatientsPage() {
       {/* Top Clinical Metrics Summary Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Metric 1: Active Patients */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_var(--brand-shadow)] relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
               Active Patient Recovery
@@ -417,7 +417,7 @@ export default function PatientsPage() {
         </div>
 
         {/* Metric 2: Completed Protocols */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_var(--brand-shadow)] relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
               Completed Protocols
@@ -439,7 +439,7 @@ export default function PatientsPage() {
         </div>
 
         {/* Metric 3: Pending Intake */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.06)] relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-[0_6px_25px_-6px_var(--brand-shadow)] relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
               Pending Evaluation
@@ -464,7 +464,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Main Container: Search, Filter Tabs & Table Grid */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_var(--brand-shadow)] overflow-hidden">
         
         {/* Search, Status Tabs & Filters Bar */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 flex flex-col lg:flex-row gap-4 items-center justify-between">

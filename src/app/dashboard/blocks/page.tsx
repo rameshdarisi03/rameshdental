@@ -166,7 +166,7 @@ export default function DashboardBlocks() {
               {blocks.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl flex items-center justify-between gap-4 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] hover:-translate-y-0.5 transition-all duration-300"
+                  className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 rounded-3xl flex items-center justify-between gap-4 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <div className="flex gap-4 items-center">
                     <div className="h-11 w-11 rounded-full bg-rose-50 dark:bg-rose-955/30 flex items-center justify-center text-rose-600 ring-4 ring-rose-100/30 shrink-0 animate-pulse">

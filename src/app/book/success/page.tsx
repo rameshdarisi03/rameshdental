@@ -30,7 +30,7 @@ function SuccessCard() {
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
-      <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-950/40 p-8 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.12)] text-center space-y-6">
+      <div className="border border-slate-200/80 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-950/40 p-8 shadow-[0_6px_25px_-6px_var(--brand-shadow)] text-center space-y-6">
         
         {/* Success Check Area */}
         <div className="flex justify-center">

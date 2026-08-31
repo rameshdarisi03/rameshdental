@@ -101,7 +101,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-10">
           
           {/* Contained Intro Image Card with object-top crop correction */}
-          <div className="relative h-[20rem] md:h-[28rem] w-full rounded-[2.5rem] overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-[0_6px_25px_-6px_rgba(93,122,109,0.08)] bg-slate-100 dark:bg-slate-950">
+          <div className="relative h-[20rem] md:h-[28rem] w-full rounded-[2.5rem] overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-[0_6px_25px_-6px_var(--brand-shadow)] bg-slate-100 dark:bg-slate-950">
             <Image
               src={article.introImage}
               alt={article.title}
@@ -112,7 +112,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
           </div>
 
           {/* Article Text Sheet */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-850 rounded-[2.5rem] p-6 md:p-12 shadow-[0_8px_30px_-6px_rgba(93,122,109,0.055)] space-y-8">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-850 rounded-[2.5rem] p-6 md:p-12 shadow-[0_8px_30px_-6px_var(--brand-shadow)] space-y-8">
             
             {article.sections.map((section, idx) => {
               switch (section.type) {
