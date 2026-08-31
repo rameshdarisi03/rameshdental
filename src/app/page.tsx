@@ -519,95 +519,78 @@ export default function Home() {
         <div className="sm:hidden absolute inset-0 bg-gradient-to-b from-brand-green/5 via-transparent to-brand-green/10 dark:from-brand-green/10 dark:to-slate-950" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="max-w-2xl space-y-6 text-center sm:text-left">
+          <div className="max-w-2xl space-y-8 text-center sm:text-left">
             
-            {/* Pill Badge */}
-            <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-brand-green dark:bg-brand-green/20 dark:text-teal-300 border border-brand-green/15 animate-fade-in-up">
-                <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-                Bangalore&apos;s Premier Movement Clinic
-              </span>
-            </div>
-            
-            {/* Bold Headline */}
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-brand-charcoal dark:text-white drop-shadow-2xs">
-              <span className="block mb-2">
-                {["Restore", "Your", "Movement."].map((word, i) => (
-                  <span
-                    key={i}
-                    className="animate-word inline-block mr-3"
-                    style={{ animationDelay: `${i * 120}ms` }}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </span>
-              <span className="block text-brand-green">
-                {["Reclaim", "Your", "Life."].map((word, i) => (
-                  <span
-                    key={i}
-                    className="animate-word inline-block mr-3"
-                    style={{ animationDelay: `${(3 + i) * 120}ms` }}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </span>
-            </h1>
-            
-            <p className="text-base sm:text-lg text-slate-700 dark:text-slate-200 leading-relaxed font-semibold animate-fade-in-up" style={{ animationDelay: '700ms' }}>
-              Experience clinical precision blended with holistic wellness. Our tailored physiotherapy plans help you recover faster, prevent injury, and move with confidence.
-            </p>
-            
-            {/* Trust Checkmarks */}
-            <div className="flex flex-wrap gap-4 pt-2 justify-center sm:justify-start animate-fade-in-up" style={{ animationDelay: '900ms' }}>
-              <div className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
-                <div className="h-5 w-5 rounded-full bg-brand-green/15 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
-                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                </div>
-                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Digital Foot Scans</span>
-              </div>
-              <div className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
-                <div className="h-5 w-5 rounded-full bg-brand-green/15 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
-                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                </div>
-                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Active Rehabilitation</span>
-              </div>
-              <div className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
-                <div className="h-5 w-5 rounded-full bg-brand-green/15 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
-                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                </div>
-                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Custom Orthotics</span>
+            {/* Official Clinic Brand Identity Lockup */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-5 animate-fade-in-up">
+              <img
+                src="/images/gait_physio_logo.png"
+                alt="Gait Physio Clinic Official Logo"
+                className="h-16 w-16 sm:h-20 sm:w-20 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
+              />
+              <div className="space-y-1">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-brand-green drop-shadow-2xs">
+                  Gait Physio Clinic
+                </h1>
+                <p className="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                  Advanced Physical & Neurological Rehabilitation Center
+                </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start pt-4 animate-fade-in-up" style={{ animationDelay: '1100ms' }}>
+            {/* Core Clinical Rehabilitation Specializations (From Official Board) */}
+            <div className="pt-2 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+              <div className="inline-flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
+                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
+                  Neuro Rehab
+                </span>
+                <span className="hidden sm:inline text-slate-300 dark:text-slate-700 font-bold">|</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
+                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
+                  Ortho Rehab
+                </span>
+                <span className="hidden sm:inline text-slate-300 dark:text-slate-700 font-bold">|</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
+                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
+                  Sports Rehab
+                </span>
+                <span className="hidden sm:inline text-slate-300 dark:text-slate-700 font-bold">|</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-300 text-xs sm:text-sm font-black">
+                  <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
+                  Pain Management
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons: "Our Services" FIRST, WhatsApp / Book SECOND */}
+            <div className="flex flex-col sm:flex-row gap-3.5 justify-center sm:justify-start pt-2 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+              <a
+                href="#services"
+                className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+              >
+                Our Services
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </a>
+
               {clinicConfig.enablePublicBooking !== false ? (
                 <Link
                   href="/book"
-                  className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
                 >
                   Book Free Consultation
-                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               ) : (
                 <a
                   href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/80 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
                 >
                   <MessageSquare className="h-5 w-5" />
                   Book via WhatsApp
                 </a>
               )}
-              <a
-                href="#services"
-                className="inline-flex items-center justify-center rounded-full border border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/70 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-white/10 shadow-sm"
-              >
-                Our Services
-              </a>
             </div>
           </div>
         </div>
