@@ -500,10 +500,10 @@ export default function Home() {
 
       {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
       <section id="home" className="relative overflow-hidden min-h-[500px] lg:min-h-[660px] flex items-center py-14 sm:py-28 text-brand-charcoal bg-slate-950">
-        {/* Mobile Background: Dedicated Stability Balls & Ramp Ambience (Vivid 80% Clarity) */}
+        {/* Mobile Background: Option 2 Medical Teal Clinic Interior */}
         <div 
-          className="sm:hidden absolute inset-0 bg-cover bg-no-repeat bg-[center_bottom] opacity-80 transition-all duration-700" 
-          style={{ backgroundImage: "url('/images/hero_mobile_balls_ambience.webp')" }} 
+          className="sm:hidden absolute inset-0 bg-cover bg-no-repeat bg-center opacity-75 transition-all duration-700" 
+          style={{ backgroundImage: "url('/images/mobile_cover_teal_option_2.webp')" }} 
         />
 
         {/* Desktop Background: Full Panoramic Treatment Cover (Dr. Kinnera on Right) */}
