@@ -1,14 +1,15 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
-  --color-brand-green: #5d7a6d;
-  --color-brand-green-hover: #4e675c;
-  --color-brand-bg: #f7faf8;
-  --color-brand-sand: #efe6dd;
-  --color-brand-charcoal: #1a2620;
-  --color-brand-muted: #d8dbd9;
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-hover: var(--brand-green-hover);
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-accent: var(--brand-accent);
 
-  /* Midnight & Honey Wellness Palette */
+  /* Midnight & Honey Wellness Palette (Dedicated for Patient Hub & Hero accents) */
   --color-midnight-teal: #062e36;
   --color-deep-teal: #21444d;
   --color-honey-gold: #f9ab55;
@@ -19,15 +20,81 @@
   --color-teal-tint: #41636d;
 }
 
-:root {
+/* 🌿 1. Default Palette: Sage & Sand */
+:root, [data-theme="sage"] {
+  --brand-green: #5d7a6d;
+  --brand-green-hover: #4e675c;
+  --brand-bg: #f7faf8;
+  --brand-sand: #efe6dd;
+  --brand-charcoal: #1a2620;
+  --brand-muted: #d8dbd9;
+  --brand-accent: #2f5c4f;
   --background: #f7faf8;
   --foreground: #1a2620;
 }
 
-/* Manual Dark Mode variables */
+/* 🌊 2. Palette: Medical Teal */
+[data-theme="teal"] {
+  --brand-green: #0e5e6f;
+  --brand-green-hover: #0b4653;
+  --brand-bg: #f8fafb;
+  --brand-sand: #eef4f6;
+  --brand-charcoal: #112026;
+  --brand-muted: #d0e0e3;
+  --brand-accent: #3a98b9;
+  --background: #f8fafb;
+  --foreground: #112026;
+}
+
+/* ⚡ 3. Palette: Kinetic Royal Blue */
+[data-theme="royal"] {
+  --brand-green: #1a4b84;
+  --brand-green-hover: #12355f;
+  --brand-bg: #ffffff;
+  --brand-sand: #f0f6fa;
+  --brand-charcoal: #0f172a;
+  --brand-muted: #cbd5e1;
+  --brand-accent: #0284c7;
+  --background: #ffffff;
+  --foreground: #0f172a;
+}
+
+/* 🏛️ 4. Palette: Midnight Navy */
+[data-theme="midnight"] {
+  --brand-green: #0a2540;
+  --brand-green-hover: #071c33;
+  --brand-bg: #fcfdfe;
+  --brand-sand: #f7f9fc;
+  --brand-charcoal: #1a202c;
+  --brand-muted: #e2e8f0;
+  --brand-accent: #00a3c4;
+  --background: #fcfdfe;
+  --foreground: #1a202c;
+}
+
+/* Manual Dark Mode variables (applied smoothly on top of any theme) */
 .dark {
   --background: #0f1412;
   --foreground: #f7faf8;
+  --brand-charcoal: #f7faf8;
+}
+
+.dark[data-theme="teal"] {
+  --background: #091316;
+  --foreground: #f0f7f9;
+  --brand-charcoal: #f0f7f9;
+}
+
+.dark[data-theme="royal"] {
+  --background: #0a0f1d;
+  --foreground: #f8fafc;
+  --brand-charcoal: #f8fafc;
+}
+
+.dark[data-theme="midnight"] {
+  --background: #060e18;
+  --foreground: #f1f5f9;
+  --brand-charcoal: #f1f5f9;
 }
 
 /* Tie Tailwind's dark utility variant strictly to the .dark class (disables OS automatic mode) */
@@ -41,6 +108,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .font-serif-heading {
@@ -101,6 +169,7 @@ body {
 }
 
 .animate-fade-swap {
+  opacity: 0;
   animation: fadeSwap 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 

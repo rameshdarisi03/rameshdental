@@ -197,6 +197,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
+                var savedTheme = localStorage.getItem('gpc_public_theme') || 'sage';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+
                 if (localStorage.getItem('theme') === 'dark') {
                   document.documentElement.classList.add('dark');
                 }
