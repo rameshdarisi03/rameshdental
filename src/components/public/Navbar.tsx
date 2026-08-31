@@ -102,13 +102,13 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 font-semibold group select-none">
+        <Link href="/" className="flex items-center gap-2 font-semibold group select-none shrink-0 min-w-0">
           <img
             src="/images/gait_physio_logo.png"
             alt="Gait Physio Clinic Emblem Logo"
-            className="h-9 w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+            className="h-8 w-8 sm:h-9 sm:w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
           />
-          <span className="text-lg sm:text-xl font-black tracking-tight text-brand-green group-hover:opacity-90 transition-opacity">
+          <span className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-brand-green whitespace-nowrap group-hover:opacity-90 transition-opacity">
             Gait Physio Clinic
           </span>
         </Link>
@@ -134,14 +134,16 @@ export default function Navbar() {
         </nav>
 
         {/* CTA & Mobile Toggle */}
-        <div className="flex items-center gap-3">
-          {/* Visual Theme Switcher Dropdown */}
-          <ThemeSwitcher />
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Visual Theme Switcher Dropdown (Desktop Only) */}
+          <div className="hidden md:flex items-center">
+            <ThemeSwitcher />
+          </div>
 
-          {/* Dark Mode Slider Toggle */}
+          {/* Dark Mode Slider Toggle (Desktop Only - Mobile uses floating dock) */}
           <button
             onClick={toggleDarkMode}
-            className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+            className="hidden md:inline-flex relative h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
             aria-label="Toggle Dark Mode"
             title="Toggle Dark Mode"
           >

@@ -499,21 +499,24 @@ export default function Home() {
       `}</style>
 
       {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
-      <section id="home" className="relative overflow-hidden min-h-[580px] lg:min-h-[660px] flex items-center py-20 sm:py-28 text-brand-charcoal bg-slate-950">
-        {/* Layer 1: Sharp Background Image (Option 1: Spine Assessment) */}
+      <section id="home" className="relative overflow-hidden min-h-[520px] lg:min-h-[660px] flex items-center py-16 sm:py-28 text-brand-charcoal bg-brand-bg dark:bg-slate-950">
+        {/* Layer 1: Sharp Background Image (Tablet & Desktop Only) */}
         <div 
-          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center transition-all duration-700" 
+          className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
 
-        {/* Layer 2: Selective Blurred Image Overlay */}
+        {/* Layer 2: Selective Blurred Image Overlay (Tablet & Desktop Only) */}
         <div 
-          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
+          className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
         
-        {/* Layer 3: Sophisticated Gradient Scrim Overlay: Crisp white on left for text legibility, crystal clear on right to see Dr. Kinnera */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/98 via-white/90 to-white/40 sm:bg-gradient-to-r sm:from-white/98 sm:via-white/85 sm:to-white/10 dark:from-slate-950/98 dark:via-slate-950/85 dark:to-slate-950/20" />
+        {/* Layer 3: Sophisticated Gradient Scrim Overlay for Desktop */}
+        <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-white/98 via-white/85 to-white/10 dark:from-slate-950/98 dark:via-slate-950/85 dark:to-slate-950/20" />
+
+        {/* Mobile Ambient Glow */}
+        <div className="sm:hidden absolute inset-0 bg-gradient-to-b from-brand-green/5 via-transparent to-brand-green/10 dark:from-brand-green/10 dark:to-slate-950" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="max-w-2xl space-y-6 text-center sm:text-left">
