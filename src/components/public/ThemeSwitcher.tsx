@@ -17,18 +17,18 @@ export interface ThemeOption {
 
 export const THEME_OPTIONS: ThemeOption[] = [
   {
-    id: "sage",
-    name: "Sage & Sand",
-    badge: "Default",
-    primaryColor: "#5d7a6d",
-    accentColor: "#efe6dd",
-  },
-  {
     id: "teal",
     name: "Medical Teal",
-    badge: "Clinical",
+    badge: "Default",
     primaryColor: "#0e5e6f",
     accentColor: "#3a98b9",
+  },
+  {
+    id: "sage",
+    name: "Sage & Sand",
+    badge: "Herbal",
+    primaryColor: "#5d7a6d",
+    accentColor: "#efe6dd",
   },
   {
     id: "royal",
@@ -47,14 +47,14 @@ export const THEME_OPTIONS: ThemeOption[] = [
 ];
 
 export default function ThemeSwitcher() {
-  const [currentTheme, setCurrentTheme] = useState<ThemeKey>("sage");
+  const [currentTheme, setCurrentTheme] = useState<ThemeKey>("teal");
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Initialize theme from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = (localStorage.getItem("gpc_public_theme") as ThemeKey) || "sage";
+      const saved = (localStorage.getItem("gpc_public_theme") as ThemeKey) || "teal";
       setCurrentTheme(saved);
       document.documentElement.setAttribute("data-theme", saved);
       syncMetaThemeColor(saved);

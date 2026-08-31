@@ -22,23 +22,8 @@
   --color-teal-tint: #41636d;
 }
 
-/* 🌿 1. Default Palette: Sage & Sand */
-:root, [data-theme="sage"] {
-  --brand-green: #5d7a6d;
-  --brand-green-hover: #4e675c;
-  --brand-bg: #f7faf8;
-  --brand-sand: #efe6dd;
-  --brand-charcoal: #1a2620;
-  --brand-muted: #d8dbd9;
-  --brand-accent: #2f5c4f;
-  --brand-shadow: rgba(93, 122, 109, 0.12);
-  --brand-shadow-hover: rgba(93, 122, 109, 0.22);
-  --background: #f7faf8;
-  --foreground: #1a2620;
-}
-
-/* 🌊 2. Palette: Medical Teal */
-[data-theme="teal"] {
+/* 🌊 1. Default Palette: Medical Teal */
+:root, [data-theme="teal"] {
   --brand-green: #0e5e6f;
   --brand-green-hover: #0b4653;
   --brand-bg: #f8fafb;
@@ -50,6 +35,21 @@
   --brand-shadow-hover: rgba(14, 94, 111, 0.22);
   --background: #f8fafb;
   --foreground: #112026;
+}
+
+/* 🌿 2. Palette: Sage & Sand */
+[data-theme="sage"] {
+  --brand-green: #5d7a6d;
+  --brand-green-hover: #4e675c;
+  --brand-bg: #f7faf8;
+  --brand-sand: #efe6dd;
+  --brand-charcoal: #1a2620;
+  --brand-muted: #d8dbd9;
+  --brand-accent: #2f5c4f;
+  --brand-shadow: rgba(93, 122, 109, 0.12);
+  --brand-shadow-hover: rgba(93, 122, 109, 0.22);
+  --background: #f7faf8;
+  --foreground: #1a2620;
 }
 
 /* ⚡ 3. Palette: Kinetic Royal Blue */
@@ -83,16 +83,16 @@
 }
 
 /* Manual Dark Mode variables (applied smoothly on top of any theme) */
-.dark {
-  --background: #0f1412;
-  --foreground: #f7faf8;
-  --brand-charcoal: #f7faf8;
-}
-
-.dark[data-theme="teal"] {
+.dark, .dark[data-theme="teal"] {
   --background: #091316;
   --foreground: #f0f7f9;
   --brand-charcoal: #f0f7f9;
+}
+
+.dark[data-theme="sage"] {
+  --background: #0f1412;
+  --foreground: #f7faf8;
+  --brand-charcoal: #f7faf8;
 }
 
 .dark[data-theme="royal"] {

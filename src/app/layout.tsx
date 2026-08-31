@@ -184,7 +184,7 @@ export default function RootLayout({
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" id="meta-theme-color" content="#5d7a6d" />
+        <meta name="theme-color" id="meta-theme-color" content="#0e5e6f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <script
@@ -198,12 +198,12 @@ export default function RootLayout({
             __html: `
               try {
                 var themeColorMap = {
-                  sage: { primary: '#5d7a6d', dark: '#0f1412' },
                   teal: { primary: '#0e5e6f', dark: '#091316' },
+                  sage: { primary: '#5d7a6d', dark: '#0f1412' },
                   royal: { primary: '#1a4b84', dark: '#0a0f1d' },
                   office: { primary: '#0078d4', dark: '#0b1320' }
                 };
-                var savedTheme = localStorage.getItem('gpc_public_theme') || 'sage';
+                var savedTheme = localStorage.getItem('gpc_public_theme') || 'teal';
                 document.documentElement.setAttribute('data-theme', savedTheme);
 
                 var isDark = localStorage.getItem('theme') === 'dark';
@@ -211,7 +211,7 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                 }
 
-                var palette = themeColorMap[savedTheme] || themeColorMap.sage;
+                var palette = themeColorMap[savedTheme] || themeColorMap.teal;
                 var meta = document.getElementById('meta-theme-color');
                 if (meta) {
                   meta.setAttribute('content', isDark ? palette.dark : palette.primary);

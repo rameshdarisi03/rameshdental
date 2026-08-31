@@ -10,13 +10,13 @@ export const THEME_COLOR_MAP: Record<ThemeKey, { primary: string; darkBg: string
 export function syncMetaThemeColor(themeKey?: ThemeKey, isDark?: boolean) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
-  const currentTheme = themeKey || ((localStorage.getItem("gpc_public_theme") as ThemeKey) || "sage");
+  const currentTheme = themeKey || ((localStorage.getItem("gpc_public_theme") as ThemeKey) || "teal");
   const darkMode =
     isDark !== undefined
       ? isDark
       : document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark";
 
-  const themeData = THEME_COLOR_MAP[currentTheme] || THEME_COLOR_MAP.sage;
+  const themeData = THEME_COLOR_MAP[currentTheme] || THEME_COLOR_MAP.teal;
   const targetColor = darkMode ? themeData.darkBg : themeData.primary;
 
   let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
