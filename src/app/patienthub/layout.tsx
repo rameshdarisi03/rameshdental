@@ -135,8 +135,8 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
               className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
             />
             <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white leading-none">
-                Gait Physio <span className="text-brand-green">Clinic</span>
+              <span className="text-xl font-black tracking-tight text-brand-green leading-none">
+                Gait Physio Clinic
               </span>
               <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-1">
                 Patient Hub

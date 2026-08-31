@@ -35,8 +35,8 @@ export default function Footer() {
                 alt="Gait Physio Clinic Logo"
                 className="h-9 w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
               />
-              <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                Gait Physio <span className="text-brand-green">Clinic</span>
+              <span className="text-xl font-black tracking-tight text-brand-green group-hover:opacity-90 transition-opacity">
+                Gait Physio Clinic
               </span>
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">

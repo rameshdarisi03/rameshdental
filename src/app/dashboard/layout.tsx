@@ -107,8 +107,8 @@ export default function DashboardLayout({
             alt="Gait Physio Clinic"
             className="h-7 w-7 object-contain shrink-0"
           />
-          <span className="text-base font-black tracking-tight text-brand-charcoal dark:text-white">
-            Gait Physio <span className="text-brand-green">Clinic</span>
+          <span className="text-base font-black tracking-tight text-brand-green">
+            Gait Physio Clinic
           </span>
         </div>
 
