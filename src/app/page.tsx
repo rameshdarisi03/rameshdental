@@ -521,30 +521,28 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="max-w-2xl space-y-8 text-center sm:text-left">
             
-            {/* Official Clinic Brand Identity Lockup */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 animate-fade-in-up">
+            {/* Official Clinic Brand Identity Lockup (Single-Line Balanced) */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3.5 sm:gap-5 animate-fade-in-up">
               <img
                 src="/images/gait_physio_logo.png"
                 alt="Gait Physio Clinic Official Logo"
-                className="h-20 w-20 sm:h-24 sm:w-24 lg:h-28 lg:w-28 object-contain shrink-0 drop-shadow-lg hover:scale-105 transition-transform duration-300"
+                className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
               />
-              <div>
-                <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none text-brand-green drop-shadow-2xs">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-4xl lg:text-[42px] xl:text-[48px] font-black tracking-tight leading-none text-brand-green whitespace-nowrap drop-shadow-2xs">
                   Gait Physio Clinic
                 </h1>
               </div>
             </div>
 
-            {/* Core Clinical Rehabilitation Specializations (Unboxed, Bold Typography) */}
+            {/* 3 Core Clinical Rehabilitation Specializations (Single-Line Balanced) */}
             <div className="pt-1 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3.5 sm:gap-x-5 gap-y-2 text-base sm:text-xl lg:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              <div className="flex items-center justify-center sm:justify-start gap-x-3 sm:gap-x-4 text-sm sm:text-base lg:text-lg font-black text-slate-800 dark:text-slate-100 tracking-tight whitespace-nowrap">
                 <span className="hover:text-brand-green transition-colors">Neuro Rehab</span>
                 <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
                 <span className="hover:text-brand-green transition-colors">Ortho Rehab</span>
                 <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
                 <span className="hover:text-brand-green transition-colors">Sports Rehab</span>
-                <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
-                <span className="hover:text-brand-green transition-colors">Pain Management</span>
               </div>
             </div>
 
