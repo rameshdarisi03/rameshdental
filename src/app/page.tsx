@@ -500,20 +500,26 @@ export default function Home() {
 
       {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
       <section id="home" className="relative overflow-hidden min-h-[500px] lg:min-h-[660px] flex items-center py-14 sm:py-28 text-brand-charcoal bg-slate-950">
-        {/* Layer 1: Full-Bleed Background Image (Desktop Sharp / Mobile 50% Ambient) */}
+        {/* Mobile Background: Dedicated Stability Balls & Ramp Ambience */}
         <div 
-          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center opacity-50 sm:opacity-100 transition-all duration-700" 
+          className="sm:hidden absolute inset-0 bg-cover bg-no-repeat bg-[center_bottom] opacity-60 transition-all duration-700" 
+          style={{ backgroundImage: "url('/images/hero_mobile_balls_ambience.webp')" }} 
+        />
+
+        {/* Desktop Background: Full Panoramic Treatment Cover (Dr. Kinnera on Right) */}
+        <div 
+          className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
 
-        {/* Layer 2: Selective Blurred Image Overlay (Desktop & Mobile Ambient Depth) */}
+        {/* Desktop Layer 2: Selective Blurred Image Overlay for Depth */}
         <div 
-          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center opacity-40 sm:opacity-100 transition-all duration-700 hero-blurred-bg" 
+          className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
           style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
         
-        {/* Layer 3: Sophisticated Gradient Scrim: Crisp 50% frosted light on mobile, directional gradient on desktop */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/92 via-white/70 to-white/45 sm:bg-gradient-to-r sm:from-white/98 sm:via-white/85 sm:to-white/10 dark:from-slate-950/94 dark:via-slate-950/75 dark:to-slate-950/40" />
+        {/* Layer 3: Sophisticated Gradient Scrim (Mobile: Gentle vertical fade / Desktop: Horizontal gradient) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/70 to-white/35 sm:bg-gradient-to-r sm:from-white/98 sm:via-white/85 sm:to-white/10 dark:from-slate-950/94 dark:via-slate-950/75 dark:to-slate-950/30" />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="max-w-2xl space-y-6 sm:space-y-8 text-center sm:text-left">
