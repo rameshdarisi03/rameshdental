@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme {
   --color-brand-green: var(--brand-green);
@@ -210,3 +210,26 @@ body {
 .delay-300 { transition-delay: 300ms; }
 .delay-375 { transition-delay: 375ms; }
 .delay-450 { transition-delay: 450ms; }
+
+/* 🎬 Cinematic Ken Burns Effect */
+@keyframes kenBurns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.08) translate(-1%, -0.5%);
+  }
+  100% {
+    transform: scale(1) translate(0, 0);
+  }
+}
+
+.animate-ken-burns {
+  animation: kenBurns 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.group:hover .group-hover-ken-burns {
+  transform: scale(1.08);
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}

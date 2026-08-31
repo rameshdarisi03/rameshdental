@@ -199,40 +199,28 @@ export default function Home() {
   // Integrated Gallery data
   const galleryItems = [
     {
-      title: "Digital Gait Treadmill & Capture Lab",
-      desc: "Our high-speed camera system and force plate treadmill to record step strikes.",
-      icon: Activity,
-      gradient: "from-brand-green/20 to-brand-sand/40",
+      title: "Body-Weight Supported Gait Training Lab",
+      category: "Neuro & Gait Rehab",
+      desc: "Dynamic unweighting suspension harness and parallel bars for early motor retraining and safe stride correction.",
+      image: "/images/gallery/gait_harness_station.webp",
     },
     {
-      title: "Orthopedic Rehabilitation Gym",
-      desc: "Kettlebells, balance pads, and resistance stations for functional recovery.",
-      icon: Zap,
-      gradient: "from-brand-green/25 to-brand-bg",
+      title: "Functional Ramp & Stair Mobility Trainer",
+      category: "Post-Surgical Rehab",
+      desc: "Specialized dual-incline ramps, stability balls, and step rehabilitation stations for joint recovery and balance confidence.",
+      image: "/images/gallery/ramp_stairs_trainer.webp",
     },
     {
-      title: "Private Consult & Treatment Rooms",
-      desc: "Hygienic, quiet private suites for manual joint manipulation and consultations.",
-      icon: ShieldCheck,
-      gradient: "from-brand-sand/50 to-brand-green/15",
+      title: "Orthopedic Wall & Spine Ladder Station",
+      category: "Orthopedics & Spine",
+      desc: "Swedish ladder, shoulder rotation wheel, and cervical-lumbar posture realignment stations.",
+      image: "/images/gallery/swedish_wall_ladder.webp",
     },
     {
-      title: "Foot Scanner & Orthotics Lab",
-      desc: "High-resolution 3D foot scanners to design custom arch insoles.",
-      icon: Sparkles,
-      gradient: "from-brand-bg to-brand-sand/65",
-    },
-    {
-      title: "Dry Needling & Laser Care Suite",
-      desc: "Clean treatment spaces for dry needling and target electrotherapy.",
-      icon: HeartPulse,
-      gradient: "from-brand-green/15 to-brand-sand/35",
-    },
-    {
-      title: "Digital Client Analytics Station",
-      desc: "Where therapists review biomechanical metrics alongside our patients.",
-      icon: Smartphone,
-      gradient: "from-brand-sand/60 to-brand-bg",
+      title: "Advanced Physical Rehabilitation Floor",
+      category: "Sports & Functional Gym",
+      desc: "Sanitised, climate-controlled rehabilitation gym engineered for comprehensive athletic recovery and neuro recovery.",
+      image: "/images/gallery/rehab_gym_wide.webp",
     },
   ];
 
@@ -903,31 +891,56 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center max-w-2xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3.5 py-1.5 rounded-full inline-block">
               Clinic Gallery
             </span>
-            <h2 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
+            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
               Our Facility & Technology
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">
-              We maintain a sanitised, fully equipped environment with clinical tools designed for diagnostic precision and patient recovery.
+            <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base font-normal max-w-2xl mx-auto leading-relaxed">
+              Explore our sanitized, fully equipped rehabilitation suites designed for diagnostic precision, biomechanical training, and rapid patient recovery.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {galleryItems.map((item) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {galleryItems.map((item, idx) => (
               <div
                 key={item.title}
-                className="overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col group shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] hover:-translate-y-1 transition-all duration-350 reveal-on-scroll"
+                className={`overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col group shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_16px_40px_-8px_var(--brand-shadow-hover)] transition-all duration-500 hover:-translate-y-1.5 reveal-on-scroll ${
+                  idx % 2 === 1 ? "delay-100" : ""
+                }`}
               >
-                <div className={`h-56 bg-gradient-to-br ${item.gradient} flex flex-col items-center justify-center border-b border-slate-100 dark:border-slate-855 p-6 relative overflow-hidden`}>
-                  <item.icon className="h-16 w-16 text-brand-green dark:text-teal-400 z-10 group-hover:scale-110 transition-transform duration-300" />
-                  <div className="absolute inset-0 bg-white/20 dark:bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {/* Image Container with Ken Burns Ambient Animation */}
+                <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full overflow-hidden bg-slate-900">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover animate-ken-burns group-hover:scale-110 transition-transform duration-700 ease-out"
+                  />
+                  
+                  {/* Subtle Gradient Overlays for High-End Contrast */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-85 group-hover:opacity-65 transition-opacity duration-300" />
+
+                  {/* Top Badge: Category */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-[10px] font-black uppercase tracking-wider text-brand-green shadow-sm border border-white/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green animate-pulse" />
+                      {item.category}
+                    </span>
+                  </div>
+
+                  {/* Floating Title Inside Image on Mobile/Desktop */}
+                  <div className="absolute bottom-4 left-4 right-4 z-10">
+                    <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug drop-shadow-md text-white">
+                      {item.title}
+                    </h3>
+                  </div>
                 </div>
                 
-                <div className="p-6 space-y-2 flex-grow">
-                  <h3 className="text-base font-black text-brand-charcoal dark:text-white group-hover:text-brand-green transition-colors">{item.title}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                {/* Description Body */}
+                <div className="p-6 space-y-2 flex-grow bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80">
+                  <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
                     {item.desc}
                   </p>
                 </div>
