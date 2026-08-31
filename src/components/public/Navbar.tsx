@@ -135,8 +135,8 @@ export default function Navbar() {
 
         {/* CTA & Mobile Toggle */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Visual Theme Switcher Dropdown (Desktop Only) */}
-          <div className="hidden md:flex items-center">
+          {/* Visual Theme Switcher Dropdown */}
+          <div className="flex items-center">
             <ThemeSwitcher />
           </div>
 
