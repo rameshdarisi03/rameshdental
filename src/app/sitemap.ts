@@ -1,17 +1,18 @@
-﻿import { MetadataRoute } from "next";
+import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://gaitphysioclinic.com";
   const now = new Date();
 
-  // Public Service Slugs
+  // Public Service Slugs (7 active clinic services)
   const serviceSlugs = [
     "musculoskeletal",
     "post-surgical",
     "neurological",
     "sports-injury",
     "cardiopulmonary",
-    "pediatric",
+    "geriatric",
+    "pelvic-floor",
   ];
 
   // Public Article Slugs

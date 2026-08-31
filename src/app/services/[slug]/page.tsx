@@ -168,34 +168,6 @@ const serviceDictionary: Record<string, ServiceData> = {
     sessions: "10 to 20 Sessions",
     youtubeId: "uV2f8WvE1gU" // Chest physiotherapy breathing exercises
   },
-  "pediatric": {
-    title: "Pediatric Physiotherapy",
-    subtitle: "Nurturing Developmental Milestones and Functional Play in Children",
-    image: "/images/services/pediatric.webp",
-    overview: "Pediatric physiotherapy is focused on optimizing physical development, functional movement, and confidence in children. We design play-based, highly engaging rehabilitation programs for children facing developmental delays, cerebral palsy, or postural deviations like pediatric scoliosis. Our clinical team works closely with parents, creating home play routines to support ongoing motor growth.",
-    symptoms: [
-      "Delayed gross motor milestones (crawling, standing, walking)",
-      "Muscle stiffness, coordination deficits, or spasticity from Cerebral Palsy",
-      "Poor core stability, rounded shoulders, and pediatric posture deviations",
-      "Tip-toe walking patterns and ankle flexibility limitations",
-      "Juvenile orthopedic issues, growing pains, and early coordination deficits"
-    ],
-    approach: [
-      { step: "Developmental Screening", desc: "Evaluating reflexes, muscle tone, balance milestones, and coordination." },
-      { step: "Play-Based Motor Therapy", desc: "Using interactive games, balance beams, and colorful obstacles to trigger target movements." },
-      { step: "Dynamic Core Conditioning", desc: "Fun strengthening routines to build pelvic stability and upright posture." },
-      { step: "Ankle & Foot Positioning", desc: "Stretching and bracing guidelines to encourage flat heel strikes." }
-    ],
-    goals: [
-      "Achieve age-appropriate developmental physical milestones",
-      "Improve postural alignment and dynamic balance during play",
-      "Enhance structural symmetry, joint flexibility, and running coordination",
-      "Provide families with clear, practical home play-rehab frameworks"
-    ],
-    recoveryTimeline: "8 to 24 Weeks",
-    sessions: "12 to 36 Sessions",
-    youtubeId: "K1cZgQ28Zoc" // Pediatric physical therapy
-  },
   "geriatric": {
     title: "Geriatric Physiotherapy",
     subtitle: "Securing Balance, Lowering Fall Risks, and Maintaining Senior Independence",
