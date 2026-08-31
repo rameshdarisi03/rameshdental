@@ -242,7 +242,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Content body */}
-        <main className="flex-grow overflow-y-auto p-4 sm:p-6 md:p-8 bg-[#f4f7f5] dark:bg-slate-955">
+        <main className="flex-grow overflow-y-auto p-4 sm:p-6 md:p-8 bg-brand-bg dark:bg-slate-955">
           <style>{`
             @keyframes fadeInUp {
               from {

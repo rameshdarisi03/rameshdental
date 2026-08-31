@@ -59,7 +59,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
     <div className="flex flex-col w-full min-h-screen bg-brand-bg dark:bg-slate-955">
       
       {/* Title & Metadata Header on Clean Spacious Background */}
-      <header className="py-12 md:py-16 bg-[#fbf9f6] dark:bg-slate-900 border-b border-slate-200/40 dark:border-slate-850">
+      <header className="py-12 md:py-16 bg-brand-sand/30 dark:bg-slate-900 border-b border-slate-200/40 dark:border-slate-850">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-6">
           <Link
             href="/articles"
@@ -158,7 +158,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
                   return (
                     <div
                       key={idx}
-                      className="p-8 rounded-[2rem] border border-[#ded5cc] dark:border-slate-800 bg-[#efe6dd]/60 dark:bg-slate-950/40 text-brand-charcoal dark:text-slate-300 space-y-4"
+                      className="p-8 rounded-[2rem] border border-brand-muted/40 dark:border-slate-800 bg-brand-sand/60 dark:bg-slate-950/40 text-brand-charcoal dark:text-slate-300 space-y-4"
                     >
                       <h4 className="font-black text-brand-charcoal dark:text-white text-xs uppercase tracking-wider flex items-center gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
@@ -228,7 +228,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
 
             {/* Bottom Call to Action Card */}
             <div className="pt-8 border-t border-slate-100 dark:border-slate-850">
-              <div className="bg-[#fdfbf9] dark:bg-slate-950 border border-[#efe6dd] dark:border-slate-805 p-6 md:p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="bg-brand-sand/30 dark:bg-slate-950 border border-brand-muted/40 dark:border-slate-805 p-6 md:p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="space-y-2 text-center md:text-left">
                   <h3 className="text-base font-black text-brand-charcoal dark:text-white">
                     Ready to Get Back to Pain-Free Movement?

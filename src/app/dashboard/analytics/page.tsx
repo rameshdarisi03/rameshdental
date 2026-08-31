@@ -477,14 +477,14 @@ export default function DashboardAnalytics() {
       {/* Self-contained CSS Animations Injector */}
       <style>{`
         :root {
-          --ink: #182625;
+          --ink: var(--foreground);
           --ink-soft: #4B5E59;
-          --paper: #EEF2ED;
-          --surface: #FFFFFF;
-          --line: #DCE3DC;
-          --teal: #1F4B43;
-          --teal-deep: #123430;
-          --teal-soft: #E7EFE9;
+          --paper: var(--brand-sand);
+          --surface: var(--brand-bg);
+          --line: var(--brand-muted);
+          --teal: var(--brand-green);
+          --teal-deep: var(--brand-green-hover);
+          --teal-soft: var(--brand-sand);
           --amber: #D9A441;
           --amber-deep: #B9832C;
           --amber-soft: #FBF1DD;
@@ -608,13 +608,13 @@ export default function DashboardAnalytics() {
           </div>
 
           {/* Range segment selector */}
-          <div className="inline-flex rounded-xl bg-[#EEF2ED] dark:bg-slate-950 p-1 border border-[#DCE3DC] dark:border-slate-850">
+          <div className="inline-flex rounded-xl bg-brand-sand/50 dark:bg-slate-950 p-1 border border-slate-200/80 dark:border-slate-850">
             <button
               onClick={() => handleFilterChange("range", "week")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 timeRange === "week"
-                  ? "bg-[#1F4B43] text-white"
-                  : "text-[#4B5E59] hover:text-[#1F4B43]"
+                  ? "bg-brand-green text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-brand-green"
               }`}
             >
               7 Days
@@ -623,8 +623,8 @@ export default function DashboardAnalytics() {
               onClick={() => handleFilterChange("range", "month")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 timeRange === "month"
-                  ? "bg-[#1F4B43] text-white"
-                  : "text-[#4B5E59] hover:text-[#1F4B43]"
+                  ? "bg-brand-green text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-brand-green"
               }`}
             >
               30 Days
@@ -633,8 +633,8 @@ export default function DashboardAnalytics() {
               onClick={() => handleFilterChange("range", "all")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                 timeRange === "all"
-                  ? "bg-[#1F4B43] text-white"
-                  : "text-[#4B5E59] hover:text-[#1F4B43]"
+                  ? "bg-brand-green text-white shadow-sm"
+                  : "text-slate-600 dark:text-slate-400 hover:text-brand-green"
               }`}
             >
               All Time
@@ -645,9 +645,9 @@ export default function DashboardAnalytics() {
           <button
             onClick={handleExport}
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#DCE3DC] dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs font-bold text-[#182625] dark:text-white hover:bg-slate-50 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs font-bold text-brand-charcoal dark:text-white hover:bg-brand-sand/30 transition-all cursor-pointer"
           >
-            <Download className="h-3.5 w-3.5" />
+            <Download className="h-3.5 w-3.5 text-brand-green" />
             <span>Export Report</span>
           </button>
 
@@ -656,7 +656,7 @@ export default function DashboardAnalytics() {
             onClick={loadData}
             disabled={refreshing}
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1F4B43] hover:bg-[#123430] text-white px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white px-4 py-2 text-xs font-bold transition-all cursor-pointer shadow-sm"
           >
             <RotateCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             <span>Sync Data</span>
@@ -830,7 +830,7 @@ export default function DashboardAnalytics() {
       </div>
 
       {/* TRAFFIC & REVENUE SECTION */}
-      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+      <h3 className={`text-xs font-black uppercase text-brand-green tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
         Traffic & Revenue
       </h3>
@@ -838,27 +838,27 @@ export default function DashboardAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* Weekly Traffic Line Chart Card */}
-        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-8 flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-8 flex flex-col justify-between">
           
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-50 dark:border-slate-850 pb-4">
             <div className="space-y-1">
-              <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+              <h3 className={`text-base font-black text-brand-charcoal dark:text-white ${spaceGrotesk.className}`}>
                 Weekly Patient Traffic
               </h3>
-              <p className="text-xs text-[#4B5E59] font-medium">
+              <p className="text-xs text-slate-500 font-medium">
                 Toggle between booking counts and revenue for the last 7 days.
               </p>
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
               {/* Compare toggle switch */}
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-black text-[#4B5E59] dark:text-slate-400 select-none">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-black text-slate-600 dark:text-slate-400 select-none">
                 Compare last period
                 <button
                   type="button"
                   onClick={() => setCompareOn(prev => !prev)}
                   className={`w-8.5 h-5 rounded-full relative transition-all duration-300 border border-slate-200/80 cursor-pointer ${
-                    compareOn ? "bg-[#1F4B43]" : "bg-slate-200 dark:bg-slate-800"
+                    compareOn ? "bg-brand-green" : "bg-slate-200 dark:bg-slate-800"
                   }`}
                 >
                   <span className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-all duration-300 ${
@@ -868,13 +868,13 @@ export default function DashboardAnalytics() {
               </div>
 
               {/* Bookings vs Revenue toggle */}
-              <div className="inline-flex rounded-xl bg-[#EEF2ED] dark:bg-slate-950 p-1 border border-[#DCE3DC] dark:border-slate-800">
+              <div className="inline-flex rounded-xl bg-brand-sand/50 dark:bg-slate-950 p-1 border border-slate-200/80 dark:border-slate-800">
                 <button
                   onClick={() => setActiveMetric("bookings")}
                   className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
                     activeMetric === "bookings"
-                      ? "bg-[#1F4B43] text-white"
-                      : "text-[#4B5E59] hover:text-[#1F4B43]"
+                      ? "bg-brand-green text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-brand-green"
                   }`}
                 >
                   Bookings
@@ -883,8 +883,8 @@ export default function DashboardAnalytics() {
                   onClick={() => setActiveMetric("revenue")}
                   className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
                     activeMetric === "revenue"
-                      ? "bg-[#1F4B43] text-white"
-                      : "text-[#4B5E59] hover:text-[#1F4B43]"
+                      ? "bg-brand-green text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-brand-green"
                   }`}
                 >
                   Revenue
@@ -897,9 +897,9 @@ export default function DashboardAnalytics() {
           <div key={`traffic-chart-${animationKey}`} className="flex-grow pt-4">
             
             {/* Chart Legend */}
-            <div className="flex gap-4 text-[10px] font-black text-[#4B5E59] mb-4 select-none uppercase tracking-wider">
+            <div className="flex gap-4 text-[10px] font-black text-slate-600 mb-4 select-none uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
-                <span className="h-1 w-4 rounded bg-[#1F4B43]" />
+                <span className="h-1 w-4 rounded bg-brand-green" />
                 This period
               </span>
               {compareOn && (
@@ -946,7 +946,7 @@ export default function DashboardAnalytics() {
                 <path
                   d={currentPathD}
                   fill="none"
-                  className="stroke-[#1F4B43] dark:stroke-teal-500"
+                  className="stroke-brand-green"
                   strokeWidth="3"
                 />
               )}
@@ -962,7 +962,7 @@ export default function DashboardAnalytics() {
                       cx={cx}
                       cy={cy}
                       r="5.5"
-                      className="fill-white dark:fill-slate-900 stroke-[#1F4B43] dark:stroke-teal-400"
+                      className="fill-white dark:fill-slate-900 stroke-brand-green"
                       strokeWidth="3"
                     />
                     
@@ -1034,7 +1034,7 @@ export default function DashboardAnalytics() {
       </div>
 
       {/* PEAK TIMES & TEAM SECTION */}
-      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+      <h3 className={`text-xs font-black uppercase text-brand-green tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
         Peak Times &amp; Team
       </h3>
@@ -1042,12 +1042,12 @@ export default function DashboardAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* Peak Scheduling Hours */}
-        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-6 space-y-5">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-6 space-y-5">
           <div className="space-y-1">
-            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+            <h3 className={`text-base font-black text-brand-charcoal dark:text-white ${spaceGrotesk.className}`}>
               Peak Scheduling Hours
             </h3>
-            <p className="text-xs text-[#4B5E59] font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               Booking slots carrying the highest patient traffic flow.
             </p>
           </div>
@@ -1061,12 +1061,12 @@ export default function DashboardAnalytics() {
                 const percent = Math.round((h.count / maxVal) * 100);
                 return (
                   <div key={h.hour} className="flex items-center gap-4 group">
-                    <span className={`w-16 text-xs font-semibold text-[#4B5E59] group-hover:text-brand-green transition-colors shrink-0 ${ibmPlexMono.className}`}>
+                    <span className={`w-16 text-xs font-semibold text-slate-500 group-hover:text-brand-green transition-colors shrink-0 ${ibmPlexMono.className}`}>
                       {h.hour}
                     </span>
-                    <div className="flex-1 h-7 bg-[#EEF2ED] dark:bg-slate-950 rounded-lg overflow-hidden relative flex items-center px-3 border border-slate-200/40 dark:border-slate-850">
+                    <div className="flex-1 h-7 bg-brand-sand/50 dark:bg-slate-950 rounded-lg overflow-hidden relative flex items-center px-3 border border-slate-200/40 dark:border-slate-850">
                       <div
-                        className="h-full bg-[#1F4B43] dark:bg-teal-500 absolute left-0 top-0 rounded-lg animate-grow-bar"
+                        className="h-full bg-brand-green absolute left-0 top-0 rounded-lg animate-grow-bar"
                         style={{ width: `${percent}%` }}
                       />
                       <span className="text-[10px] font-black text-white mix-blend-difference z-10 select-none">
@@ -1081,12 +1081,12 @@ export default function DashboardAnalytics() {
         </div>
 
         {/* Staff Workload & Utilization */}
-        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-6 space-y-5">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-sm lg:col-span-6 space-y-5">
           <div className="space-y-1">
-            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+            <h3 className={`text-base font-black text-brand-charcoal dark:text-white ${spaceGrotesk.className}`}>
               Staff Workload &amp; Utilization
             </h3>
-            <p className="text-xs text-[#4B5E59] font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               Booked visits against available capacity this period.
             </p>
           </div>
@@ -1094,7 +1094,7 @@ export default function DashboardAnalytics() {
           <div key={`staff-util-${animationKey}`} className="space-y-4 pt-2">
             {staffActivity.map((s) => (
               <div key={s.name} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#E7EFE9] dark:bg-slate-950 text-[#1F4B43] dark:text-teal-400 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                <div className="w-9 h-9 rounded-full bg-brand-sand/70 dark:bg-slate-950 text-brand-green flex items-center justify-center font-bold text-xs shrink-0 select-none">
                   {s.name.substring(0, 3) === "Dr." ? s.name.substring(4, 6).toUpperCase() : s.name.substring(0, 2).toUpperCase()}
                 </div>
                 
@@ -1104,14 +1104,14 @@ export default function DashboardAnalytics() {
                     <span className={`text-[10px] text-slate-500 ${ibmPlexMono.className}`}>{s.utilization}%</span>
                   </div>
                   
-                  <div className="h-1.5 w-full bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-full bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#D9A441] rounded-full animate-grow-bar"
                       style={{ width: `${s.utilization}%` }}
                     />
                   </div>
 
-                  <div className="text-[10px] text-[#4B5E59] font-semibold flex items-center gap-1.5">
+                  <div className="text-[10px] text-slate-500 font-semibold flex items-center gap-1.5">
                     <span>Approved <strong className="text-[#3B9E6F] font-extrabold">{s.approved}</strong></span>
                     <span>·</span>
                     <span>Rejected <strong className="text-[#C65D4B] font-extrabold">{s.rejected}</strong></span>
@@ -1125,7 +1125,7 @@ export default function DashboardAnalytics() {
       </div>
 
       {/* PATIENT MIX SECTION */}
-      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+      <h3 className={`text-xs font-black uppercase text-brand-green tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
         Patient Mix
       </h3>
@@ -1174,7 +1174,7 @@ export default function DashboardAnalytics() {
             {/* Legend details */}
             <div className="flex-1 space-y-3 font-semibold text-xs text-slate-700 dark:text-slate-350 select-none">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#1F4B43] shrink-0" />
+                <span className="h-2 w-2 rounded-full bg-brand-green shrink-0" />
                 <span>Returning</span>
                 <span className={`ml-auto font-bold text-slate-655 ${ibmPlexMono.className}`}>
                   {patientMix.returningCount} · {patientMix.returningPercent}%
@@ -1194,12 +1194,12 @@ export default function DashboardAnalytics() {
         </div>
 
         {/* Acquisition Channels */}
-        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
           <div className="space-y-1">
-            <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+            <h3 className={`text-base font-black text-brand-charcoal dark:text-white ${spaceGrotesk.className}`}>
               Acquisition Channels
             </h3>
-            <p className="text-xs text-[#4B5E59] font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               How patients found their way to a booking.
             </p>
           </div>
@@ -1208,10 +1208,10 @@ export default function DashboardAnalytics() {
             
             {/* Channel 1 */}
             <div className="flex items-center gap-3">
-              <span className="w-24 text-xs font-bold text-[#4B5E59] shrink-0 select-none">Online Booking</span>
-              <div className="flex-1 h-2 bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+              <span className="w-24 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Online Booking</span>
+              <div className="flex-1 h-2 bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#1F4B43] rounded-full animate-grow-bar"
+                  className="h-full bg-brand-green rounded-full animate-grow-bar"
                   style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.online / stats.total) * 100) : 50}%` }}
                 />
               </div>
@@ -1222,8 +1222,8 @@ export default function DashboardAnalytics() {
 
             {/* Channel 2 */}
             <div className="flex items-center gap-3">
-              <span className="w-24 text-xs font-bold text-[#4B5E59] shrink-0 select-none">Walk-in</span>
-              <div className="flex-1 h-2 bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+              <span className="w-24 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Walk-in</span>
+              <div className="flex-1 h-2 bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#D9A441] rounded-full animate-grow-bar"
                   style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.walkin / stats.total) * 100) : 40}%` }}
@@ -1236,8 +1236,8 @@ export default function DashboardAnalytics() {
 
             {/* Channel 3 */}
             <div className="flex items-center gap-3">
-              <span className="w-24 text-xs font-bold text-[#4B5E59] shrink-0 select-none">Referral</span>
-              <div className="flex-1 h-2 bg-[#EEF2ED] dark:bg-slate-950 rounded-full overflow-hidden">
+              <span className="w-24 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Referral</span>
+              <div className="flex-1 h-2 bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#C65D4B] rounded-full animate-grow-bar"
                   style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.referral / stats.total) * 100) : 10}%` }}
@@ -1255,40 +1255,40 @@ export default function DashboardAnalytics() {
       </div>
 
       {/* CARE QUALITY SECTION */}
-      <h3 className={`text-xs font-black uppercase text-[#1F4B43] tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
+      <h3 className={`text-xs font-black uppercase text-brand-green tracking-widest flex items-center gap-2 pt-4 select-none ${spaceGrotesk.className}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-[#D9A441]" />
         Care Quality
       </h3>
 
-      <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl shadow-sm space-y-4">
         <div className="space-y-1">
-          <h3 className={`text-base font-black text-[#182625] dark:text-white ${spaceGrotesk.className}`}>
+          <h3 className={`text-base font-black text-brand-charcoal dark:text-white ${spaceGrotesk.className}`}>
             Treatment Outcomes
           </h3>
-          <p className="text-xs text-[#4B5E59] font-medium">
+          <p className="text-xs text-slate-500 font-medium">
             How care plans are progressing across active patients.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 select-none">
-          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
-            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>6.4</span>
-            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">avg sessions per care plan</span>
+          <div className="bg-brand-bg dark:bg-slate-950 border border-slate-200/80 dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-brand-green dark:text-white ${ibmPlexMono.className}`}>6.4</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 mt-2 font-semibold">avg sessions per care plan</span>
           </div>
 
-          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
-            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>82%</span>
-            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">care plans completed on schedule</span>
+          <div className="bg-brand-bg dark:bg-slate-950 border border-slate-200/80 dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-brand-green dark:text-white ${ibmPlexMono.className}`}>82%</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 mt-2 font-semibold">care plans completed on schedule</span>
           </div>
 
-          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
-            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>4</span>
-            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">patients nearing discharge (≤2 sessions)</span>
+          <div className="bg-brand-bg dark:bg-slate-950 border border-slate-200/80 dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-brand-green dark:text-white ${ibmPlexMono.className}`}>4</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 mt-2 font-semibold">patients nearing discharge (≤2 sessions)</span>
           </div>
 
-          <div className="bg-[#FBFCFA] dark:bg-slate-950 border border-[#DCE3DC] dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
-            <span className={`text-xl font-bold text-[#1F4B43] dark:text-teal-400 ${ibmPlexMono.className}`}>11</span>
-            <span className="text-[10px] sm:text-xs text-[#4B5E59] mt-2 font-semibold">active care plans in progress</span>
+          <div className="bg-brand-bg dark:bg-slate-950 border border-slate-200/80 dark:border-slate-850 rounded-xl p-4 flex flex-col justify-between">
+            <span className={`text-xl font-bold text-brand-green dark:text-white ${ibmPlexMono.className}`}>11</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 mt-2 font-semibold">active care plans in progress</span>
           </div>
         </div>
       </div>

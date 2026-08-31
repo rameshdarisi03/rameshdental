@@ -950,7 +950,7 @@ export default function DaySnapshot() {
       </div>
 
       {/* Helper Info Note */}
-      <div className="flex gap-2.5 bg-[#f0f4f2] dark:bg-teal-950/20 border border-brand-green/20 p-4 rounded-2xl text-slate-650 dark:text-teal-400 text-xs">
+      <div className="flex gap-2.5 bg-brand-sand/60 dark:bg-slate-900/60 border border-brand-green/20 p-4 rounded-2xl text-slate-655 dark:text-slate-300 text-xs">
         <Info className="h-4.5 w-4.5 text-brand-green shrink-0 mt-0.5" />
         <p className="leading-relaxed font-semibold">
           <strong>Capacity & Therapist Grid:</strong> Multi-patient capacity slots allow concurrent bookings per therapist. Assign therapists directly from the dropdown or 1-tap book walk-ins.

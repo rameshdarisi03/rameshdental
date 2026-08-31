@@ -698,7 +698,7 @@ export default function Home() {
                 <Link
                   key={t.title}
                   href={`/services/${t.slug}`}
-                  className={`group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll ${
+                  className={`group flex flex-col h-full bg-brand-sand/40 dark:bg-slate-900/60 rounded-3xl border border-brand-muted/30 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll ${
                     idx === 0 ? "" : idx === 1 ? "delay-75" : idx === 2 ? "delay-150" : "delay-225"
                   }`}
                 >
@@ -737,7 +737,7 @@ export default function Home() {
                 <Link
                   key={t.title}
                   href={`/services/${t.slug}`}
-                  className={`group flex flex-col h-full bg-[#faf8f5] dark:bg-slate-900/60 rounded-3xl border border-[#ece9e0] dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll ${
+                  className={`group flex flex-col h-full bg-brand-sand/40 dark:bg-slate-900/60 rounded-3xl border border-brand-muted/30 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer reveal-on-scroll ${
                     idx === 0 ? "" : idx === 1 ? "delay-75" : "delay-150"
                   }`}
                 >
@@ -774,7 +774,7 @@ export default function Home() {
         </div>
       </section>
       {/* Specialized Care Programs Section */}
-      <section className="py-20 bg-[#f4f7f5] dark:bg-slate-950">
+      <section className="py-20 bg-brand-bg dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
             <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3.5 py-1.5 rounded-full inline-block">
@@ -907,7 +907,7 @@ export default function Home() {
                 {therapistProfiles[teamIndex].desc}
               </p>
 
-              <div className="border-l-4 border-brand-green dark:border-teal-500 bg-[#f0f4f2]/60 dark:bg-brand-green/5 p-4 sm:p-5 rounded-r-2xl italic text-[11px] sm:text-xs font-normal text-slate-655 dark:text-slate-350 leading-relaxed animate-fade-in-up delay-300">
+              <div className="border-l-4 border-brand-green dark:border-teal-500 bg-brand-sand/60 dark:bg-brand-green/5 p-4 sm:p-5 rounded-r-2xl italic text-[11px] sm:text-xs font-normal text-slate-655 dark:text-slate-350 leading-relaxed animate-fade-in-up delay-300">
                 "{therapistProfiles[teamIndex].quote}"
               </div>
 
@@ -986,7 +986,7 @@ export default function Home() {
       </section>
 
       {/* Clinic Gallery Section */}
-      <section id="gallery" className="py-20 bg-[#f4f7f5] dark:bg-slate-950">
+      <section id="gallery" className="py-20 bg-brand-bg dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center max-w-2xl mx-auto space-y-4 reveal-on-scroll">
@@ -1026,7 +1026,7 @@ export default function Home() {
       </section>
 
       {/* Real Google Reviews Showcase (Patient Stories) */}
-      <section id="testimonials" className="bg-[#faf8f5] dark:bg-slate-955 py-24 overflow-hidden relative border-y border-slate-200/60 dark:border-slate-850">
+      <section id="testimonials" className="bg-brand-sand/40 dark:bg-slate-955 py-24 overflow-hidden relative border-y border-slate-200/60 dark:border-slate-850">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           
           {/* Header Row: Title & Official Google Rating Trust Summary */}
@@ -1383,7 +1383,7 @@ export default function Home() {
                   </button>
                   
                   {isOpen && (
-                    <div className="p-6 pt-0 bg-[#fafcfb] dark:bg-slate-900">
+                    <div className="p-6 pt-0 bg-brand-bg/50 dark:bg-slate-900">
                       <p className="text-xs text-slate-500 dark:text-slate-350 leading-relaxed pl-8 font-semibold">
                         {faq.a}
                       </p>
@@ -1398,7 +1398,7 @@ export default function Home() {
       </section>
 
       {/* Locate Us Section */}
-      <section id="locate-us" className="py-20 bg-[#f4f7f5] dark:bg-slate-950">
+      <section id="locate-us" className="py-20 bg-brand-bg dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
           
           <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">

@@ -347,7 +347,7 @@ export default function DashboardSettings() {
         </div>
 
         {savedSuccess && (
-          <div className="p-4 bg-[#f0f4f2] border border-brand-green/20 text-slate-700 text-xs font-bold rounded-2xl flex items-center gap-2 max-w-4xl animate-fade-in-up">
+          <div className="p-4 bg-brand-sand/60 dark:bg-slate-900 border border-brand-green/20 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-2xl flex items-center gap-2 max-w-4xl animate-fade-in-up">
             <CheckCircle className="h-4.5 w-4.5 text-brand-green shrink-0" />
             Clinic configurations successfully saved and live on the patient scheduler!
           </div>
@@ -455,7 +455,7 @@ export default function DashboardSettings() {
                 </div>
 
                 {/* Operating status card */}
-                <div className="md:col-span-7 bg-[#f0f4f2]/40 dark:bg-brand-green/5 border border-brand-green/10 p-4 rounded-2xl flex items-start gap-3">
+                <div className="md:col-span-7 bg-brand-sand/50 dark:bg-brand-green/5 border border-brand-green/10 p-4 rounded-2xl flex items-start gap-3">
                   <div className="p-2 rounded-xl bg-white dark:bg-slate-800 text-brand-green shrink-0 mt-0.5 shadow-sm">
                     <Info className="h-4 w-4" />
                   </div>
@@ -595,7 +595,7 @@ export default function DashboardSettings() {
               </div>
 
               {/* Default Slot Capacity Input */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center bg-[#f0f4f2]/40 dark:bg-brand-green/5 border border-brand-green/15 p-5 rounded-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center bg-brand-sand/50 dark:bg-brand-green/5 border border-brand-green/15 p-5 rounded-2xl">
                 <div className="md:col-span-6 space-y-1">
                   <label className="block text-xs font-black text-brand-charcoal dark:text-white">
                     Default Concurrent Capacity (Therapists on Duty)

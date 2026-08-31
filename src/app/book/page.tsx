@@ -532,7 +532,7 @@ function BookingFormContent() {
                                   ? "bg-slate-100 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60"
                                   : isSelected
                                   ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-[1.02]"
-                                  : "bg-[#f0f4f2] dark:bg-brand-green/10 border-brand-green/25 dark:border-brand-green/30 text-brand-green hover:bg-brand-green/15"
+                                  : "bg-brand-sand/70 dark:bg-brand-green/10 border-brand-green/25 dark:border-brand-green/30 text-brand-green hover:bg-brand-green/15"
                               }`}
                             >
                               <span className="leading-tight">{time}</span>

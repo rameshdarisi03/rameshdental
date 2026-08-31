@@ -555,7 +555,7 @@ function WalkInBookingContent() {
             Dedicated portal for booking call-ins and walk-ins using the full-screen interactive grid layout.
           </p>
         </div>
-        <div className="flex gap-2 bg-[#f0f4f2] dark:bg-brand-green/10 border border-brand-green/20 px-4 py-2.5 rounded-xl text-brand-green text-xs font-black shrink-0 items-center">
+        <div className="flex gap-2 bg-brand-sand/60 dark:bg-brand-green/10 border border-brand-green/20 px-4 py-2.5 rounded-xl text-brand-green text-xs font-black shrink-0 items-center">
           <Bookmark className="h-4.5 w-4.5 shrink-0" />
           <span>Bookmark this page (Ctrl+D) for fast phone access</span>
         </div>
@@ -684,7 +684,7 @@ function WalkInBookingContent() {
                             }));
                             setShowDropdown(false);
                           }}
-                          className="w-full text-left px-4 py-2.5 text-xs hover:bg-[#f0f4f2] dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border-b border-slate-50 dark:border-slate-855 last:border-0"
+                          className="w-full text-left px-4 py-2.5 text-xs hover:bg-brand-sand/40 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border-b border-slate-50 dark:border-slate-855 last:border-0"
                         >
                           <div className="font-black text-brand-charcoal dark:text-white">{p.name}</div>
                           <div className="text-[10px] text-slate-400 mt-0.5">{p.phone} • Plan: {p.treatmentPlan}</div>
@@ -791,7 +791,7 @@ function WalkInBookingContent() {
               </>
             ) : (
               selectedPatient && (
-                <div className="bg-[#f0f4f2]/50 dark:bg-brand-green/5 border border-brand-green/10 p-4.5 rounded-2xl space-y-3 animate-fade-in-up">
+                <div className="bg-brand-sand/50 dark:bg-brand-green/5 border border-brand-green/10 p-4.5 rounded-2xl space-y-3 animate-fade-in-up">
                   <div className="flex justify-between items-center text-[10px] font-black text-brand-green uppercase tracking-wider">
                     <span>Patient Profile Summary</span>
                     <Link 
@@ -986,7 +986,7 @@ function WalkInBookingContent() {
                             ? "bg-slate-100 dark:bg-slate-950 border-slate-200/50 dark:border-slate-850 text-slate-400 cursor-not-allowed opacity-50"
                             : isSelected
                             ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-[1.02]"
-                            : "bg-[#f0f4f2] dark:bg-brand-green/10 border-brand-green/20 text-brand-green hover:bg-brand-green/15"
+                            : "bg-brand-sand/70 dark:bg-brand-green/10 border-brand-green/20 text-brand-green hover:bg-brand-green/15"
                         }`}
                       >
                         <span className="leading-tight">{time}</span>

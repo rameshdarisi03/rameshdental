@@ -47,7 +47,7 @@ function SuccessCard() {
         </div>
 
         {/* Selected Details Card */}
-        <div className="border border-slate-100 dark:border-slate-800 bg-[#fbfcfb] dark:bg-slate-900 rounded-2xl p-6 text-left space-y-4 shadow-sm">
+        <div className="border border-slate-100 dark:border-slate-800 bg-brand-bg dark:bg-slate-900 rounded-2xl p-6 text-left space-y-4 shadow-sm">
           <div className="flex gap-3">
             <Activity className="h-5 w-5 text-brand-green mt-0.5 shrink-0" />
             <div>
@@ -75,7 +75,7 @@ function SuccessCard() {
         </div>
 
         {/* WhatsApp Notice Banner */}
-        <div className="flex gap-3 bg-[#f0f4f2] dark:bg-slate-950 border border-brand-green/20 p-5 rounded-2xl text-left text-xs text-slate-600 dark:text-teal-400">
+        <div className="flex gap-3 bg-brand-sand/60 dark:bg-slate-950 border border-brand-green/20 p-5 rounded-2xl text-left text-xs text-slate-655 dark:text-slate-300">
           <MessageSquare className="h-5 w-5 text-brand-green shrink-0 mt-0.5" />
           <p className="leading-relaxed text-[11px] font-semibold">
             <strong className="text-brand-charcoal font-black block mb-1">What happens next?</strong> Our clinic staff will verify the time slot against the daily roster. Once approved, you will receive an automatic confirmation message directly on your registered WhatsApp number.

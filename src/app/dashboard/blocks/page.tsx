@@ -205,7 +205,7 @@ export default function DashboardBlocks() {
         </div>
 
         {/* Right Side: Guide Info Box */}
-        <div className="lg:col-span-4 bg-[#fbfcfb] dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 space-y-4 shadow-sm">
+        <div className="lg:col-span-4 bg-brand-bg dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 space-y-4 shadow-sm">
           <h3 className="font-black text-brand-charcoal dark:text-white text-base">How Blocking Works</h3>
           <ul className="space-y-3 text-xs text-slate-650 dark:text-slate-400 list-disc pl-4 leading-relaxed font-semibold">
             <li>

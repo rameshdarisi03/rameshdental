@@ -208,7 +208,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Info notice about Live connection */}
-      <div className="flex gap-3 bg-[#f0f4f2] dark:bg-teal-950/20 border border-brand-green/20 p-5 rounded-2xl text-slate-650 dark:text-teal-400 text-xs">
+      <div className="flex gap-3 bg-brand-sand/60 dark:bg-slate-900/60 border border-brand-green/20 p-5 rounded-2xl text-slate-655 dark:text-slate-300 text-xs">
         <AlertCircle className="h-5 w-5 text-brand-green shrink-0" />
         <p className="leading-relaxed font-semibold">
           <strong className="text-brand-charcoal font-black block mb-1">Database Synchronization:</strong> This staff console is connected to your actual live Firestore database. All actions taken in the sub-routes (approving bookings or creating schedule blocks) will take effect immediately for prospective patients on the public site.

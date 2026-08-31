@@ -528,8 +528,8 @@ export default function DashboardAppointments() {
                   )}
                 </div>
 
-                <div className="bg-[#fbfcfb] dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-850">
-                  <p className="text-xs font-black text-brand-green dark:text-teal-400">{app.serviceId}</p>
+                <div className="bg-brand-bg dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <p className="text-xs font-black text-brand-green dark:text-white">{app.serviceId}</p>
                   {app.notes && (
                     <p className="text-xs text-slate-500 dark:text-slate-400 italic mt-1 leading-relaxed">
                       "Notes: {app.notes}"

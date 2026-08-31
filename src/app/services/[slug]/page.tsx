@@ -342,7 +342,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                   {data.symptoms.map((sym, idx) => (
                     <div 
                       key={idx} 
-                      className="flex items-start gap-2 bg-[#faf8f5] dark:bg-slate-955 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-850"
+                      className="flex items-start gap-2 bg-brand-sand/40 dark:bg-slate-955 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-850"
                     >
                       <CheckCircle className="w-4 h-4 text-brand-green shrink-0 mt-0.5" />
                       <span className="text-xs text-slate-655 dark:text-slate-300 font-normal leading-snug">
@@ -387,7 +387,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                   {data.goals.map((goal, idx) => (
                     <li 
                       key={idx} 
-                      className="flex items-start gap-2 bg-[#f0f4f2]/50 dark:bg-brand-green/5 p-4 rounded-2xl border border-brand-green/10"
+                      className="flex items-start gap-2 bg-brand-sand/50 dark:bg-brand-green/5 p-4 rounded-2xl border border-brand-green/10"
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0 mt-2" />
                       <span className="text-xs text-slate-655 dark:text-slate-355 font-normal leading-normal">
@@ -404,7 +404,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
             <div className="lg:col-span-4 space-y-6">
               
               {/* Thumbnail Card */}
-              <div className="bg-[#faf8f5] dark:bg-slate-900 border border-[#ece9e0] dark:border-slate-800 p-3 rounded-[2rem] overflow-hidden shadow-sm">
+              <div className="bg-brand-sand/40 dark:bg-slate-900 border border-brand-muted/30 dark:border-slate-800 p-3 rounded-[2rem] overflow-hidden shadow-sm">
                 <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
                   <img
                     src={data.image}
