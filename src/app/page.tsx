@@ -97,27 +97,6 @@ function ScrollTriggeredCounter({
 }
 
 export default function Home() {
-  const services = [
-    {
-      title: "Gait & Biomechanical Analysis",
-      desc: "Identify posture imbalances, movement flaws, and pressure distribution using advanced digital treadmills and cameras.",
-      icon: Activity,
-      highlight: true,
-    },
-    {
-      title: "Sports Rehabilitation",
-      desc: "Fast-track recovery from sprains, tears, and sports-related injuries under the guidance of movement specialists.",
-      icon: Award,
-      highlight: false,
-    },
-    {
-      title: "Spine & Musculoskeletal Care",
-      desc: "Effective therapy for persistent back pain, neck strain, slip discs, sciatica, and joint disorders.",
-      icon: ShieldCheck,
-      highlight: false,
-    },
-  ];
-
   // Integrated Treatments data
   const treatmentList = [
     {
@@ -769,72 +748,6 @@ export default function Home() {
                 </Link>
               ))}
             </div>
-          </div>
-
-        </div>
-      </section>
-      {/* Specialized Care Programs Section */}
-      <section className="py-20 bg-brand-bg dark:bg-slate-950">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3.5 py-1.5 rounded-full inline-block">
-              Clinic Programs
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
-              Specialized Physiotherapy Programs
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              We leverage diagnostic tools, manual therapy, and clinical biomechanics to resolve the root cause of your physical limitations.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {services.map((svc, index) => (
-              <div
-                key={svc.title}
-                className={`group relative overflow-hidden rounded-3xl border p-8 bg-white dark:bg-slate-900 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-350 hover:-translate-y-1.5 reveal-on-scroll ${
-                  index === 0 ? "" : index === 1 ? "delay-100" : "delay-200"
-                } ${
-                  svc.highlight
-                    ? "border-brand-green ring-2 ring-brand-green/10 shadow-[0_6px_25px_-4px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-6px_var(--brand-shadow-hover)]"
-                    : "border-slate-200/80 dark:border-brand-charcoal/60"
-                }`}
-              >
-                {svc.highlight && (
-                  <span className="absolute top-0 right-0 bg-brand-green text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-lg">
-                    Featured
-                  </span>
-                )}
-                
-                <div className="h-11 w-11 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green dark:text-teal-300 mb-6">
-                  <svc.icon className="h-5 w-5" />
-                </div>
-                
-                <h3 className="text-lg sm:text-xl font-black text-brand-green dark:text-teal-400 mb-3 group-hover:text-brand-green-hover transition-colors">
-                  {svc.title}
-                </h3>
-                
-                <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed mb-6 font-normal">
-                  {index === 0 && (
-                    <span><strong className="text-brand-charcoal dark:text-white font-bold">Identify posture imbalances,</strong> movement flaws, and pressure distribution using digital treadmills.</span>
-                  )}
-                  {index === 1 && (
-                    <span><strong className="text-brand-charcoal dark:text-white font-bold">Fast-track recovery</strong> from sprains, tears, and sports injuries under the guidance of specialists.</span>
-                  )}
-                  {index === 2 && (
-                    <span><strong className="text-brand-charcoal dark:text-white font-bold">Effective therapy</strong> for persistent back pain, neck strain, sciatica, and joint disorders.</span>
-                  )}
-                </p>
-                
-                <a
-                  href="#services"
-                  className="inline-flex items-center text-xs font-black text-brand-charcoal dark:text-white hover:text-brand-green hover:underline group/btn"
-                >
-                  <span>Learn more</span>
-                  <ArrowRight className="ml-1 h-3.5 w-3.5 transform group-hover/btn:translate-x-1 transition-transform duration-200" />
-                </a>
-              </div>
-            ))}
           </div>
         </div>
       </section>
