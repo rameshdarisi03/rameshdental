@@ -482,130 +482,108 @@ export default function Home() {
         .delay-400 { transition-delay: 400ms; }
       `}</style>
 
-      {/* Hero Section: Panoramic Background & Styled Therapist Frame */}
-      <section id="home" className="relative overflow-hidden py-24 sm:py-32 text-brand-charcoal bg-brand-bg">
-        {/* Panoramic Background (Crisp and rich visibility) */}
+      {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
+      <section id="home" className="relative overflow-hidden min-h-[580px] lg:min-h-[660px] flex items-center py-20 sm:py-28 text-brand-charcoal bg-slate-950">
+        {/* Full-Bleed Panoramic Clinic Cover Image (Option 1: Spine Assessment) */}
         <div 
-          className="absolute inset-0 bg-cover bg-center filter blur-[0.5px] scale-[1.01] opacity-100" 
-          style={{ backgroundImage: "url('/images/hero-bg.png')" }} 
+          className="absolute inset-0 bg-cover bg-no-repeat bg-[center_right] sm:bg-right lg:bg-center transition-all duration-700" 
+          style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
         />
-        {/* Horizontal gradient mask: high opacity on the left for text readability, clear on the right */}
-        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/20 dark:from-brand-charcoal/95 dark:via-brand-charcoal/80 dark:to-brand-charcoal/30" />
+        
+        {/* Sophisticated Gradient Scrim Overlay: Crisp white on left for text legibility, crystal clear on right to see Dr. Kinnera */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/98 via-white/90 to-white/40 sm:bg-gradient-to-r sm:from-white/98 sm:via-white/85 sm:to-white/10 dark:from-slate-950/98 dark:via-slate-950/85 dark:to-slate-950/20" />
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+          <div className="max-w-2xl space-y-6 text-center sm:text-left">
             
-            {/* Left Column: Bold Clinical Messaging */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-sand px-4 py-1.5 text-xs font-black uppercase tracking-wider text-brand-green dark:bg-brand-green/20 dark:text-teal-300 border border-brand-green/10 animate-fade-in-up">
+            {/* Pill Badge */}
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-brand-green dark:bg-brand-green/20 dark:text-teal-300 border border-brand-green/15 animate-fade-in-up">
                 <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
                 Bangalore's Premier Movement Clinic
               </span>
-              
-              <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-brand-charcoal dark:text-white">
-                <span className="block mb-2">
-                  {["Restore", "Your", "Movement."].map((word, i) => (
-                    <span
-                      key={i}
-                      className="animate-word inline-block mr-3"
-                      style={{ animationDelay: `${i * 120}ms` }}
-                    >
-                      {word}
-                    </span>
-                  ))}
-                </span>
-                <span className="block text-brand-green">
-                  {["Reclaim", "Your", "Life."].map((word, i) => (
-                    <span
-                      key={i}
-                      className="animate-word inline-block mr-3"
-                      style={{ animationDelay: `${(3 + i) * 120}ms` }}
-                    >
-                      {word}
-                    </span>
-                  ))}
-                </span>
-              </h1>
-              
-              <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 max-w-2xl leading-relaxed font-semibold animate-fade-in-up" style={{ animationDelay: '700ms' }}>
-                Experience clinical precision blended with holistic wellness. Our tailored physiotherapy plans help you recover faster, prevent injury, and move with confidence.
-              </p>
-              
-              {/* Trust Checkmarks */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start animate-fade-in-up" style={{ animationDelay: '900ms' }}>
-                <div className="flex items-center justify-center lg:justify-start gap-2 hover:scale-105 transition-transform duration-200">
-                  <div className="h-5 w-5 rounded-full bg-brand-green/10 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Digital Foot Scans</span>
-                </div>
-                <div className="flex items-center justify-center lg:justify-start gap-2 hover:scale-105 transition-transform duration-200">
-                  <div className="h-5 w-5 rounded-full bg-brand-green/10 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Active Rehabilitation</span>
-                </div>
-                <div className="flex items-center justify-center lg:justify-start gap-2 hover:scale-105 transition-transform duration-200">
-                  <div className="h-5 w-5 rounded-full bg-brand-green/10 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                  </div>
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Custom Orthotics</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4 animate-fade-in-up" style={{ animationDelay: '1100ms' }}>
-                {clinicConfig.enablePublicBooking !== false ? (
-                  <Link
-                    href="/book"
-                    className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-                  >
-                    Book Free Consultation
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                ) : (
-                  <a
-                    href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
-                  >
-                    <MessageSquare className="h-5 w-5" />
-                    Book via WhatsApp
-                  </a>
-                )}
-                <a
-                  href="#services"
-                  className="inline-flex items-center justify-center rounded-full border border-brand-green text-brand-green hover:bg-brand-green/5 bg-white/40 backdrop-blur-sm px-8 py-4 text-base font-bold transition-all active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
-                >
-                  Our Services
-                </a>
-              </div>
             </div>
             
-            {/* Right Column: Therapist-Patient Image Visual Frame */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="relative rounded-3xl p-2.5 bg-white/40 dark:bg-brand-charcoal/40 backdrop-blur-md border border-brand-green/10 dark:border-white/20 shadow-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-500 animate-slide-in-card w-full">
-                <img 
-                  src="/images/hero_physio_session.webp" 
-                  alt="Dr. Kinnera guiding patient active mobility exercises at Gait Physio Clinic" 
-                  className="rounded-2xl w-full h-auto object-cover shadow-inner"
-                  loading="eager"
-                />
-                
-                {/* Floating Micro-Badge */}
-                <div className="absolute bottom-6 left-6 bg-white/95 dark:bg-brand-charcoal/95 border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-xl backdrop-blur flex items-center gap-3 animate-pulse">
-                  <div className="h-9 w-9 rounded-xl bg-brand-green/10 flex items-center justify-center text-brand-green">
-                    <Activity className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Active Healing</p>
-                    <p className="text-xs font-black text-brand-charcoal dark:text-white">Posture Alignment</p>
-                  </div>
+            {/* Bold Headline */}
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none text-brand-charcoal dark:text-white drop-shadow-2xs">
+              <span className="block mb-2">
+                {["Restore", "Your", "Movement."].map((word, i) => (
+                  <span
+                    key={i}
+                    className="animate-word inline-block mr-3"
+                    style={{ animationDelay: `${i * 120}ms` }}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </span>
+              <span className="block text-brand-green">
+                {["Reclaim", "Your", "Life."].map((word, i) => (
+                  <span
+                    key={i}
+                    className="animate-word inline-block mr-3"
+                    style={{ animationDelay: `${(3 + i) * 120}ms` }}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </span>
+            </h1>
+            
+            <p className="text-base sm:text-lg text-slate-700 dark:text-slate-200 leading-relaxed font-semibold animate-fade-in-up" style={{ animationDelay: '700ms' }}>
+              Experience clinical precision blended with holistic wellness. Our tailored physiotherapy plans help you recover faster, prevent injury, and move with confidence.
+            </p>
+            
+            {/* Trust Checkmarks */}
+            <div className="flex flex-wrap gap-4 pt-2 justify-center sm:justify-start animate-fade-in-up" style={{ animationDelay: '900ms' }}>
+              <div className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
+                <div className="h-5 w-5 rounded-full bg-brand-green/15 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
                 </div>
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Digital Foot Scans</span>
+              </div>
+              <div className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
+                <div className="h-5 w-5 rounded-full bg-brand-green/15 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </div>
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Active Rehabilitation</span>
+              </div>
+              <div className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
+                <div className="h-5 w-5 rounded-full bg-brand-green/15 dark:bg-brand-green/30 flex items-center justify-center text-brand-green">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </div>
+                <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Custom Orthotics</span>
               </div>
             </div>
 
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start pt-4 animate-fade-in-up" style={{ animationDelay: '1100ms' }}>
+              {clinicConfig.enablePublicBooking !== false ? (
+                <Link
+                  href="/book"
+                  className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                  Book Free Consultation
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              ) : (
+                <a
+                  href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-4 text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Book via WhatsApp
+                </a>
+              )}
+              <a
+                href="#services"
+                className="inline-flex items-center justify-center rounded-full border border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/70 backdrop-blur-md px-8 py-4 text-base font-bold transition-all active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-white/10 shadow-sm"
+              >
+                Our Services
+              </a>
+            </div>
           </div>
         </div>
       </section>
