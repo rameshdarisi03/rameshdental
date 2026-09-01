@@ -8,6 +8,7 @@ import { FEATURES } from "@/lib/features";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
 import ThemeSwitcher from "./ThemeSwitcher";
 import { syncMetaThemeColor } from "@/lib/themeHelper";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -180,7 +181,7 @@ export default function Navbar() {
             </>
           ) : (
             <a
-              href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
+              href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-hover transition-all active:scale-95"
@@ -268,7 +269,7 @@ export default function Navbar() {
               </Link>
             ) : (
               <a
-                href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
+                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsOpen(false)}

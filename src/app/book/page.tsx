@@ -15,6 +15,7 @@ import {
   isSlotInPast
 } from "@/lib/db";
 import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 
 // Get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -278,7 +279,6 @@ function BookingFormContent() {
   }
 
   if (clinicConfig.enablePublicBooking === false) {
-    const cleanPhone = (clinicConfig.phone || "9206651295").replace(/\D/g, "");
     return (
       <div className="flex flex-col w-full min-h-screen bg-brand-bg dark:bg-slate-900">
         <PageHeader
@@ -300,7 +300,7 @@ function BookingFormContent() {
             </div>
             <div className="space-y-3 pt-2">
               <a
-                href={`https://wa.me/91${cleanPhone}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a physiotherapy appointment.")}`}
+                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a physiotherapy appointment.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white py-4 px-4 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"

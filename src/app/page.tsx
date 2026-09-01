@@ -32,6 +32,7 @@ import {
   MessageSquare
 } from "lucide-react";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 
 // Viewport-Triggered rolling number counter for trust stats
 function ScrollTriggeredCounter({ 
@@ -683,7 +684,7 @@ export default function Home() {
                 </Link>
               ) : (
                 <a
-                  href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
+                  href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
@@ -983,7 +984,7 @@ export default function Home() {
                   </Link>
                 ) : (
                   <a
-                    href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent(`Hello Gait Physio Clinic, I would like to schedule a consultation with ${therapistProfiles[teamIndex]?.name || 'a therapist'}.`)}`}
+                    href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent(`Hello Gait Physio Clinic, I would like to schedule a consultation with ${therapistProfiles[teamIndex]?.name || 'a therapist'}.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
@@ -1868,7 +1869,7 @@ export default function Home() {
               </Link>
             ) : (
               <a
-                href={`https://wa.me/91${(clinicConfig.phone || "9206651295").replace(/\D/g, "")}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule an appointment.")}`}
+                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule an appointment.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
