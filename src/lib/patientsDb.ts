@@ -337,18 +337,14 @@ export interface PatientDeleteOptions {
   profile: boolean;
   hub: boolean;
   documents: boolean;
-  consultations: boolean;
-  invoices: boolean;
 }
 
 /**
- * Granular Deletion & Data Purge function for a patient.
+ * 3-Pillar Granular Deletion & Data Purge function for a patient.
  * Handles selective deletion of:
- * - Patient Hub (portal credentials + assigned exercises)
+ * - Patient Profile (core demographic document in directory)
+ * - Patient Hub (portal credentials, assigned exercises, consultations & invoices)
  * - Medical Documents & Scans (PDFs, MRI/X-ray file records)
- * - Consultation Notes & Case Sheets
- * - Invoices & Billing Records
- * - Core Patient Profile (primary document)
  */
 export async function deletePatientData(
   patientId: string,
@@ -361,13 +357,28 @@ export async function deletePatientData(
       throw new Error(`Patient "${patientId}" does not exist in the database.`);
     }
 
-    // 1. Delete Patient Hub (Portal auth link + assigned exercises)
+    // 1. Delete Patient Hub (Portal auth link + assigned exercises + consultations + invoices)
     if (options.hub) {
+      // Purge assigned exercises / prescriptions
       const prescriptionsSnap = await getDocs(collection(db, "patients", patientId, "prescriptions"));
       for (const pDoc of prescriptionsSnap.docs) {
         await deleteDoc(pDoc.ref);
       }
-      // If profile is NOT being deleted, reset hub portal activation
+
+      // Purge consultation notes & case sheets
+      const consultSnap = await getDocs(collection(db, "patients", patientId, "consultations"));
+      for (const cDoc of consultSnap.docs) {
+        await deleteDoc(cDoc.ref);
+      }
+
+      // Purge patient invoices
+      const invoicesQuery = query(collection(db, "invoices"), where("patientId", "==", patientId));
+      const invoicesSnap = await getDocs(invoicesQuery);
+      for (const invDoc of invoicesSnap.docs) {
+        await deleteDoc(invDoc.ref);
+      }
+
+      // If profile is NOT being deleted, reset hub portal activation & credentials
       if (!options.profile) {
         await updateDoc(patientDocRef, {
           activated: false,
@@ -385,24 +396,7 @@ export async function deletePatientData(
       }
     }
 
-    // 3. Delete Consultation Notes
-    if (options.consultations) {
-      const consultSnap = await getDocs(collection(db, "patients", patientId, "consultations"));
-      for (const cDoc of consultSnap.docs) {
-        await deleteDoc(cDoc.ref);
-      }
-    }
-
-    // 4. Delete Billing & Invoices
-    if (options.invoices) {
-      const invoicesQuery = query(collection(db, "invoices"), where("patientId", "==", patientId));
-      const invoicesSnap = await getDocs(invoicesQuery);
-      for (const invDoc of invoicesSnap.docs) {
-        await deleteDoc(invDoc.ref);
-      }
-    }
-
-    // 5. Delete Core Patient Profile
+    // 3. Delete Core Patient Profile
     if (options.profile) {
       // Clean up any remaining subcollections to prevent orphaned records
       const allFiles = await getDocs(collection(db, "patients", patientId, "files"));

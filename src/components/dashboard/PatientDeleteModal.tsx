@@ -10,8 +10,6 @@ import {
   User, 
   Smartphone, 
   FileText, 
-  Stethoscope, 
-  Receipt, 
   Loader2, 
   ShieldAlert,
   Sparkles
@@ -26,14 +24,12 @@ interface PatientDeleteModalProps {
   patientName: string;
 }
 
-const STORAGE_KEY = "gpc_patient_delete_prefs";
+const STORAGE_KEY = "gpc_patient_delete_prefs_v2";
 
 const DEFAULT_PREFS: PatientDeleteOptions = {
   profile: true,
   hub: true,
   documents: true,
-  consultations: false,
-  invoices: false,
 };
 
 export default function PatientDeleteModal({
@@ -136,7 +132,7 @@ export default function PatientDeleteModal({
         <div className="p-6 space-y-4 overflow-y-auto">
           <div className="flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Select Data Components to Delete:
+              Select Components to Delete:
             </p>
             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2.5 py-0.5 rounded-full border border-teal-200 dark:border-teal-800/60">
               <Sparkles className="w-3 h-3" />
@@ -144,11 +140,11 @@ export default function PatientDeleteModal({
             </span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {/* 1. Core Profile */}
             <div 
               onClick={() => !isDeleting && handleToggle("profile")}
-              className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+              className={`flex items-start gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
                 options.profile
                   ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
                   : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
@@ -159,21 +155,21 @@ export default function PatientDeleteModal({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                  <User className="h-4.5 w-4.5 text-slate-700 dark:text-slate-300" />
                   <h4 className="text-sm font-black text-slate-900 dark:text-white">
                     1. Patient Profile
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Core demographic details, contact numbers & diagnosis history in directory
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                  Core demographic details, contact numbers, case history & directory listing
                 </p>
               </div>
             </div>
 
-            {/* 2. Patient Hub */}
+            {/* 2. Patient Hub (Portal + Exercises + Notes + Invoices) */}
             <div 
               onClick={() => !isDeleting && handleToggle("hub")}
-              className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+              className={`flex items-start gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
                 options.hub
                   ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
                   : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
@@ -184,13 +180,13 @@ export default function PatientDeleteModal({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <Smartphone className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                  <Smartphone className="h-4.5 w-4.5 text-slate-700 dark:text-slate-300" />
                   <h4 className="text-sm font-black text-slate-900 dark:text-white">
                     2. Patient Hub
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Portal login credentials, Auth UID, activation code & assigned home exercises
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                  Portal login account, assigned home exercises, consultation logs & clinic invoices
                 </p>
               </div>
             </div>
@@ -198,7 +194,7 @@ export default function PatientDeleteModal({
             {/* 3. Medical Documents & Scans */}
             <div 
               onClick={() => !isDeleting && handleToggle("documents")}
-              className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+              className={`flex items-start gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
                 options.documents
                   ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
                   : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
@@ -209,63 +205,13 @@ export default function PatientDeleteModal({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                  <FileText className="h-4.5 w-4.5 text-slate-700 dark:text-slate-300" />
                   <h4 className="text-sm font-black text-slate-900 dark:text-white">
                     3. Medical Documents & Scans
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
                   Uploaded X-rays, MRI scans, lab reports, doctor reference PDFs & prescription files
-                </p>
-              </div>
-            </div>
-
-            {/* 4. Consultation Notes */}
-            <div 
-              onClick={() => !isDeleting && handleToggle("consultations")}
-              className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
-                options.consultations
-                  ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
-                  : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
-              }`}
-            >
-              <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
-                {options.consultations ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-slate-400" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                    4. Consultation Notes
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Doctor clinical session logs, evaluations, timeline notes & case sheets
-                </p>
-              </div>
-            </div>
-
-            {/* 5. Billing & Invoices */}
-            <div 
-              onClick={() => !isDeleting && handleToggle("invoices")}
-              className={`flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
-                options.invoices
-                  ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
-                  : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
-              }`}
-            >
-              <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
-                {options.invoices ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-slate-400" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                    5. Billing & Invoices
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  GST invoices, payment receipts & clinic financial ledger records
                 </p>
               </div>
             </div>
