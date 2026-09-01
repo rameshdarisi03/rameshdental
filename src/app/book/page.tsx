@@ -306,7 +306,7 @@ function BookingFormContent() {
                 className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white py-4 px-4 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 <MessageSquare className="h-4 w-4" />
-                Book via WhatsApp
+                WhatsApp Us
               </a>
               <a
                 href={`tel:${clinicConfig.phone || "+919206651295"}`}

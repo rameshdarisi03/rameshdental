@@ -690,7 +690,7 @@ export default function Home() {
                   className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
                 >
                   <MessageSquare className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-                  Book via WhatsApp
+                  WhatsApp Us
                 </a>
               )}
             </div>
@@ -1875,7 +1875,7 @@ export default function Home() {
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
               >
                 <MessageSquare className="h-5 w-5 text-brand-green" />
-                Book via WhatsApp
+                WhatsApp Us
               </a>
             )}
             <a
