@@ -11,7 +11,8 @@ import {
   orderBy,
   limit,
   Timestamp,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 export interface Patient {
@@ -331,3 +332,96 @@ export async function getMedicalRecordFiles(patientId: string): Promise<MedicalR
     return [];
   }
 }
+
+export interface PatientDeleteOptions {
+  profile: boolean;
+  hub: boolean;
+  documents: boolean;
+  consultations: boolean;
+  invoices: boolean;
+}
+
+/**
+ * Granular Deletion & Data Purge function for a patient.
+ * Handles selective deletion of:
+ * - Patient Hub (portal credentials + assigned exercises)
+ * - Medical Documents & Scans (PDFs, MRI/X-ray file records)
+ * - Consultation Notes & Case Sheets
+ * - Invoices & Billing Records
+ * - Core Patient Profile (primary document)
+ */
+export async function deletePatientData(
+  patientId: string,
+  options: PatientDeleteOptions
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const patientDocRef = doc(db, "patients", patientId);
+    const patientSnap = await getDoc(patientDocRef);
+    if (!patientSnap.exists()) {
+      throw new Error(`Patient "${patientId}" does not exist in the database.`);
+    }
+
+    // 1. Delete Patient Hub (Portal auth link + assigned exercises)
+    if (options.hub) {
+      const prescriptionsSnap = await getDocs(collection(db, "patients", patientId, "prescriptions"));
+      for (const pDoc of prescriptionsSnap.docs) {
+        await deleteDoc(pDoc.ref);
+      }
+      // If profile is NOT being deleted, reset hub portal activation
+      if (!options.profile) {
+        await updateDoc(patientDocRef, {
+          activated: false,
+          authUid: null,
+          activationCode: "",
+        });
+      }
+    }
+
+    // 2. Delete Medical Documents & Scans
+    if (options.documents) {
+      const filesSnap = await getDocs(collection(db, "patients", patientId, "files"));
+      for (const fDoc of filesSnap.docs) {
+        await deleteDoc(fDoc.ref);
+      }
+    }
+
+    // 3. Delete Consultation Notes
+    if (options.consultations) {
+      const consultSnap = await getDocs(collection(db, "patients", patientId, "consultations"));
+      for (const cDoc of consultSnap.docs) {
+        await deleteDoc(cDoc.ref);
+      }
+    }
+
+    // 4. Delete Billing & Invoices
+    if (options.invoices) {
+      const invoicesQuery = query(collection(db, "invoices"), where("patientId", "==", patientId));
+      const invoicesSnap = await getDocs(invoicesQuery);
+      for (const invDoc of invoicesSnap.docs) {
+        await deleteDoc(invDoc.ref);
+      }
+    }
+
+    // 5. Delete Core Patient Profile
+    if (options.profile) {
+      // Clean up any remaining subcollections to prevent orphaned records
+      const allFiles = await getDocs(collection(db, "patients", patientId, "files"));
+      for (const d of allFiles.docs) await deleteDoc(d.ref);
+
+      const allConsults = await getDocs(collection(db, "patients", patientId, "consultations"));
+      for (const d of allConsults.docs) await deleteDoc(d.ref);
+
+      const allPrescripts = await getDocs(collection(db, "patients", patientId, "prescriptions"));
+      for (const d of allPrescripts.docs) await deleteDoc(d.ref);
+
+      // Finally delete the main patient document
+      await deleteDoc(patientDocRef);
+    }
+
+    return { success: true, message: "Selected patient records purged successfully." };
+  } catch (error: any) {
+    console.error("Error executing deletePatientData:", error);
+    throw new Error(error.message || "Failed to purge patient data.");
+  }
+}
+

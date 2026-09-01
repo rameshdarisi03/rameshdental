@@ -23,12 +23,15 @@ import {
   AlertCircle,
   MessageSquare,
   Sparkles,
+  Trash2,
   X
 } from "lucide-react";
-import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult } from "@/lib/patientsDb";
+import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions } from "@/lib/patientsDb";
 import { getClinicConfig } from "@/lib/db";
 import { sanitizePhone, sanitizeName, isValidIndianPhone, isValidEmail } from "@/lib/sanitizer";
 import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
+import PatientDeleteModal from "@/components/dashboard/PatientDeleteModal";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 
 interface Patient {
   id: string;
@@ -90,6 +93,14 @@ export default function PatientsPage() {
 
   // Action Menu dropdown state (stores patient ID of open menu)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [selectedPatientForDelete, setSelectedPatientForDelete] = useState<Patient | null>(null);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const handleDeleteSuccess = (deletedOptions: PatientDeleteOptions) => {
+    setToastMessage("Selected patient data purged successfully.");
+    setTimeout(() => setToastMessage(""), 4000);
+    fetchPatientsList();
+  };
 
   // Initial Fetch of Patients
   useEffect(() => {
@@ -742,17 +753,7 @@ export default function PatientsPage() {
                             )}
                             <button
                               onClick={() => {
-                                let cleanPhone = patient.phone.replace(/\D/g, "");
-                                if (cleanPhone.startsWith("0")) {
-                                  cleanPhone = cleanPhone.replace(/^0+/, "");
-                                }
-                                if (cleanPhone.length === 10) {
-                                  cleanPhone = "91" + cleanPhone;
-                                }
-                                if (!cleanPhone || cleanPhone.length < 10) {
-                                  cleanPhone = "919206651295";
-                                }
-                                const waUrl = `https://wa.me/${cleanPhone}`;
+                                const waUrl = `https://wa.me/${getCleanWhatsAppNumber(patient.phone)}`;
                                 window.open(waUrl, "_blank");
                                 setActiveMenuId(null);
                               }}
@@ -760,6 +761,17 @@ export default function PatientsPage() {
                             >
                               <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                               WhatsApp Chat
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedPatientForDelete(patient);
+                                setActiveMenuId(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-left border-t border-slate-100 dark:border-slate-800"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete / Purge...
                             </button>
                           </div>
                         )}
@@ -1060,6 +1072,25 @@ export default function PatientsPage() {
         }}
         enrolledTherapists={enrolledTherapists}
       />
+
+      {/* Granular Patient Deletion & Data Purge Modal */}
+      {selectedPatientForDelete && (
+        <PatientDeleteModal
+          isOpen={!!selectedPatientForDelete}
+          patientId={selectedPatientForDelete.id}
+          patientName={selectedPatientForDelete.name}
+          onClose={() => setSelectedPatientForDelete(null)}
+          onSuccess={handleDeleteSuccess}
+        />
+      )}
+
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 py-3 rounded-2xl shadow-2xl animate-fade-in text-xs font-black">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
     </div>
   );

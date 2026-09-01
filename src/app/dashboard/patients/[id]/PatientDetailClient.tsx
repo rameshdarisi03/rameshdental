@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
   User, 
@@ -45,6 +45,9 @@ import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
 import DocumentScannerModal, { ScanResult } from "@/components/dashboard/DocumentScannerModal";
 import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
+import PatientDeleteModal from "@/components/dashboard/PatientDeleteModal";
+import { PatientDeleteOptions } from "@/lib/patientsDb";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import { 
   getPatientById, 
   getConsultations, 
@@ -173,6 +176,7 @@ const compressImageFile = (file: File): Promise<File> => {
 };
 
 export default function PatientDetailClient({ id }: { id: string }) {
+  const router = useRouter();
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
@@ -186,8 +190,31 @@ export default function PatientDetailClient({ id }: { id: string }) {
 
   const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
   const [workoutProgress, setWorkoutProgress] = useState<PatientWorkoutProgress | null>(null);
+
+  const handleDeleteSuccess = (deletedOptions: PatientDeleteOptions) => {
+    if (deletedOptions.profile) {
+      router.push("/dashboard/patients");
+    } else {
+      setFormSuccess("Selected patient records purged successfully.");
+      (async () => {
+        try {
+          const pat = await getPatientById(id);
+          if (pat) setPatient({ id, ...pat } as Patient);
+          const consults = await getConsultations(id);
+          setConsultations(consults as Consultation[]);
+          const medFiles = await getMedicalRecordFiles(id);
+          setFiles(medFiles as MedicalFile[]);
+          const prescHistory = await getPatientPrescriptionsHistory(id);
+          setPrescriptionsHistory(prescHistory);
+        } catch (err) {
+          console.error("Error refreshing patient after delete:", err);
+        }
+      })();
+    }
+  };
 
   // Gemini AI Document Scanner states
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -1345,6 +1372,15 @@ Warm regards,
               No Drive Folder Associated
             </span>
           )}
+
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 dark:border-rose-800/80 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 px-3.5 py-2.5 text-xs font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+            title="Manage & Delete Patient Data"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete / Clean
+          </button>
         </div>
       </div>
 
@@ -2544,6 +2580,17 @@ Warm regards,
             setTimeout(() => setFormSuccess(""), 4000);
           }}
           buildInvoicePdf={buildInvoicePdf}
+        />
+      )}
+
+      {/* Granular Patient Deletion & Data Purge Modal */}
+      {isDeleteModalOpen && patient && (
+        <PatientDeleteModal
+          isOpen={isDeleteModalOpen}
+          patientId={patient.id}
+          patientName={patient.name}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onSuccess={handleDeleteSuccess}
         />
       )}
 
