@@ -97,7 +97,13 @@ export default function PatientDeleteModal({
       onSuccess(options);
       onClose();
     } catch (err: any) {
-      setErrorMessage(err?.message || "An error occurred while deleting data.");
+      console.error("Delete patient error:", err);
+      const rawMsg = err?.message || "";
+      if (rawMsg.toLowerCase().includes("permission") || rawMsg.toLowerCase().includes("insufficient")) {
+        setErrorMessage("Firebase Security Rules: Write/Delete access is restricted in Firebase Console. Update rules under Firestore > Rules tab.");
+      } else {
+        setErrorMessage(rawMsg || "An error occurred while deleting data.");
+      }
     } finally {
       setIsDeleting(false);
     }
