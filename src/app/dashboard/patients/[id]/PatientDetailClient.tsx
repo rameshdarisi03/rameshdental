@@ -199,20 +199,22 @@ export default function PatientDetailClient({ id }: { id: string }) {
       router.push("/dashboard/patients");
     } else {
       setFormSuccess("Selected patient records purged successfully.");
-      (async () => {
-        try {
-          const pat = await getPatientById(id);
-          if (pat) setPatient({ id, ...pat } as Patient);
-          const consults = await getConsultations(id);
-          setConsultations(consults as Consultation[]);
-          const medFiles = await getMedicalRecordFiles(id);
-          setFiles(medFiles as MedicalFile[]);
-          const prescHistory = await getPatientPrescriptionsHistory(id);
-          setPrescriptionsHistory(prescHistory);
-        } catch (err) {
-          console.error("Error refreshing patient after delete:", err);
-        }
-      })();
+      
+      // Immediately clear local states for the deleted components
+      if (deletedOptions.scansAndReports) {
+        setFiles([]);
+      }
+      if (deletedOptions.consultationsAndPrescriptions) {
+        setConsultations([]);
+        setActivePrescription(null);
+        setPrescriptionsHistory([]);
+      }
+      if (deletedOptions.invoices) {
+        setPatientInvoices([]);
+      }
+
+      // Re-fetch complete state from Firestore
+      loadPatientDetails();
     }
   };
 
