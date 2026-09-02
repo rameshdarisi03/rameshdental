@@ -1811,7 +1811,7 @@ Warm regards,
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Consultation
+                Consultations & Prescriptions ({consultations.length})
               </button>
               <button
                 onClick={() => setActiveTab("files")}
@@ -1821,7 +1821,7 @@ Warm regards,
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Medical Scans & Files ({allUnifiedFiles.length})
+                Medical Scans & Reports ({files.length})
               </button>
               <button
                 onClick={() => setActiveTab("invoices")}
@@ -2240,54 +2240,43 @@ Warm regards,
                 </div>
               )}
 
-              {allUnifiedFiles.length === 0 ? (
+              {files.length === 0 ? (
                 <div className="text-slate-400 text-xs font-semibold py-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-[0_6px_25px_-6px_var(--brand-shadow)]">
                   <Folder className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <span>No medical records uploaded for this patient.</span>
+                  <span>No medical scans or diagnostic reports uploaded for this patient.</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {allUnifiedFiles.map((file) => {
-                    const isPrescription = file.category === "PRESCRIPTION";
-                    const isInvoice = file.category === "INVOICE";
+                  {files.map((file) => {
+                    const fObj = file as any;
+                    const fId = file.googleDriveFileId || fObj.driveFileId;
+                    const viewUrl = file.webViewLink || fObj.driveViewLink || (fId ? `https://drive.google.com/file/d/${fId}/view` : "");
+                    const downloadUrl = file.downloadLink || fObj.downloadLink || viewUrl;
+                    const isDocOnly = file.isDoctorOnly === true || fObj.category === "DOCTOR_REFERENCE";
 
                     return (
                       <div 
-                        key={file.id} 
+                        key={file.id || fId || file.fileName} 
                         className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm flex items-center justify-between gap-4 hover:scale-[1.01] transition-transform duration-200"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
                           <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                            isPrescription 
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                              : isInvoice
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
-                              : file.isDoctorOnly
+                            isDocOnly
                               ? "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300"
                               : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300"
                           }`}>
-                            {isPrescription ? (
-                              <FileText className="w-5 h-5" />
-                            ) : isInvoice ? (
-                              <Receipt className="w-5 h-5" />
-                            ) : file.isDoctorOnly ? (
+                            {isDocOnly ? (
                               <Camera className="w-5 h-5" />
                             ) : (
-                              <Folder className="w-5 h-5" />
+                              <FileText className="w-5 h-5" />
                             )}
                           </div>
                           <div className="overflow-hidden">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                isPrescription
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/80 dark:border-emerald-800 dark:text-emerald-300"
-                                  : isInvoice
-                                  ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/80 dark:border-amber-800 dark:text-amber-300"
-                                  : "bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                              }`}>
-                                {file.category}
+                              <span className="bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/80 dark:border-teal-800 dark:text-teal-300 text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                                {file.category || "SCAN/REPORT"}
                               </span>
-                              {file.isDoctorOnly && (
+                              {isDocOnly && (
                                 <span className="bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center gap-1">
                                   <Lock className="w-2.5 h-2.5" />
                                   <span>Doctor Reference</span>
@@ -2298,16 +2287,15 @@ Warm regards,
                               {file.fileName}
                             </h4>
                             <p className="text-[9px] text-slate-400 font-extrabold uppercase mt-0.5 truncate">
-                              {file.subtitle}
+                              Uploaded {file.dateUploaded || "Recorded"}
                             </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {/* View Button */}
-                          {file.webViewLink ? (
+                          {viewUrl && (
                             <a
-                              href={file.webViewLink}
+                              href={viewUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
@@ -2315,21 +2303,11 @@ Warm regards,
                             >
                               <Eye className="w-4.5 h-4.5" />
                             </a>
-                          ) : file.onView ? (
-                            <button
-                              type="button"
-                              onClick={file.onView}
-                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
-                              title="Preview PDF"
-                            >
-                              <Eye className="w-4.5 h-4.5" />
-                            </button>
-                          ) : null}
+                          )}
 
-                          {/* Download Button */}
-                          {file.downloadLink ? (
+                          {downloadUrl && (
                             <a
-                              href={file.downloadLink}
+                              href={downloadUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
@@ -2337,16 +2315,7 @@ Warm regards,
                             >
                               <Download className="w-4.5 h-4.5" />
                             </a>
-                          ) : file.onDownload ? (
-                            <button
-                              type="button"
-                              onClick={file.onDownload}
-                              className="p-2 text-slate-400 hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl transition-all cursor-pointer"
-                              title="Download PDF"
-                            >
-                              <Download className="w-4.5 h-4.5" />
-                            </button>
-                          ) : null}
+                          )}
                         </div>
                       </div>
                     );

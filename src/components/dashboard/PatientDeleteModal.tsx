@@ -10,7 +10,9 @@ import {
   Square, 
   User, 
   Smartphone, 
+  Stethoscope, 
   FileText, 
+  Receipt, 
   Loader2, 
   ShieldAlert,
   Sparkles
@@ -25,12 +27,14 @@ interface PatientDeleteModalProps {
   patientName: string;
 }
 
-const STORAGE_KEY = "gpc_patient_delete_prefs_v2";
+const STORAGE_KEY = "gpc_patient_delete_prefs_v3";
 
 const DEFAULT_PREFS: PatientDeleteOptions = {
   profile: true,
   hub: true,
-  documents: true,
+  consultationsAndPrescriptions: true,
+  scansAndReports: true,
+  invoices: false,
 };
 
 export default function PatientDeleteModal({
@@ -141,7 +145,7 @@ export default function PatientDeleteModal({
         </div>
 
         {/* Modal Body / Checklist */}
-        <div className="p-5 sm:p-6 space-y-4 overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-3.5 overflow-y-auto">
           <div className="flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
               Select Components to Delete:
@@ -152,78 +156,128 @@ export default function PatientDeleteModal({
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {/* 1. Core Profile */}
             <div 
               onClick={() => !isDeleting && handleToggle("profile")}
-              className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+              className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
                 options.profile
                   ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
                   : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
               }`}
             >
               <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
-                {options.profile ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-slate-400" />}
+                {options.profile ? <CheckSquare className="h-4.5 w-4.5" /> : <Square className="h-4.5 w-4.5 text-slate-400" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
                     1. Patient Profile
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   Core demographic details, contact numbers, case history & directory listing
                 </p>
               </div>
             </div>
 
-            {/* 2. Patient Hub (Portal + Exercises + Notes + Invoices) */}
+            {/* 2. Patient Hub Access */}
             <div 
               onClick={() => !isDeleting && handleToggle("hub")}
-              className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+              className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
                 options.hub
                   ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
                   : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
               }`}
             >
               <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
-                {options.hub ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-slate-400" />}
+                {options.hub ? <CheckSquare className="h-4.5 w-4.5" /> : <Square className="h-4.5 w-4.5 text-slate-400" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Smartphone className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                    2. Patient Hub
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                    2. Patient Hub Access
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                  Portal login account, assigned home exercises, consultation logs & clinic invoices
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                  Revoke portal login account, Auth UID link & activation code
                 </p>
               </div>
             </div>
 
-            {/* 3. Medical Documents & Scans */}
+            {/* 3. Consultations & Prescriptions */}
             <div 
-              onClick={() => !isDeleting && handleToggle("documents")}
-              className={`flex items-start gap-3.5 p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer select-none ${
-                options.documents
+              onClick={() => !isDeleting && handleToggle("consultationsAndPrescriptions")}
+              className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                options.consultationsAndPrescriptions
                   ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
                   : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
               }`}
             >
               <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
-                {options.documents ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5 text-slate-400" />}
+                {options.consultationsAndPrescriptions ? <CheckSquare className="h-4.5 w-4.5" /> : <Square className="h-4.5 w-4.5 text-slate-400" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                    3. Consultations & Prescriptions
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                  Clinical session notes, SOAP evaluation logs & prescribed home exercise routines
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Medical Scans & Reports */}
+            <div 
+              onClick={() => !isDeleting && handleToggle("scansAndReports")}
+              className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                options.scansAndReports
+                  ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
+                  : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+              }`}
+            >
+              <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
+                {options.scansAndReports ? <CheckSquare className="h-4.5 w-4.5" /> : <Square className="h-4.5 w-4.5 text-slate-400" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-                  <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                    3. Medical Documents & Scans
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                    4. Medical Scans & Reports
                   </h4>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                  Uploaded X-rays, MRI scans, lab reports, doctor reference PDFs & prescription files
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                  Uploaded X-rays, MRI scans, lab reports, doctor reference scans & diagnostic PDFs
+                </p>
+              </div>
+            </div>
+
+            {/* 5. Invoices & Billing */}
+            <div 
+              onClick={() => !isDeleting && handleToggle("invoices")}
+              className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                options.invoices
+                  ? "bg-rose-50/60 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 shadow-xs"
+                  : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 hover:border-slate-300"
+              }`}
+            >
+              <div className="mt-0.5 shrink-0 text-rose-600 dark:text-rose-400">
+                {options.invoices ? <CheckSquare className="h-4.5 w-4.5" /> : <Square className="h-4.5 w-4.5 text-slate-400" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white">
+                    5. Invoices & Billing
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                  GST invoices, payment receipts & clinic financial ledger records
                 </p>
               </div>
             </div>
@@ -231,7 +285,7 @@ export default function PatientDeleteModal({
 
           {/* Warning Banner */}
           {options.profile && (
-            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
+            <div className="flex items-start gap-2.5 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
               <span>
                 <strong>Warning:</strong> Selecting <em>Patient Profile</em> will completely remove this patient from the directory.

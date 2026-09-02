@@ -336,15 +336,19 @@ export async function getMedicalRecordFiles(patientId: string): Promise<MedicalR
 export interface PatientDeleteOptions {
   profile: boolean;
   hub: boolean;
-  documents: boolean;
+  consultationsAndPrescriptions: boolean;
+  scansAndReports: boolean;
+  invoices: boolean;
 }
 
 /**
- * 3-Pillar Granular Deletion & Data Purge function for a patient.
- * Handles selective deletion of:
+ * Granular Deletion & Data Purge function for a patient.
+ * Handles selective deletion aligned with dashboard clinical sections:
  * - Patient Profile (core demographic document in directory)
- * - Patient Hub (portal credentials, assigned exercises, consultations & invoices)
- * - Medical Documents & Scans (PDFs, MRI/X-ray file records)
+ * - Patient Hub Access (portal credentials & access code)
+ * - Consultations & Prescriptions (clinical session notes + prescribed home exercises)
+ * - Medical Scans & Reports (uploaded MRI/X-ray files & diagnostic PDFs)
+ * - Invoices & Billing (clinic invoices & payment records)
  */
 export async function deletePatientData(
   patientId: string,
@@ -357,8 +361,17 @@ export async function deletePatientData(
       throw new Error(`Patient "${patientId}" does not exist in the database.`);
     }
 
-    // 1. Delete Patient Hub (Portal auth link + assigned exercises + consultations + invoices)
-    if (options.hub) {
+    // 1. Revoke Patient Hub Access
+    if (options.hub && !options.profile) {
+      await updateDoc(patientDocRef, {
+        activated: false,
+        authUid: null,
+        activationCode: "",
+      });
+    }
+
+    // 2. Delete Consultations & Prescriptions (Session Notes + Prescribed Home Exercises)
+    if (options.consultationsAndPrescriptions) {
       // Purge assigned exercises / prescriptions
       const prescriptionsSnap = await getDocs(collection(db, "patients", patientId, "prescriptions"));
       for (const pDoc of prescriptionsSnap.docs) {
@@ -370,33 +383,26 @@ export async function deletePatientData(
       for (const cDoc of consultSnap.docs) {
         await deleteDoc(cDoc.ref);
       }
-
-      // Purge patient invoices
-      const invoicesQuery = query(collection(db, "invoices"), where("patientId", "==", patientId));
-      const invoicesSnap = await getDocs(invoicesQuery);
-      for (const invDoc of invoicesSnap.docs) {
-        await deleteDoc(invDoc.ref);
-      }
-
-      // If profile is NOT being deleted, reset hub portal activation & credentials
-      if (!options.profile) {
-        await updateDoc(patientDocRef, {
-          activated: false,
-          authUid: null,
-          activationCode: "",
-        });
-      }
     }
 
-    // 2. Delete Medical Documents & Scans
-    if (options.documents) {
+    // 3. Delete Medical Scans & Diagnostic Reports
+    if (options.scansAndReports) {
       const filesSnap = await getDocs(collection(db, "patients", patientId, "files"));
       for (const fDoc of filesSnap.docs) {
         await deleteDoc(fDoc.ref);
       }
     }
 
-    // 3. Delete Core Patient Profile
+    // 4. Delete Invoices & Billing Records
+    if (options.invoices) {
+      const invoicesQuery = query(collection(db, "invoices"), where("patientId", "==", patientId));
+      const invoicesSnap = await getDocs(invoicesQuery);
+      for (const invDoc of invoicesSnap.docs) {
+        await deleteDoc(invDoc.ref);
+      }
+    }
+
+    // 5. Delete Core Patient Profile
     if (options.profile) {
       // Clean up any remaining subcollections to prevent orphaned records
       const allFiles = await getDocs(collection(db, "patients", patientId, "files"));
