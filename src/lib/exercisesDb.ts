@@ -319,6 +319,7 @@ export async function updateExerciseInLibrary(
 // Fetch active prescription for a patient
 export async function getPatientPrescription(patientId: string): Promise<PatientPrescription | null> {
   const cleanId = (patientId || "").trim().toUpperCase();
+  if (!cleanId) return null;
   try {
     const docRef = doc(db, "prescriptions", cleanId);
     let snap = await getDoc(docRef);
@@ -341,6 +342,10 @@ export function subscribePatientPrescription(
   callback: (prescription: PatientPrescription | null) => void
 ): () => void {
   const cleanId = (patientId || "").trim().toUpperCase();
+  if (!cleanId) {
+    callback(null);
+    return () => {};
+  }
   const docRef = doc(db, "prescriptions", cleanId);
   return onSnapshot(docRef, (snap) => {
     if (snap.exists()) {
@@ -459,8 +464,10 @@ export async function savePatientPrescription(
 
 // Fetch all historical prescriptions for a patient
 export async function getPatientPrescriptionsHistory(patientId: string): Promise<PatientPrescription[]> {
+  const cleanId = (patientId || "").trim().toUpperCase();
+  if (!cleanId) return [];
   try {
-    const colRef = collection(db, "patients", patientId, "prescriptions");
+    const colRef = collection(db, "patients", cleanId, "prescriptions");
     const q = query(colRef, orderBy("prescribedAt", "desc"));
     const snap = await getDocs(q);
     const list: PatientPrescription[] = [];
