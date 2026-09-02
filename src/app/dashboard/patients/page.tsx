@@ -27,7 +27,9 @@ import {
   X
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions } from "@/lib/patientsDb";
-import { getClinicConfig } from "@/lib/db";
+import { getClinicConfig, ClinicConfig, generateSlotsFromHours, isSlotInPast } from "@/lib/db";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { sanitizePhone, sanitizeName, isValidIndianPhone, isValidEmail } from "@/lib/sanitizer";
 import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
 import PatientDeleteModal from "@/components/dashboard/PatientDeleteModal";
@@ -91,6 +93,12 @@ export default function PatientsPage() {
     upcoming: "",
   });
 
+  // Walk-in slot blocking toggle state
+  const [isWalkInSession, setIsWalkInSession] = useState(false);
+  const [walkInSlot, setWalkInSlot] = useState("");
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig | null>(null);
+  const [todaySlots, setTodaySlots] = useState<string[]>([]);
+
   // Action Menu dropdown state (stores patient ID of open menu)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [selectedPatientForDelete, setSelectedPatientForDelete] = useState<Patient | null>(null);
@@ -109,16 +117,27 @@ export default function PatientsPage() {
     fetchEnrolledTherapists();
   }, []);
 
-  const fetchEnrolledTherapists = async () => {
+  async function fetchEnrolledTherapists() {
     try {
       const config = await getClinicConfig();
-      if (config && config.therapists && config.therapists.length > 0) {
-        setEnrolledTherapists(config.therapists);
-        // Default patient assigned therapist to the first one in the list
-        setFormData((prev) => ({
-          ...prev,
-          therapistName: config.therapists[0]
-        }));
+      if (config) {
+        setClinicConfig(config);
+        if (config.therapists && config.therapists.length > 0) {
+          setEnrolledTherapists(config.therapists);
+          // Default patient assigned therapist to the first one in the list
+          setFormData((prev) => ({
+            ...prev,
+            therapistName: config.therapists[0]
+          }));
+        }
+        const slots = generateSlotsFromHours(
+          config.morningStart,
+          config.morningEnd,
+          config.eveningStart,
+          config.eveningEnd,
+          config.slotDuration
+        );
+        setTodaySlots(slots);
       } else {
         setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
       }
@@ -281,6 +300,8 @@ export default function PatientsPage() {
     }
 
     try {
+      const isWalkIn = isWalkInSession && Boolean(walkInSlot);
+
       // 1. Create Patient in Firestore Client-side
       console.log("[Client Page] Creating patient profile in Firestore...", cleanName);
       const newPatient = await createPatient({
@@ -292,11 +313,40 @@ export default function PatientsPage() {
         treatmentPlan: formData.treatmentPlan,
         status: formData.status,
         therapistName: formData.therapistName,
-        upcoming: formData.upcoming || "Pending Schedule",
-        lastVisit: "N/A"
+        upcoming: isWalkIn ? `Today (${walkInSlot})` : (formData.upcoming || "Pending Schedule"),
+        lastVisit: isWalkIn ? "Today" : "N/A"
       });
 
       console.log("[Client Page] Created Patient doc ID:", newPatient.id);
+
+      // 1b. If walk-in session, block the slot in appointments collection
+      if (isWalkIn) {
+        try {
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth() + 1).padStart(2, "0");
+          const dd = String(today.getDate()).padStart(2, "0");
+          const formattedBookingDate = `${dd}-${mm}-${yyyy}`;
+
+          await addDoc(collection(db, "appointments"), {
+            patientName: cleanName,
+            patientPhone: `${dialCode} ${cleanPhone}`,
+            patientEmail: formData.email ? formData.email.trim().toLowerCase() : "",
+            serviceId: formData.treatmentPlan || "General Physiotherapy Consultation",
+            date: formattedBookingDate,
+            slot: walkInSlot,
+            notes: "Direct in-clinic walk-in registered at reception.",
+            status: "approved",
+            type: "walk-in",
+            assignedTherapist: formData.therapistName,
+            createdAt: Timestamp.now(),
+            actionedAt: Timestamp.now(),
+          });
+          console.log("[Client Page] Blocked walk-in slot in appointments:", walkInSlot);
+        } catch (appErr) {
+          console.error("Failed to block walk-in appointment slot:", appErr);
+        }
+      }
 
       // 2. Call secure API route to create folder on Google Drive
       try {
@@ -325,6 +375,8 @@ export default function PatientsPage() {
       }
 
       setModalOpen(false);
+      setIsWalkInSession(false);
+      setWalkInSlot("");
       // Reset form
       setFormData({
         name: "",
@@ -340,9 +392,10 @@ export default function PatientsPage() {
       
       // Refresh list
       fetchPatientsList();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error registering patient:", err);
-      setFormError(err.message || "Failed to save patient profile. Verify your internet connection.");
+      const msg = err instanceof Error ? err.message : "Failed to save patient profile. Verify your internet connection.";
+      setFormError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -1012,7 +1065,7 @@ export default function PatientsPage() {
                 </div>
 
                 {/* Assigned Therapist */}
-                <div>
+                <div className={isWalkInSession ? "col-span-2 sm:col-span-1" : ""}>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
                     Assigned Therapist
                   </label>
@@ -1030,19 +1083,105 @@ export default function PatientsPage() {
                   </select>
                 </div>
 
-                {/* Upcoming Schedule */}
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                    Initial Appointment Schedule
-                  </label>
-                  <input
-                    type="text"
-                    name="upcoming"
-                    placeholder="e.g. Nov 02, 2026 14:00"
-                    value={formData.upcoming}
-                    onChange={handleInputChange}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
-                  />
+                {/* Upcoming Schedule (if not walk-in) */}
+                {!isWalkInSession && (
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                      Initial Appointment Schedule (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      name="upcoming"
+                      placeholder="e.g. Nov 02, 2026 14:00"
+                      value={formData.upcoming}
+                      onChange={handleInputChange}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                    />
+                  </div>
+                )}
+
+                {/* In-Clinic Walk-in Session Toggle */}
+                <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-slate-850 space-y-3">
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-teal-50/80 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-800/60">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="walkInCheck"
+                        checked={isWalkInSession}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setIsWalkInSession(checked);
+                          if (checked && todaySlots.length > 0) {
+                            const today = getTodayDateString();
+                            const available = todaySlots.find(
+                              (s) => !isSlotInPast(s, today, {
+                                isAdmin: true,
+                                graceType: clinicConfig?.adminWalkInGraceType || "end_of_slot",
+                                slotDuration: clinicConfig?.slotDuration || 30,
+                              })
+                            );
+                            setWalkInSlot(available || todaySlots[0]);
+                          }
+                        }}
+                        className="h-4.5 w-4.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 accent-teal-600 cursor-pointer"
+                      />
+                      <label htmlFor="walkInCheck" className="cursor-pointer select-none">
+                        <span className="block text-xs font-black text-teal-950 dark:text-teal-200">
+                          In-Clinic Walk-in (Block Today&apos;s Treatment Bay)
+                        </span>
+                        <span className="block text-[11px] font-semibold text-teal-700 dark:text-teal-400">
+                          Patient is physically in the clinic. Automatically logs an approved session on today&apos;s roster.
+                        </span>
+                      </label>
+                    </div>
+
+                    <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-teal-200/70 dark:bg-teal-900/60 text-teal-800 dark:text-teal-200 shrink-0">
+                      ⚡ Walk-in
+                    </span>
+                  </div>
+
+                  {/* Slot selector when walk-in is toggled ON */}
+                  {isWalkInSession && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                          Select Today&apos;s Time Slot <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={walkInSlot}
+                            onChange={(e) => setWalkInSlot(e.target.value)}
+                            required={isWalkInSession}
+                            className="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs font-bold outline-none focus:border-brand-green text-slate-800 dark:text-slate-200 cursor-pointer pr-8"
+                          >
+                            {todaySlots.map((slot) => {
+                              const isPast = isSlotInPast(slot, getTodayDateString(), {
+                                isAdmin: true,
+                                graceType: clinicConfig?.adminWalkInGraceType || "end_of_slot",
+                                slotDuration: clinicConfig?.slotDuration || 30,
+                              });
+                              return (
+                                <option key={slot} value={slot}>
+                                  {slot} {isPast ? "— [Past Grace Window]" : "— [Active / Available]"}
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <Clock className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                          Session Status
+                        </label>
+                        <div className="flex items-center gap-2 h-[38px] px-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Auto-Approved (In-Session)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

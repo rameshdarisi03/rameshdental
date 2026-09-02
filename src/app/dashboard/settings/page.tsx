@@ -74,6 +74,8 @@ export default function DashboardSettings() {
     phone: "",
     email: "",
     googleMapsLink: "",
+    adminWalkInGraceType: "end_of_slot",
+    publicBookingCutoffMinutes: 0,
     googleMapsEmbed: "",
   });
 
@@ -753,6 +755,96 @@ export default function DashboardSettings() {
                     </div>
                   </div>
                 )}
+              </div>
+
+            </div>
+
+            {/* Booking Window & Walk-in Flexibility Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-6">
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Booking Window & Walk-in Flexibility
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Control how late walk-ins can be accepted by staff and when public online bookings cut off
+                    </p>
+                  </div>
+                </div>
+
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 text-[10px] font-black uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3" />
+                  Real-Time Rules
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Admin Walk-in Grace Window */}
+                <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-brand-green" />
+                    <label className="text-xs font-black text-slate-900 dark:text-white">
+                      Walk-in Grace Window (Staff Portal)
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                    Allows therapists to assign arriving walk-in patients to an ongoing or just-started time slot.
+                  </p>
+                  <select
+                    name="adminWalkInGraceType"
+                    value={config.adminWalkInGraceType || "end_of_slot"}
+                    onChange={(e) => {
+                      setConfig((prev) => ({ 
+                        ...prev, 
+                        adminWalkInGraceType: e.target.value as ClinicConfig["adminWalkInGraceType"]
+                      }));
+                      setSavedSuccess(false);
+                    }}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-bold outline-none focus:border-brand-green text-slate-800 dark:text-slate-200 cursor-pointer"
+                  >
+                    <option value="end_of_slot">Until End of Current Slot (Recommended)</option>
+                    <option value="15_min">Slot Start + 15 Minutes</option>
+                    <option value="30_min">Slot Start + 30 Minutes</option>
+                    <option value="anytime_today">Anytime Today (Full retroactive flexibility)</option>
+                  </select>
+                </div>
+
+                {/* Customer Public Booking Cutoff */}
+                <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-sky-500" />
+                    <label className="text-xs font-black text-slate-900 dark:text-white">
+                      Online Booking Cutoff (Patient Hub & Website)
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                    How far in advance an online patient must submit a booking before the slot starts.
+                  </p>
+                  <select
+                    name="publicBookingCutoffMinutes"
+                    value={config.publicBookingCutoffMinutes ?? 0}
+                    onChange={(e) => {
+                      setConfig((prev) => ({ 
+                        ...prev, 
+                        publicBookingCutoffMinutes: Number(e.target.value)
+                      }));
+                      setSavedSuccess(false);
+                    }}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-bold outline-none focus:border-brand-green text-slate-800 dark:text-slate-200 cursor-pointer"
+                  >
+                    <option value={0}>Up to Slot Start Time (0 min - e.g. 10:59 AM for 11 AM)</option>
+                    <option value={15}>15 Minutes Before Slot</option>
+                    <option value={30}>30 Minutes Before Slot</option>
+                    <option value={60}>1 Hour Before Slot</option>
+                  </select>
+                </div>
+
               </div>
 
             </div>

@@ -67,6 +67,8 @@ export interface ClinicConfig {
   eveningEnd: string; // "07:00 PM"
   operationalHoursText: string;
   therapists: string[];
+  adminWalkInGraceType?: "end_of_slot" | "15_min" | "30_min" | "anytime_today"; // Admin walk-in late tolerance
+  publicBookingCutoffMinutes?: number; // Public cutoff before slot starts: 0, 15, 30, 60
   address?: string;
   landmark?: string;
   phone?: string;
@@ -96,6 +98,8 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   eveningEnd: "07:00 PM",
   operationalHoursText: "Morning: 09:00 AM - 01:00 PM | Evening: 02:00 PM - 07:00 PM (Monday - Saturday)",
   therapists: ["Dr. Sarah Jenkins", "Dr. Rohan Das"],
+  adminWalkInGraceType: "end_of_slot",
+  publicBookingCutoffMinutes: 0,
   address: "123 Clinical Wellness Way, Near Central Park, Sector 4, Bangalore, 560001",
   landmark: "Next to Central Bank, opposite Central Park Main Gate",
   phone: "+91 92066 51295",
@@ -142,7 +146,8 @@ export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
 // Convert "09:30 AM" to total minutes from midnight
 function parseTimeToMinutes(timeStr: string): number {
   const [time, modifier] = timeStr.split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
+  const [rawHours, minutes] = time.split(":").map(Number);
+  let hours = rawHours;
   if (modifier === "PM" && hours < 12) {
     hours += 12;
   }
@@ -168,8 +173,19 @@ function formatMinutesToTime(totalMinutes: number): string {
   return `${formattedHours}:${formattedMinutes} ${modifier}`;
 }
 
+export interface SlotPastCheckOptions {
+  isAdmin?: boolean;
+  graceType?: "end_of_slot" | "15_min" | "30_min" | "anytime_today";
+  cutoffMinutes?: number;
+  slotDuration?: number;
+}
+
 // Check if a slot string (e.g. "09:30 AM") is in the past relative to local time and today's date
-export function isSlotInPast(slotStr: string, dateStr: string): boolean {
+export function isSlotInPast(
+  slotStr: string, 
+  dateStr: string, 
+  options?: SlotPastCheckOptions
+): boolean {
   try {
     const today = new Date();
     const year = today.getFullYear();
@@ -180,12 +196,17 @@ export function isSlotInPast(slotStr: string, dateStr: string): boolean {
     if (dateStr < todayStr) return true;
     if (dateStr > todayStr) return false;
 
-    const currentHour = today.getHours();
-    const currentMinute = today.getMinutes();
+    // For admin staff: if graceType is "anytime_today", all slots for today can be booked/blocked
+    if (options?.isAdmin && options?.graceType === "anytime_today") {
+      return false;
+    }
+
+    const currentTotalMinutes = today.getHours() * 60 + today.getMinutes();
 
     // Parse slot time (e.g. "09:30 AM" or "02:00 PM")
     const [time, modifier] = slotStr.split(" ");
-    let [slotHour, slotMinute] = time.split(":").map(Number);
+    const [rawHour, slotMinute] = time.split(":").map(Number);
+    let slotHour = rawHour;
 
     if (modifier === "PM" && slotHour < 12) {
       slotHour += 12;
@@ -194,8 +215,27 @@ export function isSlotInPast(slotStr: string, dateStr: string): boolean {
       slotHour = 0;
     }
 
-    if (slotHour < currentHour) return true;
-    if (slotHour === currentHour && slotMinute <= currentMinute) return true;
+    const slotStartTotalMinutes = slotHour * 60 + slotMinute;
+
+    if (options?.isAdmin) {
+      const graceType = options.graceType || "end_of_slot";
+      let graceMinutes = options.slotDuration || 30; // default end_of_slot
+      if (graceType === "15_min") {
+        graceMinutes = 15;
+      } else if (graceType === "30_min") {
+        graceMinutes = 30;
+      } else if (graceType === "end_of_slot") {
+        graceMinutes = options.slotDuration || 30;
+      }
+
+      // Slot is only past once current time passes (slotStart + graceMinutes)
+      return currentTotalMinutes >= slotStartTotalMinutes + graceMinutes;
+    } else {
+      // Customer / Public mode
+      const cutoff = options?.cutoffMinutes ?? 0;
+      // Cutoff applies before the slot starts (e.g. 15 mins before)
+      return currentTotalMinutes > (slotStartTotalMinutes - cutoff);
+    }
   } catch (error) {
     console.error("Error parsing slot time: ", error);
   }
@@ -330,8 +370,9 @@ export async function submitBookingRequest(
     });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error submitting appointment: ", error);
-    return { success: false, error: error?.message || "An unexpected database error occurred. Please try again." };
+    const msg = error instanceof Error ? error.message : "An unexpected database error occurred. Please try again.";
+    return { success: false, error: msg };
   }
 }

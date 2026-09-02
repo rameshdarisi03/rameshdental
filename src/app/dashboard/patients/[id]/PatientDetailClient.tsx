@@ -48,6 +48,7 @@ import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditIn
 import PatientDeleteModal from "@/components/dashboard/PatientDeleteModal";
 import { PatientDeleteOptions } from "@/lib/patientsDb";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
+import { Timestamp } from "firebase/firestore";
 import { 
   getPatientById, 
   getConsultations, 
@@ -237,6 +238,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
   // Editor ergonomics & Collapsible History states
   const [isEditorExpanded, setIsEditorExpanded] = useState(false);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+  const [creatingDriveFolder, setCreatingDriveFolder] = useState(false);
   const [expandedLogIds, setExpandedLogIds] = useState<string[]>([]);
 
   // Reminders states
@@ -494,21 +496,70 @@ PLAN:
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  // 1-Click interactive Google Drive folder creation
+  const handleCreateDriveFolder = async () => {
+    if (!patient || !patient.id) return;
+    setCreatingDriveFolder(true);
+    setFormError("");
+    setFormSuccess("");
+    try {
+      const driveRes = await fetch("/api/drive/create-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: patient.id,
+          patientName: patient.name,
+        }),
+      });
+      const data = await driveRes.json();
+      if (data.success && data.folderId) {
+        await updatePatient(patient.id, { googleDriveFolderId: data.folderId });
+        setPatient((prev) => (prev ? { ...prev, googleDriveFolderId: data.folderId } : null));
+        setFormSuccess(`📁 Google Drive folder successfully created & linked for ${patient.name}!`);
+      } else {
+        throw new Error(data.error || "Failed to create Google Drive folder.");
+      }
+    } catch (err: unknown) {
+      console.error("Error creating drive folder:", err);
+      const msg = err instanceof Error ? err.message : "Failed to create Google Drive folder.";
+      setFormError(msg);
+    } finally {
+      setCreatingDriveFolder(false);
+    }
+  };
+
   // Dedicated direct file upload / photo capture for Doctor Reference (Hidden from Patient Hub)
   const handleUploadDoctorScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !patient) return;
     const file = e.target.files[0];
-    
-    if (!patient.googleDriveFolderId) {
-      setFormError("This patient does not have a linked Google Drive folder. Please edit the patient or contact admin.");
-      return;
-    }
 
     setUploadingDoctorScan(true);
     setFormError("");
     setFormSuccess("");
 
     try {
+      // Auto-heal: If patient lacks a Drive folder, initialize it on-the-fly
+      let activeFolderId = patient.googleDriveFolderId;
+      if (!activeFolderId) {
+        console.log("Patient missing Drive folder during upload. Auto-initializing folder...");
+        const initRes = await fetch("/api/drive/create-folder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId: patient.id,
+            patientName: patient.name,
+          }),
+        });
+        const initData = await initRes.json();
+        if (initData.success && initData.folderId) {
+          activeFolderId = initData.folderId;
+          await updatePatient(patient.id, { googleDriveFolderId: initData.folderId });
+          setPatient((prev) => (prev ? { ...prev, googleDriveFolderId: initData.folderId } : null));
+        } else {
+          throw new Error(initData.error || "Unable to initialize Google Drive folder for upload.");
+        }
+      }
+
       let fileToUpload = file;
       if (file.type.startsWith("image/")) {
         try {
@@ -528,7 +579,7 @@ PLAN:
 
       const uploadFormData = new FormData();
       uploadFormData.append("file", fileToUpload);
-      uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
+      uploadFormData.append("parentFolderId", activeFolderId!);
       uploadFormData.append("date", formattedDate);
 
       const uploadResponse = await fetch("/api/drive/upload", {
@@ -565,23 +616,8 @@ PLAN:
         category: "DOCTOR_REFERENCE"
       });
 
-      // Update local state
-      setFiles((prev) => [
-        {
-          id: savedDoc.id,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: fileToUpload.size,
-          dateUploaded: formattedDate,
-          googleDriveFileId: uploadResult.fileId,
-          webViewLink: uploadResult.webViewLink,
-          downloadLink: uploadResult.downloadLink,
-          isDoctorOnly: true,
-          category: "DOCTOR_REFERENCE",
-          createdAt: Timestamp.now()
-        },
-        ...prev
-      ]);
+      // Update local state cleanly using saved document
+      setFiles((prev) => [savedDoc as MedicalFile, ...prev]);
 
       setFormSuccess(`📸 Medical file "${file.name}" uploaded successfully for Doctor's Reference.`);
     } catch (err: any) {
@@ -1370,9 +1406,19 @@ Warm regards,
               View Drive Folder
             </a>
           ) : (
-            <span className="text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200/50 dark:border-slate-800 select-none">
-              No Drive Folder Associated
-            </span>
+            <button
+              onClick={handleCreateDriveFolder}
+              disabled={creatingDriveFolder}
+              className="inline-flex items-center gap-2 rounded-xl border border-teal-300 dark:border-teal-700 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-200 px-4 py-2.5 text-xs font-black transition-all shadow-xs cursor-pointer disabled:opacity-50"
+              title="Create and link Google Drive folder for this patient"
+            >
+              {creatingDriveFolder ? (
+                <Loader2 className="h-4 w-4 animate-spin text-teal-600 dark:text-teal-400" />
+              ) : (
+                <Folder className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+              )}
+              <span>{creatingDriveFolder ? "Creating Folder..." : "Create & Link Drive Folder"}</span>
+            </button>
           )}
 
           <button

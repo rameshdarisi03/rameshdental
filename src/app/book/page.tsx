@@ -257,7 +257,10 @@ function BookingFormContent() {
     if (blockedType === "morning" && isMorningSlot(time)) return 0;
     if (blockedType === "evening" && !isMorningSlot(time)) return 0;
     if (blockedSlots.includes(time)) return 0;
-    if (isSlotInPast(time, formData.date)) return 0;
+    if (isSlotInPast(time, formData.date, {
+      cutoffMinutes: clinicConfig.publicBookingCutoffMinutes ?? 0,
+      slotDuration: clinicConfig.slotDuration || 30,
+    })) return 0;
 
     const maxCapacity = getSlotCapacity(clinicConfig, time);
     const booked = approvedSlotCounts[time] || 0;

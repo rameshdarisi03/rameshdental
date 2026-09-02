@@ -258,7 +258,11 @@ function WalkInBookingContent() {
     if (blockedType === "morning" && isMorningSlot(time)) return 0;
     if (blockedType === "evening" && !isMorningSlot(time)) return 0;
     if (blockedSlots.includes(time)) return 0;
-    if (isSlotInPast(time, formData.date)) return 0;
+    if (isSlotInPast(time, formData.date, {
+      isAdmin: true,
+      graceType: clinicConfig.adminWalkInGraceType || "end_of_slot",
+      slotDuration: clinicConfig.slotDuration || 30
+    })) return 0;
 
     const maxCapacity = getSlotCapacity(clinicConfig, time);
     const booked = approvedSlotCounts[time] || 0;
