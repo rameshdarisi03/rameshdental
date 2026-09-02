@@ -326,7 +326,7 @@ export default function PatientsPage() {
           const yyyy = today.getFullYear();
           const mm = String(today.getMonth() + 1).padStart(2, "0");
           const dd = String(today.getDate()).padStart(2, "0");
-          const formattedBookingDate = `${dd}-${mm}-${yyyy}`;
+          const formattedBookingDate = `${yyyy}-${mm}-${dd}`;
 
           await addDoc(collection(db, "appointments"), {
             patientName: cleanName,

@@ -272,9 +272,11 @@ export function generateSlotsFromHours(
 // Fetch all appointments for a given date
 export async function getAppointmentsByDate(dateStr: string): Promise<Appointment[]> {
   try {
+    const altDate = dateStr.includes("-") ? dateStr.split("-").reverse().join("-") : dateStr;
+    const dateList = Array.from(new Set([dateStr, altDate]));
     const q = query(
       collection(db, "appointments"),
-      where("date", "==", dateStr)
+      where("date", "in", dateList)
     );
     const snapshot = await getDocs(q);
     const appointments: Appointment[] = [];

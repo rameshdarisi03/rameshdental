@@ -174,8 +174,10 @@ export default function DaySnapshot() {
     setSelectedSlots([]);
     setLastClickedSlot(null);
     try {
-      // 1. Fetch appointments for selectedDate
-      const appQuery = query(collection(db, "appointments"), where("date", "==", selectedDate));
+      // 1. Fetch appointments for selectedDate (supporting both YYYY-MM-DD and DD-MM-YYYY)
+      const altDate = selectedDate.includes("-") ? selectedDate.split("-").reverse().join("-") : selectedDate;
+      const dateList = Array.from(new Set([selectedDate, altDate]));
+      const appQuery = query(collection(db, "appointments"), where("date", "in", dateList));
       const appSnapshot = await getDocs(appQuery);
       const appList: Appointment[] = [];
       appSnapshot.forEach((doc) => {
@@ -184,7 +186,7 @@ export default function DaySnapshot() {
       setAppointments(appList);
 
       // 2. Fetch blocks for selectedDate
-      const blockQuery = query(collection(db, "blocks"), where("date", "==", selectedDate));
+      const blockQuery = query(collection(db, "blocks"), where("date", "in", dateList));
       const blockSnapshot = await getDocs(blockQuery);
       const blockList: DayBlock[] = [];
       blockSnapshot.forEach((doc) => {
@@ -242,13 +244,22 @@ export default function DaySnapshot() {
     return () => window.removeEventListener("click", handleOutsideClick);
   }, [contextMenu]);
 
+  // Check if slot has passed, respecting Staff Walk-in Grace Window from Settings
+  const checkSlotInPast = (slot: string) => {
+    return isSlotInPast(slot, selectedDate, {
+      isAdmin: true,
+      graceType: clinicConfig.adminWalkInGraceType || "end_of_slot",
+      slotDuration: clinicConfig.slotDuration || 30,
+    });
+  };
+
   // Click slot handler with Shift-Key support
   const handleSlotClick = (e: React.MouseEvent, slot: string) => {
     if (e.button === 2) return; // ignore right clicks
 
     // Ignore selection of past free slots
     const state = getSlotState(slot);
-    if (state.type === "free" && isSlotInPast(slot, selectedDate)) {
+    if (state.type === "free" && checkSlotInPast(slot)) {
       return;
     }
 
@@ -262,7 +273,7 @@ export default function DaySnapshot() {
         // Filter out past free slots from range selection
         const range = allSlots.slice(minIdx, maxIdx + 1).filter((s) => {
           const sState = getSlotState(s);
-          return !(sState.type === "free" && isSlotInPast(s, selectedDate));
+          return !(sState.type === "free" && checkSlotInPast(s));
         });
         
         setSelectedSlots((prev) => {
@@ -288,7 +299,7 @@ export default function DaySnapshot() {
     
     // Ignore context menu on past free slots
     const state = getSlotState(slot);
-    if (state.type === "free" && isSlotInPast(slot, selectedDate)) {
+    if (state.type === "free" && checkSlotInPast(slot)) {
       return;
     }
 
@@ -374,7 +385,7 @@ export default function DaySnapshot() {
       }
     });
 
-    const isPast = isSlotInPast(slot, selectedDate);
+    const isPast = checkSlotInPast(slot);
     const remainingSlots = isBlocked || isPast ? 0 : Math.max(0, maxCapacity - approvedCount);
 
     return {
@@ -858,7 +869,7 @@ export default function DaySnapshot() {
   const isAllFreeSelected = () => {
     return selectedSlots.length > 0 && selectedSlots.every((s) => {
       const state = getSlotState(s);
-      return state.type === "free" && !isSlotInPast(s, selectedDate);
+      return state.type === "free" && !checkSlotInPast(s);
     });
   };
 
@@ -867,7 +878,7 @@ export default function DaySnapshot() {
   const blockedCount = allSlots.filter((s) => getSlotState(s).type === "blocked").length;
   const availableCount = allSlots.filter((s) => {
     const state = getSlotState(s);
-    return state.type === "free" && !isSlotInPast(s, selectedDate);
+    return state.type === "free" && !checkSlotInPast(s);
   }).length;
 
   return (
