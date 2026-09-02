@@ -51,9 +51,13 @@ export default function RecordsPage() {
     let rxUnsub = () => {};
 
     loadPatientRecords(patient.id);
-    if (patient.email) {
-      invUnsub = subscribePatientInvoices(patient.email, setInvoices);
-    }
+    invUnsub = subscribePatientInvoices({
+      patientId: patient.id,
+      email: patient.email,
+      phone: patient.phone,
+      name: patient.name,
+      customId: patient.activationCode
+    }, setInvoices);
     rxUnsub = subscribePatientPrescription(patient.id, (rx) => {
       setActivePrescription(rx);
     });

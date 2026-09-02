@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { 
@@ -29,7 +30,8 @@ import {
   Sparkles,
   FileText,
   ExternalLink,
-  Flame
+  Flame,
+  MessageSquare
 } from "lucide-react";
 
 import { usePatientAuth } from "@/providers/PatientAuthProvider";
@@ -42,33 +44,6 @@ interface DisplayExercise {
   youtubeId: string;
   tags: string[];
 }
-
-const DEFAULT_EXERCISES: DisplayExercise[] = [
-  {
-    id: "ex_cervical_chin_tuck",
-    title: "Cervical Chin Tucks",
-    description: "3 sets of 10 reps",
-    duration: "0:38",
-    youtubeId: "3R1tA4S0y4k",
-    tags: ["CERVICAL", "POSTURE"]
-  },
-  {
-    id: "ex_scapular_retraction",
-    title: "Scapular Retractions",
-    description: "3 sets of 10 reps",
-    duration: "0:42",
-    youtubeId: "4Yv-pQ2m1Wk",
-    tags: ["UPPER BACK", "POSTURE"]
-  },
-  {
-    id: "ex_wall_slides",
-    title: "Wall Slides with Foam Roller",
-    description: "3 sets of 10 reps",
-    duration: "0:45",
-    youtubeId: "wD7V2F3eRns",
-    tags: ["SHOULDER", "MOBILITY"]
-  }
-];
 
 export default function ExercisesPage() {
   return (
@@ -90,8 +65,8 @@ function ExercisesContent() {
   const videoParam = searchParams.get("video");
 
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
-  const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
-  const [activeVideo, setActiveVideo] = useState<string>(DEFAULT_EXERCISES[0].youtubeId);
+  const [exercises, setExercises] = useState<DisplayExercise[]>([]);
+  const [activeVideo, setActiveVideo] = useState<string>("");
   const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -114,7 +89,8 @@ function ExercisesContent() {
 
     const syncExercises = () => {
       if (!currentRx || !currentRx.exercises || currentRx.exercises.length === 0) {
-        setExercises(DEFAULT_EXERCISES);
+        setExercises([]);
+        setActiveVideo("");
         return;
       }
       const libMap = new Map(currentLib.map((item) => [item.id, item]));
@@ -244,181 +220,224 @@ function ExercisesContent() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {progress?.streakDays && progress.streakDays > 0 ? (
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-400/30 text-xs font-bold">
-              <Flame className="h-3.5 w-3.5 fill-current text-orange-500" />
-              <span>{progress.streakDays}d Streak</span>
-            </span>
-          ) : null}
-          
-          <button
-            type="button"
-            disabled={markingDay}
-            onClick={handleToggleDayComplete}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
-              isTodayDone
-                ? "bg-emerald-600 text-white"
-                : "bg-[#f9ab55] text-[#062e36] hover:bg-[#e09840]"
-            }`}
-          >
-            {markingDay ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <CheckCircle className="h-3.5 w-3.5" />
-            )}
-            <span>{isTodayDone ? "✓ Day Completed" : "Complete Day Routine"}</span>
-          </button>
-        </div>
+        {exercises.length > 0 && (
+          <div className="flex items-center gap-2">
+            {progress?.streakDays && progress.streakDays > 0 ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-400/30 text-xs font-bold">
+                <Flame className="h-3.5 w-3.5 fill-current text-orange-500" />
+                <span>{progress.streakDays}d Streak</span>
+              </span>
+            ) : null}
+            
+            <button
+              type="button"
+              disabled={markingDay}
+              onClick={handleToggleDayComplete}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                isTodayDone
+                  ? "bg-emerald-600 text-white"
+                  : "bg-[#f9ab55] text-[#062e36] hover:bg-[#e09840]"
+              }`}
+            >
+              {markingDay ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCircle className="h-3.5 w-3.5" />
+              )}
+              <span>{isTodayDone ? "✓ Day Completed" : "Complete Day Routine"}</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 2. Category Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setFilterCategory(cat)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
-              filterCategory === cat
-                ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-xs"
-                : "bg-white dark:bg-[#121a1d] text-[#41484A] dark:text-slate-300 border border-[#21444D]/10 dark:border-slate-800 hover:border-[#f9ab55]"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* 3. Therapist Guidance Banner */}
-      {prescription && prescription.generalNotes && (
-        <div className="bg-[#FFE5D4]/40 dark:bg-amber-950/20 border border-[#f9ab55]/40 p-4 rounded-2xl flex items-start gap-3 text-xs text-[#3e230b] dark:text-amber-200 font-medium shadow-xs">
-          <FileText className="h-5 w-5 text-[#8a5100] dark:text-[#f9ab55] shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <span className="font-bold uppercase tracking-wider text-[10px] text-[#8a5100] dark:text-[#f9ab55] block">
-              Physiotherapist Instructions & Precautions
-            </span>
-            <p className="leading-relaxed">{prescription.generalNotes}</p>
+      {exercises.length === 0 ? (
+        <div className="py-16 px-6 rounded-3xl bg-white dark:bg-[#121a1d] border border-dashed border-[#21444D]/20 dark:border-slate-800 text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 flex items-center justify-center mx-auto shadow-xs border border-teal-200/50 dark:border-teal-800/60">
+            <Dumbbell className="w-8 h-8" />
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h2 className="text-xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+              No Prescribed Exercises Yet
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+              Your physiotherapist has not assigned any home exercises to your profile yet. Once prescribed during or after your clinical consultation, your personalized video routines, sets, reps, and hold targets will appear here.
+            </p>
+          </div>
+          <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+            <Link
+              href="/patienthub/dashboard"
+              className="inline-flex items-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs"
+            >
+              <span>Back to Dashboard</span>
+            </Link>
+            <a
+              href="https://wa.me/919206651295"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Ask Your Physiotherapist</span>
+            </a>
           </div>
         </div>
-      )}
-
-      {/* 4. Active Video Player Display with Fallback Overlay */}
-      <div className="bg-[#062e36] text-white rounded-[28px] p-4 sm:p-6 shadow-xl space-y-4 overflow-hidden border border-white/10">
-        <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 shadow-inner">
-          <iframe
-            src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0&enablejsapi=1`}
-            title={activeExerciseObj?.title || "Exercise Video"}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-
-        <div className="p-1 space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
-              {activeExerciseObj?.title}
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="bg-[#f9ab55] text-[#062e36] px-3 py-1 rounded-full text-xs font-bold">
-                {activeExerciseObj?.description}
-              </span>
-              <a
-                href={`https://www.youtube.com/watch?v=${activeVideo}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/15 transition-colors"
-                title="Open in YouTube"
+      ) : (
+        <>
+          {/* 2. Category Filter Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setFilterCategory(cat)}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  filterCategory === cat
+                    ? "bg-[#062e36] text-white dark:bg-[#f9ab55] dark:text-[#062e36] shadow-xs"
+                    : "bg-white dark:bg-[#121a1d] text-[#41484A] dark:text-slate-300 border border-[#21444D]/10 dark:border-slate-800 hover:border-[#f9ab55]"
+                }`}
               >
-                <span>Watch on YouTube</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* 3. Therapist Guidance Banner */}
+          {prescription && prescription.generalNotes && (
+            <div className="bg-[#FFE5D4]/40 dark:bg-amber-950/20 border border-[#f9ab55]/40 p-4 rounded-2xl flex items-start gap-3 text-xs text-[#3e230b] dark:text-amber-200 font-medium shadow-xs">
+              <FileText className="h-5 w-5 text-[#8a5100] dark:text-[#f9ab55] shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold uppercase tracking-wider text-[10px] text-[#8a5100] dark:text-[#f9ab55] block">
+                  Physiotherapist Instructions & Precautions
+                </span>
+                <p className="leading-relaxed">{prescription.generalNotes}</p>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Active Video Player Display with Fallback Overlay */}
+          <div className="bg-[#062e36] text-white rounded-[28px] p-4 sm:p-6 shadow-xl space-y-4 overflow-hidden border border-white/10">
+            <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 shadow-inner">
+              <iframe
+                src={`https://www.youtube.com/embed/${activeVideo}?autoplay=1&rel=0&enablejsapi=1`}
+                title={activeExerciseObj?.title || "Exercise Video"}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+
+            <div className="p-1 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                  {activeExerciseObj?.title}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#f9ab55] text-[#062e36] px-3 py-1 rounded-full text-xs font-bold">
+                    {activeExerciseObj?.description}
+                  </span>
+                  <a
+                    href={`https://www.youtube.com/watch?v=${activeVideo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/15 transition-colors"
+                    title="Open in YouTube"
+                  >
+                    <span>Watch on YouTube</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+
+              {activeExerciseObj?.tags && activeExerciseObj.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {activeExerciseObj.tags.map((tag, idx) => (
+                    <span key={idx} className="bg-white/10 text-slate-200 text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md border border-white/10">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {activeExerciseObj?.tags.map((tag) => (
-              <span 
-                key={tag}
-                className="bg-white/10 text-slate-200 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+          {/* 5. Exercise Routine List */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                  Prescribed Exercise Playlist
+                </h3>
+                <span className="bg-[#21444D]/10 dark:bg-teal-950/60 text-[#21444D] dark:text-teal-300 text-xs font-black px-2.5 py-0.5 rounded-full">
+                  {filteredExercises.length} Routines
+                </span>
+              </div>
+            </div>
 
-      {/* 5. Exercise Playlist Cards */}
-      <div className="space-y-3 pt-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 px-1">
-          Assigned Exercises ({filteredExercises.length})
-        </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {filteredExercises.map((ex) => {
+                const isActive = activeVideo === ex.youtubeId;
+                const isCompleted = localCompletedIds !== null 
+                  ? localCompletedIds.includes(ex.id)
+                  : (todayLog?.completedExerciseIds || []).includes(ex.id);
+                const isToggling = togglingId === ex.id;
 
-        <div className="space-y-2.5">
-          {filteredExercises.map((ex, index) => {
-            const isActive = ex.youtubeId === activeVideo;
-            const isCompleted = completedIds.includes(ex.id) || completedIds.includes(ex.youtubeId);
-            const isToggling = togglingId === ex.id || togglingId === ex.youtubeId;
-
-            return (
-              <div
-                key={ex.youtubeId + index}
-                onClick={() => setActiveVideo(ex.youtubeId)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
-                  isActive
-                    ? "bg-white dark:bg-[#121a1d] border-[#062e36] dark:border-[#f9ab55] shadow-md ring-2 ring-[#f9ab55]/20"
-                    : "bg-white dark:bg-[#121a1d] border-[#21444D]/10 dark:border-slate-800 hover:border-[#f9ab55]/50 shadow-xs"
-                }`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 font-bold text-xs transition-colors ${
-                    isActive 
-                      ? "bg-[#062e36] text-[#f9ab55]" 
-                      : "bg-[#FAF9F9] dark:bg-slate-900 text-[#062e36] dark:text-slate-300"
-                  }`}>
-                    {isActive ? <Play className="h-4 w-4 fill-current ml-0.5" /> : index + 1}
-                  </div>
-
-                  <div>
-                    <h4 className="text-xs font-bold text-[#062e36] dark:text-white leading-snug">
-                      {ex.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                      {ex.description} • {ex.duration}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={isToggling}
-                    onClick={(e) => handleToggleComplete(ex.id, e)}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
-                      isCompleted
-                        ? "bg-emerald-500 text-white shadow-xs"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#f9ab55]/20 hover:text-[#8a5100]"
+                return (
+                  <div
+                    key={ex.id}
+                    onClick={() => setActiveVideo(ex.youtubeId)}
+                    className={`rounded-2xl p-4 transition-all border flex items-center justify-between gap-3 group cursor-pointer ${
+                      isActive
+                        ? "bg-[#062e36]/5 dark:bg-slate-850 border-[#062e36] dark:border-[#f9ab55] shadow-sm"
+                        : "bg-white dark:bg-[#121a1d] border-[#21444D]/10 dark:border-slate-800 hover:border-[#f9ab55] hover:shadow-xs"
                     }`}
                   >
-                    {isToggling ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <CheckCircle className="h-3.5 w-3.5" />
-                    )}
-                    <span>{isCompleted ? "Completed" : "Mark Done"}</span>
-                  </button>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isActive 
+                          ? "bg-[#062e36] text-[#f9ab55]" 
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-[#f9ab55]/20 group-hover:text-[#8a5100]"
+                      }`}>
+                        <Play className="h-4 w-4 fill-current" />
+                      </div>
 
-                  <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? "text-[#f9ab55] translate-x-1" : "text-slate-400"}`} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-[#1A1C1B] dark:text-slate-100 truncate group-hover:text-[#8a5100] dark:group-hover:text-[#f9ab55] transition-colors">
+                          {ex.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5 truncate">
+                          {ex.description} • {ex.duration}
+                        </p>
+                      </div>
+                    </div>
 
+                    <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        disabled={isToggling}
+                        onClick={(e) => handleToggleComplete(ex.id, e)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isCompleted
+                            ? "bg-emerald-500 text-white shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#f9ab55]/20 hover:text-[#8a5100]"
+                        }`}
+                      >
+                        {isToggling ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-3.5 w-3.5" />
+                        )}
+                        <span>{isCompleted ? "Completed" : "Mark Done"}</span>
+                      </button>
+
+                      <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isActive ? "text-[#f9ab55] translate-x-1" : "text-slate-400"}`} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
-

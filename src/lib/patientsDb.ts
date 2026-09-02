@@ -112,14 +112,15 @@ import { sanitizePatientPayload, sanitizePhone, sanitizeName } from "./sanitizer
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
-  matchType?: "phone" | "name";
+  matchType?: "exact" | "family_member" | "name_collision";
   existingPatient?: Patient;
+  message?: string;
 }
 
 export async function checkDuplicatePatient(phone?: string, name?: string): Promise<DuplicateCheckResult> {
   try {
     const cleanPhone = sanitizePhone(phone);
-    const cleanName = sanitizeName(name).toLowerCase();
+    const cleanName = sanitizeName(name).trim().toLowerCase();
     
     if (!cleanPhone && !cleanName) {
       return { isDuplicate: false };
@@ -127,33 +128,52 @@ export async function checkDuplicatePatient(phone?: string, name?: string): Prom
 
     const all = await getDocs(collection(db, "patients"));
     
-    // First Priority: Phone match (Exact 10 digits)
-    if (cleanPhone && cleanPhone.length === 10) {
-      for (const d of all.docs) {
-        const data = d.data() as Patient;
-        const pPhone = sanitizePhone(data.phone);
-        if (pPhone === cleanPhone) {
+    let phoneMatchPatient: Patient | null = null;
+    let nameMatchPatient: Patient | null = null;
+
+    for (const d of all.docs) {
+      const data = d.data() as Patient;
+      const pPhone = sanitizePhone(data.phone);
+      const pName = (data.name || "").trim().toLowerCase();
+
+      // Check for exact phone match (10 digits)
+      if (cleanPhone && cleanPhone.length === 10 && pPhone === cleanPhone) {
+        // If BOTH phone AND name match -> 100% Exact Duplicate
+        if (cleanName && pName === cleanName) {
           return {
             isDuplicate: true,
-            matchType: "phone",
+            matchType: "exact",
             existingPatient: { id: d.id, ...data },
+            message: `Patient "${data.name}" is already registered with this phone number (${pPhone}).`,
           };
         }
+        phoneMatchPatient = { id: d.id, ...data };
+      }
+
+      // Check for name match with different phone
+      if (cleanName && cleanName.length > 2 && pName === cleanName) {
+        nameMatchPatient = { id: d.id, ...data };
       }
     }
 
-    // Second Priority: Name match (Exact match)
-    if (cleanName && cleanName.length > 2) {
-      for (const d of all.docs) {
-        const data = d.data() as Patient;
-        if ((data.name || "").trim().toLowerCase() === cleanName) {
-          return {
-            isDuplicate: true,
-            matchType: "name",
-            existingPatient: { id: d.id, ...data },
-          };
-        }
-      }
+    // Scenario 2: Phone matches, but name is different (e.g. child, spouse, or parent sharing phone)
+    if (phoneMatchPatient) {
+      return {
+        isDuplicate: false, // NOT a blocker - allow registration of family member!
+        matchType: "family_member",
+        existingPatient: phoneMatchPatient,
+        message: `Phone number is shared with family member "${phoneMatchPatient.name}". A separate individual profile will be created.`,
+      };
+    }
+
+    // Scenario 3: Name matches, but phone is different (two people with same name)
+    if (nameMatchPatient) {
+      return {
+        isDuplicate: false, // NOT a blocker - people can have the same name!
+        matchType: "name_collision",
+        existingPatient: nameMatchPatient,
+        message: `Another patient is named "${nameMatchPatient.name}" with a different contact number.`,
+      };
     }
 
     return { isDuplicate: false };

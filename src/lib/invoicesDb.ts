@@ -218,12 +218,24 @@ export async function deleteInvoice(id: string) {
   }
 }
 
+export interface PatientInvoiceIdentifier {
+  patientId?: string;
+  email?: string;
+  phone?: string;
+  name?: string;
+  customId?: string;
+}
+
 /**
  * Subscribe to patient-specific invoices for Patient Hub or Patient Profile
- * Matches by patientId, patientEmail, patientPhone, or custom PID
+ * Zero-Leak Isolation Architecture:
+ * 1. Primary: Exact patientId match (SSOT UHID)
+ * 2. Strict barrier: If invoice has patientId and it doesn't match targetPid, REJECT.
+ * 3. Fallback: Exact email match OR (Last 10 digits of phone AND exact name match)
+ * NEVER uses partial phone matching or includes("").
  */
 export function subscribePatientInvoices(
-  identifier: { patientId?: string; email?: string; phone?: string; customId?: string } | string,
+  identifier: PatientInvoiceIdentifier | string,
   callback: (invoices: Invoice[]) => void
 ) {
   const q = query(collection(db, INVOICES_COLLECTION));
@@ -234,26 +246,71 @@ export function subscribePatientInvoices(
       ...docSnap.data(),
     } as Invoice));
 
+    let targetPid = "";
+    let targetEmail = "";
+    let targetPhone = "";
+    let targetName = "";
+
+    if (typeof identifier === "string") {
+      const cleanStr = identifier.trim();
+      if (!cleanStr) {
+        callback([]);
+        return;
+      }
+      if (cleanStr.includes("@")) {
+        targetEmail = cleanStr.toLowerCase();
+      } else if (cleanStr.toUpperCase().startsWith("GPC-")) {
+        targetPid = cleanStr.toUpperCase();
+      } else {
+        const digits = cleanStr.replace(/\D/g, "");
+        if (digits.length >= 10) {
+          targetPhone = digits.slice(-10);
+        } else {
+          targetPid = cleanStr;
+        }
+      }
+    } else if (identifier) {
+      targetPid = (identifier.patientId || identifier.customId || "").trim().toUpperCase();
+      targetEmail = (identifier.email || "").trim().toLowerCase();
+      const rawPhone = (identifier.phone || "").replace(/\D/g, "");
+      targetPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : "";
+      targetName = (identifier.name || "").trim().toLowerCase();
+    }
+
+    if (!targetPid && !targetEmail && !targetPhone) {
+      callback([]);
+      return;
+    }
+
     const matched = all.filter((inv) => {
-      if (typeof identifier === "string") {
-        const idStr = identifier.toLowerCase().trim();
-        if (!idStr) return false;
-        return (
-          (inv.patientEmail && inv.patientEmail.toLowerCase().trim() === idStr) ||
-          (inv.patientId && inv.patientId.toLowerCase().trim() === idStr) ||
-          (inv.patientPhone && inv.patientPhone.replace(/\D/g, "").includes(idStr.replace(/\D/g, "")))
-        );
+      const invPid = (inv.patientId || "").trim().toUpperCase();
+      const invEmail = (inv.patientEmail || "").trim().toLowerCase();
+      const invRawPhone = (inv.patientPhone || "").replace(/\D/g, "");
+      const invPhone = invRawPhone.length >= 10 ? invRawPhone.slice(-10) : "";
+      const invName = (inv.patientName || "").trim().toLowerCase();
+
+      // Rule 1: Exact Patient ID match (UHID) - 100% Primary Truth
+      if (targetPid && invPid) {
+        return invPid === targetPid;
       }
 
-      const { patientId, email, phone, customId } = identifier;
-      if (patientId && inv.patientId === patientId) return true;
-      if (customId && inv.patientId === customId) return true;
-      if (email && inv.patientEmail && inv.patientEmail.toLowerCase().trim() === email.toLowerCase().trim()) return true;
-      if (phone && inv.patientPhone) {
-        const p1 = phone.replace(/\D/g, "");
-        const p2 = inv.patientPhone.replace(/\D/g, "");
-        if (p1 && p2 && (p1.endsWith(p2) || p2.endsWith(p1))) return true;
+      // Rule 2: If invoice has a patientId, but target didn't match it, DO NOT leak across family members
+      if (invPid && targetPid && invPid !== targetPid) {
+        return false;
       }
+
+      // Rule 3: Exact Email match (Only if both non-empty and invoice has no conflicting patientId)
+      if (targetEmail && invEmail && invEmail === targetEmail) {
+        return true;
+      }
+
+      // Rule 4: Phone + Name match for legacy invoices (Only if both phone AND name match)
+      if (targetPhone && invPhone && targetPhone === invPhone) {
+        if (targetName && invName && targetName === invName) {
+          return true;
+        }
+      }
+
       return false;
     });
 

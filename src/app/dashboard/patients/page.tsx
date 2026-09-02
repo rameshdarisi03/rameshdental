@@ -244,7 +244,7 @@ export default function PatientsPage() {
 
         if (cleanPhone.length >= 10 || cleanName.length >= 3) {
           checkDuplicatePatient(cleanPhone, cleanName).then((res) => {
-            setDuplicateInfo(res.isDuplicate ? res : null);
+            setDuplicateInfo(res.isDuplicate || res.matchType === "family_member" ? res : null);
           });
         } else {
           setDuplicateInfo(null);
@@ -922,24 +922,39 @@ export default function PatientsPage() {
 
                   {/* Real-Time Duplicate Patient Alert Banner */}
                   {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && (
-                    <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
-                      <AlertCircle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="mt-2 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                      <AlertCircle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                       <div className="space-y-1 text-xs">
-                        <p className="font-black text-amber-900 dark:text-amber-200">
-                          ⚠️ Patient Already Exists ({duplicateInfo.matchType === "phone" ? "Matching Mobile Number" : "Matching Name"})
+                        <p className="font-black text-rose-900 dark:text-rose-200">
+                          ⚠️ Patient Already Exists
                         </p>
-                        <p className="text-amber-800 dark:text-amber-300 font-semibold">
-                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>) is already registered in the system.
+                        <p className="text-rose-800 dark:text-rose-300 font-semibold">
+                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>) is already registered with this exact contact number.
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <Link
                             href={`/dashboard/patients/${duplicateInfo.existingPatient.id}`}
                             target="_blank"
-                            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded-xl shadow-2xs transition-colors"
+                            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-rose-600 hover:bg-rose-700 px-3 py-1 rounded-xl shadow-2xs transition-colors"
                           >
                             <span>Open Existing Profile ↗</span>
                           </Link>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Family Member Shared Contact Notice */}
+                  {!duplicateInfo?.isDuplicate && duplicateInfo?.matchType === "family_member" && duplicateInfo.existingPatient && (
+                    <div className="mt-2 p-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                      <CheckCircle2 className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5 text-xs">
+                        <p className="font-black text-teal-900 dark:text-teal-200">
+                          👨‍👩‍👧 Family Contact Shared
+                        </p>
+                        <p className="text-teal-800 dark:text-teal-300 font-medium leading-relaxed">
+                          This mobile number is on file with family member <strong>{duplicateInfo.existingPatient.name}</strong>. A separate, individual medical record and Patient ID will be created for <strong>{formData.name}</strong>.
+                        </p>
                       </div>
                     </div>
                   )}

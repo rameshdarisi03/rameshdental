@@ -47,34 +47,10 @@ interface DisplayExercise {
   tags: string[];
 }
 
-const DEFAULT_EXERCISES: DisplayExercise[] = [
-  {
-    title: "Cervical Chin Tucks",
-    description: "3 sets of 10 reps",
-    duration: "0:38",
-    youtubeId: "3R1tA4S0y4k",
-    tags: ["CERVICAL", "POSTURE"]
-  },
-  {
-    title: "Scapular Retractions",
-    description: "3 sets of 10 reps",
-    duration: "0:42",
-    youtubeId: "4Yv-pQ2m1Wk",
-    tags: ["UPPER BACK", "POSTURE"]
-  },
-  {
-    title: "Wall Slides with Foam Roller",
-    description: "3 sets of 10 reps",
-    duration: "0:45",
-    youtubeId: "wD7V2F3eRns",
-    tags: ["SHOULDER", "MOBILITY"]
-  }
-];
-
 export default function DashboardPage() {
   const { patient, loading: authLoading } = usePatientAuth();
   const [prescription, setPrescription] = useState<PatientPrescription | null>(null);
-  const [exercises, setExercises] = useState<DisplayExercise[]>(DEFAULT_EXERCISES);
+  const [exercises, setExercises] = useState<DisplayExercise[]>([]);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
   const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
   const [markingDay, setMarkingDay] = useState(false);
@@ -116,9 +92,13 @@ export default function DashboardPage() {
       setExercises(mapped);
     };
 
-    if (patient.email) {
-      invUnsub = subscribePatientInvoices(patient.email, setPatientInvoices);
-    }
+    invUnsub = subscribePatientInvoices({
+      patientId: patient.id,
+      email: patient.email,
+      phone: patient.phone,
+      name: patient.name,
+      customId: patient.activationCode
+    }, setPatientInvoices);
 
     libUnsub = subscribeExerciseLibrary((liveLibrary) => {
       currentLib = liveLibrary;
@@ -157,6 +137,7 @@ export default function DashboardPage() {
   const upcomingDate = patient?.upcoming || "No session scheduled";
 
   // Program timeline metrics
+  const hasActiveProtocol = Boolean(prescription && prescription.exercises && prescription.exercises.length > 0);
   const duration = prescription?.durationDays || 14;
   const currentDay = progress?.currentDayNumber || 1;
   const completedDays = progress?.completedDaysCount || 0;
@@ -187,17 +168,21 @@ export default function DashboardPage() {
             Welcome back, {patientName}.
           </h1>
           <p className="text-xs sm:text-sm text-[#41484A] dark:text-slate-300 font-medium mt-1">
-            {planName} • Day {currentDay} of {duration}
+            {hasActiveProtocol 
+              ? `${planName} • Day ${currentDay} of ${duration}` 
+              : "Consultation Pending • No active care protocol prescribed yet"}
           </p>
         </div>
 
         {/* Live Momentum Streak Pill */}
-        <div className="flex items-center gap-2">
-          <div className="inline-flex items-center gap-2 bg-[#FFE5D4] dark:bg-amber-950/50 border border-[#f9ab55]/40 text-[#3e230b] dark:text-amber-200 px-4 py-2 rounded-full font-bold text-xs shadow-xs">
-            <Flame className="h-4 w-4 fill-current text-orange-500 animate-bounce" />
-            <span>{streak} Day Momentum Streak</span>
+        {hasActiveProtocol && (
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 bg-[#FFE5D4] dark:bg-amber-950/50 border border-[#f9ab55]/40 text-[#3e230b] dark:text-amber-200 px-4 py-2 rounded-full font-bold text-xs shadow-xs">
+              <Flame className="h-4 w-4 fill-current text-orange-500 animate-bounce" />
+              <span>{streak} Day Momentum Streak</span>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* 2. Hero Card: Upcoming Care Session */}
@@ -222,21 +207,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto relative z-10">
-          <Link
-            href="/patienthub/appointments"
-            className="w-full sm:w-auto bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] font-bold text-xs px-6 py-3.5 rounded-full transition-all duration-200 shadow-md flex items-center justify-center gap-2 hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            <Calendar className="h-4 w-4" />
-            <span>{upcomingDate === "No session scheduled" ? "Book Visit Slot" : "Manage Booking"}</span>
-          </Link>
-        </div>
+        <Link
+          href="/book"
+          className="relative z-10 inline-flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-bold text-xs px-5 py-3 rounded-full transition-all shadow-md shrink-0 cursor-pointer"
+        >
+          <span>Schedule Visit</span>
+          <ChevronRight className="h-4 w-4" />
+        </Link>
       </section>
 
-      {/* 3. Quick Actions Bento Grid */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+      {/* 3. Quick Action Hub */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Link 
-          href="/patienthub/appointments"
+          href="/book"
           className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
         >
           <div className="w-11 h-11 rounded-2xl bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
@@ -285,139 +268,165 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-4">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55]">
-              {prescription ? `${duration}-Day Protocol • Started ${prescription.prescribedDateFormatted}` : "Clinical Protocol"}
+              {hasActiveProtocol && prescription ? `${duration}-Day Protocol • Started ${prescription.prescribedDateFormatted}` : "Clinical Protocol"}
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
               Prescribed Exercises
             </h2>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              disabled={markingDay}
-              onClick={handleToggleDayComplete}
-              className={`inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition-all shadow-xs cursor-pointer ${
-                isTodayDone
-                  ? "bg-emerald-600 text-white"
-                  : "bg-[#f9ab55] text-[#062e36] hover:bg-[#e09840]"
-              }`}
-            >
-              <CheckCircle className="h-3.5 w-3.5" />
-              <span>{isTodayDone ? "Completed" : "Complete Day"}</span>
-            </button>
+          {hasActiveProtocol && (
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                disabled={markingDay}
+                onClick={handleToggleDayComplete}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full transition-all shadow-xs cursor-pointer ${
+                  isTodayDone
+                    ? "bg-emerald-600 text-white"
+                    : "bg-[#f9ab55] text-[#062e36] hover:bg-[#e09840]"
+                }`}
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                <span>{isTodayDone ? "Completed" : "Complete Day"}</span>
+              </button>
 
-            <Link
-              href="/patienthub/exercises"
-              className="hidden sm:inline-flex items-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs shrink-0"
-            >
-              <span>{isTodayDone ? "Review Workouts" : `Start Day ${currentDay} Routine`}</span>
-              <ArrowRight className="h-3.5 w-3.5 text-[#f9ab55]" />
-            </Link>
-          </div>
+              <Link
+                href="/patienthub/exercises"
+                className="hidden sm:inline-flex items-center gap-2 bg-[#062e36] hover:bg-[#21444D] text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs shrink-0"
+              >
+                <span>{isTodayDone ? "Review Workouts" : `Start Day ${currentDay} Routine`}</span>
+                <ArrowRight className="h-3.5 w-3.5 text-[#f9ab55]" />
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* WORKOUT PROGRESS ROADMAP & STREAK CARD */}
-        <div className="bg-gradient-to-br from-[#062e36] to-[#21444D] text-white p-5 sm:p-6 rounded-3xl shadow-md space-y-5 relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-0.5 rounded-full bg-[#f9ab55] text-[#062e36] text-[10px] font-black uppercase tracking-wider">
-                  Day {currentDay} of {duration}
-                </span>
-                {isTodayDone && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase flex items-center gap-1 border border-emerald-400/30">
-                    <CheckCircle className="h-3 w-3" />
-                    Completed Today
-                  </span>
-                )}
-              </div>
-              <h3 className="text-lg font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
-                Recovery Journey Progress
+        {!hasActiveProtocol ? (
+          <div className="py-12 px-6 rounded-3xl bg-slate-50/70 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 flex items-center justify-center mx-auto shadow-xs border border-teal-200/50 dark:border-teal-800/60">
+              <Dumbbell className="w-7 h-7" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1.5">
+              <h3 className="text-base font-bold text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                No Care Protocol Prescribed Yet
               </h3>
-              <p className="text-xs text-slate-300 font-medium">
-                {completedDays} of {duration} workout days completed ({percentDone}% of program).
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                Your doctor or physiotherapist will prescribe your personalized rehabilitation exercises and care routine during or after your clinical consultation. They will appear here with video guides.
               </p>
             </div>
-
-            {/* Circular Progress Indicator */}
-            <div className="flex items-center gap-3 bg-white/10 px-4 py-2.5 rounded-2xl border border-white/15 shrink-0">
-              <div className="relative w-12 h-12 flex items-center justify-center">
-                <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                  <path
-                    className="text-white/20"
-                    strokeWidth="3.5"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path
-                    className="text-[#f9ab55]"
-                    strokeDasharray={`${percentDone}, 100`}
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-                <span className="absolute text-xs font-black text-[#f9ab55]">
-                  {percentDone}%
-                </span>
+            <div className="pt-2">
+              <Link
+                href="/patienthub/records"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#062e36] dark:text-teal-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-full shadow-xs hover:border-teal-400 transition-all"
+              >
+                <span>Check Consultations & Invoices</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-br from-[#062e36] to-[#21444D] text-white p-5 sm:p-6 rounded-3xl shadow-md space-y-5 relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-0.5 rounded-full bg-[#f9ab55] text-[#062e36] text-[10px] font-black uppercase tracking-wider">
+                    Day {currentDay} of {duration}
+                  </span>
+                  {isTodayDone && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase flex items-center gap-1 border border-emerald-400/30">
+                      <CheckCircle className="h-3 w-3" />
+                      Completed Today
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-lg font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                  Recovery Journey Progress
+                </h3>
+                <p className="text-xs text-slate-300 font-medium">
+                  {completedDays} of {duration} workout days completed ({percentDone}% of program).
+                </p>
               </div>
-              <div className="text-left leading-tight">
-                <p className="text-[11px] font-bold text-white">Program</p>
-                <p className="text-[9px] text-[#f9ab55] font-extrabold uppercase tracking-wider">Adherence</p>
+
+              {/* Circular Progress Indicator */}
+              <div className="flex items-center gap-3 bg-white/10 px-4 py-2.5 rounded-2xl border border-white/15 shrink-0">
+                <div className="relative w-12 h-12 flex items-center justify-center">
+                  <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-white/20"
+                      strokeWidth="3.5"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="text-[#f9ab55]"
+                      strokeDasharray={`${percentDone}, 100`}
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <span className="absolute text-xs font-black text-[#f9ab55]">
+                    {percentDone}%
+                  </span>
+                </div>
+                <div className="text-left leading-tight">
+                  <p className="text-[11px] font-bold text-white">Program</p>
+                  <p className="text-[9px] text-[#f9ab55] font-extrabold uppercase tracking-wider">Adherence</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 14-Day Circular Beads Timeline */}
-          <div className="space-y-3 pt-1 border-t border-white/10">
-            <div className="flex items-center justify-between text-[10px] text-slate-300 font-bold uppercase tracking-wider">
-              <span>Program Days Roadmap</span>
-              <span>Target Review: Day {duration}</span>
+            {/* 14-Day Circular Beads Timeline */}
+            <div className="space-y-3 pt-1 border-t border-white/10">
+              <div className="flex items-center justify-between text-[10px] text-slate-300 font-bold uppercase tracking-wider">
+                <span>Program Days Roadmap</span>
+                <span>Target Review: Day {duration}</span>
+              </div>
+
+              <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 sm:gap-2.5 md:gap-3">
+                {Array.from({ length: Math.min(duration, 14) }).map((_, idx) => {
+                  const dayNum = idx + 1;
+                  const startDate = prescription?.startDate || getLocalDateString();
+                  const dayDateStr = getProgramDayDateString(startDate, idx);
+                  const dayLog = progress?.dailyLogs?.[dayDateStr];
+                  const isDone = dayLog?.isFullyCompleted === true || (dayLog?.completedExerciseIds && dayLog.completedExerciseIds.length > 0);
+                  const isCurrent = dayNum === currentDay;
+
+                  return (
+                    <div
+                      key={dayNum}
+                      className={`w-full max-w-[32px] sm:max-w-[36px] aspect-square mx-auto rounded-full flex items-center justify-center text-[11px] sm:text-xs font-black transition-all ${
+                        isDone
+                          ? "bg-[#f9ab55] text-[#062e36] shadow-sm font-black"
+                          : isCurrent
+                          ? "bg-white/20 text-[#f9ab55] ring-2 ring-[#f9ab55] animate-pulse"
+                          : "bg-white/10 text-slate-300"
+                      }`}
+                      title={`Day ${dayNum} (${dayDateStr}): ${isDone ? "Completed" : isCurrent ? "Active Today" : "Pending"}`}
+                    >
+                      {isDone ? "✓" : dayNum}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="grid grid-cols-7 sm:grid-cols-14 gap-2 sm:gap-2.5 md:gap-3">
-              {Array.from({ length: Math.min(duration, 14) }).map((_, idx) => {
-                const dayNum = idx + 1;
-                const startDate = prescription?.startDate || getLocalDateString();
-                const dayDateStr = getProgramDayDateString(startDate, idx);
-                const dayLog = progress?.dailyLogs?.[dayDateStr];
-                const isDone = dayLog?.isFullyCompleted === true || (dayLog?.completedExerciseIds && dayLog.completedExerciseIds.length > 0);
-                const isCurrent = dayNum === currentDay;
-
-                return (
-                  <div
-                    key={dayNum}
-                    className={`w-full max-w-[32px] sm:max-w-[36px] aspect-square mx-auto rounded-full flex items-center justify-center text-[11px] sm:text-xs font-black transition-all ${
-                      isDone
-                        ? "bg-[#f9ab55] text-[#062e36] shadow-sm font-black"
-                        : isCurrent
-                        ? "bg-white/20 text-[#f9ab55] ring-2 ring-[#f9ab55] animate-pulse"
-                        : "bg-white/10 text-slate-300"
-                    }`}
-                    title={`Day ${dayNum} (${dayDateStr}): ${isDone ? "Completed" : isCurrent ? "Active Today" : "Pending"}`}
-                  >
-                    {isDone ? "✓" : dayNum}
-                  </div>
-                );
-              })}
+            {/* Mobile Dedicated Line: Go to Workout Center */}
+            <div className="pt-2 sm:hidden">
+              <Link
+                href="/patienthub/exercises"
+                className="w-full flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-extrabold text-xs py-3 rounded-2xl shadow-sm transition-all uppercase tracking-wider"
+              >
+                <span>Go to Workout Center</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
-
-          {/* Mobile Dedicated Line: Go to Workout Center */}
-          <div className="pt-2 sm:hidden">
-            <Link
-              href="/patienthub/exercises"
-              className="w-full flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-extrabold text-xs py-3 rounded-2xl shadow-sm transition-all uppercase tracking-wider"
-            >
-              <span>Go to Workout Center</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
+        )}
       </section>
 
       {/* 5. Clinical Provider Support Card */}
