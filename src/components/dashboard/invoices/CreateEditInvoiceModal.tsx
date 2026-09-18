@@ -65,7 +65,7 @@ export default function CreateEditInvoiceModal({
     initialInvoice?.patientName || initialPatient?.name || ""
   );
   const [patientPid, setPatientPid] = useState(
-    initialInvoice?.patientId || initialPatient?.customId || (initialPatient ? `GPC-${initialPatient.id.slice(0, 5).toUpperCase()}` : "")
+    initialInvoice?.patientId || initialPatient?.id || initialPatient?.customId || ""
   );
   const [patientEmail, setPatientEmail] = useState(
     initialInvoice?.patientEmail || initialPatient?.email || ""
@@ -107,10 +107,11 @@ export default function CreateEditInvoiceModal({
   // Update fields if initialPatient changes
   useEffect(() => {
     if (initialPatient && !initialInvoice) {
-      setSelectedPatientId(initialPatient.id);
+      const cleanPid = initialPatient.id || initialPatient.customId || "";
+      setSelectedPatientId(cleanPid);
       setPatientName(initialPatient.name);
       setPatientSearchText(initialPatient.name);
-      setPatientPid(initialPatient.customId || `GPC-${initialPatient.id.slice(0, 5).toUpperCase()}`);
+      setPatientPid(cleanPid);
       setPatientEmail(initialPatient.email || "");
       setPatientPhone(initialPatient.phone || "");
       if (initialPatient.therapistName) {
@@ -157,9 +158,10 @@ export default function CreateEditInvoiceModal({
   }, [patients, patientSearchText]);
 
   const handleSelectPatient = (p: Patient) => {
-    setSelectedPatientId(p.id);
+    const cleanPid = p.id || p.customId || "";
+    setSelectedPatientId(cleanPid);
     setPatientName(p.name);
-    setPatientPid(p.customId || `GPC-${p.id.slice(0, 5).toUpperCase()}`);
+    setPatientPid(cleanPid);
     setPatientEmail(p.email || "");
     setPatientPhone(p.phone || "");
     setPatientSearchText(p.name);
@@ -236,9 +238,10 @@ export default function CreateEditInvoiceModal({
         rate: Math.max(0, Number(item.rate) || 0)
       }));
 
+      const cleanFinalPid = (patientPid || selectedPatientId || "GPC-GUEST").trim().toUpperCase();
       const invoicePayload = {
         invoiceNumber: currentInvNumber,
-        patientId: patientPid || "GPC-GUEST",
+        patientId: cleanFinalPid,
         patientName: sanitizeName(patientName),
         patientEmail: sanitizeEmail(patientEmail),
         patientPhone: sanitizePhone(patientPhone),
@@ -266,7 +269,10 @@ export default function CreateEditInvoiceModal({
 
       // Auto-archive PDF to Patient Google Drive if folder exists
       const selectedP = patients.find(
-        (p) => p.id === selectedPatientId || p.name.toLowerCase() === patientName.toLowerCase()
+        (p) => 
+          (selectedPatientId && p.id === selectedPatientId) || 
+          (cleanFinalPid && p.id === cleanFinalPid) || 
+          (patientName && p.name && p.name.toLowerCase() === patientName.toLowerCase())
       );
       const driveFolderId = selectedP?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
 
@@ -397,6 +403,15 @@ export default function CreateEditInvoiceModal({
                 <Search className="absolute right-3.5 top-3 h-4 w-4 text-slate-400 pointer-events-none" />
               </div>
 
+              {patientPid && (
+                <div className="flex items-center gap-1.5 mt-1 px-1">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green">
+                    <CheckCircle2 className="w-3 h-3" />
+                    UHID Linked: {patientPid}
+                  </span>
+                </div>
+              )}
+
               {/* Autocomplete Dropdown List */}
               {patientDropdownOpen && filteredPatients.length > 0 && (
                 <div className="absolute left-0 right-0 top-full mt-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl z-30 max-h-48 overflow-y-auto">
@@ -411,7 +426,7 @@ export default function CreateEditInvoiceModal({
                         <p className="text-[9px] font-bold text-slate-400">{p.phone || "No phone"} • {p.email || "No email"}</p>
                       </div>
                       <span className="text-[9px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full">
-                        {p.customId || `GPC-${p.id.slice(0,4)}`}
+                        {p.id || p.customId || "GPC-PATIENT"}
                       </span>
                     </div>
                   ))}

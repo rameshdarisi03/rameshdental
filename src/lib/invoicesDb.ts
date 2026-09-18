@@ -294,9 +294,12 @@ export function subscribePatientInvoices(
         return invPid === targetPid;
       }
 
-      // Rule 2: If invoice has a patientId, but target didn't match it, DO NOT leak across family members
+      // Rule 2: If invoice has a valid patientId, but target didn't match it, DO NOT leak across family members
       if (invPid && targetPid && invPid !== targetPid) {
-        return false;
+        const isCorruptedOrGuest = invPid.startsWith("GPC-GPC-") || invPid === "GPC-GUEST";
+        if (!isCorruptedOrGuest) {
+          return false;
+        }
       }
 
       // Rule 3: Exact Email match (Only if both non-empty and invoice has no conflicting patientId)
