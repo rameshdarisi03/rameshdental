@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { Menu, X, Activity, Phone, Moon, Sun, MessageSquare } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
-import ThemeSwitcher from "./ThemeSwitcher";
 import { syncMetaThemeColor } from "@/lib/themeHelper";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 
@@ -105,11 +104,6 @@ export default function Navbar() {
 
         {/* CTA & Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
-          {/* Visual Theme Switcher Dropdown */}
-          <div className="flex items-center">
-            <ThemeSwitcher />
-          </div>
-
           {/* Dark Mode Slider Toggle (Desktop/Tablet) */}
           <button
             onClick={toggleDarkMode}
@@ -196,33 +190,26 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
-          {/* Theme & Display Options for Mobile */}
+          {/* Display Options for Mobile */}
           <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-900 flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Palette:</span>
-              <ThemeSwitcher />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dark Mode:</span>
-              <button
-                onClick={toggleDarkMode}
-                className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
-                aria-label="Toggle Dark Mode"
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dark Mode:</span>
+            <button
+              onClick={toggleDarkMode}
+              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
+              aria-label="Toggle Dark Mode"
+            >
+              <span
+                className={`${
+                  isDark ? "translate-x-5" : "translate-x-0.5"
+                } pointer-events-none flex h-5 w-5 transform items-center justify-center rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
               >
-                <span
-                  className={`${
-                    isDark ? "translate-x-5" : "translate-x-0.5"
-                  } pointer-events-none flex h-5 w-5 transform items-center justify-center rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                >
-                  {isDark ? (
-                    <Moon className="h-3 w-3 text-slate-700" />
-                  ) : (
-                    <Sun className="h-3 w-3 text-amber-500" />
-                  )}
-                </span>
-              </button>
-            </div>
+                {isDark ? (
+                  <Moon className="h-3 w-3 text-slate-700" />
+                ) : (
+                  <Sun className="h-3 w-3 text-amber-500" />
+                )}
+              </span>
+            </button>
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-900">

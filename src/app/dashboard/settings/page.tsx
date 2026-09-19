@@ -26,9 +26,13 @@ import {
   HelpCircle,
   Power,
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  Palette,
+  Check
 } from "lucide-react";
 import Link from "next/link";
+import { THEME_OPTIONS, ThemeKey } from "@/components/public/ThemeSwitcher";
+import { syncMetaThemeColor } from "@/lib/themeHelper";
 
 interface UserProfile {
   uid: string;
@@ -43,6 +47,7 @@ export default function DashboardSettings() {
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<ThemeKey>("teal");
 
   // Expandable Hourly Overrides & Help Tooltip state
   const [showHourlyOverrides, setShowHourlyOverrides] = useState(false);
@@ -115,6 +120,10 @@ export default function DashboardSettings() {
         if (savedTime) {
           setLastSavedTime(savedTime);
         }
+
+        // Load active website theme
+        const savedTheme = (localStorage.getItem("gpc_public_theme") as ThemeKey) || "teal";
+        setCurrentTheme(savedTheme);
       } catch (err) {
         console.error(err);
       } finally {
@@ -123,6 +132,17 @@ export default function DashboardSettings() {
     }
     loadData();
   }, []);
+
+  const handleSelectTheme = (themeId: ThemeKey) => {
+    setCurrentTheme(themeId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gpc_public_theme", themeId);
+      document.documentElement.setAttribute("data-theme", themeId);
+      syncMetaThemeColor(themeId);
+    }
+    setIsDirty(true);
+    setSavedSuccess(false);
+  };
 
   // Unsaved changes browser beforeunload guard
   useEffect(() => {
@@ -414,6 +434,75 @@ export default function DashboardSettings() {
                   <Power className="w-3.5 h-3.5" />
                   <span>{config.enablePublicBooking !== false ? "Disable Online Booking" : "Enable Online Booking"}</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Website Brand Theme Palette Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <Palette className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Website Color Theme & Branding
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Select the primary color palette displayed across the public clinic website
+                    </p>
+                  </div>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                  <Sparkles className="h-3 w-3 text-purple-500" />
+                  Active: {THEME_OPTIONS.find((t) => t.id === currentTheme)?.name || "Medical Teal"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {THEME_OPTIONS.map((theme) => {
+                  const isSelected = theme.id === currentTheme;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => handleSelectTheme(theme.id)}
+                      className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? "border-brand-green bg-brand-green/5 dark:bg-brand-green/10 shadow-sm ring-2 ring-brand-green/20"
+                          : "border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center -space-x-1">
+                          <span
+                            className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs"
+                            style={{ backgroundColor: theme.primaryColor }}
+                          />
+                          <span
+                            className="w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 shadow-xs"
+                            style={{ backgroundColor: theme.accentColor }}
+                          />
+                        </div>
+                        {isSelected && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-white shadow-2xs">
+                            <Check className="h-3 w-3" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-black text-brand-charcoal dark:text-white">
+                          {theme.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                          {theme.badge} Palette
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             
