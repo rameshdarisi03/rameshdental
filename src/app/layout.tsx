@@ -274,9 +274,20 @@ export default function RootLayout({
                 var savedTheme = localStorage.getItem('gpc_public_theme') || 'teal';
                 document.documentElement.setAttribute('data-theme', savedTheme);
 
-                var isDark = localStorage.getItem('theme') === 'dark';
+                var isDark = false;
+                var savedDark = localStorage.getItem('theme');
+                if (savedDark === 'dark') {
+                  isDark = true;
+                } else if (savedDark === 'light') {
+                  isDark = false;
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                  isDark = true;
+                }
+
                 if (isDark) {
                   document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
                 }
 
                 var palette = themeColorMap[savedTheme] || themeColorMap.teal;

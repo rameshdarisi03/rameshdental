@@ -87,7 +87,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
                 {article.date}
               </span>
               <span className="text-slate-355 dark:text-slate-700">•</span>
-              <span className="flex items-center gap-1.5 text-brand-green dark:text-teal-450 font-black">
+              <span className="flex items-center gap-1.5 text-brand-green dark:text-teal-400 font-black">
                 <UserCheck className="w-4 h-4" />
                 Reviewed by Physiotherapist
               </span>

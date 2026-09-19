@@ -753,7 +753,7 @@ export default function Home() {
       </section>
 
       {/* Trust Stats: Triggers rolling number animations */}
-      <section className="bg-white dark:bg-brand-charcoal border-y border-brand-muted dark:border-brand-charcoal py-10">
+      <section className="bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="space-y-2 reveal-on-scroll">

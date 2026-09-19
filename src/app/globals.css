@@ -20,6 +20,20 @@
   --color-soft-apricot: #ffe5d4;
   --color-midnight-charcoal: #1a1c1b;
   --color-teal-tint: #41636d;
+
+  /* Custom Slate Shades for Clinical Precision & High Contrast Dark Mode */
+  --color-slate-150: #ebf0f5;
+  --color-slate-250: #d5e0eb;
+  --color-slate-350: #9fb0c3;
+  --color-slate-355: #94a7bc;
+  --color-slate-450: #6b7c93;
+  --color-slate-605: #475569;
+  --color-slate-650: #3f4d60;
+  --color-slate-655: #384657;
+  --color-slate-750: #253346;
+  --color-slate-850: #141f31;
+  --color-slate-905: #0b1320;
+  --color-slate-955: #060b13;
 }
 
 /* 🌊 1. Default Palette: Medical Teal */
@@ -87,24 +101,44 @@
   --background: #091316;
   --foreground: #f0f7f9;
   --brand-charcoal: #f0f7f9;
+  --brand-bg: #091316;
+  --brand-sand: #122026;
+  --brand-muted: #1c323b;
+  --brand-shadow: rgba(0, 0, 0, 0.4);
+  --brand-shadow-hover: rgba(14, 94, 111, 0.35);
 }
 
 .dark[data-theme="sage"] {
   --background: #0f1412;
   --foreground: #f7faf8;
   --brand-charcoal: #f7faf8;
+  --brand-bg: #0f1412;
+  --brand-sand: #19221e;
+  --brand-muted: #26332d;
+  --brand-shadow: rgba(0, 0, 0, 0.4);
+  --brand-shadow-hover: rgba(93, 122, 109, 0.35);
 }
 
 .dark[data-theme="royal"] {
   --background: #0a0f1d;
   --foreground: #f8fafc;
   --brand-charcoal: #f8fafc;
+  --brand-bg: #0a0f1d;
+  --brand-sand: #131c31;
+  --brand-muted: #1e2c4d;
+  --brand-shadow: rgba(0, 0, 0, 0.4);
+  --brand-shadow-hover: rgba(26, 75, 132, 0.35);
 }
 
 .dark[data-theme="office"] {
   --background: #0b1320;
   --foreground: #f0f6ff;
   --brand-charcoal: #f0f6ff;
+  --brand-bg: #0b1320;
+  --brand-sand: #142033;
+  --brand-muted: #1f314e;
+  --brand-shadow: rgba(0, 0, 0, 0.4);
+  --brand-shadow-hover: rgba(0, 120, 212, 0.35);
 }
 
 /* Tie Tailwind's dark utility variant strictly to the .dark class (disables OS automatic mode) */
@@ -284,4 +318,27 @@ body {
 .group:hover .group-hover-ken-burns {
   transform: scale(1.24);
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Print & Export Isolation: Always force pristine white backgrounds and dark typography */
+@media print {
+  html, body, .invoice-container, .voucher-container {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #000000 !important;
+    color-scheme: light !important;
+  }
+  .dark {
+    color-scheme: light !important;
+  }
+  .dark * {
+    background-color: transparent !important;
+    color: #000000 !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  header, footer, nav, button, .no-print {
+    display: none !important;
+  }
 }

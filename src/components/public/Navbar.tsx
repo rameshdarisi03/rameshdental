@@ -16,9 +16,33 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
-    }
+    if (typeof window === "undefined") return;
+
+    const syncState = () => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    };
+
+    syncState();
+
+    // Listen for OS scheme transitions when no explicit user override exists
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      const storedTheme = localStorage.getItem("theme");
+      if (!storedTheme) {
+        if (e.matches) {
+          document.documentElement.classList.add("dark");
+          setIsDark(true);
+          syncMetaThemeColor(undefined, true);
+        } else {
+          document.documentElement.classList.remove("dark");
+          setIsDark(false);
+          syncMetaThemeColor(undefined, false);
+        }
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleMediaChange);
+
     async function loadConfig() {
       try {
         const conf = await getClinicConfig();
@@ -28,6 +52,10 @@ export default function Navbar() {
       }
     }
     loadConfig();
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleMediaChange);
+    };
   }, []);
 
   const toggleDarkMode = () => {

@@ -382,7 +382,7 @@ function BookingFormContent() {
                       value={dialCode}
                       onChange={(e) => setDialCode(e.target.value)}
                       placeholder="+91"
-                      className="w-24 rounded-l-2xl border border-r-0 border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-3 text-xs font-bold outline-none focus:border-brand-green text-center text-slate-700 dark:text-slate-350"
+                      className="w-24 rounded-l-2xl border border-r-0 border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-3 text-xs font-bold outline-none focus:border-brand-green text-center text-slate-700 dark:text-white"
                     />
                     <datalist id="dial-codes">
                       <option value="+91">India (+91)</option>
@@ -535,12 +535,12 @@ function BookingFormContent() {
                                   ? "bg-slate-100 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60"
                                   : isSelected
                                   ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-[1.02]"
-                                  : "bg-brand-sand/70 dark:bg-brand-green/10 border-brand-green/25 dark:border-brand-green/30 text-brand-green hover:bg-brand-green/15"
+                                  : "bg-brand-sand/70 dark:bg-teal-950/30 border-brand-green/25 dark:border-teal-800/50 text-brand-green dark:text-teal-300 hover:bg-brand-green/15 dark:hover:bg-teal-900/30"
                               }`}
                             >
                               <span className="leading-tight">{time}</span>
                               {!disabled && (
-                                <span className={`text-[9px] font-bold tracking-tight ${isSelected ? "text-white/90" : "text-brand-green opacity-90"}`}>
+                                <span className={`text-[9px] font-bold tracking-tight ${isSelected ? "text-white/90" : "text-brand-green dark:text-teal-400 opacity-90"}`}>
                                   {remaining} {remaining === 1 ? "slot" : "slots"} left
                                 </span>
                               )}
@@ -554,15 +554,15 @@ function BookingFormContent() {
                   {/* Holiday Banner Card overlay (when weekly closed days are selected) */}
                   {isWeeklyHoliday && (
                     <div className="absolute inset-0 flex items-center justify-center p-4 animate-fade-in-up">
-                      <div className="bg-white dark:bg-slate-905 border border-red-500/20 dark:border-red-950 p-6 rounded-3xl shadow-xl text-center space-y-3 max-w-sm w-full backdrop-blur-md bg-white/95 dark:bg-slate-900/95">
-                        <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center text-red-650 mx-auto">
+                      <div className="border border-red-500/20 dark:border-red-900/50 p-6 rounded-3xl shadow-xl text-center space-y-3 max-w-sm w-full backdrop-blur-md bg-white/95 dark:bg-slate-900/95">
+                        <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/80 flex items-center justify-center text-red-600 dark:text-red-400 mx-auto">
                           <AlertCircle className="h-5 w-5" />
                         </div>
                         <h4 className="font-black text-brand-charcoal dark:text-white text-base">Clinic is Closed</h4>
                         <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                           We are closed today. Please select another operational date on our scheduling system.
                         </p>
-                        <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 text-left space-y-1">
+                        <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 text-left space-y-1">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Operational Hours:</p>
                           <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-normal">
                             {clinicConfig.operationalHoursText}
