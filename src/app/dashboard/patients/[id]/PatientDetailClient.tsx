@@ -711,6 +711,7 @@ PLAN:
           year: "numeric",
         });
 
+        const combinedText = data.formattedSoapNote || data.summaryForRecord || data.prescribedTherapies;
         const doc = buildUnifiedPrescriptionPdf({
           patientName: patient.name,
           pid: patient.patientId || patient.id,
@@ -722,7 +723,8 @@ PLAN:
           diagnosis: data.diagnosis,
           precautionsAndRestrictions: data.precautionsAndRestrictions,
           providerAlerts: data.providerRemindersAndAlerts,
-          consultationSummary: data.summaryForRecord || data.prescribedTherapies,
+          consultationSummary: combinedText,
+          rawVerbatimTranscript: data.rawVerbatimTranscript,
           exercises: [],
         });
 

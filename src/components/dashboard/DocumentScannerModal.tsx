@@ -301,7 +301,8 @@ export default function DocumentScannerModal({
       documentType: documentType,
       providerRemindersAndAlerts: selectedAlerts,
       formattedSoapNote: combinedSoap,
-      summaryForRecord: editedSoapNote || editedVerbatimText || "Clinical referral record",
+      summaryForRecord: combinedSoap,
+      rawVerbatimTranscript: editedVerbatimText,
     };
 
     try {
