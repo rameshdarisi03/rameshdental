@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { 
@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   TrendingUp,
   Activity,
   CheckCircle2,
@@ -68,6 +69,7 @@ export default function PatientsPage() {
   
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [therapistFilter, setTherapistFilter] = useState("all");
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
@@ -110,11 +112,31 @@ export default function PatientsPage() {
     fetchPatientsList();
   };
 
-  // Initial Fetch of Patients
+  // Initial Fetch of Patients & Keyboard Shortcut (Ctrl+K / ⌘K)
   useEffect(() => {
     setMounted(true);
     fetchPatientsList();
     fetchEnrolledTherapists();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in another input or textarea or modal is open
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === "TEXTAREA" || (target.tagName === "INPUT" && target !== searchInputRef.current))) {
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (e.key === "/" && target?.tagName !== "INPUT" && target?.tagName !== "TEXTAREA") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   async function fetchEnrolledTherapists() {
@@ -531,17 +553,17 @@ export default function PatientsPage() {
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_6px_25px_-6px_var(--brand-shadow)] overflow-hidden">
         
         {/* Search, Status Tabs & Filters Bar */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800/80 flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800/80 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
           
           {/* Left Side: Status Filtering Tabs */}
-          <div className="flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800 p-1.5 rounded-2xl w-full lg:w-auto">
+          <div className="flex items-center gap-1.5 bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl w-full lg:w-auto overflow-x-auto scrollbar-none shadow-2xs">
             {["all", "active", "pending", "completed"].map((status) => (
               <button
                 key={status}
                 onClick={() => {
                   setStatusFilter(status);
                 }}
-                className={`px-4 py-2 text-xs font-bold capitalize rounded-xl transition-all ${
+                className={`flex-1 sm:flex-initial px-4 py-2 text-xs font-bold capitalize rounded-xl transition-all whitespace-nowrap cursor-pointer ${
                   statusFilter === status
                     ? "bg-white dark:bg-slate-700 text-brand-charcoal dark:text-white shadow-sm"
                     : "text-slate-500 dark:text-slate-400 hover:text-brand-green dark:hover:text-white"
@@ -552,31 +574,64 @@ export default function PatientsPage() {
             ))}
           </div>
 
-          {/* Right Side: Search and Therapist Select Dropdown */}
+          {/* Right Side: High-Visibility Search and Therapist Select Dropdown */}
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-stretch sm:items-center">
             
-            {/* Search Input Box */}
-            <div className="relative flex-grow sm:w-64">
-              <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+            {/* Highlighted, Prominent Search Bar (Desktop / Tablet / Mobile) */}
+            <div className="group relative flex items-center w-full sm:w-80 md:w-96 lg:w-[350px] xl:w-[420px] rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-850 pl-2.5 pr-3 py-1.5 shadow-xs hover:border-brand-green/70 dark:hover:border-teal-400/70 focus-within:border-brand-green dark:focus-within:border-teal-400 focus-within:ring-4 focus-within:ring-brand-green/15 dark:focus-within:ring-teal-400/20 focus-within:shadow-md transition-all">
+              
+              {/* Highlight Icon Badge */}
+              <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand-green/10 dark:bg-teal-400/15 text-brand-green dark:text-teal-400 shrink-0 transition-transform group-focus-within:scale-110">
+                <Search className="h-4 w-4 stroke-[2.5]" />
+              </div>
+
+              {/* Text Input */}
               <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Search patient, ID, phone..."
+                placeholder="Search patient, ID (GPC-...), phone..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                 }}
-                className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 pl-11 pr-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                className="w-full bg-transparent px-3 py-1.5 text-xs sm:text-sm font-semibold outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 tracking-tight"
               />
+
+              {/* Trailing Controls: Results Pill + Clear Button or Keyboard Shortcut */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {searchQuery.trim() !== "" ? (
+                  <>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide bg-brand-green/15 text-brand-green dark:bg-teal-400/20 dark:text-teal-300 border border-brand-green/20 select-none animate-fade-in">
+                      {filteredPatients.length} {filteredPatients.length === 1 ? "match" : "matches"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        searchInputRef.current?.focus();
+                      }}
+                      className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono font-bold text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 px-1.5 py-0.5 rounded-md shadow-2xs select-none pointer-events-none">
+                    ⌘K
+                  </kbd>
+                )}
+              </div>
             </div>
 
-            {/* Therapist Filter Select */}
-            <div className="relative">
+            {/* Therapist Filter Select Dropdown */}
+            <div className="relative w-full sm:w-52 shrink-0">
               <select
                 value={therapistFilter}
                 onChange={(e) => {
                   setTherapistFilter(e.target.value);
                 }}
-                className="w-full sm:w-48 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-bold outline-none focus:border-brand-green appearance-none cursor-pointer text-slate-700 dark:text-slate-300"
+                className="w-full rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-850 pl-4 pr-9 py-2.5 text-xs font-bold outline-none hover:border-brand-green/70 dark:hover:border-teal-400/70 focus:border-brand-green dark:focus:border-teal-400 focus:ring-4 focus:ring-brand-green/15 dark:focus:ring-teal-400/20 appearance-none cursor-pointer text-slate-800 dark:text-slate-200 transition-all shadow-xs"
               >
                 <option value="all">Filter by Therapist</option>
                 {therapistList.map((therapist) => (
@@ -585,7 +640,9 @@ export default function PatientsPage() {
                   </option>
                 ))}
               </select>
+              <ChevronDown className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
             </div>
+
           </div>
         </div>
 
