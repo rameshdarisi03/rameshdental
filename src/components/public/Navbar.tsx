@@ -106,7 +106,7 @@ export default function Navbar() {
             alt="Gait Physio Clinic Emblem Logo"
             className="h-8 w-8 sm:h-9 sm:w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
           />
-          <span className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-brand-green whitespace-nowrap group-hover:opacity-90 transition-opacity">
+          <span className="text-base sm:text-lg lg:text-xl font-black tracking-tight text-brand-green dark:text-white whitespace-nowrap group-hover:opacity-90 transition-opacity">
             Gait Physio Clinic
           </span>
         </Link>

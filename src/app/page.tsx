@@ -648,7 +648,7 @@ export default function Home() {
                 className="h-11 w-11 sm:h-18 sm:w-18 lg:h-24 lg:w-24 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
               />
               <div className="min-w-0">
-                <h1 className="text-[23px] sm:text-4xl lg:text-[52px] xl:text-[58px] font-black tracking-tight leading-none text-brand-green whitespace-nowrap drop-shadow-2xs">
+                <h1 className="text-[23px] sm:text-4xl lg:text-[52px] xl:text-[58px] font-black tracking-tight leading-none text-brand-green dark:text-white whitespace-nowrap drop-shadow-2xs">
                   Gait Physio Clinic
                 </h1>
               </div>
@@ -678,7 +678,7 @@ export default function Home() {
               {clinicConfig.enablePublicBooking !== false ? (
                 <Link
                   href="/book"
-                  className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
+                  className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/90 dark:text-white dark:border-slate-700/80 hover:dark:border-slate-500 hover:dark:bg-slate-850"
                 >
                   Book Free Consultation
                 </Link>
@@ -687,7 +687,7 @@ export default function Home() {
                   href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/80 dark:text-white dark:border-white/20"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/90 dark:text-white dark:border-slate-700/80 hover:dark:border-slate-500 hover:dark:bg-slate-850"
                 >
                   <MessageSquare className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                   WhatsApp Us
@@ -757,28 +757,28 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="space-y-2 reveal-on-scroll">
-              <h3 className="text-3xl font-black text-brand-green">
+              <h3 className="text-3xl font-black text-brand-green dark:text-brand-luminous">
                 <ScrollTriggeredCounter value={10000} suffix="+" />
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">Patients Recovered</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider font-bold">Patients Recovered</p>
             </div>
             <div className="space-y-2 reveal-on-scroll delay-100">
-              <h3 className="text-3xl font-black text-brand-green">
+              <h3 className="text-3xl font-black text-brand-green dark:text-brand-luminous">
                 <ScrollTriggeredCounter value={15} suffix="+" />
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">Years Experience</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider font-bold">Years Experience</p>
             </div>
             <div className="space-y-2 reveal-on-scroll delay-200">
-              <h3 className="text-3xl font-black text-brand-green">
+              <h3 className="text-3xl font-black text-brand-green dark:text-brand-luminous">
                 <ScrollTriggeredCounter value={99} suffix="%" />
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">Patient Satisfaction</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider font-bold">Patient Satisfaction</p>
             </div>
             <div className="space-y-2 reveal-on-scroll delay-300">
-              <h3 className="text-3xl font-black text-brand-green">
+              <h3 className="text-3xl font-black text-brand-green dark:text-brand-luminous">
                 <ScrollTriggeredCounter value={30} suffix="+" />
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">Diagnostic Tests</p>
+              <p className="text-xs text-slate-500 dark:text-slate-300 uppercase tracking-wider font-bold">Diagnostic Tests</p>
             </div>
           </div>
         </div>
@@ -789,7 +789,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
           
           <div className="max-w-3xl space-y-2 reveal-on-scroll">
-            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-brand-green dark:text-teal-400 block">
+            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-brand-green dark:text-brand-luminous block">
               HEALING ELEVATED
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white tracking-tight">
@@ -1030,7 +1030,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center max-w-2xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3.5 py-1.5 rounded-full inline-block">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green dark:text-brand-luminous bg-brand-green/10 dark:bg-brand-luminous/15 px-3.5 py-1.5 rounded-full inline-block">
               Clinic Gallery
             </span>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
@@ -1661,7 +1661,7 @@ export default function Home() {
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
           
           <div className="text-center max-w-xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green dark:text-brand-luminous bg-brand-green/10 dark:bg-brand-luminous/15 px-3 py-1.5 rounded-full">
               Common Questions
             </span>
             <h2 className="text-3xl font-black tracking-tight text-brand-charcoal dark:text-white">
@@ -1714,7 +1714,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
           
           <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green bg-brand-green/10 px-3 py-1.5 rounded-full">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green dark:text-brand-luminous bg-brand-green/10 dark:bg-brand-luminous/15 px-3 py-1.5 rounded-full">
               Find Our Clinic
             </span>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
