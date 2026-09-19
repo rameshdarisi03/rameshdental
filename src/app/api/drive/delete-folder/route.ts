@@ -4,22 +4,23 @@ import { deletePatientFolder } from "@/lib/drive";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { folderId } = body;
+    const { folderId, patientId } = body;
 
-    if (!folderId || typeof folderId !== "string") {
+    if (!folderId && !patientId) {
       return NextResponse.json(
-        { success: false, error: "Missing or invalid folderId." },
+        { success: false, error: "Missing both folderId and patientId." },
         { status: 400 }
       );
     }
 
-    console.log(`[API Drive Delete] Permanently purging Google Drive folder ID: ${folderId}...`);
-    await deletePatientFolder(folderId);
+    console.log(`[API Drive Delete] Purging Google Drive folder (folderId: ${folderId || "none"}, patientId: ${patientId || "none"})...`);
+    await deletePatientFolder(folderId, patientId);
 
     return NextResponse.json({
       success: true,
       message: "Google Drive folder permanently purged successfully.",
       folderId,
+      patientId,
     });
   } catch (error: any) {
     console.error("POST /api/drive/delete-folder error:", error);

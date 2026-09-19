@@ -385,19 +385,22 @@ export async function deletePatientData(
     const driveFolderId = patientData?.googleDriveFolderId;
 
     // Permanently purge Google Drive Folder if profile or scans are selected for deletion
-    if ((options.profile || options.scansAndReports) && driveFolderId) {
+    if (options.profile || options.scansAndReports) {
       try {
-        console.log(`[deletePatientData] Purging Google Drive cloud folder ${driveFolderId}...`);
+        console.log(`[deletePatientData] Purging Google Drive cloud folder for patient ${patientId} (folderId: ${driveFolderId || "lookup-by-id"})...`);
         const driveRes = await fetch("/api/drive/delete-folder", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ folderId: driveFolderId }),
+          body: JSON.stringify({ 
+            folderId: driveFolderId || undefined,
+            patientId: patientId,
+          }),
         });
         const driveJson = await driveRes.json();
         if (!driveJson.success) {
           console.warn("[deletePatientData] Google Drive purge notice:", driveJson.error);
         } else {
-          console.log("[deletePatientData] Google Drive folder permanently erased.");
+          console.log("[deletePatientData] Google Drive folder permanently erased:", driveJson);
         }
       } catch (driveErr) {
         console.warn("[deletePatientData] Non-fatal Google Drive purge error:", driveErr);
