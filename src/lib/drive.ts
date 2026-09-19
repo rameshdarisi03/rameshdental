@@ -130,3 +130,20 @@ export async function listFilesInFolder(folderId: string): Promise<any[]> {
     throw new Error(`Google Drive List Files Failed: ${error.message}`);
   }
 }
+
+/**
+ * Permanently deletes a patient folder (and all subfolders/scans inside it) from Google Drive.
+ */
+export async function deletePatientFolder(folderId: string): Promise<boolean> {
+  if (!folderId || typeof folderId !== "string") return false;
+  try {
+    const result = await callAppsScript({
+      action: "deleteFolder",
+      folderId: folderId,
+    });
+    return result.success ?? true;
+  } catch (error: any) {
+    console.error("Error deleting Google Drive folder:", error);
+    throw new Error(`Google Drive Folder Deletion Failed: ${error.message}`);
+  }
+}

@@ -177,7 +177,7 @@ export default function PatientDeleteModal({
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Core demographic details, contact numbers, case history & directory listing
+                  Core demographic details, contact numbers, case history & permanent deletion of Google Drive cloud folder
                 </p>
               </div>
             </div>
@@ -252,7 +252,7 @@ export default function PatientDeleteModal({
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Uploaded X-rays, MRI scans, lab reports, doctor reference scans & diagnostic PDFs
+                  Permanently deletes uploaded X-rays, MRI scans, lab reports & cloud files from Google Drive
                 </p>
               </div>
             </div>

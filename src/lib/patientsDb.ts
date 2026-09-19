@@ -381,6 +381,29 @@ export async function deletePatientData(
       throw new Error(`Patient "${patientId}" does not exist in the database.`);
     }
 
+    const patientData = patientSnap.data() as Patient;
+    const driveFolderId = patientData?.googleDriveFolderId;
+
+    // Permanently purge Google Drive Folder if profile or scans are selected for deletion
+    if ((options.profile || options.scansAndReports) && driveFolderId) {
+      try {
+        console.log(`[deletePatientData] Purging Google Drive cloud folder ${driveFolderId}...`);
+        const driveRes = await fetch("/api/drive/delete-folder", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId: driveFolderId }),
+        });
+        const driveJson = await driveRes.json();
+        if (!driveJson.success) {
+          console.warn("[deletePatientData] Google Drive purge notice:", driveJson.error);
+        } else {
+          console.log("[deletePatientData] Google Drive folder permanently erased.");
+        }
+      } catch (driveErr) {
+        console.warn("[deletePatientData] Non-fatal Google Drive purge error:", driveErr);
+      }
+    }
+
     // 1. Revoke Patient Hub Access
     if (options.hub && !options.profile) {
       await updateDoc(patientDocRef, {
