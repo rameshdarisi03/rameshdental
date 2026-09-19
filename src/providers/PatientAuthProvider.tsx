@@ -142,19 +142,29 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         // Look up verified patient in Firestore
         const docSnap = await lookupPatientDoc(currentUser);
         if (docSnap) {
-          const patientData = { id: docSnap.id, ...docSnap.data() } as Patient;
-          setPatient(patientData);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("gpc_patient", JSON.stringify(patientData));
-          }
-        } else {
-          // User authenticated with Firebase, but no linked clinic profile found
-          if (typeof window !== "undefined") {
-            const cached = localStorage.getItem("gpc_patient");
-            if (!cached) {
-              setPatient(null);
+          const docData = docSnap.data();
+          // If access was revoked by clinic (activated === false)
+          if (docData.activated === false) {
+            setPatient(null);
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("gpc_patient");
+            }
+            await signOut(auth);
+            setError("Your Patient Hub access has been disabled by the clinic.");
+          } else {
+            const patientData = { id: docSnap.id, ...docData } as Patient;
+            setPatient(patientData);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("gpc_patient", JSON.stringify(patientData));
             }
           }
+        } else {
+          // Patient record was purged/deleted from Firestore: strictly revoke session
+          setPatient(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("gpc_patient");
+          }
+          await signOut(auth);
         }
       } else {
         setPatient(null);
@@ -189,6 +199,15 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         });
         setLoading(false);
         return { success: false, needsActivation: true };
+      }
+
+      // Check if access was revoked by the clinic
+      if (matchedDoc.data().activated === false) {
+        await signOut(auth);
+        setLoading(false);
+        const msg = "Your Patient Hub access has been disabled by the clinic. Please contact reception.";
+        setError(msg);
+        return { success: false, error: msg };
       }
 
       // Existing Patient linked: Update UID link
@@ -310,6 +329,15 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         await signOut(auth);
         setLoading(false);
         const msg = "This email is not registered as a patient. Please sign up with your activation code.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
+      // Check if access was revoked by the clinic
+      if (matchedDoc.data().activated === false) {
+        await signOut(auth);
+        setLoading(false);
+        const msg = "Your Patient Hub access has been disabled by the clinic. Please contact reception.";
         setError(msg);
         return { success: false, error: msg };
       }
@@ -448,12 +476,18 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
   const refreshProfile = async () => {
     if (!user) return;
     const docSnap = await lookupPatientDoc(user);
-    if (docSnap) {
+    if (docSnap && docSnap.data().activated !== false) {
       const patientData = { id: docSnap.id, ...docSnap.data() } as Patient;
       setPatient(patientData);
       if (typeof window !== "undefined") {
         localStorage.setItem("gpc_patient", JSON.stringify(patientData));
       }
+    } else {
+      setPatient(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("gpc_patient");
+      }
+      await signOut(auth);
     }
   };
 
