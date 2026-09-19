@@ -84,12 +84,40 @@ export default function DocumentScannerModal({
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ScanResult | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Editable fields before applying
   const [editedVerbatimText, setEditedVerbatimText] = useState("");
   const [editedSoapNote, setEditedSoapNote] = useState("");
   const [editedSummary, setEditedSummary] = useState("");
   const [selectedAlerts, setSelectedAlerts] = useState<string[]>([]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/") || file.type === "application/pdf") {
+        handleFileSelect(file);
+      } else {
+        setError("Please upload a valid image file (PNG, JPG, WEBP) or PDF.");
+      }
+    }
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -349,19 +377,31 @@ export default function DocumentScannerModal({
             <div className="space-y-4">
               {!previewUrl ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* File Upload Option */}
+                  {/* File Upload Option with Drag & Drop */}
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-brand-green dark:hover:border-teal-400 rounded-3xl p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-slate-50/50 dark:bg-slate-900/50 hover:bg-brand-green/5 transition-all group"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group ${
+                      isDragging
+                        ? "border-brand-green dark:border-teal-400 bg-brand-green/15 dark:bg-teal-400/20 scale-[1.02] shadow-lg ring-4 ring-brand-green/20"
+                        : "border-slate-300 dark:border-slate-700 hover:border-brand-green dark:hover:border-teal-400 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-brand-green/5"
+                    }`}
                   >
-                    <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200/60 dark:border-slate-700 flex items-center justify-center text-slate-500 group-hover:text-brand-green group-hover:scale-110 transition-all mb-3">
+                    <div className={`h-12 w-12 rounded-2xl shadow-sm border flex items-center justify-center transition-all mb-3 ${
+                      isDragging
+                        ? "bg-brand-green text-white border-brand-green scale-110"
+                        : "bg-white dark:bg-slate-800 border-slate-200/60 dark:border-slate-700 text-slate-500 group-hover:text-brand-green group-hover:scale-110"
+                    }`}>
                       <Upload className="h-6 w-6" />
                     </div>
                     <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1">
-                      Upload Document Photo
+                      {isDragging ? "Drop Document Photo Here" : "Upload Document Photo"}
                     </h4>
                     <p className="text-[11px] text-slate-400 font-medium">
-                      PNG, JPG, or WEBP image
+                      {isDragging ? "Release to start AI vision scan" : "Drag & drop or browse (PNG, JPG, WEBP, PDF)"}
                     </p>
                     <input
                       ref={fileInputRef}

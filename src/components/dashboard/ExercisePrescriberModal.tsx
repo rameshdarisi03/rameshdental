@@ -39,6 +39,9 @@ interface ExercisePrescriberModalProps {
   lastSeen?: string;
   googleDriveFolderId?: string;
   therapistName?: string;
+  diagnosis?: string;
+  consultationSummary?: string;
+  providerAlerts?: string[];
   onPrescriptionSaved?: () => void;
 }
 
@@ -72,6 +75,9 @@ export default function ExercisePrescriberModal({
   lastSeen = "Today",
   googleDriveFolderId,
   therapistName = "Dr. Kinnera",
+  diagnosis,
+  consultationSummary,
+  providerAlerts,
   onPrescriptionSaved
 }: ExercisePrescriberModalProps) {
   const [library, setLibrary] = useState<ExerciseItem[]>([]);
@@ -259,6 +265,9 @@ export default function ExercisePrescriberModal({
         durationDays,
         generalNotes,
         exercises: tray,
+        diagnosis,
+        consultationSummary,
+        providerAlerts,
       });
 
       // 3. If patient has a Google Drive folder, auto-upload to date subfolder & record in Medical Files

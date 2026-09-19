@@ -11,6 +11,20 @@ export interface UnifiedPrescriptionParams {
   consultationSummary?: string;
   modalitiesAdministered?: string;
   exercises?: PrescribedExercise[];
+  // Clinical referral & safety parameters
+  referringDoctor?: string;
+  hospitalOrClinic?: string;
+  prescriptionDate?: string;
+  diagnosis?: string;
+  precautionsAndRestrictions?: string;
+  medicationsList?: string;
+  providerAlerts?: string[];
+  soapNotes?: {
+    subjective?: string;
+    objective?: string;
+    assessment?: string;
+    plan?: string;
+  };
 }
 
 export function formatToDDMMYYYY(dateInput?: any): string {
@@ -31,10 +45,11 @@ export function formatToDDMMYYYY(dateInput?: any): string {
   return `${day}_${month}_${year}`;
 }
 
-export function getPrescriptionFileName(patientName: string, dateInput?: any): string {
+export function getPrescriptionFileName(patientName: string, dateInput?: any, hasExercises: boolean = true): string {
   const cleanName = (patientName || "Patient").trim().replace(/[^a-zA-Z0-9]/g, "_");
   const dateStr = formatToDDMMYYYY(dateInput);
-  return `prescription_${cleanName}_${dateStr}.pdf`;
+  const prefix = hasExercises ? "prescription" : "consultation";
+  return `${prefix}_${cleanName}_${dateStr}.pdf`;
 }
 
 export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): jsPDF {
@@ -46,6 +61,7 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   const now = new Date();
   const displayDate = params.dateStr || `${String(now.getDate()).padStart(2, "0")}-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
   const duration = params.durationDays || 14;
+  const hasExercises = Boolean(params.exercises && params.exercises.length > 0);
 
   // 1. Header Banner
   doc.setFillColor(6, 46, 54); // Deep Midnight Teal #062e36
@@ -59,7 +75,13 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(249, 171, 85); // Honey Gold #f9ab55
-  doc.text("CLINICAL CONSULTATION & REHABILITATION PRESCRIPTION", 45, y + 43);
+  doc.text(
+    hasExercises
+      ? "CLINICAL CONSULTATION & REHABILITATION PRESCRIPTION"
+      : "CLINICAL CONSULTATION & CASE SHEET RECORD",
+    45,
+    y + 43
+  );
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
@@ -79,7 +101,7 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   doc.text("PATIENT NAME:", 42, y + 18);
   doc.text("PATIENT ID (PID):", 200, y + 18);
   doc.text("DATE OF ISSUE:", 330, y + 18);
-  doc.text("PROGRAM DURATION:", 440, y + 18);
+  doc.text(hasExercises ? "PROGRAM DURATION:" : "CLINICAL STATUS:", 440, y + 18);
 
   doc.setFontSize(9.5);
   doc.setTextColor(6, 46, 54);
@@ -87,76 +109,205 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   doc.text(params.patientName || "Patient", 42, y + 36);
   doc.text(params.pid || "PID-1001", 200, y + 36);
   doc.text(displayDate, 330, y + 36);
-  doc.text(`${duration} Days Protocol`, 440, y + 36);
+  doc.text(hasExercises ? `${duration} Days Protocol` : "Consultation Recorded", 440, y + 36);
 
   y += 66;
 
-  // 3. SECTION 1: Clinical Findings, Diagnosis & Doctor's Advice
-  const notesParts: string[] = [];
-  if (params.consultationSummary && params.consultationSummary.trim()) {
-    notesParts.push(`Clinical Findings / Diagnosis: ${params.consultationSummary.trim()}`);
-  }
-  if (params.generalNotes && params.generalNotes.trim()) {
-    notesParts.push(`Therapist Instructions & Precautions: ${params.generalNotes.trim()}`);
-  }
-  if (params.modalitiesAdministered && params.modalitiesAdministered.trim()) {
-    notesParts.push(`Modalities Administered: ${params.modalitiesAdministered.trim()}`);
-  }
+  // 3. Optional: Referring Doctor & External Hospital Source
+  if (params.referringDoctor || params.hospitalOrClinic) {
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(30, y, pageWidth - 60, 20, 3, 3, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text("REFERRING PHYSICIAN & MEDICAL SOURCE", 42, y + 14);
+    y += 28;
 
-  const clinicalNotes = notesParts.join("\n\n") || "Patient underwent clinical evaluation and was prescribed the customized physiotherapy rehabilitation protocol detailed below.";
-
-  doc.setFillColor(6, 46, 54);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(6, 46, 54);
-  doc.text("1. CLINICAL ASSESSMENT, DIAGNOSIS & GUIDANCE", 35, y);
-  y += 12;
-
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(225, 230, 230);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(40, 45, 50);
-
-  const lines = doc.splitTextToSize(clinicalNotes, pageWidth - 80);
-  const boxHeight = lines.length * 12 + 16;
-  doc.roundedRect(30, y, pageWidth - 60, boxHeight, 4, 4, "FD");
-  doc.text(lines, 42, y + 14);
-  y += boxHeight + 16;
-
-  // 4. SECTION 2: Prescribed Exercises & Regimen Table
-  doc.setFillColor(6, 46, 54);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(6, 46, 54);
-  doc.text("2. PRESCRIBED REHABILITATION EXERCISES & PROTOCOLS", 35, y);
-  y += 12;
-
-  // Table Header
-  doc.setFillColor(6, 46, 54);
-  doc.roundedRect(30, y, pageWidth - 60, 24, 4, 4, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.text("#", 42, y + 16);
-  doc.text("EXERCISE PROTOCOL", 68, y + 16);
-  doc.text("TARGET REGION", 260, y + 16);
-  doc.text("SETS × REPS / HOLD", 380, y + 16);
-  doc.text("DAILY FREQUENCY", 480, y + 16);
-
-  y += 24;
-
-  const exercises = params.exercises || [];
-  if (exercises.length === 0) {
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(235, 240, 240);
-    doc.roundedRect(30, y, pageWidth - 60, 26, 0, 0, "FD");
     doc.setFontSize(8.5);
-    doc.setTextColor(100, 110, 115);
+    doc.setFont("helvetica", "bold");
+    doc.text("Referring Doctor:", 42, y);
     doc.setFont("helvetica", "normal");
-    doc.text("Perform active mobility and gentle stretching as instructed by therapist.", 42, y + 17);
-    y += 26;
+    doc.text(params.referringDoctor || "External Consultant", 145, y);
+
+    if (params.hospitalOrClinic) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Hospital / Clinic:", 320, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(params.hospitalOrClinic, 410, y);
+    }
+    y += 16;
+
+    if (params.prescriptionDate) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Prescription Date:", 42, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(params.prescriptionDate, 145, y);
+      y += 16;
+    }
+    y += 6;
+  }
+
+  // 4. Clinical Assessment, Diagnosis & Detailed SOAP Notes
+  const rawNotes = (params.consultationSummary || "").trim();
+  const hasStructuredSoap =
+    params.soapNotes ||
+    /SUBJECTIVE:|OBJECTIVE:|ASSESSMENT:|PLAN:/i.test(rawNotes);
+
+  doc.setFillColor(6, 46, 54);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(6, 46, 54);
+  doc.text("1. CLINICAL ASSESSMENT & SOAP RECOVERY NOTES", 35, y);
+  y += 12;
+
+  if (hasStructuredSoap) {
+    // Parse SOAP sections
+    let subj = params.soapNotes?.subjective || "";
+    let obj = params.soapNotes?.objective || "";
+    let assess = params.soapNotes?.assessment || "";
+    let plan = params.soapNotes?.plan || "";
+
+    if (!subj && !obj && !assess && !plan && rawNotes) {
+      const sMatch = rawNotes.match(/SUBJECTIVE:\s*([\s\S]*?)(?=(OBJECTIVE:|ASSESSMENT:|PLAN:|$))/i);
+      const oMatch = rawNotes.match(/OBJECTIVE:\s*([\s\S]*?)(?=(ASSESSMENT:|PLAN:|$))/i);
+      const aMatch = rawNotes.match(/ASSESSMENT:\s*([\s\S]*?)(?=(PLAN:|$))/i);
+      const pMatch = rawNotes.match(/PLAN:\s*([\s\S]*?)$/i);
+
+      subj = sMatch ? sMatch[1].trim() : "";
+      obj = oMatch ? oMatch[1].trim() : "";
+      assess = aMatch ? aMatch[1].trim() : "";
+      plan = pMatch ? pMatch[1].trim() : "";
+
+      if (!subj && !obj && !assess && !plan) {
+        subj = rawNotes;
+      }
+    }
+
+    const soapSections = [
+      { label: "S — SUBJECTIVE COMPLAINTS & HISTORY:", text: subj, color: [248, 250, 252] },
+      { label: "O — OBJECTIVE CLINICAL EXAMINATION & ROM:", text: obj, color: [255, 255, 255] },
+      { label: "A — CLINICAL ASSESSMENT & DIAGNOSIS:", text: assess || params.diagnosis || "", color: [248, 250, 252] },
+      { label: "P — PLAN OF CARE & MODALITIES:", text: plan || params.modalitiesAdministered || "", color: [255, 255, 255] },
+    ];
+
+    soapSections.forEach((sec) => {
+      if (!sec.text) return;
+
+      if (y > pageHeight - 80) {
+        doc.addPage();
+        y = 40;
+      }
+
+      const textLines = doc.splitTextToSize(sec.text, pageWidth - 90);
+      const secHeight = textLines.length * 11 + 22;
+
+      doc.setFillColor(sec.color[0], sec.color[1], sec.color[2]);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(30, y, pageWidth - 60, secHeight, 4, 4, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(6, 46, 54);
+      doc.text(sec.label, 40, y + 13);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(51, 65, 85);
+      doc.text(textLines, 40, y + 26);
+
+      y += secHeight + 8;
+    });
   } else {
+    // Standard Notes rendering
+    const notesParts: string[] = [];
+    if (params.diagnosis) notesParts.push(`Diagnosis: ${params.diagnosis}`);
+    if (rawNotes) notesParts.push(rawNotes);
+    if (params.modalitiesAdministered) notesParts.push(`Modalities Administered: ${params.modalitiesAdministered}`);
+    if (params.generalNotes) notesParts.push(`Therapist Guidance: ${params.generalNotes}`);
+
+    const bodyText = notesParts.join("\n\n") || "Patient underwent clinical evaluation and comprehensive physiotherapy assessment.";
+    const lines = doc.splitTextToSize(bodyText, pageWidth - 80);
+    const boxHeight = lines.length * 12 + 16;
+
+    if (y + boxHeight > pageHeight - 80) {
+      doc.addPage();
+      y = 40;
+    }
+
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(225, 230, 230);
+    doc.roundedRect(30, y, pageWidth - 60, boxHeight, 4, 4, "FD");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(40, 45, 50);
+    doc.text(lines, 42, y + 14);
+    y += boxHeight + 14;
+  }
+
+  // 5. Precautions & Identified Clinical Safety Alerts (if any)
+  const alerts = params.providerAlerts || [];
+  const precautions = params.precautionsAndRestrictions || "";
+
+  if (precautions || alerts.length > 0) {
+    if (y > pageHeight - 90) {
+      doc.addPage();
+      y = 40;
+    }
+
+    doc.setFillColor(254, 242, 242); // Soft Rose/Red
+    doc.setDrawColor(254, 202, 202);
+
+    const alertLines: string[] = [];
+    if (precautions) alertLines.push(`Precautions: ${precautions}`);
+    alerts.forEach((alt) => alertLines.push(`• ${alt}`));
+
+    const alertTextSplit = doc.splitTextToSize(alertLines.join("\n"), pageWidth - 90);
+    const alertBoxHeight = alertTextSplit.length * 11 + 22;
+
+    doc.roundedRect(30, y, pageWidth - 60, alertBoxHeight, 4, 4, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(185, 28, 28); // Red-700
+    doc.text("IDENTIFIED SAFETY ALERTS & PRECAUTIONS:", 40, y + 13);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(153, 27, 27);
+    doc.text(alertTextSplit, 40, y + 25);
+
+    y += alertBoxHeight + 14;
+  }
+
+  // 6. Prescribed Exercises & Regimen Table (ONLY IF PRESCRIBED!)
+  if (hasExercises) {
+    if (y > pageHeight - 140) {
+      doc.addPage();
+      y = 40;
+    }
+
+    doc.setFillColor(6, 46, 54);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(6, 46, 54);
+    doc.text("2. PRESCRIBED REHABILITATION EXERCISES & PROTOCOLS", 35, y);
+    y += 12;
+
+    // Table Header
+    doc.setFillColor(6, 46, 54);
+    doc.roundedRect(30, y, pageWidth - 60, 24, 4, 4, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.text("#", 42, y + 16);
+    doc.text("EXERCISE PROTOCOL", 68, y + 16);
+    doc.text("TARGET REGION", 260, y + 16);
+    doc.text("SETS × REPS / HOLD", 380, y + 16);
+    doc.text("DAILY FREQUENCY", 480, y + 16);
+
+    y += 24;
+
+    const exercises = params.exercises || [];
     exercises.forEach((ex, idx) => {
       if (y > pageHeight - 90) {
         doc.addPage();
@@ -189,29 +340,50 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
 
       y += 28;
     });
+
+    y += 8;
   }
 
-  // 5. SECTION 3: Review Target & Digital Verification
+  // 7. Review Target & Digital Verification
   if (y > pageHeight - 90) {
     doc.addPage();
     y = 40;
   }
-  y += 14;
+  y += 10;
 
   doc.setFillColor(249, 171, 85); // Honey Gold
   doc.roundedRect(30, y, pageWidth - 60, 32, 6, 6, "F");
   doc.setTextColor(6, 46, 54);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
-  doc.text("TARGET REVIEW RE-ASSESSMENT:", 42, y + 20);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Follow the prescribed ${duration}-day routine daily. Attending: ${params.therapistName || "Dr. Kinnera"}.`, 220, y + 20);
+
+  if (hasExercises) {
+    doc.text("TARGET REVIEW RE-ASSESSMENT:", 42, y + 20);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Follow the prescribed ${duration}-day routine daily. Attending: ${params.therapistName || "Dr. Kinnera"}.`,
+      225,
+      y + 20
+    );
+  } else {
+    doc.text("ATTENDING PHYSIOTHERAPIST:", 42, y + 20);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Clinical evaluation recorded by ${params.therapistName || "Dr. Kinnera"}. Next review as scheduled.`,
+      210,
+      y + 20
+    );
+  }
 
   // Footer
   doc.setTextColor(140, 150, 155);
   doc.setFont("helvetica", "italic");
   doc.setFontSize(7.5);
-  doc.text("Transcribed & Digitally Certified via GaitPhysio EMR Hub • Gait Physio Clinic, Whitefield, Bengaluru", 35, pageHeight - 22);
+  doc.text(
+    "Transcribed & Digitally Certified via GaitPhysio EMR Hub • Gait Physio Clinic, Whitefield, Bengaluru",
+    35,
+    pageHeight - 22
+  );
 
   return doc;
 }

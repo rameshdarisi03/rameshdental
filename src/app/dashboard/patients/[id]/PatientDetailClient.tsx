@@ -231,6 +231,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [formSuccess, setFormSuccess] = useState("");
   const [formError, setFormError] = useState("");
+  const [includePrescriptionInConsultPdf, setIncludePrescriptionInConsultPdf] = useState(false);
 
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
   const [selectedTherapist, setSelectedTherapist] = useState<string>("");
@@ -704,157 +705,32 @@ PLAN:
       setFormError("");
 
       try {
-        const doc = new jsPDF({ unit: "pt", format: "a4" });
-        const pageWidth = doc.internal.pageSize.getWidth();
         const currentDateStr = new Date().toLocaleDateString("en-GB", {
           day: "2-digit",
           month: "short",
           year: "numeric",
         });
 
-        // Top Header Banner
-        doc.setFillColor(27, 61, 47); // Brand Green
-        doc.rect(0, 0, pageWidth, 75, "F");
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(17);
-        doc.text("GAIT PHYSIO CLINIC", 40, 35);
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.text("Advanced Physiotherapy, Orthopedic & Neuro Rehabilitation Centre", 40, 50);
-        doc.text("Whitefield, Bengaluru • Contact: +91 9192939495", 40, 62);
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9.5);
-        doc.text("DOCTOR REFERRAL RECORD", pageWidth - 40, 48, { align: "right" });
-
-        // Patient Details Card
-        let y = 100;
-        doc.setFillColor(248, 250, 252);
-        doc.setDrawColor(226, 232, 240);
-        doc.roundedRect(40, y, pageWidth - 80, 52, 6, 6, "FD");
-
-        doc.setTextColor(30, 41, 59);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9.5);
-        doc.text(`Patient: ${patient.name || "N/A"}`, 55, y + 18);
-        doc.text(`Patient ID: ${patient.patientId || patient.id}`, 55, y + 34);
-
-        doc.setFont("helvetica", "normal");
-        doc.text(`Age / Gender: ${patient.age || "N/A"} / ${patient.gender || "N/A"}`, pageWidth / 2 + 20, y + 18);
-        doc.text(`Recorded Date: ${currentDateStr}`, pageWidth / 2 + 20, y + 34);
-
-        y += 70;
-
-        // Referring Physician & Hospital
-        doc.setFillColor(241, 245, 249);
-        doc.rect(40, y, pageWidth - 80, 20, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9.5);
-        doc.setTextColor(15, 23, 42);
-        doc.text("1. REFERRING PHYSICIAN & SOURCE", 50, y + 14);
-        y += 30;
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.text("Referring Doctor:", 50, y);
-        doc.setFont("helvetica", "normal");
-        doc.text(data.doctorName || "External Consultant", 160, y);
-        y += 16;
-
-        doc.setFont("helvetica", "bold");
-        doc.text("Hospital / Clinic:", 50, y);
-        doc.setFont("helvetica", "normal");
-        doc.text(data.hospitalOrClinic || "Medical Center", 160, y);
-        y += 16;
-
-        if (data.prescriptionDate) {
-          doc.setFont("helvetica", "bold");
-          doc.text("Prescription Date:", 50, y);
-          doc.setFont("helvetica", "normal");
-          doc.text(data.prescriptionDate, 160, y);
-          y += 16;
-        }
-
-        y += 8;
-
-        // Diagnosis Section
-        doc.setFillColor(241, 245, 249);
-        doc.rect(40, y, pageWidth - 80, 20, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9.5);
-        doc.text("2. CLINICAL DIAGNOSIS & REASON FOR REFERRAL", 50, y + 14);
-        y += 30;
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        const splitDiag = doc.splitTextToSize(data.diagnosis || "Physiotherapy referral", pageWidth - 100);
-        doc.text(splitDiag, 50, y);
-        y += splitDiag.length * 13 + 12;
-
-        // Prescribed Therapies
-        if (data.prescribedTherapies) {
-          doc.setFillColor(241, 245, 249);
-          doc.rect(40, y, pageWidth - 80, 20, "F");
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(9.5);
-          doc.text("3. ADVISED PHYSICAL THERAPY & PROTOCOL", 50, y + 14);
-          y += 30;
-
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(9);
-          const splitRx = doc.splitTextToSize(data.prescribedTherapies, pageWidth - 100);
-          doc.text(splitRx, 50, y);
-          y += splitRx.length * 13 + 12;
-        }
-
-        // Precautions & Contraindications
-        if (data.precautionsAndRestrictions) {
-          doc.setFillColor(254, 242, 242);
-          doc.setDrawColor(254, 202, 202);
-          doc.roundedRect(40, y, pageWidth - 80, 32, 4, 4, "FD");
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
-          doc.setTextColor(153, 27, 27);
-          doc.text("PRECAUTIONS & CONTRAINDICATIONS:", 50, y + 13);
-          doc.setFont("helvetica", "normal");
-          const splitPrec = doc.splitTextToSize(data.precautionsAndRestrictions, pageWidth - 110);
-          doc.text(splitPrec, 50, y + 24);
-          y += 44;
-        }
-
-        // Provider Reminders & Safety Alerts
-        if (data.providerRemindersAndAlerts && data.providerRemindersAndAlerts.length > 0) {
-          const alertHeight = 18 + data.providerRemindersAndAlerts.length * 13;
-          doc.setFillColor(254, 243, 199);
-          doc.setDrawColor(253, 230, 138);
-          doc.roundedRect(40, y, pageWidth - 80, alertHeight, 4, 4, "FD");
-
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
-          doc.setTextColor(146, 64, 14);
-          doc.text("IDENTIFIED SAFETY ALERTS & PRE-EXISTING CONDITIONS:", 50, y + 12);
-          doc.setFont("helvetica", "normal");
-          data.providerRemindersAndAlerts.forEach((alert, aIdx) => {
-            doc.text(`• ${alert}`, 55, y + 24 + aIdx * 13);
-          });
-          y += alertHeight + 15;
-        }
-
-        // Footer note
-        doc.setTextColor(148, 163, 184);
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(8);
-        doc.text("Transcribed via Gait Physio AI Clinical OCR • Archived in Google Drive EMR", 40, doc.internal.pageSize.getHeight() - 25);
+        const doc = buildUnifiedPrescriptionPdf({
+          patientName: patient.name,
+          pid: patient.patientId || patient.id,
+          dateStr: data.prescriptionDate || currentDateStr,
+          therapistName: patient.therapistName || defaultTherapist,
+          referringDoctor: data.doctorName,
+          hospitalOrClinic: data.hospitalOrClinic,
+          prescriptionDate: data.prescriptionDate,
+          diagnosis: data.diagnosis,
+          precautionsAndRestrictions: data.precautionsAndRestrictions,
+          providerAlerts: data.providerRemindersAndAlerts,
+          consultationSummary: data.summaryForRecord || data.prescribedTherapies,
+          exercises: [],
+        });
 
         // Generate PDF Blob
         const pdfBlob = doc.output("blob");
         const cleanDoctorName = (data.doctorName || data.hospitalOrClinic || "Doctor").replace(/[^a-zA-Z0-9]/g, "_");
         const dateStamp = new Date().toISOString().split("T")[0];
-        const pdfFileName = `Referral_${cleanDoctorName}_${dateStamp}.pdf`;
+        const pdfFileName = `consultation_Referral_${cleanDoctorName}_${dateStamp}.pdf`;
         const pdfFile = new File([pdfBlob], pdfFileName, { type: "application/pdf" });
 
         // Upload PDF directly to Google Drive
@@ -986,9 +862,10 @@ PLAN:
           therapistName: loggingTherapist,
         });
 
-        // Auto-generate and upload unified consultation sheet if Drive folder is linked and no file was manually uploaded
-        if (patient?.googleDriveFolderId && !selectedFile) {
+        // Auto-generate and upload unified consultation sheet if Drive folder is linked
+        if (patient?.googleDriveFolderId) {
           try {
+            const hasExercises = Boolean(includePrescriptionInConsultPdf && activePrescription?.exercises && activePrescription.exercises.length > 0);
             const rxDoc = buildUnifiedPrescriptionPdf({
               patientName: patient.name,
               pid: patient.id,
@@ -996,11 +873,13 @@ PLAN:
               therapistName: loggingTherapist,
               durationDays: activePrescription?.durationDays || 14,
               consultationSummary: notes,
-              generalNotes: activePrescription?.generalNotes,
-              exercises: activePrescription?.exercises || []
+              generalNotes: hasExercises ? activePrescription?.generalNotes : undefined,
+              exercises: hasExercises ? activePrescription?.exercises : [],
+              diagnosis: patient.treatmentPlan,
+              providerAlerts: patient.reminders || [],
             });
             const pdfBlob = rxDoc.output("blob");
-            const fileName = getPrescriptionFileName(patient.name, new Date());
+            const fileName = getPrescriptionFileName(patient.name, new Date(), hasExercises);
             const fileObj = new File([pdfBlob], fileName, { type: "application/pdf" });
             const formData = new FormData();
             formData.append("file", fileObj);
@@ -1013,7 +892,7 @@ PLAN:
             });
             const uploadData = await uploadRes.json();
             if (uploadData.success) {
-              await addMedicalRecordFile(id, {
+              const newFileRec = await addMedicalRecordFile(id, {
                 fileName: fileName,
                 fileType: "application/pdf",
                 fileSize: pdfBlob.size,
@@ -1022,6 +901,7 @@ PLAN:
                 webViewLink: uploadData.webViewLink,
                 downloadLink: uploadData.downloadLink,
               });
+              setFiles((prev) => [newFileRec as MedicalFile, ...prev]);
             }
           } catch (autoUploadErr) {
             console.warn("Auto-uploading consultation sheet to Drive failed:", autoUploadErr);
@@ -1051,6 +931,7 @@ PLAN:
 
   const handleDownloadPrescription = (rxItem: any) => {
     try {
+      const hasExercises = Boolean(rxItem.exercises && rxItem.exercises.length > 0);
       const doc = buildUnifiedPrescriptionPdf({
         patientName: patient?.name || "Patient",
         pid: patient?.id || "PID-1001",
@@ -1061,8 +942,10 @@ PLAN:
         consultationSummary: rxItem.consultationSummary,
         modalitiesAdministered: rxItem.modalitiesAdministered,
         exercises: rxItem.exercises || [],
+        diagnosis: rxItem.diagnosis || patient?.treatmentPlan,
+        providerAlerts: rxItem.providerAlerts || patient?.reminders || [],
       });
-      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || new Date());
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || new Date(), hasExercises);
       doc.save(fileName);
     } catch (err) {
       console.error("Prescription download failed:", err);
@@ -1081,12 +964,58 @@ PLAN:
         consultationSummary: rxItem.consultationSummary,
         modalitiesAdministered: rxItem.modalitiesAdministered,
         exercises: rxItem.exercises || [],
+        diagnosis: rxItem.diagnosis || patient?.treatmentPlan,
+        providerAlerts: rxItem.providerAlerts || patient?.reminders || [],
       });
       const pdfBlob = doc.output("blob");
       const url = URL.createObjectURL(pdfBlob);
       window.open(url, "_blank");
     } catch (err) {
       console.error("Prescription view failed:", err);
+    }
+  };
+
+  const handleDownloadConsultationPdf = (consult: Consultation) => {
+    try {
+      const consultDate = consult.date || new Date();
+      const hasExercises = Boolean(includePrescriptionInConsultPdf && activePrescription?.exercises && activePrescription.exercises.length > 0);
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: consult.date,
+        therapistName: consult.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription?.durationDays || 14,
+        consultationSummary: consult.summary,
+        diagnosis: patient?.treatmentPlan,
+        providerAlerts: patient?.reminders || [],
+        exercises: hasExercises ? activePrescription?.exercises : [],
+      });
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate, hasExercises);
+      doc.save(fileName);
+    } catch (err) {
+      console.error("Consultation download failed:", err);
+    }
+  };
+
+  const handleViewConsultationPdf = (consult: Consultation) => {
+    try {
+      const hasExercises = Boolean(includePrescriptionInConsultPdf && activePrescription?.exercises && activePrescription.exercises.length > 0);
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: consult.date,
+        therapistName: consult.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription?.durationDays || 14,
+        consultationSummary: consult.summary,
+        diagnosis: patient?.treatmentPlan,
+        providerAlerts: patient?.reminders || [],
+        exercises: hasExercises ? activePrescription?.exercises : [],
+      });
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error("Consultation view failed:", err);
     }
   };
 
@@ -1214,7 +1143,7 @@ Warm regards,
       });
     } else if (latestConsult) {
       const consultDate = latestConsult.date || new Date();
-      const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate);
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", consultDate, false);
       list.push({
         id: latestConsult.id || "consult-doc",
         category: "PRESCRIPTION",
@@ -2078,12 +2007,28 @@ Warm regards,
                     </div>
                   </div>
 
-                  {/* Submit Button */}
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  {/* Submit Button & Optional Routine Inclusion */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                    {activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0 ? (
+                      <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-600 dark:text-slate-350 bg-slate-50 dark:bg-slate-950/40 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <input
+                          type="checkbox"
+                          checked={includePrescriptionInConsultPdf}
+                          onChange={(e) => setIncludePrescriptionInConsultPdf(e.target.checked)}
+                          className="rounded border-slate-300 text-brand-green focus:ring-brand-green h-4 w-4 cursor-pointer"
+                        />
+                        <span>Club active exercise protocol ({activePrescription.exercises.length} exercises) into PDF</span>
+                      </label>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        Standard consultation note (no exercises prescribed)
+                      </span>
+                    )}
+
                     <button
                       type="submit"
                       disabled={submitting || (!notes.trim() && !selectedFile)}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
                     >
                       {submitting ? (
                         <>
@@ -2160,25 +2105,48 @@ Warm regards,
                               {consult.summary}
                             </p>
 
-                            {isLong && (
-                              <button
-                                type="button"
-                                onClick={() => toggleLogExpand(consult.id)}
-                                className="mt-2.5 text-[11px] font-bold text-brand-green hover:underline cursor-pointer border-0 bg-transparent flex items-center gap-1"
-                              >
-                                {isExpanded ? (
-                                  <>
-                                    <span>Show Less</span>
-                                    <ChevronUp className="w-3 h-3" />
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>Read Full Note</span>
-                                    <ChevronDown className="w-3 h-3" />
-                                  </>
-                                )}
-                              </button>
-                            )}
+                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewConsultationPdf(consult)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                                  title="View unified consultation PDF"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>View PDF</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadConsultationPdf(consult)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl bg-brand-green/10 text-brand-green hover:bg-brand-green/20 dark:bg-teal-900/30 dark:text-teal-400 transition-all cursor-pointer"
+                                  title="Download unified consultation PDF"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  <span>Download PDF</span>
+                                </button>
+                              </div>
+
+                              {isLong && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleLogExpand(consult.id)}
+                                  className="text-[11px] font-bold text-brand-green hover:underline cursor-pointer border-0 bg-transparent flex items-center gap-1 ml-auto"
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      <span>Show Less</span>
+                                      <ChevronUp className="w-3 h-3" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Read Full Note</span>
+                                      <ChevronDown className="w-3 h-3" />
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })
@@ -2562,6 +2530,9 @@ Warm regards,
           lastSeen={patient.lastVisit || "Today"}
           googleDriveFolderId={patient.googleDriveFolderId}
           therapistName={patient.therapistName || defaultTherapist || "Dr. Kinnera"}
+          diagnosis={patient.treatmentPlan}
+          consultationSummary={consultations[0]?.summary}
+          providerAlerts={patient.reminders}
           onPrescriptionSaved={() => {
             loadPatientDetails();
           }}

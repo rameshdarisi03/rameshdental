@@ -91,6 +91,7 @@ export default function RecordsPage() {
 
   const handleDownloadUnifiedPrescription = (rxItem: any) => {
     try {
+      const hasExercises = Boolean(rxItem.exercises && rxItem.exercises.length > 0);
       const doc = buildUnifiedPrescriptionPdf({
         patientName: patient?.name || "Patient",
         pid: patient?.id || "PID-1001",
@@ -101,9 +102,11 @@ export default function RecordsPage() {
         consultationSummary: rxItem.consultationSummary,
         modalitiesAdministered: rxItem.modalitiesAdministered,
         exercises: rxItem.exercises || [],
+        diagnosis: patient?.treatmentPlan,
+        providerAlerts: patient?.reminders || [],
       });
 
-      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || rxItem.date || new Date());
+      const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || rxItem.date || new Date(), hasExercises);
       doc.save(fileName);
     } catch (err) {
       console.error("Failed to generate unified prescription PDF:", err);
@@ -191,7 +194,7 @@ export default function RecordsPage() {
     allPrescriptionItems.push({
       id: latestConsult.id || "consult-1",
       type: "unified",
-      title: "Clinical Consultation & Rehabilitation Prescription",
+      title: "Clinical Consultation & Case Sheet Record",
       subtitle: `${latestConsult.therapistName || "Dr. Kinnera"} • ${latestConsult.date || (latestConsult as any).visitDate || "Recorded"}`,
       date: latestConsult.date || (latestConsult as any).visitDate || "2026-08-23",
       rawDate: latestConsult.date || (latestConsult as any).visitDate || new Date(),
