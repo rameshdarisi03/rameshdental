@@ -16,11 +16,12 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = [
-    { name: "Services", href: "/#services", hash: "#services" },
-    { name: "Our Team", href: "/#team", hash: "#team" },
-    { name: "Clinic Gallery", href: "/#gallery", hash: "#gallery" },
-    { name: "Patient FAQs", href: "/#faq", hash: "#faq" },
-    { name: "Locate Us", href: "/#locate-us", hash: "#locate-us" },
+    { name: "Services Directory", href: "/services" },
+    { name: "Our Specialists", href: "/team" },
+    { name: "Clinic Gallery", href: "/gallery" },
+    { name: "Health Articles", href: "/articles" },
+    { name: "Patient FAQs", href: "/faq" },
+    { name: "Locate Us (Directions)", href: "/locate-us" },
   ];
 
   return (
@@ -40,7 +41,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Specialized physiotherapy, biomechanical gait analysis, and sports rehabilitation clinic helping you move better, live pain-free, and perform at your highest potential.
+              Specialized physiotherapy, biomechanical gait analysis, and sports rehabilitation clinic helping you move better, live pain-free, and perform at your highest potential in Whitefield, Bengaluru.
             </p>
           </div>
 
@@ -50,19 +51,16 @@ export default function Footer() {
               Explore
             </h3>
             <ul className="space-y-2">
-              {footerLinks.map((link) => {
-                const targetHref = pathname === "/" && link.hash ? link.hash : link.href;
-                return (
-                  <li key={link.name}>
-                    <a
-                      href={targetHref}
-                      className="text-sm text-slate-600 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green/80 transition-colors"
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                );
-              })}
+              {footerLinks.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-slate-600 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green/80 transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -74,7 +72,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-brand-green mt-0.5 shrink-0" />
-                <span>123 Clinical Wellness Way, Near Central Park, Sector 4, Bangalore, 560001</span>
+                <span>Shop 26 & 06, ITPL Main Rd, Prasanth Extension, Near Hope Farm Signal, Whitefield, Bengaluru - 560066</span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-brand-green shrink-0" />

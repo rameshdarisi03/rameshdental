@@ -667,13 +667,13 @@ export default function Home() {
 
             {/* Action Buttons: "Our Services" FIRST, WhatsApp / Book SECOND */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-3.5 justify-center sm:justify-start pt-2 sm:pt-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-              <a
-                href="#services"
+              <Link
+                href="/services"
                 className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
               >
                 Our Services
                 <ArrowRight className="ml-2 h-4.5 w-4.5 sm:h-5 sm:w-5" />
-              </a>
+              </Link>
 
               {clinicConfig.enablePublicBooking !== false ? (
                 <Link
@@ -1878,12 +1878,12 @@ export default function Home() {
                 WhatsApp Us
               </a>
             )}
-            <a
-              href="#locate-us"
+            <Link
+              href="/locate-us"
               className="inline-flex items-center justify-center rounded-full border border-white/30 bg-transparent px-8 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all active:scale-95"
             >
               Locate Us
-            </a>
+            </Link>
           </div>
         </div>
       </section>

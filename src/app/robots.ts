@@ -1,4 +1,4 @@
-﻿import { MetadataRoute } from "next";
+import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = "https://gaitphysioclinic.com";
@@ -13,8 +13,12 @@ export default function robots(): MetadataRoute.Robots {
           "/book/success",
           "/services",
           "/services/*",
+          "/team",
+          "/gallery",
           "/articles",
           "/articles/*",
+          "/faq",
+          "/locate-us",
           "/emergency",
           "/testimonials",
           "/tips",
