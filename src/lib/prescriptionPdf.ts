@@ -19,6 +19,7 @@ export interface UnifiedPrescriptionParams {
   precautionsAndRestrictions?: string;
   medicationsList?: string;
   providerAlerts?: string[];
+  rawVerbatimTranscript?: string;
   soapNotes?: {
     subjective?: string;
     objective?: string;
@@ -113,8 +114,54 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
 
   y += 66;
 
-  // 3. Optional: Referring Doctor & External Hospital Source
-  if (params.referringDoctor || params.hospitalOrClinic) {
+  // 3. Extract Verbatim Doctor's Writings & Structured SOAP Notes
+  const rawNotes = (params.consultationSummary || "").trim();
+  let verbatimText = (params.rawVerbatimTranscript || "").trim();
+  let soapBody = rawNotes;
+
+  if (rawNotes.includes("=== EXACT DOCTOR'S WRITING (VERBATIM) ===")) {
+    const parts = rawNotes.split(/===\s*STRUCTURED SOAP CLINICAL NOTE\s*===/i);
+    if (parts.length > 1) {
+      verbatimText = parts[0].replace(/===\s*EXACT DOCTOR'S WRITING \(VERBATIM\)\s*===/i, "").trim();
+      soapBody = parts[1].trim();
+    } else {
+      const sIndex = rawNotes.search(/SUBJECTIVE:/i);
+      if (sIndex > 0) {
+        verbatimText = rawNotes.substring(0, sIndex).replace(/===\s*EXACT DOCTOR'S WRITING \(VERBATIM\)\s*===/i, "").trim();
+        soapBody = rawNotes.substring(sIndex).trim();
+      }
+    }
+  } else if (/SUBJECTIVE:/i.test(rawNotes)) {
+    const sIndex = rawNotes.search(/SUBJECTIVE:/i);
+    if (sIndex > 0) {
+      const preText = rawNotes.substring(0, sIndex).trim();
+      if (preText) {
+        verbatimText = preText;
+        soapBody = rawNotes.substring(sIndex).trim();
+      }
+    }
+  }
+
+  // Auto-detect referring doctor & clinic if not provided
+  let referringDoctor = params.referringDoctor;
+  let hospitalOrClinic = params.hospitalOrClinic;
+  let prescriptionDate = params.prescriptionDate;
+
+  if (!referringDoctor && verbatimText) {
+    const docMatch = verbatimText.match(/(?:Doctor|Dr\.?|Physician):\s*([^\n\r]+)/i);
+    if (docMatch) referringDoctor = docMatch[1].trim();
+  }
+  if (!hospitalOrClinic && verbatimText) {
+    const hospMatch = verbatimText.match(/(?:Hospital|Clinic|Center|Centre):\s*([^\n\r]+)/i);
+    if (hospMatch) hospitalOrClinic = hospMatch[1].trim();
+  }
+  if (!prescriptionDate && verbatimText) {
+    const dateMatch = verbatimText.match(/(?:Date|Dated):\s*([^\n\r]+)/i);
+    if (dateMatch) prescriptionDate = dateMatch[1].trim();
+  }
+
+  // 4. Optional: Referring Doctor & External Hospital Source
+  if (referringDoctor || hospitalOrClinic) {
     doc.setFillColor(241, 245, 249);
     doc.roundedRect(30, y, pageWidth - 60, 20, 3, 3, "F");
     doc.setFont("helvetica", "bold");
@@ -127,60 +174,134 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
     doc.setFont("helvetica", "bold");
     doc.text("Referring Doctor:", 42, y);
     doc.setFont("helvetica", "normal");
-    doc.text(params.referringDoctor || "External Consultant", 145, y);
+    doc.text(referringDoctor || "External Consultant", 145, y);
 
-    if (params.hospitalOrClinic) {
+    if (hospitalOrClinic) {
       doc.setFont("helvetica", "bold");
       doc.text("Hospital / Clinic:", 320, y);
       doc.setFont("helvetica", "normal");
-      doc.text(params.hospitalOrClinic, 410, y);
+      doc.text(hospitalOrClinic, 410, y);
     }
     y += 16;
 
-    if (params.prescriptionDate) {
+    if (prescriptionDate) {
       doc.setFont("helvetica", "bold");
       doc.text("Prescription Date:", 42, y);
       doc.setFont("helvetica", "normal");
-      doc.text(params.prescriptionDate, 145, y);
+      doc.text(prescriptionDate, 145, y);
       y += 16;
     }
     y += 6;
   }
 
-  // 4. Clinical Assessment, Diagnosis & Detailed SOAP Notes
-  const rawNotes = (params.consultationSummary || "").trim();
-  const hasStructuredSoap =
-    params.soapNotes ||
-    /SUBJECTIVE:|OBJECTIVE:|ASSESSMENT:|PLAN:/i.test(rawNotes);
-
+  // 5. Clinical Assessment & Case Record Section Header
   doc.setFillColor(6, 46, 54);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(6, 46, 54);
-  doc.text("1. CLINICAL ASSESSMENT & SOAP RECOVERY NOTES", 35, y);
+  doc.text("1. CLINICAL ASSESSMENT & CASE RECORD", 35, y);
   y += 12;
 
+  // 5A. Render Original Doctor's Case Sheet & Referral Notes (Verbatim)
+  if (verbatimText) {
+    if (y > pageHeight - 90) {
+      doc.addPage();
+      y = 40;
+    }
+
+    const vLines = doc.splitTextToSize(verbatimText, pageWidth - 90);
+    const neededHeight = vLines.length * 11 + 24;
+
+    if (y + neededHeight > pageHeight - 50) {
+      if (neededHeight <= pageHeight - 80) {
+        doc.addPage();
+        y = 40;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(30, y, pageWidth - 60, neededHeight, 4, 4, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(6, 46, 54);
+        doc.text("ORIGINAL CASE SHEET / DOCTOR'S WRITINGS (VERBATIM):", 40, y + 13);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+        doc.text(vLines, 40, y + 25);
+        y += neededHeight + 10;
+      } else {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(6, 46, 54);
+        doc.text("ORIGINAL CASE SHEET / DOCTOR'S WRITINGS (VERBATIM):", 35, y);
+        y += 14;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+
+        for (let i = 0; i < vLines.length; i++) {
+          if (y > pageHeight - 50) {
+            doc.addPage();
+            y = 40;
+          }
+          doc.text(vLines[i], 40, y);
+          y += 11;
+        }
+        y += 10;
+      }
+    } else {
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(30, y, pageWidth - 60, neededHeight, 4, 4, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(6, 46, 54);
+      doc.text("ORIGINAL CASE SHEET / DOCTOR'S WRITINGS (VERBATIM):", 40, y + 13);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(51, 65, 85);
+      doc.text(vLines, 40, y + 25);
+      y += neededHeight + 10;
+    }
+  }
+
+  // 5B. Render Structured SOAP Notes (if present)
+  const hasStructuredSoap =
+    params.soapNotes ||
+    /SUBJECTIVE:|OBJECTIVE:|ASSESSMENT:|PLAN:/i.test(soapBody);
+
   if (hasStructuredSoap) {
-    // Parse SOAP sections
     let subj = params.soapNotes?.subjective || "";
     let obj = params.soapNotes?.objective || "";
     let assess = params.soapNotes?.assessment || "";
     let plan = params.soapNotes?.plan || "";
 
-    if (!subj && !obj && !assess && !plan && rawNotes) {
-      const sMatch = rawNotes.match(/SUBJECTIVE:\s*([\s\S]*?)(?=(OBJECTIVE:|ASSESSMENT:|PLAN:|$))/i);
-      const oMatch = rawNotes.match(/OBJECTIVE:\s*([\s\S]*?)(?=(ASSESSMENT:|PLAN:|$))/i);
-      const aMatch = rawNotes.match(/ASSESSMENT:\s*([\s\S]*?)(?=(PLAN:|$))/i);
-      const pMatch = rawNotes.match(/PLAN:\s*([\s\S]*?)$/i);
+    if (!subj && !obj && !assess && !plan && soapBody) {
+      const sMatch = soapBody.match(/SUBJECTIVE:\s*([\s\S]*?)(?=(OBJECTIVE:|ASSESSMENT:|PLAN:|$))/i);
+      const oMatch = soapBody.match(/OBJECTIVE:\s*([\s\S]*?)(?=(ASSESSMENT:|PLAN:|$))/i);
+      const aMatch = soapBody.match(/ASSESSMENT:\s*([\s\S]*?)(?=(PLAN:|$))/i);
+      const pMatch = soapBody.match(/PLAN:\s*([\s\S]*?)$/i);
 
       subj = sMatch ? sMatch[1].trim() : "";
       obj = oMatch ? oMatch[1].trim() : "";
       assess = aMatch ? aMatch[1].trim() : "";
       plan = pMatch ? pMatch[1].trim() : "";
+    }
 
-      if (!subj && !obj && !assess && !plan) {
-        subj = rawNotes;
+    if (verbatimText && (subj || obj || assess || plan)) {
+      if (y > pageHeight - 80) {
+        doc.addPage();
+        y = 40;
       }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(6, 46, 54);
+      doc.text("STRUCTURED SOAP CLINICAL RECOVERY NOTES:", 35, y);
+      y += 12;
     }
 
     const soapSections = [
@@ -217,8 +338,8 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
 
       y += secHeight + 8;
     });
-  } else {
-    // Standard Notes rendering
+  } else if (!verbatimText) {
+    // Standard Notes rendering (only if no verbatim was printed)
     const notesParts: string[] = [];
     if (params.diagnosis) notesParts.push(`Diagnosis: ${params.diagnosis}`);
     if (rawNotes) notesParts.push(rawNotes);
