@@ -9,33 +9,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/about",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/services",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/team",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/gallery",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/faq",
-        destination: "/",
-        permanent: false,
-      },
-      {
-        source: "/locate-us",
-        destination: "/",
-        permanent: false,
+        destination: "/team",
+        permanent: true,
       },
     ];
   },
