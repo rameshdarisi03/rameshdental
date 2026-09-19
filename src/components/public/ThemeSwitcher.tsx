@@ -94,7 +94,7 @@ export default function ThemeSwitcher() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-850 shadow-2xs transition-all cursor-pointer"
+        className="flex items-center gap-1.5 p-1.5 xl:px-3 xl:py-1.5 rounded-full border border-slate-200/90 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-850 shadow-2xs transition-all cursor-pointer shrink-0"
         title="Change Visual Theme"
         aria-label="Change Visual Theme"
       >
@@ -102,11 +102,11 @@ export default function ThemeSwitcher() {
           className="w-3.5 h-3.5 rounded-full border border-black/15 shrink-0 shadow-2xs"
           style={{ backgroundColor: activeOption.primaryColor }}
         />
-        <Palette className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300 sm:hidden" />
-        <span className="hidden sm:inline text-[11px] font-extrabold text-slate-800 dark:text-slate-200">
+        <Palette className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300 xl:hidden" />
+        <span className="hidden xl:inline text-[11px] font-extrabold text-slate-800 dark:text-slate-200 whitespace-nowrap">
           {activeOption.name}
         </span>
-        <ChevronDown className="hidden sm:inline h-3 w-3 text-slate-400" />
+        <ChevronDown className="hidden xl:inline h-3 w-3 text-slate-400" />
       </button>
 
       {/* Dropdown Menu */}

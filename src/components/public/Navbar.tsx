@@ -52,7 +52,7 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { name: "Home", href: "/" },
+    { name: "Home", href: "/", desktopHidden: true },
     { name: "Services", href: "/services" },
     { name: "Team", href: "/team" },
     { name: "Gallery", href: "/gallery" },
@@ -73,7 +73,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-semibold group select-none shrink-0 min-w-0">
+        <Link href="/" className="flex items-center gap-2 font-semibold group select-none shrink-0 mr-3 md:mr-4 lg:mr-6">
           <img
             src="/images/gait_physio_logo.png"
             alt="Gait Physio Clinic Emblem Logo"
@@ -84,16 +84,16 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => {
+        {/* Desktop & Tablet Navigation */}
+        <nav className="hidden md:flex items-center gap-1 lg:gap-2.5 xl:gap-5 min-w-0">
+          {navLinks.filter((link) => !link.desktopHidden).map((link) => {
             return (
               <Link
                 key={link.name}
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-brand-green dark:hover:text-brand-green/80 ${
+                className={`whitespace-nowrap px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-900/60 dark:hover:text-brand-green/80 ${
                   isActive(link)
-                    ? "text-brand-green dark:text-teal-400 font-semibold"
+                    ? "text-brand-green dark:text-teal-400 font-bold bg-brand-green/10 dark:bg-brand-green/20"
                     : "text-slate-600 dark:text-slate-300"
                 }`}
               >
@@ -103,14 +103,14 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* CTA & Mobile Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* CTA & Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
           {/* Visual Theme Switcher Dropdown */}
           <div className="flex items-center">
             <ThemeSwitcher />
           </div>
 
-          {/* Dark Mode Slider Toggle (Desktop Only - Mobile uses floating dock) */}
+          {/* Dark Mode Slider Toggle (Desktop/Tablet) */}
           <button
             onClick={toggleDarkMode}
             className="hidden md:inline-flex relative h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-slate-200 dark:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-green"
@@ -135,15 +135,16 @@ export default function Navbar() {
             <>
               <a
                 href={`tel:${clinicConfig.phone || "+919206651295"}`}
-                className="hidden sm:flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-green dark:text-slate-200 dark:hover:text-brand-green/85 mr-1 transition-colors"
+                className="hidden sm:flex items-center gap-1.5 text-xs lg:text-sm font-bold text-slate-700 hover:text-brand-green dark:text-slate-200 dark:hover:text-brand-green/85 transition-colors p-1.5 lg:px-2.5 lg:py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-850 shrink-0"
+                title="Call Clinic: +91 92066 51295"
               >
                 <Phone className="h-4 w-4 text-brand-green shrink-0" />
-                <span>Call Clinic</span>
+                <span className="hidden xl:inline whitespace-nowrap">Call Clinic</span>
               </a>
 
               <Link
                 href="/book"
-                className="hidden sm:inline-flex items-center justify-center rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green transition-all active:scale-95"
+                className="hidden sm:inline-flex items-center justify-center rounded-full bg-brand-green px-3.5 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold text-white shadow-xs hover:bg-brand-green-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-green transition-all active:scale-95 whitespace-nowrap shrink-0"
               >
                 Book Appointment
               </Link>
@@ -153,10 +154,10 @@ export default function Navbar() {
               href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-green-hover transition-all active:scale-95"
+              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-3.5 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold text-white shadow-xs hover:bg-brand-green-hover transition-all active:scale-95 whitespace-nowrap shrink-0"
             >
               <MessageSquare className="h-4 w-4" />
-              WhatsApp Us
+              <span className="hidden xl:inline">WhatsApp Us</span>
             </a>
           )}
           
