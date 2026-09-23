@@ -46,10 +46,10 @@ export function formatToDDMMYYYY(dateInput?: any): string {
   return `${day}_${month}_${year}`;
 }
 
-export function getPrescriptionFileName(patientName: string, dateInput?: any, hasExercises: boolean = true): string {
+export function getPrescriptionFileName(patientName: string, dateInput?: any, _hasExercises: boolean = true): string {
   const cleanName = (patientName || "Patient").trim().replace(/[^a-zA-Z0-9]/g, "_");
   const dateStr = formatToDDMMYYYY(dateInput);
-  const prefix = hasExercises ? "prescription" : "consultation";
+  const prefix = "consultation";
   return `${prefix}_${cleanName}_${dateStr}.pdf`;
 }
 

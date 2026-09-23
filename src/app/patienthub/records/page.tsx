@@ -33,9 +33,8 @@ import { usePatientAuth } from "@/providers/PatientAuthProvider";
 
 export default function RecordsPage() {
   const { patient, loading: authLoading } = usePatientAuth();
-  const [activeTab, setActiveTab] = useState<"invoices" | "prescriptions">("prescriptions");
+  const [activeTab, setActiveTab] = useState<"invoices" | "consultations">("consultations");
   const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
-  const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [medicalFiles, setMedicalFiles] = useState<MedicalRecordFile[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -72,15 +71,12 @@ export default function RecordsPage() {
 
   const loadPatientRecords = async (patientId: string) => {
     try {
-      // 1. Fetch Prescriptions History & Active Prescription
-      const [historyList, activeRx, consultsList, filesList] = await Promise.all([
-        getPatientPrescriptionsHistory(patientId),
+      const [activeRx, consultsList, filesList] = await Promise.all([
         getPatientPrescription(patientId),
         getConsultations(patientId),
         getMedicalRecordFiles(patientId),
       ]);
 
-      setPrescriptionsHistory(historyList);
       if (activeRx) setActivePrescription(activeRx);
       setConsultations(consultsList);
       setMedicalFiles(filesList);
@@ -109,7 +105,7 @@ export default function RecordsPage() {
       const fileName = getPrescriptionFileName(patient?.name || "Patient", rxItem.rawDate || rxItem.date || new Date(), hasExercises);
       doc.save(fileName);
     } catch (err) {
-      console.error("Failed to generate unified prescription PDF:", err);
+      console.error("Failed to generate consultation PDF:", err);
     }
   };
 
@@ -151,10 +147,12 @@ export default function RecordsPage() {
     );
   }
 
-  // Aggregate all prescription items (Unified Single-Sheet Architecture)
-  const allPrescriptionItems: Array<{
+  // Aggregate all consultation records & medical documents (Single Unified Consultation Architecture)
+  const hasActiveExercises = Boolean(activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0);
+
+  const allConsultationItems: Array<{
     id: string;
-    type: "unified" | "file";
+    type: "consultation" | "file";
     title: string;
     subtitle: string;
     date: string;
@@ -169,70 +167,36 @@ export default function RecordsPage() {
     raw: any;
   }> = [];
 
-  const latestConsult = consultations.length > 0 ? consultations[0] : null;
-
-  // 1. Unified Active Plan (combines active exercise prescription + clinical consultation notes)
-  if (activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0) {
-    allPrescriptionItems.push({
-      id: "active-unified-prescription",
-      type: "unified",
-      title: `Home Exercise Plan & Clinical Prescription (${activePrescription.durationDays || 14} Days)`,
-      subtitle: `${patient?.therapistName || latestConsult?.therapistName || "Dr. Kinnera"} • ${activePrescription.prescribedDateFormatted || activePrescription.startDate || "Active Plan"}`,
-      date: activePrescription.startDate || "2026-08-23",
-      rawDate: activePrescription.startDate || new Date(),
-      displayDate: activePrescription.prescribedDateFormatted || activePrescription.startDate || "23-08-2026",
-      therapistName: patient?.therapistName || latestConsult?.therapistName || "Dr. Kinnera",
-      durationDays: activePrescription.durationDays || 14,
-      generalNotes: activePrescription.generalNotes,
-      consultationSummary: latestConsult?.summary || (latestConsult as any)?.soapNote || (latestConsult as any)?.subjectiveComplaints,
-      modalitiesAdministered: (latestConsult as any)?.modalitiesAdministered,
-      exercises: activePrescription.exercises,
-      raw: activePrescription,
+  // 1. Clinical Consultations & Case Sheets (Exercises are clubbed directly inside if prescribed)
+  consultations.forEach((consult, idx) => {
+    allConsultationItems.push({
+      id: consult.id || `consult-${idx}`,
+      type: "consultation",
+      title: "Clinical Consultation & Case Sheet",
+      subtitle: `${consult.therapistName || patient?.therapistName || "Dr. Kinnera"} • ${consult.date || "Consultation Recorded"}${hasActiveExercises ? ` • Includes Prescribed Routine` : ""}`,
+      date: consult.date || "23-08-2026",
+      rawDate: consult.date || new Date(),
+      displayDate: consult.date || "23-08-2026",
+      therapistName: consult.therapistName || patient?.therapistName || "Dr. Kinnera",
+      durationDays: activePrescription?.durationDays || 14,
+      generalNotes: hasActiveExercises ? activePrescription?.generalNotes : undefined,
+      consultationSummary: consult.summary || (consult as any).soapNote || (consult as any).subjectiveComplaints,
+      modalitiesAdministered: (consult as any).modalitiesAdministered,
+      exercises: hasActiveExercises ? (activePrescription?.exercises || []) : [],
+      raw: consult,
     });
-  } else if (latestConsult) {
-    // If only consultation notes exist without active exercise tray
-    allPrescriptionItems.push({
-      id: latestConsult.id || "consult-1",
-      type: "unified",
-      title: "Clinical Consultation & Case Sheet Record",
-      subtitle: `${latestConsult.therapistName || "Dr. Kinnera"} • ${latestConsult.date || (latestConsult as any).visitDate || "Recorded"}`,
-      date: latestConsult.date || (latestConsult as any).visitDate || "2026-08-23",
-      rawDate: latestConsult.date || (latestConsult as any).visitDate || new Date(),
-      displayDate: latestConsult.date || (latestConsult as any).visitDate || "23-08-2026",
-      therapistName: latestConsult.therapistName || "Dr. Kinnera",
-      durationDays: 14,
-      consultationSummary: latestConsult.summary || (latestConsult as any).soapNote || (latestConsult as any).subjectiveComplaints,
-      modalitiesAdministered: (latestConsult as any).modalitiesAdministered,
-      exercises: [],
-      raw: latestConsult,
-    });
-  }
-
-  // 2. Historical Prescriptions (if any other previous versions exist)
-  prescriptionsHistory.forEach((hist, idx) => {
-    if (hist.prescribedDateFormatted !== activePrescription?.prescribedDateFormatted) {
-      allPrescriptionItems.push({
-        id: `hist-rx-${idx}`,
-        type: "unified",
-        title: `Past Exercise Plan & Prescription v${prescriptionsHistory.length - idx} (${hist.durationDays || 14} Days)`,
-        subtitle: `${patient?.therapistName || "Dr. Kinnera"} • ${hist.prescribedDateFormatted || hist.startDate || "Past Plan"}`,
-        date: hist.startDate || "2026-08-23",
-        rawDate: hist.startDate || new Date(),
-        displayDate: hist.prescribedDateFormatted || hist.startDate || "23-08-2026",
-        therapistName: patient?.therapistName || "Dr. Kinnera",
-        durationDays: hist.durationDays || 14,
-        generalNotes: hist.generalNotes,
-        exercises: hist.exercises || [],
-        raw: hist,
-      });
-    }
   });
 
-  // 3. Uploaded Medical Files / Verified Referrals (Excludes private doctor-only reference files)
+  // 2. Uploaded Medical Files / Verified Scans (Excludes private doctor reference files & auto-generated consultation PDFs to prevent duplicates)
   medicalFiles
-    .filter((f) => !f.isDoctorOnly && (f as any).category !== "DOCTOR_REFERENCE")
+    .filter((f) => {
+      if (f.isDoctorOnly || (f as any).category === "DOCTOR_REFERENCE") return false;
+      const lower = (f.fileName || "").toLowerCase();
+      if (lower.startsWith("consultation_") || lower.startsWith("prescription_")) return false;
+      return true;
+    })
     .forEach((f) => {
-      allPrescriptionItems.push({
+      allConsultationItems.push({
         id: f.id || Math.random().toString(),
         type: "file",
         title: f.fileName,
@@ -253,7 +217,7 @@ export default function RecordsPage() {
         </h1>
       </div>
 
-      {/* 2. Segmented Pill Tabs (Invoices | Prescriptions) */}
+      {/* 2. Segmented Pill Tabs (Invoices | Consultations) */}
       <div className="flex bg-[#f1f5f5] dark:bg-[#121a1d] p-1.5 rounded-2xl border border-[#21444D]/10 dark:border-slate-800 shadow-xs">
         <button
           type="button"
@@ -269,31 +233,31 @@ export default function RecordsPage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab("prescriptions")}
+          onClick={() => setActiveTab("consultations")}
           className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all text-center cursor-pointer ${
-            activeTab === "prescriptions"
+            activeTab === "consultations"
               ? "bg-[#062e36] text-white shadow-sm font-black"
               : "text-[#41484A] dark:text-slate-300 hover:text-[#062e36] dark:hover:text-white font-semibold"
           }`}
         >
-          Prescriptions
+          Consultations
         </button>
       </div>
 
-      {/* 3. TAB CONTENT: Prescriptions */}
-      {activeTab === "prescriptions" && (
+      {/* 3. TAB CONTENT: Consultations */}
+      {activeTab === "consultations" && (
         <div className="space-y-3.5 pt-1">
-          {allPrescriptionItems.length === 0 ? (
+          {allConsultationItems.length === 0 ? (
             <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 rounded-3xl p-10 text-center space-y-3 shadow-xs">
-              <Folder className="h-10 w-10 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-[#062e36] dark:text-white">No Prescriptions Recorded Yet</h3>
+              <FileText className="h-10 w-10 text-slate-300 mx-auto" />
+              <h3 className="text-sm font-bold text-[#062e36] dark:text-white">No Consultations Recorded Yet</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Your prescribed home exercise routines, clinical notes, and doctor case sheets will appear here with instant PDF download.
+                Your clinical consultation notes, doctor case sheets, and treatment records will appear here with instant PDF download.
               </p>
             </div>
           ) : (
-            allPrescriptionItems.map((item) => {
-              const isUnified = item.type === "unified";
+            allConsultationItems.map((item) => {
+              const isConsultation = item.type === "consultation";
               const isFile = item.type === "file";
 
               return (
@@ -304,10 +268,10 @@ export default function RecordsPage() {
                   <div className="flex items-center gap-3.5 overflow-hidden">
                     {/* Left Circular Icon Badge */}
                     <div className="h-12 w-12 rounded-full bg-[#fdeedc] dark:bg-amber-950/40 text-[#8a5100] dark:text-[#f9ab55] flex items-center justify-center shrink-0">
-                      {isUnified ? (
+                      {isConsultation ? (
                         <FileText className="h-5 w-5 stroke-[2.2]" />
                       ) : (
-                        <Pill className="h-5 w-5 stroke-[2.2]" />
+                        <Folder className="h-5 w-5 stroke-[2.2]" />
                       )}
                     </div>
 
@@ -339,7 +303,7 @@ export default function RecordsPage() {
                         type="button"
                         onClick={() => handleDownloadUnifiedPrescription(item)}
                         className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] flex items-center justify-center shadow-xs transition-transform active:scale-95 cursor-pointer"
-                        title="Download Prescription PDF"
+                        title="Download Consultation PDF"
                       >
                         <Download className="h-4.5 w-4.5 stroke-[2.5]" />
                       </button>

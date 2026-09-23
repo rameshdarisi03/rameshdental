@@ -709,21 +709,65 @@ export default function ExercisePrescriberModal({
                 </div>
               </div>
 
-              {/* Protocol Progression Option */}
+              {/* Protocol Progression Options (Mutually Exclusive) */}
               {pastPrescription && (
-                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 select-none">
-                  <input
-                    type="checkbox"
-                    id="resetProtocolCheck"
-                    checked={resetProgressToDay1}
-                    onChange={(e) => setResetProgressToDay1(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
-                  />
-                  <label htmlFor="resetProtocolCheck" className="cursor-pointer text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-tight">
-                    {resetProgressToDay1 
-                      ? "Start as Fresh Protocol (Reset patient to Day 1)"
-                      : "Preserve ongoing progress (Patient continues without losing past days)"}
-                  </label>
+                <div className="space-y-1.5 select-none pt-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                    Routine Progression Options
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Option 1: Preserve ongoing progress */}
+                    <label 
+                      onClick={() => setResetProgressToDay1(false)}
+                      className={`flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl border cursor-pointer transition-all ${
+                        !resetProgressToDay1
+                          ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-brand-green text-slate-900 dark:text-white shadow-xs ring-1 ring-brand-green/30"
+                          : "bg-slate-50/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="protocolProgression"
+                        checked={!resetProgressToDay1}
+                        onChange={() => setResetProgressToDay1(false)}
+                        className="mt-0.5 h-4 w-4 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer shrink-0"
+                      />
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold block leading-tight">
+                          Preserve Progress
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-snug">
+                          Continue without losing past completed days
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* Option 2: Start as Fresh Protocol */}
+                    <label 
+                      onClick={() => setResetProgressToDay1(true)}
+                      className={`flex items-start gap-2.5 p-2.5 sm:p-3 rounded-2xl border cursor-pointer transition-all ${
+                        resetProgressToDay1
+                          ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-brand-green text-slate-900 dark:text-white shadow-xs ring-1 ring-brand-green/30"
+                          : "bg-slate-50/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="protocolProgression"
+                        checked={resetProgressToDay1}
+                        onChange={() => setResetProgressToDay1(true)}
+                        className="mt-0.5 h-4 w-4 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer shrink-0"
+                      />
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold block leading-tight">
+                          Fresh Protocol
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block leading-snug">
+                          Reset routine schedule back to Day 1
+                        </span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
