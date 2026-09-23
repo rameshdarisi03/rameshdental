@@ -9,7 +9,6 @@ import {
   Send, 
   History, 
   Trash2, 
-  RotateCcw, 
   Loader2, 
   Dumbbell, 
   Sparkles,
@@ -24,8 +23,7 @@ import {
   PatientPrescription, 
   getExerciseLibrary, 
   getPatientPrescription, 
-  savePatientPrescription, 
-  removePrescribedExercise 
+  savePatientPrescription
 } from "@/lib/exercisesDb";
 
 interface ExercisePrescriberModalProps {
@@ -190,50 +188,6 @@ export default function ExercisePrescriberModal({
     setTray(tray.filter((t) => t.exerciseId !== exId));
   };
 
-  // Re-prescribe all previously prescribed exercises
-  const handleReprescribeAll = () => {
-    if (pastPrescription && pastPrescription.exercises) {
-      setTray(pastPrescription.exercises);
-      if (pastPrescription.generalNotes) {
-        setGeneralNotes(pastPrescription.generalNotes);
-      }
-      if (pastPrescription.durationDays) {
-        setDurationDays(pastPrescription.durationDays);
-      }
-    }
-  };
-
-  // Remove individual exercise from previous prescription in Firestore
-  const handleRemovePreviousItem = async (exId: string) => {
-    try {
-      await removePrescribedExercise(patientId, exId);
-      // Update local state
-      if (pastPrescription) {
-        const updatedExs = pastPrescription.exercises.filter((ex) => ex.exerciseId !== exId);
-        if (updatedExs.length === 0) {
-          setPastPrescription(null);
-        } else {
-          setPastPrescription({ ...pastPrescription, exercises: updatedExs });
-        }
-      }
-      setTray(tray.filter((item) => item.exerciseId !== exId));
-    } catch (err) {
-      console.error("Failed to remove exercise:", err);
-    }
-  };
-
-  // Clear all previous active prescriptions
-  const handleClearPreviousPrescription = async () => {
-    try {
-      await removePrescribedExercise(patientId);
-      setPastPrescription(null);
-      setTray([]);
-      setGeneralNotes("");
-    } catch (err) {
-      console.error("Failed to clear prescription:", err);
-    }
-  };
-
   const handleSavePrescription = async () => {
     setSaving(true);
     try {
@@ -377,24 +331,6 @@ export default function ExercisePrescriberModal({
                   <History className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                   <span>PREVIOUSLY PRESCRIBED ({pastPrescription.prescribedDateFormatted})</span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleReprescribeAll}
-                    className="inline-flex items-center gap-1 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    Re-prescribe All
-                  </button>
-                  <button
-                    onClick={handleClearPreviousPrescription}
-                    className="inline-flex items-center gap-1 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-950/40 dark:text-red-300 text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer"
-                    title="Clear Active Prescription from Patient Hub"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Clear Active
-                  </button>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
@@ -403,7 +339,7 @@ export default function ExercisePrescriberModal({
                     key={item.exerciseId}
                     className="bg-white dark:bg-slate-900 border border-sky-150 dark:border-sky-900/40 p-3 rounded-xl flex items-center justify-between gap-3 shadow-xs relative group"
                   >
-                    <div className="space-y-0.5 overflow-hidden pr-6">
+                    <div className="space-y-0.5 overflow-hidden">
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                         {item.title}
                       </p>
@@ -411,14 +347,6 @@ export default function ExercisePrescriberModal({
                         {item.sets} sets × {item.repsOrHold}
                       </p>
                     </div>
-
-                    <button
-                      onClick={() => handleRemovePreviousItem(item.exerciseId)}
-                      className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      title="Remove exercise from patient hub"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
                   </div>
                 ))}
               </div>
