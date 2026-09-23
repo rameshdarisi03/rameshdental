@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import {
@@ -31,7 +32,9 @@ import {
   MessageSquare,
   CalendarCheck2,
   CheckCircle,
-  ExternalLink
+  ExternalLink,
+  X,
+  Sparkles
 } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
@@ -65,6 +68,7 @@ const SERVICES_LIST = [
 
 export default function AppointmentsPage() {
   const { patient, loading: authLoading } = usePatientAuth();
+  const [mounted, setMounted] = useState(false);
   
   // Clinic Config State
   const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
@@ -85,15 +89,26 @@ export default function AppointmentsPage() {
   // Interaction State
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [lastSubmittedApp, setLastSubmittedApp] = useState<{
+  
+  // Modal Popups State
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalErrorMsg, setModalErrorMsg] = useState("");
+  const [submittedApp, setSubmittedApp] = useState<{
     service: string;
     date: string;
     slot: string;
+    patientName: string;
+    patientPhone: string;
   } | null>(null);
 
   // History State
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 1. Fetch clinic configuration
   useEffect(() => {
@@ -269,38 +284,45 @@ export default function AppointmentsPage() {
   const handleBookSession = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
-    setLastSubmittedApp(null);
 
     if (!patient) {
-      setErrorMsg("Failed to identify patient session. Please re-login.");
+      setModalErrorMsg("Unable to identify your patient account. Please try logging in again.");
+      setShowErrorModal(true);
       return;
     }
 
     if (!bookingDate) {
-      setErrorMsg("Please select a valid booking date.");
+      setModalErrorMsg("Please choose your preferred appointment date.");
+      setShowErrorModal(true);
       return;
     }
 
     if (isWeeklyHoliday) {
-      setErrorMsg("The clinic is closed on weekly holidays.");
+      setModalErrorMsg("The clinic is closed on weekly holidays. Please choose another date.");
+      setShowErrorModal(true);
       return;
     }
 
     if (!bookingSlot) {
-      setErrorMsg("Please select an available time slot.");
+      setModalErrorMsg("Please select an available time slot before submitting your request.");
+      setShowErrorModal(true);
       return;
     }
 
     setSubmitting(true);
 
     try {
+      const patientName = patient?.name || "Patient";
+      const patientPhone = patient?.phone || "";
+      const patientEmail = patient?.email || "";
+
       // Submit booking request using standardized db function
       // Writes to 'appointments' with status: "pending", type: "online"
       // Immediately visible in Admin Portal (/dashboard/appointments)
       const result = await submitBookingRequest({
-        patientName: patient.name,
-        patientEmail: patient.email || "",
-        patientPhone: patient.phone,
+        patientName,
+        patientEmail,
+        patientPhone,
         serviceId: bookingService,
         date: bookingDate,
         slot: bookingSlot,
@@ -308,11 +330,16 @@ export default function AppointmentsPage() {
       });
 
       if (result.success) {
-        setLastSubmittedApp({
+        setSubmittedApp({
           service: bookingService,
           date: bookingDate,
           slot: bookingSlot,
+          patientName,
+          patientPhone,
         });
+
+        // Open Confirmation Popup Modal
+        setShowSuccessModal(true);
 
         // Clear notes & slot selection
         setBookingNotes("");
@@ -329,11 +356,16 @@ export default function AppointmentsPage() {
         });
         setApprovedSlotCounts(counts);
       } else {
-        setErrorMsg(result.error || "Submission failed. Please check slot availability.");
+        setModalErrorMsg(result.error || "Submission failed. Please check slot availability and try again.");
+        setShowErrorModal(true);
+        setErrorMsg(result.error || "Submission failed.");
       }
     } catch (err: any) {
       console.error("Booking error:", err);
-      setErrorMsg("An unexpected error occurred. Please try again.");
+      const msg = err.message || "An unexpected database error occurred. Please try again.";
+      setModalErrorMsg(msg);
+      setShowErrorModal(true);
+      setErrorMsg(msg);
     } finally {
       setSubmitting(false);
     }
@@ -362,45 +394,6 @@ export default function AppointmentsPage() {
           Select your preferred treatment, date, and realtime available slot. Your request appears instantly in our clinic reception queue.
         </p>
       </div>
-
-      {/* Success Notification Banner */}
-      {lastSubmittedApp && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-6 rounded-3xl shadow-sm space-y-3 animate-fade-in-up">
-          <div className="flex items-start gap-3">
-            <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-            <div className="space-y-1 flex-1">
-              <h4 className="text-sm font-black text-emerald-900 dark:text-emerald-200">
-                Appointment Request Submitted Successfully!
-              </h4>
-              <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
-                Your request for <strong>{lastSubmittedApp.service}</strong> on <strong>{lastSubmittedApp.date}</strong> at <strong>{lastSubmittedApp.slot}</strong> is logged as <strong>Pending Approval</strong>. Our front desk team will confirm your session shortly.
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-wrap items-center gap-3">
-            <a
-              href={`https://wa.me/${doctorWhatsAppNumber}?text=${encodeURIComponent(
-                `Hi Gait Physio Clinic, I have submitted an appointment request for *${lastSubmittedApp.service}* on *${lastSubmittedApp.date}* at *${lastSubmittedApp.slot}* via Patient Hub.`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-sm"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>Notify Clinic Desk on WhatsApp</span>
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </a>
-            <button
-              type="button"
-              onClick={() => setLastSubmittedApp(null)}
-              className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline px-2 py-1"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Main Grid: Left Booking Form (2 cols) & Right History (1 col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -729,6 +722,142 @@ export default function AppointmentsPage() {
         </div>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* 1. SUCCESS CONFIRMATION MODAL (POPUP)                                     */}
+      {/* ========================================================================= */}
+      {mounted && showSuccessModal && submittedApp && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#121a1d] border border-slate-100 dark:border-slate-800 p-6 sm:p-7 rounded-[28px] shadow-2xl space-y-5 text-center animate-scale-in max-h-[92vh] overflow-y-auto overscroll-contain">
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Checkmark Icon with Glow */}
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 ring-8 ring-emerald-50 dark:ring-emerald-950/30">
+              <CheckCircle2 className="h-9 w-9 stroke-[2.2]" />
+            </div>
+
+            {/* Header Titles */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                Booking Request Logged
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                Appointment Requested!
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-xs mx-auto">
+                Your request has been delivered to our clinic desk. Our reception team will review and approve your slot.
+              </p>
+            </div>
+
+            {/* Summary Details Card */}
+            <div className="bg-[#FAF9F9] dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-left space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Service</span>
+                <span className="text-xs font-bold text-[#062e36] dark:text-white text-right max-w-[65%] truncate">
+                  {submittedApp.service}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Preferred Date</span>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
+                    <CalendarIcon className="h-3.5 w-3.5 text-brand-green shrink-0" />
+                    {submittedApp.date}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Time Slot</span>
+                  <span className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
+                    <Clock className="h-3.5 w-3.5 text-brand-green shrink-0" />
+                    {submittedApp.slot}
+                  </span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Booking Status</span>
+                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                  Pending Approval
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
+              <a
+                href={`https://wa.me/${doctorWhatsAppNumber}?text=${encodeURIComponent(
+                  `Hi Gait Physio Clinic, I have submitted an appointment request for *${submittedApp.service}* on *${submittedApp.date}* at *${submittedApp.slot}* via Patient Hub.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full py-3.5 px-6 text-xs font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Notify Clinic Desk on WhatsApp</span>
+                <ExternalLink className="h-3 w-3 opacity-70" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-3 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Done / View My Booking History
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. ERROR / ALERT MODAL (POPUP)                                            */}
+      {/* ========================================================================= */}
+      {mounted && showErrorModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm bg-white dark:bg-[#121a1d] border border-slate-100 dark:border-slate-800 p-6 rounded-[28px] shadow-2xl space-y-4 text-center animate-scale-in">
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setShowErrorModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 ring-8 ring-red-50 dark:ring-red-950/30">
+              <AlertCircle className="h-7 w-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-black text-[#062e36] dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                Unable to Book Slot
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                {modalErrorMsg}
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowErrorModal(false)}
+                className="w-full bg-[#062e36] dark:bg-slate-800 hover:bg-[#21444D] text-white rounded-full py-3 text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                Choose Another Time Slot
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }

@@ -461,12 +461,19 @@ export async function submitBookingRequest(
     }
 
     // 3. Write booking as pending
-    await addDoc(appointmentsRef, {
-      ...booking,
+    const sanitizedBooking = {
+      patientName: booking.patientName || "Patient",
+      patientEmail: booking.patientEmail || "",
+      patientPhone: booking.patientPhone || "",
+      serviceId: booking.serviceId || "General Physiotherapy Consultation",
+      date: booking.date,
+      slot: booking.slot,
+      notes: booking.notes || "",
       status: "pending",
       type: "online",
       createdAt: Timestamp.now()
-    });
+    };
+    await addDoc(appointmentsRef, sanitizedBooking);
 
     return { success: true };
   } catch (error: unknown) {
