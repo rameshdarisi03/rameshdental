@@ -81,13 +81,13 @@ export default function DashboardLayout({
     { name: "Walk-in Bookings", href: "/dashboard/walkin", icon: PlusCircle, role: "all" },
     { name: "Patients Database", href: "/dashboard/patients", icon: Users, role: "all" },
     { name: "Schedule Blocks", href: "/dashboard/blocks", icon: Clock, role: "all" },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, role: "admin" },
-    { name: "Staff Management", href: "/dashboard/staff", icon: UserCheck, role: "admin" },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings, role: "admin" },
     { name: "Exercise Library", href: "/dashboard/exercises", icon: Dumbbell, role: "all" },
     ...(FEATURES.enableModularInvoicing
       ? [{ name: "Invoices & Billing", href: "/dashboard/invoices", icon: Receipt, role: "all" }]
       : []),
+    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, role: "admin" },
+    { name: "Staff Management", href: "/dashboard/staff", icon: UserCheck, role: "admin" },
+    { name: "Settings", href: "/dashboard/settings", icon: Settings, role: "admin" },
   ];
 
   const isActive = (href: string) => {

@@ -231,7 +231,6 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [formSuccess, setFormSuccess] = useState("");
   const [formError, setFormError] = useState("");
-  const [includePrescriptionInConsultPdf, setIncludePrescriptionInConsultPdf] = useState(false);
 
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
   const [selectedTherapist, setSelectedTherapist] = useState<string>("");
@@ -867,7 +866,7 @@ PLAN:
         // Auto-generate and upload unified consultation sheet if Drive folder is linked
         if (patient?.googleDriveFolderId) {
           try {
-            const hasExercises = Boolean(includePrescriptionInConsultPdf && activePrescription?.exercises && activePrescription.exercises.length > 0);
+            const hasExercises = Boolean(activePrescription?.exercises && activePrescription.exercises.length > 0);
             const rxDoc = buildUnifiedPrescriptionPdf({
               patientName: patient.name,
               pid: patient.id,
@@ -980,7 +979,7 @@ PLAN:
   const handleDownloadConsultationPdf = (consult: Consultation) => {
     try {
       const consultDate = consult.date || new Date();
-      const hasExercises = Boolean(includePrescriptionInConsultPdf && activePrescription?.exercises && activePrescription.exercises.length > 0);
+      const hasExercises = Boolean(activePrescription?.exercises && activePrescription.exercises.length > 0);
       const doc = buildUnifiedPrescriptionPdf({
         patientName: patient?.name || "Patient",
         pid: patient?.id || "PID-1001",
@@ -1001,7 +1000,7 @@ PLAN:
 
   const handleViewConsultationPdf = (consult: Consultation) => {
     try {
-      const hasExercises = Boolean(includePrescriptionInConsultPdf && activePrescription?.exercises && activePrescription.exercises.length > 0);
+      const hasExercises = Boolean(activePrescription?.exercises && activePrescription.exercises.length > 0);
       const doc = buildUnifiedPrescriptionPdf({
         patientName: patient?.name || "Patient",
         pid: patient?.id || "PID-1001",
@@ -2009,18 +2008,13 @@ Warm regards,
                     </div>
                   </div>
 
-                  {/* Submit Button & Optional Routine Inclusion */}
+                  {/* Submit Button & Auto-Clubbed Routine Indicator */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
                     {activePrescription && activePrescription.exercises && activePrescription.exercises.length > 0 ? (
-                      <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-600 dark:text-slate-350 bg-slate-50 dark:bg-slate-950/40 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <input
-                          type="checkbox"
-                          checked={includePrescriptionInConsultPdf}
-                          onChange={(e) => setIncludePrescriptionInConsultPdf(e.target.checked)}
-                          className="rounded border-slate-300 text-brand-green focus:ring-brand-green h-4 w-4 cursor-pointer"
-                        />
-                        <span>Club active exercise protocol ({activePrescription.exercises.length} exercises) into PDF</span>
-                      </label>
+                      <div className="flex items-center gap-2 select-none text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/30 px-3 py-2 rounded-xl border border-emerald-200/80 dark:border-emerald-800/50">
+                        <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Active routine ({activePrescription.exercises.length} exercises) will be automatically included in consultation PDF</span>
+                      </div>
                     ) : (
                       <span className="text-[11px] text-slate-400 font-medium">
                         Standard consultation note (no exercises prescribed)
