@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getClinicConfig, saveClinicConfig, ClinicConfig, generateSlotsFromHours, getSlotCapacity } from "@/lib/db";
+import { getClinicConfig, saveClinicConfig, ClinicConfig, generateSlotsFromHours, getSlotCapacity, DEFAULT_DAY_SCHEDULES, DaySchedule, WeekdayKey } from "@/lib/db";
 import { 
   Loader2, 
   Save, 
@@ -28,7 +28,8 @@ import {
   AlertTriangle,
   RotateCcw,
   Palette,
-  Check
+  Check,
+  Copy
 } from "lucide-react";
 import Link from "next/link";
 import { THEME_OPTIONS, ThemeKey } from "@/components/public/ThemeSwitcher";
@@ -57,7 +58,7 @@ export default function DashboardSettings() {
   const [config, setConfig] = useState<ClinicConfig>({
     enablePublicBooking: true,
     weeklyHolidays: {
-      sunday: true,
+      sunday: false,
       monday: false,
       tuesday: false,
       wednesday: false,
@@ -65,13 +66,14 @@ export default function DashboardSettings() {
       friday: false,
       saturday: false,
     },
+    daySchedules: DEFAULT_DAY_SCHEDULES,
     slotDuration: 30,
     defaultCapacityPerSlot: 3,
     hourlyCapacityOverrides: {},
-    morningStart: "09:00 AM",
+    morningStart: "09:30 AM",
     morningEnd: "01:00 PM",
     eveningStart: "02:00 PM",
-    eveningEnd: "07:30 PM",
+    eveningEnd: "08:00 PM",
     operationalHoursText: "",
     therapists: [],
     address: "",
@@ -94,6 +96,28 @@ export default function DashboardSettings() {
     eveningStart: ["01:30 PM", "02:00 PM", "02:30 PM", "03:00 PM"],
     eveningEnd: ["05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM"],
   };
+
+  const dayScheduleTimeOptions = {
+    open: [
+      "07:00 AM", "07:30 AM", "08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM",
+      "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM"
+    ],
+    close: [
+      "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "05:30 PM",
+      "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM", "08:30 PM",
+      "09:00 PM", "09:30 PM", "10:00 PM"
+    ],
+  };
+
+  const WEEKDAY_ORDER: Array<{ key: WeekdayKey; label: string; short: string }> = [
+    { key: "monday", label: "Monday", short: "Mon" },
+    { key: "tuesday", label: "Tuesday", short: "Tue" },
+    { key: "wednesday", label: "Wednesday", short: "Wed" },
+    { key: "thursday", label: "Thursday", short: "Thu" },
+    { key: "friday", label: "Friday", short: "Fri" },
+    { key: "saturday", label: "Saturday", short: "Sat" },
+    { key: "sunday", label: "Sunday", short: "Sun" },
+  ];
 
   useEffect(() => {
     // 1. Check user permission
@@ -157,11 +181,103 @@ export default function DashboardSettings() {
   }, [isDirty]);
 
   const handleHolidayToggle = (day: keyof ClinicConfig["weeklyHolidays"]) => {
+    setConfig((prev) => {
+      const willBeHoliday = !prev.weeklyHolidays[day];
+      const prevSched = prev.daySchedules?.[day as WeekdayKey] || DEFAULT_DAY_SCHEDULES[day as WeekdayKey];
+      return {
+        ...prev,
+        weeklyHolidays: {
+          ...prev.weeklyHolidays,
+          [day]: willBeHoliday,
+        },
+        daySchedules: {
+          ...(prev.daySchedules || DEFAULT_DAY_SCHEDULES),
+          [day]: {
+            ...prevSched,
+            isOpen: !willBeHoliday,
+          },
+        },
+      };
+    });
+    setIsDirty(true);
+    setSavedSuccess(false);
+  };
+
+  const handleDayScheduleToggle = (day: WeekdayKey) => {
+    setConfig((prev) => {
+      const current = prev.daySchedules?.[day] || DEFAULT_DAY_SCHEDULES[day];
+      const newIsOpen = !current.isOpen;
+      return {
+        ...prev,
+        daySchedules: {
+          ...(prev.daySchedules || DEFAULT_DAY_SCHEDULES),
+          [day]: {
+            ...current,
+            isOpen: newIsOpen,
+          },
+        },
+        weeklyHolidays: {
+          ...prev.weeklyHolidays,
+          [day]: !newIsOpen,
+        },
+      };
+    });
+    setIsDirty(true);
+    setSavedSuccess(false);
+  };
+
+  const handleDayScheduleTimeChange = (day: WeekdayKey, field: "openTime" | "closeTime", value: string) => {
+    setConfig((prev) => {
+      const current = prev.daySchedules?.[day] || DEFAULT_DAY_SCHEDULES[day];
+      return {
+        ...prev,
+        daySchedules: {
+          ...(prev.daySchedules || DEFAULT_DAY_SCHEDULES),
+          [day]: {
+            ...current,
+            [field]: value,
+          },
+        },
+      };
+    });
+    setIsDirty(true);
+    setSavedSuccess(false);
+  };
+
+  const handleApplyMonToWeekdays = () => {
+    setConfig((prev) => {
+      const mondaySched = prev.daySchedules?.monday || DEFAULT_DAY_SCHEDULES.monday;
+      const updated = { ...(prev.daySchedules || DEFAULT_DAY_SCHEDULES) };
+      const weekdays: WeekdayKey[] = ["tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const updatedHolidays = { ...prev.weeklyHolidays };
+
+      weekdays.forEach((d) => {
+        updated[d] = { ...mondaySched };
+        updatedHolidays[d] = !mondaySched.isOpen;
+      });
+
+      return {
+        ...prev,
+        daySchedules: updated,
+        weeklyHolidays: updatedHolidays,
+      };
+    });
+    setIsDirty(true);
+    setSavedSuccess(false);
+  };
+
+  const handleResetToGoogleDefaults = () => {
     setConfig((prev) => ({
       ...prev,
+      daySchedules: { ...DEFAULT_DAY_SCHEDULES },
       weeklyHolidays: {
-        ...prev.weeklyHolidays,
-        [day]: !prev.weeklyHolidays[day],
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false,
       },
     }));
     setIsDirty(true);
@@ -657,6 +773,154 @@ export default function DashboardSettings() {
                   </div>
                 </div>
 
+              </div>
+
+            </div>
+
+            {/* Day-by-Day Operating Hours Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-6">
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Day-by-Day Operating Hours
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Custom opening & closing hours shown on the public Locate Us page
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleApplyMonToWeekdays}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 text-[10px] font-bold transition-all border border-teal-200/60 dark:border-teal-800/60 shadow-2xs"
+                    title="Copy Monday's open & close timings to Tuesday through Saturday"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>Copy Mon to Tue–Sat</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetToGoogleDefaults}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold transition-all border border-slate-200 dark:border-slate-700"
+                    title="Reset all days to standard Google Business Profile hours (Mon-Sat 9:30am-8pm, Sun 9am-5pm)"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Google Default</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Day Schedules List */}
+              <div className="space-y-3 pt-1">
+                {WEEKDAY_ORDER.map(({ key, label }) => {
+                  const schedule = config.daySchedules?.[key] || DEFAULT_DAY_SCHEDULES[key];
+                  const isOpen = schedule.isOpen;
+
+                  return (
+                    <div
+                      key={key}
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
+                        isOpen
+                          ? "bg-slate-50/50 dark:bg-slate-950/50 border-slate-200/80 dark:border-slate-800"
+                          : "bg-rose-50/30 dark:bg-rose-950/10 border-rose-200/60 dark:border-rose-900/40 opacity-80"
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        {/* Day Name & Status Indicator */}
+                        <div className="flex items-center gap-3 min-w-[130px]">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                              isOpen ? "bg-emerald-500 ring-4 ring-emerald-500/20" : "bg-rose-500 ring-4 ring-rose-500/20"
+                            }`}
+                          />
+                          <div>
+                            <p className="text-xs font-black text-slate-800 dark:text-white capitalize">
+                              {label}
+                            </p>
+                            <span
+                              className={`inline-block text-[9px] font-bold uppercase tracking-wider ${
+                                isOpen ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                              }`}
+                            >
+                              {isOpen ? "Open" : "Closed"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Controls (Toggle + Times) */}
+                        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                          {/* Open / Closed Toggle Switch */}
+                          <button
+                            type="button"
+                            onClick={() => handleDayScheduleToggle(key)}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border ${
+                              isOpen
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                : "bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800"
+                            }`}
+                          >
+                            {isOpen ? "Set Closed" : "Set Open"}
+                          </button>
+
+                          {/* Time pickers when open */}
+                          {isOpen ? (
+                            <div className="flex items-center gap-2">
+                              {/* Open Time */}
+                              <div className="relative">
+                                <select
+                                  value={schedule.openTime}
+                                  onChange={(e) => handleDayScheduleTimeChange(key, "openTime", e.target.value)}
+                                  className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-brand-green pr-7 cursor-pointer"
+                                >
+                                  {dayScheduleTimeOptions.open.map((t) => (
+                                    <option key={t} value={t}>{t}</option>
+                                  ))}
+                                </select>
+                                <Clock className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                              </div>
+
+                              <span className="text-xs font-bold text-slate-400">to</span>
+
+                              {/* Close Time */}
+                              <div className="relative">
+                                <select
+                                  value={schedule.closeTime}
+                                  onChange={(e) => handleDayScheduleTimeChange(key, "closeTime", e.target.value)}
+                                  className="appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:border-brand-green pr-7 cursor-pointer"
+                                >
+                                  {dayScheduleTimeOptions.close.map((t) => (
+                                    <option key={t} value={t}>{t}</option>
+                                  ))}
+                                </select>
+                                <Clock className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-rose-500 font-semibold px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50">
+                              Clinic closed all day
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Informative Note */}
+              <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/40 flex items-start gap-2.5 text-xs">
+                <Info className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                <p className="text-teal-800 dark:text-teal-300 text-[11px] leading-relaxed">
+                  <strong>Live Synchronization:</strong> These timings appear directly on your public <span className="underline font-bold">/locate-us</span> page and match your Google Maps Business profile. Toggling any day to closed also automatically updates the Weekly Holidays calendar.
+                </p>
               </div>
 
             </div>

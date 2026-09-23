@@ -1,9 +1,109 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/public/PageHeader";
-import { MapPin, Phone, Mail, Clock, Navigation, Calendar, MessageSquare, CheckCircle2 } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Navigation, Calendar, MessageSquare, CheckCircle2, Sparkles } from "lucide-react";
+import { getClinicConfig, DEFAULT_DAY_SCHEDULES, DaySchedule, WeekdayKey } from "@/lib/db";
+
+const WEEKDAY_ORDER: Array<{ key: WeekdayKey; label: string; short: string }> = [
+  { key: "monday", label: "Monday", short: "Mon" },
+  { key: "tuesday", label: "Tuesday", short: "Tue" },
+  { key: "wednesday", label: "Wednesday", short: "Wed" },
+  { key: "thursday", label: "Thursday", short: "Thu" },
+  { key: "friday", label: "Friday", short: "Fri" },
+  { key: "saturday", label: "Saturday", short: "Sat" },
+  { key: "sunday", label: "Sunday", short: "Sun" },
+];
+
+function parseTimeToMinutes(timeStr: string): number {
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return 0;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = match[3].toUpperCase();
+  if (period === "PM" && hours !== 12) hours += 12;
+  if (period === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
 
 export default function LocateUsPage() {
+  const [daySchedules, setDaySchedules] = useState<Record<WeekdayKey, DaySchedule>>(DEFAULT_DAY_SCHEDULES);
+  const [currentDayKey, setCurrentDayKey] = useState<WeekdayKey>("monday");
+  const [statusInfo, setStatusInfo] = useState<{ isOpenNow: boolean; label: string; subtext: string }>({
+    isOpenNow: true,
+    label: "Open Now",
+    subtext: "Closes at 08:00 PM",
+  });
+
+  useEffect(() => {
+    // 1. Fetch live clinic configuration from Firestore
+    async function loadConfig() {
+      try {
+        const config = await getClinicConfig();
+        if (config.daySchedules) {
+          setDaySchedules(config.daySchedules);
+          computeStatus(config.daySchedules);
+        }
+      } catch (err) {
+        console.error("Failed to load clinic timings:", err);
+      }
+    }
+
+    // 2. Compute current day and open/close status
+    function computeStatus(schedules: Record<WeekdayKey, DaySchedule>) {
+      const now = new Date();
+      const days: WeekdayKey[] = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const todayKey = days[now.getDay()];
+      setCurrentDayKey(todayKey);
+
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const todaySched = schedules[todayKey] || DEFAULT_DAY_SCHEDULES[todayKey];
+
+      if (!todaySched.isOpen) {
+        setStatusInfo({
+          isOpenNow: false,
+          label: "Closed Today",
+          subtext: "Reopens on next working day",
+        });
+        return;
+      }
+
+      const openMins = parseTimeToMinutes(todaySched.openTime);
+      const closeMins = parseTimeToMinutes(todaySched.closeTime);
+
+      if (currentMinutes >= openMins && currentMinutes < closeMins) {
+        setStatusInfo({
+          isOpenNow: true,
+          label: "Open Now",
+          subtext: `Closes at ${todaySched.closeTime}`,
+        });
+      } else if (currentMinutes < openMins) {
+        setStatusInfo({
+          isOpenNow: false,
+          label: "Closed Now",
+          subtext: `Opens today at ${todaySched.openTime}`,
+        });
+      } else {
+        setStatusInfo({
+          isOpenNow: false,
+          label: "Closed Now",
+          subtext: "Reopens tomorrow morning",
+        });
+      }
+    }
+
+    loadConfig();
+    computeStatus(DEFAULT_DAY_SCHEDULES);
+
+    // Refresh status every 60 seconds
+    const interval = setInterval(() => {
+      computeStatus(daySchedules);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter',sans-serif]">
       <PageHeader
@@ -48,27 +148,84 @@ export default function LocateUsPage() {
               </div>
             </div>
 
-            {/* Operating Hours */}
+            {/* Operating Hours (Day-by-Day Google Business Schedule) */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Operating Hours</h3>
+                    <p className="text-[11px] text-slate-400 font-semibold">Weekly Schedule</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white">Operating Hours</h3>
-                  <p className="text-[11px] text-slate-400 font-semibold">Weekly Schedule</p>
+
+                {/* Live Open / Closed Badge */}
+                <div className="text-right">
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      statusInfo.isOpenNow
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        statusInfo.isOpenNow ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                      }`}
+                    />
+                    {statusInfo.label}
+                  </span>
+                  <p className="text-[9px] text-slate-400 font-semibold mt-0.5">{statusInfo.subtext}</p>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300">Monday – Saturday</span>
-                  <span className="font-black text-brand-green">09:00 AM – 08:00 PM</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 text-slate-400">
-                  <span className="font-semibold">Sunday</span>
-                  <span className="font-bold text-rose-500">Closed (Emergency on request)</span>
-                </div>
+              {/* Day-by-Day Timings List */}
+              <div className="space-y-1.5 text-xs pt-1">
+                {WEEKDAY_ORDER.map(({ key, label }) => {
+                  const sched = daySchedules[key] || DEFAULT_DAY_SCHEDULES[key];
+                  const isToday = currentDayKey === key;
+
+                  return (
+                    <div
+                      key={key}
+                      className={`flex items-center justify-between py-2 px-3 rounded-xl transition-colors ${
+                        isToday
+                          ? "bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/80 dark:border-teal-800/80 font-bold"
+                          : "border border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            sched.isOpen ? (isToday ? "bg-teal-600 dark:text-teal-400" : "bg-slate-400") : "bg-rose-400"
+                          }`}
+                        />
+                        <span className={isToday ? "text-teal-900 dark:text-teal-200" : "text-slate-600 dark:text-slate-300"}>
+                          {label}
+                        </span>
+                        {isToday && (
+                          <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-teal-600 text-white">
+                            Today
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        {sched.isOpen ? (
+                          <span className={`text-[11px] font-bold ${isToday ? "text-teal-700 dark:text-teal-300" : "text-slate-700 dark:text-slate-200"}`}>
+                            {sched.openTime} – {sched.closeTime}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-rose-500">
+                            Closed
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

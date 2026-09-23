@@ -99,14 +99,14 @@ export default function Footer() {
                 <Clock className="h-4 w-4 text-brand-green shrink-0" />
                 <div>
                   <p className="font-medium text-slate-800 dark:text-slate-300">Mon - Sat</p>
-                  <p className="text-xs">09:00 AM - 07:00 PM</p>
+                  <p className="text-xs">09:30 AM - 08:00 PM</p>
                 </div>
               </li>
               <li className="flex gap-2">
-                <Clock className="h-4 w-4 text-slate-400 dark:text-slate-600 shrink-0" />
+                <Clock className="h-4 w-4 text-brand-green shrink-0" />
                 <div>
-                  <p className="font-medium text-slate-500 dark:text-slate-500">Sunday</p>
-                  <p className="text-xs text-slate-500">Closed (Emergency Only)</p>
+                  <p className="font-medium text-slate-800 dark:text-slate-300">Sunday</p>
+                  <p className="text-xs text-brand-green font-semibold">09:00 AM - 05:00 PM</p>
                 </div>
               </li>
             </ul>

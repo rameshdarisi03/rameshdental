@@ -47,6 +47,24 @@ export interface DayBlock {
   createdAt: Timestamp;
 }
 
+export interface DaySchedule {
+  isOpen: boolean;
+  openTime: string;  // e.g. "09:30 AM"
+  closeTime: string; // e.g. "08:00 PM"
+}
+
+export type WeekdayKey = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+
+export const DEFAULT_DAY_SCHEDULES: Record<WeekdayKey, DaySchedule> = {
+  monday: { isOpen: true, openTime: "09:30 AM", closeTime: "08:00 PM" },
+  tuesday: { isOpen: true, openTime: "09:30 AM", closeTime: "08:00 PM" },
+  wednesday: { isOpen: true, openTime: "09:30 AM", closeTime: "08:00 PM" },
+  thursday: { isOpen: true, openTime: "09:30 AM", closeTime: "08:00 PM" },
+  friday: { isOpen: true, openTime: "09:30 AM", closeTime: "08:00 PM" },
+  saturday: { isOpen: true, openTime: "09:30 AM", closeTime: "08:00 PM" },
+  sunday: { isOpen: true, openTime: "09:00 AM", closeTime: "05:00 PM" },
+};
+
 export interface ClinicConfig {
   enablePublicBooking?: boolean; // Master toggle for public online booking access
   weeklyHolidays: {
@@ -58,6 +76,7 @@ export interface ClinicConfig {
     friday: boolean;
     saturday: boolean;
   };
+  daySchedules?: Record<WeekdayKey, DaySchedule>; // Day-by-day customized operating hours
   slotDuration: number; // 30, 45, 60
   defaultCapacityPerSlot: number; // e.g. 3 therapists = 3 slots per hour
   hourlyCapacityOverrides?: Record<string, number>; // e.g. { "01:00 PM": 1, "05:00 PM": 3 }
@@ -81,7 +100,7 @@ export interface ClinicConfig {
 export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   enablePublicBooking: true,
   weeklyHolidays: {
-    sunday: true,
+    sunday: false,
     monday: false,
     tuesday: false,
     wednesday: false,
@@ -89,23 +108,24 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
     friday: false,
     saturday: false,
   },
+  daySchedules: DEFAULT_DAY_SCHEDULES,
   slotDuration: 30,
   defaultCapacityPerSlot: 3,
   hourlyCapacityOverrides: {},
-  morningStart: "09:00 AM",
+  morningStart: "09:30 AM",
   morningEnd: "01:00 PM",
   eveningStart: "02:00 PM",
-  eveningEnd: "07:00 PM",
-  operationalHoursText: "Morning: 09:00 AM - 01:00 PM | Evening: 02:00 PM - 07:00 PM (Monday - Saturday)",
+  eveningEnd: "08:00 PM",
+  operationalHoursText: "Mon - Sat: 09:30 AM - 08:00 PM | Sun: 09:00 AM - 05:00 PM",
   therapists: ["Dr. Sarah Jenkins", "Dr. Rohan Das"],
   adminWalkInGraceType: "end_of_slot",
   publicBookingCutoffMinutes: 0,
-  address: "123 Clinical Wellness Way, Near Central Park, Sector 4, Bangalore, 560001",
-  landmark: "Next to Central Bank, opposite Central Park Main Gate",
+  address: "Shop No. 26 (2nd Floor) & Shop No. 06 (3rd Floor), ITPL Main Road, Prasanth Extension, Near Hope Farm Signal, Whitefield, Bengaluru, Karnataka - 560066",
+  landmark: "Near Hope Farm Signal, Whitefield",
   phone: "+91 92066 51295",
   email: "info@gaitphysioclinic.com",
-  googleMapsLink: "https://maps.google.com/?q=Gait+Physio+Clinic+Bangalore",
-  googleMapsEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.9700303102434!2d77.62018597576572!3d12.973797614838645!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae16a62c4a92c1%3A0xe54e60408542cd5!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+  googleMapsLink: "https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bangalore",
+  googleMapsEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.8967814402685!2d77.75011131482205!3d12.984700090847253!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae0fb5b6574f2b%3A0xbcf2a8ee0322b75f!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1691234567890!5m2!1sen!2sin",
 };
 
 // Helper: Calculate max patient capacity for a given time slot
@@ -122,7 +142,15 @@ export async function getClinicConfig(): Promise<ClinicConfig> {
     const docRef = doc(db, "settings", "clinic_config");
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { ...DEFAULT_CLINIC_CONFIG, ...docSnap.data() } as ClinicConfig;
+      const data = docSnap.data();
+      return {
+        ...DEFAULT_CLINIC_CONFIG,
+        ...data,
+        daySchedules: {
+          ...DEFAULT_DAY_SCHEDULES,
+          ...(data?.daySchedules || {}),
+        },
+      } as ClinicConfig;
     }
     return DEFAULT_CLINIC_CONFIG;
   } catch (error) {
