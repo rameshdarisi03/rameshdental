@@ -180,29 +180,6 @@ export default function DashboardSettings() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  const handleHolidayToggle = (day: keyof ClinicConfig["weeklyHolidays"]) => {
-    setConfig((prev) => {
-      const willBeHoliday = !prev.weeklyHolidays[day];
-      const prevSched = prev.daySchedules?.[day as WeekdayKey] || DEFAULT_DAY_SCHEDULES[day as WeekdayKey];
-      return {
-        ...prev,
-        weeklyHolidays: {
-          ...prev.weeklyHolidays,
-          [day]: willBeHoliday,
-        },
-        daySchedules: {
-          ...(prev.daySchedules || DEFAULT_DAY_SCHEDULES),
-          [day]: {
-            ...prevSched,
-            isOpen: !willBeHoliday,
-          },
-        },
-      };
-    });
-    setIsDirty(true);
-    setSavedSuccess(false);
-  };
-
   const handleDayScheduleToggle = (day: WeekdayKey) => {
     setConfig((prev) => {
       const current = prev.daySchedules?.[day] || DEFAULT_DAY_SCHEDULES[day];
@@ -1329,60 +1306,6 @@ export default function DashboardSettings() {
           {/* Right Column (Span 4) */}
           <div className="lg:col-span-4 space-y-8">
             
-            {/* Weekly Holidays Card */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm space-y-5">
-              
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
-                    Weekly Holidays
-                  </h3>
-                  <p className="text-[10px] text-slate-400 mt-1 font-semibold">
-                    Select days the clinic remains closed
-                  </p>
-                </div>
-              </div>
-
-              {/* Day Selection List */}
-              <div className="space-y-2 pt-2">
-                {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as Array<keyof ClinicConfig["weeklyHolidays"]>).map((day) => {
-                  const isChecked = config.weeklyHolidays[day];
-                  return (
-                    <label
-                      key={day}
-                      className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer select-none transition-all ${
-                        isChecked
-                          ? "bg-red-50/45 border-red-200 text-red-750 dark:bg-rose-955/20 dark:border-rose-900/50"
-                          : "bg-white border-slate-200/70 hover:bg-slate-50/50 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${day === 'sunday' ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                        <span className={`text-xs capitalize font-bold ${isChecked ? "text-red-700 dark:text-red-400" : "text-slate-700 dark:text-slate-300"}`}>
-                          {day}
-                        </span>
-                      </div>
-                      
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleHolidayToggle(day)}
-                        className={`h-4.5 w-4.5 rounded cursor-pointer transition-all border ${
-                          isChecked 
-                            ? "accent-red-650 bg-red-650 text-white" 
-                            : "accent-brand-green border-slate-300 bg-white"
-                        }`}
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-
-            </div>
-
             {/* Therapists Card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm space-y-5">
               

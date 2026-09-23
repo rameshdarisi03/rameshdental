@@ -12,7 +12,8 @@ import {
   getSlotCapacity,
   DEFAULT_CLINIC_CONFIG,
   ClinicConfig,
-  isSlotInPast
+  isSlotInPast,
+  WeekdayKey
 } from "@/lib/db";
 import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
@@ -178,14 +179,18 @@ function BookingFormContent() {
 
   // Determine if selectedDate is a weekly holiday
   const checkIsWeeklyHoliday = () => {
-    if (!formData.date) return false;
+    if (!formData.date || !clinicConfig) return false;
     
     // Parse date as local time (split hyphens to avoid timezone shifts)
     const [year, month, day] = formData.date.split("-").map(Number);
     const dateObj = new Date(year, month - 1, day);
     const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() as keyof ClinicConfig["weeklyHolidays"];
     
-    return clinicConfig.weeklyHolidays[dayName] === true;
+    // Check daySchedules first (Single Source of Truth)
+    if (clinicConfig.daySchedules && clinicConfig.daySchedules[dayName as WeekdayKey]) {
+      return !clinicConfig.daySchedules[dayName as WeekdayKey].isOpen;
+    }
+    return clinicConfig.weeklyHolidays?.[dayName] === true;
   };
 
   const isWeeklyHoliday = checkIsWeeklyHoliday();
