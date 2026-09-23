@@ -824,7 +824,7 @@ export default function DaySnapshot() {
       cleanPhone = "91" + cleanPhone;
     }
     if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "919206651295";
+      cleanPhone = "918904456243";
     }
 
     const therapistText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : "";

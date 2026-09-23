@@ -154,7 +154,7 @@ export default function ProfilePage() {
 
           {/* Reset password reminder link */}
           <a
-            href="https://wa.me/919206651295?text=I%20would%20like%20to%20request%20assistance%20with%20my%20Patient%20Hub%20portal"
+            href="https://wa.me/918904456243?text=I%20would%20like%20to%20request%20assistance%20with%20my%20Patient%20Hub%20portal"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-between p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer"

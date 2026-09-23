@@ -312,11 +312,11 @@ function BookingFormContent() {
                 WhatsApp Us
               </a>
               <a
-                href={`tel:${clinicConfig.phone || "+919206651295"}`}
+                href={`tel:${clinicConfig.phone || "+918904456243"}`}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 py-3.5 px-4 text-xs font-black transition-all active:scale-95 cursor-pointer"
               >
                 <Phone className="h-4 w-4 text-brand-green" />
-                Call Reception ({clinicConfig.phone || "+91 92066 51295"})
+                Call Reception ({clinicConfig.phone || "+91 89044 56243"})
               </a>
             </div>
           </div>

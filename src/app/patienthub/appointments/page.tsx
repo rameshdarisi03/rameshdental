@@ -1,324 +1,734 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs, addDoc, Timestamp } from "firebase/firestore";
-import { Patient } from "@/lib/patientsDb";
-import { Appointment } from "@/lib/db";
-import { useRouter } from "next/navigation";
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Loader2, 
-  Plus, 
-  ChevronRight, 
-  CalendarCheck2, 
-  AlertCircle 
+import React, { useEffect, useState, useCallback } from "react";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  Appointment,
+  ClinicConfig,
+  DEFAULT_CLINIC_CONFIG,
+  getClinicConfig,
+  generateSlotsForDay,
+  getAppointmentsByDate,
+  getBlocksByDate,
+  getSlotCapacity,
+  isSlotInPast,
+  submitBookingRequest,
+  WeekdayKey
+} from "@/lib/db";
+import { usePatientAuth } from "@/providers/PatientAuthProvider";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  MessageSquare,
+  CalendarCheck2,
+  CheckCircle,
+  ExternalLink
 } from "lucide-react";
 
-const SERVICES = [
-  "Cervical Posture Correction",
-  "Knee Joint Stability Rehab",
-  "Orthopedic Assessment",
-  "General Physiotherapy Consultation"
-];
+// Get today's date formatted as YYYY-MM-DD
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-const STANDARD_SLOTS = [
-  "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-  "12:00 PM", "12:30 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM",
-  "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM", "06:00 PM", "06:30 PM"
-];
+// Get max date string (10 days from today)
+function getMaxDateString() {
+  const today = new Date();
+  today.setDate(today.getDate() + 9);
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-import { usePatientAuth } from "@/providers/PatientAuthProvider";
+const SERVICES_LIST = [
+  "General Physiotherapy Consultation",
+  "Gait & Biomechanical Analysis",
+  "Sports Injury Rehabilitation",
+  "Spine & Musculoskeletal Care",
+  "Post-Operative Orthopedic Care",
+  "Dry Needling & Myofascial Release",
+  "Custom Insoles & Orthotics Fitment",
+];
 
 export default function AppointmentsPage() {
-  const router = useRouter();
   const { patient, loading: authLoading } = usePatientAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
   
-  // Booking Form State
-  const [bookingDate, setBookingDate] = useState("");
-  const [bookingSlot, setBookingSlot] = useState(STANDARD_SLOTS[0]);
-  const [bookingService, setBookingService] = useState(SERVICES[0]);
+  // Clinic Config State
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+
+  // Form State
+  const [bookingDate, setBookingDate] = useState(getTodayDateString());
+  const [bookingSlot, setBookingSlot] = useState("");
+  const [bookingService, setBookingService] = useState(SERVICES_LIST[0]);
   const [bookingNotes, setBookingNotes] = useState("");
+
+  // Availability State
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [approvedSlotCounts, setApprovedSlotCounts] = useState<Record<string, number>>({});
+  const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
+  const [blockedType, setBlockedType] = useState<"none" | "full" | "morning" | "evening">("none");
+
+  // Interaction State
   const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [lastSubmittedApp, setLastSubmittedApp] = useState<{
+    service: string;
+    date: string;
+    slot: string;
+  } | null>(null);
 
+  // History State
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // 1. Fetch clinic configuration
   useEffect(() => {
-    // Set default tomorrow's date in selector
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const yyyy = tomorrow.getFullYear();
-    const mm = String(tomorrow.getMonth() + 1).padStart(2, "0");
-    const dd = String(tomorrow.getDate()).padStart(2, "0");
-    setBookingDate(`${yyyy}-${mm}-${dd}`);
+    async function loadConfig() {
+      try {
+        const fetched = await getClinicConfig();
+        setClinicConfig(fetched);
+      } catch (err) {
+        console.error("Failed to load clinic settings: ", err);
+      } finally {
+        setLoadingConfig(false);
+      }
+    }
+    loadConfig();
+  }, []);
 
-    if (!patient || !patient.email) {
-      if (!authLoading) setLoading(false);
+  // 2. Fetch patient's appointment history
+  const fetchPatientHistory = useCallback(async () => {
+    if (!patient?.email && !patient?.phone) {
+      if (!authLoading) setLoadingHistory(false);
       return;
     }
 
-    const qApps = query(
-      collection(db, "appointments"),
-      where("patientEmail", "==", patient.email)
-    );
-    getDocs(qApps).then((snapApps) => {
-      const list: Appointment[] = [];
-      snapApps.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as Appointment);
-      });
-      list.sort((a, b) => b.date.localeCompare(a.date));
+    try {
+      const appsMap = new Map<string, Appointment>();
+
+      // Query by email
+      if (patient.email) {
+        const qEmail = query(
+          collection(db, "appointments"),
+          where("patientEmail", "==", patient.email)
+        );
+        const snapEmail = await getDocs(qEmail);
+        snapEmail.forEach((d) => {
+          appsMap.set(d.id, { id: d.id, ...d.data() } as Appointment);
+        });
+      }
+
+      // Query by phone
+      if (patient.phone) {
+        let clean = patient.phone.replace(/\D/g, "");
+        if (clean.startsWith("91") && clean.length > 10) clean = clean.slice(2);
+        
+        const qPhone = query(
+          collection(db, "appointments"),
+          where("patientPhone", ">=", clean)
+        );
+        const snapPhone = await getDocs(qPhone);
+        snapPhone.forEach((d) => {
+          const data = d.data() as Appointment;
+          if (data.patientPhone && data.patientPhone.includes(clean)) {
+            appsMap.set(d.id, { id: d.id, ...data });
+          }
+        });
+      }
+
+      const list = Array.from(appsMap.values());
+      list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
       setAppointments(list);
-      setLoading(false);
-    }).catch((err) => {
-      console.warn("Failed to load appointments:", err);
-      setLoading(false);
-    });
+    } catch (err) {
+      console.warn("Failed to load appointment history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
   }, [patient, authLoading]);
 
+  useEffect(() => {
+    fetchPatientHistory();
+  }, [fetchPatientHistory]);
+
+  // 3. Generate slots for selected date based on daySchedules and shift boundaries
+  const allSlots = generateSlotsForDay(clinicConfig, bookingDate || undefined);
+
+  const isMorningSlot = (time: string) => {
+    const [hourStr, minAndMod] = time.split(":");
+    const hour = parseInt(hourStr, 10);
+    const isPM = minAndMod.includes("PM");
+    return !isPM || hour === 12;
+  };
+
+  // Check if selected date is a weekly holiday
+  const checkIsWeeklyHoliday = useCallback(() => {
+    if (!bookingDate || !clinicConfig) return false;
+    const [year, month, day] = bookingDate.split("-").map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() as keyof ClinicConfig["weeklyHolidays"];
+    
+    if (clinicConfig.daySchedules && clinicConfig.daySchedules[dayName as WeekdayKey]) {
+      return !clinicConfig.daySchedules[dayName as WeekdayKey].isOpen;
+    }
+    return clinicConfig.weeklyHolidays?.[dayName] === true;
+  }, [bookingDate, clinicConfig]);
+
+  const isWeeklyHoliday = checkIsWeeklyHoliday();
+
+  // 4. Fetch slot availability when bookingDate changes
+  useEffect(() => {
+    if (!bookingDate || loadingConfig) return;
+
+    async function checkAvailability() {
+      setLoadingSlots(true);
+      setErrorMsg("");
+      setApprovedSlotCounts({});
+      setBlockedSlots([]);
+      setBlockedType("none");
+
+      try {
+        // Fetch approved appointments for that date
+        const dateAppointments = await getAppointmentsByDate(bookingDate);
+        const counts: Record<string, number> = {};
+        dateAppointments.forEach((app) => {
+          if (app.status === "approved") {
+            counts[app.slot] = (counts[app.slot] || 0) + 1;
+          }
+        });
+        setApprovedSlotCounts(counts);
+
+        // Fetch active day/session blocks
+        const blocks = await getBlocksByDate(bookingDate);
+        let blockState: "none" | "full" | "morning" | "evening" = "none";
+        const individualBlocked: string[] = [];
+
+        blocks.forEach((b) => {
+          if (b.type === "full_day" || b.type === "holiday") {
+            blockState = "full";
+          } else if (b.type === "session" && b.session === "morning") {
+            blockState = blockState === "evening" ? "full" : "morning";
+          } else if (b.type === "session" && b.session === "evening") {
+            blockState = blockState === "morning" ? "full" : "evening";
+          } else if (b.type === "slot" && b.slot) {
+            individualBlocked.push(b.slot);
+          }
+        });
+        setBlockedType(blockState);
+        setBlockedSlots(individualBlocked);
+      } catch (err) {
+        console.error("Failed to check slot availability:", err);
+        setErrorMsg("Could not verify slot availability. Please try refreshing.");
+      } finally {
+        setLoadingSlots(false);
+      }
+    }
+
+    checkAvailability();
+  }, [bookingDate, loadingConfig]);
+
+  // Helper to calculate remaining slot capacity
+  const getRemainingCapacity = (time: string) => {
+    if (isWeeklyHoliday) return 0;
+    if (blockedType === "full") return 0;
+    if (blockedType === "morning" && isMorningSlot(time)) return 0;
+    if (blockedType === "evening" && !isMorningSlot(time)) return 0;
+    if (blockedSlots.includes(time)) return 0;
+    if (isSlotInPast(time, bookingDate, {
+      cutoffMinutes: clinicConfig.publicBookingCutoffMinutes ?? 0,
+      slotDuration: clinicConfig.slotDuration || 30,
+    })) return 0;
+
+    const maxCapacity = getSlotCapacity(clinicConfig, time);
+    const booked = approvedSlotCounts[time] || 0;
+    return Math.max(0, maxCapacity - booked);
+  };
+
+  const handleSlotSelect = (selectedSlot: string) => {
+    setBookingSlot(selectedSlot);
+    setErrorMsg("");
+  };
+
+  // Doctor's official phone number from clinic config (fallback +918904456243)
+  const doctorWhatsAppNumber = getCleanWhatsAppNumber(clinicConfig?.phone) || "918904456243";
+
+  // Handle form submission
   const handleBookSession = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
-    setSuccessMsg("");
-    setSubmitting(true);
+    setLastSubmittedApp(null);
 
     if (!patient) {
-      setErrorMsg("Failed to authenticate session. Please re-login.");
-      setSubmitting(false);
+      setErrorMsg("Failed to identify patient session. Please re-login.");
       return;
     }
 
     if (!bookingDate) {
       setErrorMsg("Please select a valid booking date.");
-      setSubmitting(false);
       return;
     }
 
-    try {
-      // 1. Parse date input into DD-MM-YYYY format for uniformity
-      const [y, m, d] = bookingDate.split("-");
-      const formattedDate = `${d}-${m}-${y}`; // DD-MM-YYYY format
+    if (isWeeklyHoliday) {
+      setErrorMsg("The clinic is closed on weekly holidays.");
+      return;
+    }
 
-      // 2. Save appointment in Firestore
-      const newApp = {
+    if (!bookingSlot) {
+      setErrorMsg("Please select an available time slot.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      // Submit booking request using standardized db function
+      // Writes to 'appointments' with status: "pending", type: "online"
+      // Immediately visible in Admin Portal (/dashboard/appointments)
+      const result = await submitBookingRequest({
         patientName: patient.name,
-        patientEmail: patient.email,
+        patientEmail: patient.email || "",
         patientPhone: patient.phone,
         serviceId: bookingService,
-        date: formattedDate,
+        date: bookingDate,
         slot: bookingSlot,
-        status: "pending",
-        type: "online",
         notes: bookingNotes,
-        createdAt: Timestamp.now()
-      };
+      });
 
-      await addDoc(collection(db, "appointments"), newApp);
-      
-      // 3. Trigger WhatsApp Confirmation alert request link
-      let cleanPhone = patient.phone.replace(/\D/g, "");
-      if (cleanPhone.startsWith("0")) cleanPhone = cleanPhone.replace(/^0+/, "");
-      if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
-      
-      const whatsappMsg = encodeURIComponent(
-        `Hi GPC Front Desk, I would like to book a follow-up session on *${formattedDate}* at *${bookingSlot}* for *${bookingService}* via Patient Hub.`
-      );
-      
-      setSuccessMsg("Session request submitted successfully! Your booking is pending approval.");
-      setBookingNotes("");
-      
-      // Update history list locally
-      setAppointments((prev) => [
-        { id: "temp", ...newApp } as Appointment,
-        ...prev
-      ]);
+      if (result.success) {
+        setLastSubmittedApp({
+          service: bookingService,
+          date: bookingDate,
+          slot: bookingSlot,
+        });
 
-      // Open WhatsApp to notify desk
-      window.open(`https://wa.me/919206651295?text=${whatsappMsg}`, "_blank");
+        // Clear notes & slot selection
+        setBookingNotes("");
+        setBookingSlot("");
 
+        // Refresh appointment history and availability
+        fetchPatientHistory();
+        const dateAppointments = await getAppointmentsByDate(bookingDate);
+        const counts: Record<string, number> = {};
+        dateAppointments.forEach((app) => {
+          if (app.status === "approved") {
+            counts[app.slot] = (counts[app.slot] || 0) + 1;
+          }
+        });
+        setApprovedSlotCounts(counts);
+      } else {
+        setErrorMsg(result.error || "Submission failed. Please check slot availability.");
+      }
     } catch (err: any) {
-      console.error("Booking submission failed:", err);
-      setErrorMsg(err.message || "Failed to submit booking. Please try again.");
+      console.error("Booking error:", err);
+      setErrorMsg("An unexpected error occurred. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loadingConfig || authLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-brand-green" />
+        <span className="text-xs font-bold text-slate-500 ml-2">Loading clinic schedule...</span>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-12 select-none font-['Inter',sans-serif]">
-      
-      {/* Left Column: Booking Form Container (2 cols wide) */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 sm:p-8 rounded-[28px] shadow-sm space-y-6">
-          <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55]">
-              Session Scheduling
-            </span>
-            <h1 className="text-2xl font-bold text-[#062e36] dark:text-white leading-tight font-['Plus_Jakarta_Sans',sans-serif]">
-              Request Therapy Appointment
-            </h1>
-            <p className="text-xs text-[#41484A] dark:text-slate-400 font-medium mt-1">
-              Select your preferred date & time slot. Our clinic desk will confirm immediately.
-            </p>
+    <div className="space-y-8 pb-12 font-['Inter',sans-serif]">
+      {/* Top Header */}
+      <div>
+        <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55]">
+          Direct Clinical Appointments
+        </span>
+        <h1 className="text-2xl sm:text-3xl font-black text-[#062e36] dark:text-white leading-tight font-['Plus_Jakarta_Sans',sans-serif] mt-0.5">
+          Request Therapy Appointment
+        </h1>
+        <p className="text-xs text-[#41484A] dark:text-slate-400 font-medium mt-1">
+          Select your preferred treatment, date, and realtime available slot. Your request appears instantly in our clinic reception queue.
+        </p>
+      </div>
+
+      {/* Success Notification Banner */}
+      {lastSubmittedApp && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-6 rounded-3xl shadow-sm space-y-3 animate-fade-in-up">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div className="space-y-1 flex-1">
+              <h4 className="text-sm font-black text-emerald-900 dark:text-emerald-200">
+                Appointment Request Submitted Successfully!
+              </h4>
+              <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium leading-relaxed">
+                Your request for <strong>{lastSubmittedApp.service}</strong> on <strong>{lastSubmittedApp.date}</strong> at <strong>{lastSubmittedApp.slot}</strong> is logged as <strong>Pending Approval</strong>. Our front desk team will confirm your session shortly.
+              </p>
+            </div>
           </div>
 
-          {errorMsg && (
-            <div className="flex gap-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 p-3.5 rounded-2xl text-xs text-red-700 dark:text-red-300 font-medium">
-              <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
+            <a
+              href={`https://wa.me/${doctorWhatsAppNumber}?text=${encodeURIComponent(
+                `Hi Gait Physio Clinic, I have submitted an appointment request for *${lastSubmittedApp.service}* on *${lastSubmittedApp.date}* at *${lastSubmittedApp.slot}* via Patient Hub.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-sm"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>Notify Clinic Desk on WhatsApp</span>
+              <ExternalLink className="h-3 w-3 opacity-70" />
+            </a>
+            <button
+              type="button"
+              onClick={() => setLastSubmittedApp(null)}
+              className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:underline px-2 py-1"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
-          {successMsg && (
-            <div className="flex gap-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 p-3.5 rounded-2xl text-xs text-emerald-700 dark:text-emerald-300 font-medium">
-              <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
-              <span>{successMsg}</span>
-            </div>
-          )}
+      {/* Main Grid: Left Booking Form (2 cols) & Right History (1 col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column: Form & Realtime Slot Selection */}
+        <div className="lg:col-span-2 space-y-6">
+          <form onSubmit={handleBookSession} className="space-y-6">
 
-          <form onSubmit={handleBookSession} className="space-y-4">
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Date Input */}
+            {/* Error Message Alert */}
+            {errorMsg && (
+              <div className="flex gap-2.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 p-4 rounded-2xl text-xs text-red-700 dark:text-red-300 font-medium">
+                <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Section 1: Patient & Treatment Details */}
+            <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+              <h3 className="text-base font-black text-[#062e36] dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2 font-['Plus_Jakarta_Sans',sans-serif]">
+                <span className="h-6 w-6 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-black">1</span>
+                Patient & Treatment Details
+              </h3>
+
+              {/* Patient Info Summary Badge */}
+              <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Patient Name</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
+                    <User className="h-3.5 w-3.5 text-brand-green shrink-0" />
+                    <span className="truncate">{patient?.name || "Patient"}</span>
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact Phone</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
+                    <Phone className="h-3.5 w-3.5 text-brand-green shrink-0" />
+                    <span className="truncate">{patient?.phone || "N/A"}</span>
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Registered Email</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 mt-0.5">
+                    <Mail className="h-3.5 w-3.5 text-brand-green shrink-0" />
+                    <span className="truncate">{patient?.email || "N/A"}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Treatment Program Select */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Preferred Date</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                  Select Physiotherapy Program *
+                </label>
+                <select
+                  value={bookingService}
+                  onChange={(e) => setBookingService(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 px-4 py-3 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold cursor-pointer transition-colors"
+                >
+                  {SERVICES_LIST.map((svc) => (
+                    <option key={svc} value={svc}>
+                      {svc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Notes / Symptoms */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                  Notes / Symptoms for Doctor (Optional)
+                </label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                  <input
-                    type="date"
-                    required
-                    value={bookingDate}
-                    onChange={(e) => setBookingDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] text-[#1A1C1B] dark:text-slate-100 font-bold transition-colors"
+                  <FileText className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                  <textarea
+                    value={bookingNotes}
+                    onChange={(e) => setBookingNotes(e.target.value)}
+                    rows={2}
+                    placeholder="Describe any new pain, stiffness, or mobility concerns..."
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white transition-colors"
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Slot Selector */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Time Slot</label>
-                <div className="relative">
-                  <Clock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                  <select
-                    value={bookingSlot}
-                    onChange={(e) => setBookingSlot(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] text-[#1A1C1B] dark:text-slate-100 font-bold cursor-pointer transition-colors"
+            {/* Section 2: Choose Date & Realtime Time Slot (Exact Table from Public Booking Portal) */}
+            <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6 relative overflow-hidden">
+              <h3 className="text-base font-black text-[#062e36] dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center gap-2 font-['Plus_Jakarta_Sans',sans-serif]">
+                <span className="h-6 w-6 rounded-full bg-brand-green text-white flex items-center justify-center text-xs font-black">2</span>
+                Choose Date & Realtime Time Slot
+              </h3>
+
+              <div className="space-y-5">
+                {/* Date Input with 10-day Limit */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300 mb-2">
+                    Appointment Date (10-Day Booking Window) *
+                  </label>
+                  <div className="relative">
+                    <CalendarIcon className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                    <input
+                      type="date"
+                      min={getTodayDateString()}
+                      max={getMaxDateString()}
+                      value={bookingDate}
+                      onChange={(e) => {
+                        setBookingDate(e.target.value);
+                        setBookingSlot("");
+                        setErrorMsg("");
+                      }}
+                      required
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-bold transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Slots Grid Container with Holiday Overlay */}
+                <div className="relative min-h-[220px]">
+                  <div className={`space-y-3 transition-all duration-300 ${
+                    isWeeklyHoliday ? "blur-sm opacity-20 pointer-events-none" : ""
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                        Available Realtime Time Slots
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        Capacity strictly enforced
+                      </span>
+                    </div>
+
+                    {loadingSlots ? (
+                      <div className="flex items-center justify-center py-12 gap-2 text-slate-500 text-xs font-semibold">
+                        <Loader2 className="h-5 w-5 animate-spin text-brand-green" />
+                        <span>Verifying live doctor availability...</span>
+                      </div>
+                    ) : blockedType === "full" ? (
+                      <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl text-center text-xs font-semibold text-slate-500 border border-slate-200/80 dark:border-slate-800">
+                        The clinic is closed on this date (Holiday/Admin block). Please select another date.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                        {allSlots.map((time) => {
+                          const remaining = getRemainingCapacity(time);
+                          const disabled = remaining <= 0;
+                          const isSelected = bookingSlot === time;
+
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => handleSlotSelect(time)}
+                              className={`py-2.5 px-2 text-xs font-extrabold rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+                                disabled
+                                  ? "bg-slate-100 dark:bg-slate-900/60 border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60"
+                                  : isSelected
+                                  ? "bg-brand-green border-brand-green text-white shadow-md shadow-brand-green/20 scale-[1.02]"
+                                  : "bg-brand-sand/70 dark:bg-teal-950/30 border-brand-green/25 dark:border-teal-800/50 text-brand-green dark:text-teal-300 hover:bg-brand-green/15 dark:hover:bg-teal-900/30"
+                              }`}
+                            >
+                              <span className="leading-tight">{time}</span>
+                              {!disabled && (
+                                <span className={`text-[9px] font-bold tracking-tight ${
+                                  isSelected ? "text-white/90" : "text-brand-green dark:text-teal-400 opacity-90"
+                                }`}>
+                                  {remaining} {remaining === 1 ? "slot" : "slots"} left
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Holiday Banner Card Overlay */}
+                  {isWeeklyHoliday && (
+                    <div className="absolute inset-0 flex items-center justify-center p-4 animate-fade-in-up">
+                      <div className="border border-red-500/20 dark:border-red-900/50 p-6 rounded-3xl shadow-xl text-center space-y-3 max-w-sm w-full backdrop-blur-md bg-white/95 dark:bg-slate-900/95">
+                        <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/80 flex items-center justify-center text-red-600 dark:text-red-400 mx-auto">
+                          <AlertCircle className="h-5 w-5" />
+                        </div>
+                        <h4 className="font-black text-[#062e36] dark:text-white text-base">Clinic is Closed</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                          We are closed today. Please select another operational date on our scheduling system.
+                        </p>
+                        <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 text-left space-y-1">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Operational Hours:</p>
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-normal">
+                            {clinicConfig.operationalHoursText}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit Booking Request Button */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    {bookingSlot ? (
+                      <span>Selected: <strong className="text-brand-green">{bookingDate}</strong> at <strong className="text-brand-green">{bookingSlot}</strong></span>
+                    ) : (
+                      <span>Please tap on an available time slot above.</span>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting || !bookingSlot || isWeeklyHoliday}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-8 py-3.5 text-xs font-black tracking-wide uppercase shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-102 active:scale-98 cursor-pointer"
                   >
-                    {STANDARD_SLOTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        <span>Submitting Request...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Submit Booking Request</span>
+                        <CheckCircle2 className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Service Selector */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Therapy Program</label>
-              <select
-                value={bookingService}
-                onChange={(e) => setBookingService(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 px-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] text-[#1A1C1B] dark:text-slate-100 font-bold cursor-pointer transition-colors"
-              >
-                {SERVICES.map((ser) => (
-                  <option key={ser} value={ser}>{ser}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Notes Field */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Notes / Symptoms for Doctor (Optional)</label>
-              <textarea
-                value={bookingNotes}
-                onChange={(e) => setBookingNotes(e.target.value)}
-                placeholder="Mention any new discomfort, mobility changes, or requests..."
-                rows={3}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 px-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] text-[#1A1C1B] dark:text-slate-100 transition-colors"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex w-full items-center justify-center bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] py-3.5 rounded-full text-xs font-black tracking-wide uppercase transition-all shadow-md cursor-pointer disabled:opacity-50 mt-2"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                "Send Booking Request via WhatsApp"
-              )}
-            </button>
           </form>
         </div>
-      </div>
 
-      {/* Right Column: Appointment History List (1 col wide) */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 flex items-center gap-1.5 px-1">
-          <CalendarCheck2 className="h-4 w-4 text-[#8a5100] dark:text-[#f9ab55]" />
-          <span>My Booking History</span>
-        </h3>
-
-        {appointments.length === 0 ? (
-          <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 p-6 rounded-[24px] shadow-xs text-center text-xs text-slate-400 italic">
-            No past appointment requests found.
+        {/* Right Column: Appointment History List (1 col wide) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 flex items-center gap-1.5">
+              <CalendarCheck2 className="h-4 w-4 text-[#8a5100] dark:text-[#f9ab55]" />
+              <span>My Booking History</span>
+            </h3>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+              {appointments.length}
+            </span>
           </div>
-        ) : (
-          <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
-            {appointments.map((app, idx) => {
-              const isApproved = app.status === "approved";
-              const isPending = app.status === "pending";
-              
-              return (
-                <div
-                  key={app.id || idx}
-                  className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-4 rounded-2xl shadow-xs flex items-center justify-between gap-3 hover:border-[#f9ab55]/60 transition-all"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-xs font-bold text-[#062e36] dark:text-white truncate">
-                      {app.serviceId}
-                    </p>
-                    <div className="flex gap-2 items-center text-[10px] font-medium text-slate-400">
-                      <span>{app.date}</span>
-                      <span>•</span>
-                      <span>{app.slot}</span>
+
+          {loadingHistory ? (
+            <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 p-8 rounded-3xl text-center text-xs text-slate-400">
+              <Loader2 className="h-5 w-5 animate-spin mx-auto text-brand-green mb-2" />
+              <span>Loading appointment records...</span>
+            </div>
+          ) : appointments.length === 0 ? (
+            <div className="bg-white dark:bg-[#121a1d] border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-xs text-center text-xs text-slate-400 italic space-y-1">
+              <CalendarIcon className="h-6 w-6 text-slate-300 dark:text-slate-600 mx-auto mb-1" />
+              <p>No past appointment requests found.</p>
+              <p className="text-[11px] not-italic text-slate-400">Your submitted bookings will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[80vh] overflow-y-auto pr-1">
+              {appointments.map((app, idx) => {
+                const isApproved = app.status === "approved";
+                const isPending = app.status === "pending";
+
+                return (
+                  <div
+                    key={app.id || idx}
+                    className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-4 rounded-2xl shadow-xs space-y-2 hover:border-[#f9ab55]/60 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-[#062e36] dark:text-white truncate">
+                          {app.serviceId}
+                        </p>
+                        <div className="flex gap-2 items-center text-[10px] font-medium text-slate-400 mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon className="h-3 w-3 text-brand-green" />
+                            {app.date}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-brand-green" />
+                            {app.slot}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status Pills */}
+                      {isApproved ? (
+                        <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shrink-0">
+                          Approved
+                        </span>
+                      ) : isPending ? (
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shrink-0">
+                          Pending
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shrink-0">
+                          Rejected
+                        </span>
+                      )}
                     </div>
+
+                    {app.notes && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 italic line-clamp-2 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl">
+                        "{app.notes}"
+                      </p>
+                    )}
+
+                    {/* Quick WhatsApp Desk Followup Button for Pending Requests */}
+                    {isPending && (
+                      <div className="pt-1">
+                        <a
+                          href={`https://wa.me/${doctorWhatsAppNumber}?text=${encodeURIComponent(
+                            `Hi Front Desk, checking status of my appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}*.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          <span>Chat with Clinic Desk</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                  {/* Status Pills */}
-                  {isApproved ? (
-                    <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shrink-0">
-                      Approved
-                    </span>
-                  ) : isPending ? (
-                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shrink-0">
-                      Pending
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shrink-0">
-                      Rejected
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
-
     </div>
   );
 }

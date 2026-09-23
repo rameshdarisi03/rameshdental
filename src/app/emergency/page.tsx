@@ -22,11 +22,11 @@ export default function Emergency() {
               </p>
               <div className="pt-2">
                 <a
-                  href="tel:+919206651295"
+                  href="tel:+918904456243"
                   className="inline-flex items-center gap-2 rounded-full bg-red-600 hover:bg-red-700 text-white px-5 py-2 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all"
                 >
                   <Phone className="h-3.5 w-3.5" />
-                  Call Front Desk: +91 92066 51295
+                  Call Front Desk: +91 89044 56243
                 </a>
               </div>
             </div>

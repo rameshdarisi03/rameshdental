@@ -35,6 +35,8 @@ import {
   Sparkles
 } from "lucide-react";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
+import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 
 import { usePatientAuth } from "@/providers/PatientAuthProvider";
 
@@ -53,10 +55,13 @@ export default function DashboardPage() {
   const [exercises, setExercises] = useState<DisplayExercise[]>([]);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
   const [progress, setProgress] = useState<PatientWorkoutProgress | null>(null);
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
   const [markingDay, setMarkingDay] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    getClinicConfig().then(setClinicConfig).catch(console.error);
+
     if (!patient || !patient.id) {
       if (!authLoading) setLoading(false);
       return;
@@ -249,7 +254,7 @@ export default function DashboardPage() {
         </Link>
 
         <a 
-          href="https://wa.me/919206651295"
+          href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig?.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to consult with the doctor regarding my therapy routine.")}`}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
@@ -442,7 +447,7 @@ export default function DashboardPage() {
         </div>
 
         <a
-          href="tel:+919206651295"
+          href={`tel:${(clinicConfig?.phone || "+918904456243").replace(/\s+/g, "")}`}
           className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-5 py-2.5 rounded-full border border-white/20 transition-all shrink-0"
         >
           <span>Call Clinic Desk</span>

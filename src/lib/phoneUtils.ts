@@ -4,15 +4,15 @@
  * - 10-digit numbers: '8904456243' -> '918904456243'
  * - Already 12-digit with 91: '+91 8904456243' or '918904456243' -> '918904456243' (avoids double 91)
  * - 11-digit numbers with leading 0: '08904456243' -> '918904456243'
- * - Fallback default: '919206651295'
+ * - Fallback default: '918904456243'
  */
 export function getCleanWhatsAppNumber(rawPhone?: string | null): string {
-  if (!rawPhone) return "919206651295";
+  if (!rawPhone) return "918904456243";
   
   const digits = rawPhone.replace(/\D/g, "");
   
   // If empty after stripping non-digits
-  if (!digits) return "919206651295";
+  if (!digits) return "918904456243";
 
   // If already starts with 91 and has 12 digits, return it directly
   if (digits.startsWith("91") && digits.length === 12) {

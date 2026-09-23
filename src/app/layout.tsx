@@ -112,7 +112,7 @@ const clinicStructuredData = {
       image: "https://gaitphysioclinic.com/images/hero_physio_session.webp",
       description:
         "Specialized physiotherapy, biomechanical gait analysis, sports injury rehabilitation, and post-operative orthopedic recovery at Gait Physio Clinic, Whitefield, Bengaluru.",
-      telephone: "+91 92066 51295",
+      telephone: "+91 89044 56243",
       priceRange: "₹₹",
       address: {
         "@type": "PostalAddress",

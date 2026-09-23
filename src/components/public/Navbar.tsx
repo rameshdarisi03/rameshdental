@@ -156,9 +156,9 @@ export default function Navbar() {
           {clinicConfig.enablePublicBooking !== false ? (
             <>
               <a
-                href={`tel:${clinicConfig.phone || "+919206651295"}`}
+                href={`tel:${clinicConfig.phone || "+918904456243"}`}
                 className="hidden sm:flex items-center gap-1.5 text-xs lg:text-sm font-bold text-slate-700 hover:text-brand-green dark:text-slate-200 dark:hover:text-brand-green/85 transition-colors p-1.5 lg:px-2.5 lg:py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-850 shrink-0"
-                title="Call Clinic: +91 92066 51295"
+                title={`Call Clinic: ${clinicConfig.phone || "+91 89044 56243"}`}
               >
                 <Phone className="h-4 w-4 text-brand-green shrink-0" />
                 <span className="hidden xl:inline whitespace-nowrap">Call Clinic</span>
@@ -184,7 +184,7 @@ export default function Navbar() {
           )}
           
           <a
-            href={`tel:${clinicConfig.phone || "+919206651295"}`}
+            href={`tel:${clinicConfig.phone || "+918904456243"}`}
             className="sm:hidden flex items-center justify-center h-10 w-10 rounded-full border border-slate-200 dark:border-slate-800 text-brand-green dark:text-teal-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
             title="Call Clinic"
           >

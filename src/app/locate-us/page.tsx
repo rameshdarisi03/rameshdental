@@ -243,14 +243,14 @@ export default function LocateUsPage() {
 
               <div className="space-y-2 text-xs">
                 <a
-                  href="tel:+919206651295"
+                  href="tel:+918904456243"
                   className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-bold text-slate-900 dark:text-white"
                 >
                   <span>Reception Phone</span>
-                  <span className="text-brand-green">+91 92066 51295</span>
+                  <span className="text-brand-green">+91 89044 56243</span>
                 </a>
                 <a
-                  href="https://wa.me/919206651295"
+                  href="https://wa.me/918904456243"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 transition-colors font-bold text-emerald-800 dark:text-emerald-300"

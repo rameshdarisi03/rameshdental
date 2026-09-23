@@ -268,7 +268,7 @@ Thank you for choosing Gait Physio Clinic! You can also view your complete billi
 
 Warm regards,
 *Gait Physio Clinic, Bengaluru*
-📞 +91 92066 51295`;
+📞 +91 89044 56243`;
 
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };

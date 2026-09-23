@@ -196,10 +196,10 @@ export default function ServicesPage() {
               <span>Schedule Initial Assessment</span>
             </Link>
             <a
-              href="tel:+919206651295"
+              href="tel:+918904456243"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-8 py-3.5 rounded-2xl border border-white/20 transition-colors"
             >
-              <span>Call +91 92066 51295</span>
+              <span>Call +91 89044 56243</span>
             </a>
           </div>
         </section>

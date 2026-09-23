@@ -271,7 +271,7 @@ function ExercisesContent() {
               <span>Back to Dashboard</span>
             </Link>
             <a
-              href="https://wa.me/919206651295"
+              href="https://wa.me/918904456243"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs"

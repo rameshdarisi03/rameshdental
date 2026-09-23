@@ -82,7 +82,7 @@ export default function ViewInvoiceModal({
               <h4 className="font-black text-brand-green text-sm">Gait Physio Clinic</h4>
               <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-0.5">
                 123 Clinical Wellness Way, Sector 4<br />
-                Bengaluru, Karnataka 560001 • +91 92066 51295
+                Bengaluru, Karnataka 560001 • +91 89044 56243
               </p>
             </div>
             <div className="text-right">

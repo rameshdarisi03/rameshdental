@@ -307,7 +307,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
       cleanPhone = "91" + cleanPhone;
     }
     if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "919206651295";
+      cleanPhone = "918904456243";
     }
 
     const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login` : "https://gaitphysioclinic.com/patienthub/login";
@@ -1088,7 +1088,7 @@ Thank you for choosing Gait Physio Clinic! You can also view your complete billi
 
 Warm regards,
 *Gait Physio Clinic, Bengaluru*
-📞 +91 92066 51295`;
+📞 +91 89044 56243`;
 
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
@@ -1318,7 +1318,7 @@ Warm regards,
                         cleanPhone = "91" + cleanPhone;
                       }
                       if (!cleanPhone || cleanPhone.length < 10) {
-                        cleanPhone = "919206651295";
+                        cleanPhone = "918904456243";
                       }
                       const waUrl = `https://wa.me/${cleanPhone}`;
                       window.open(waUrl, "_blank");

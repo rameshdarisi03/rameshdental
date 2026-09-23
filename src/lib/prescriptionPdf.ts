@@ -87,7 +87,7 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(220, 230, 235);
-  doc.text("Whitefield, Bengaluru • Tel: +91 92066 51295 • www.gaitphysioclinic.com", 45, y + 56);
+  doc.text("Whitefield, Bengaluru • Tel: +91 89044 56243 • www.gaitphysioclinic.com", 45, y + 56);
 
   y += 82;
 
@@ -568,7 +568,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
 
   doc.setFontSize(8);
   doc.setTextColor(220, 230, 235);
-  doc.text("123 Clinical Wellness Way, Sector 4, Bengaluru • +91 92066 51295", 48, y + 56);
+  doc.text("123 Clinical Wellness Way, Sector 4, Bengaluru • +91 89044 56243", 48, y + 56);
 
   y += 82;
 

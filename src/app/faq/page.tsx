@@ -127,7 +127,7 @@ export default function FaqPage() {
               <span>Book Appointment</span>
             </Link>
             <a
-              href="https://wa.me/919206651295"
+              href="https://wa.me/918904456243"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs px-6 py-3 rounded-xl border border-emerald-200 dark:border-emerald-800/60 transition-colors"

@@ -1668,7 +1668,7 @@ export default function Home() {
               Frequently Asked Questions
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
-              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 92066 51295.
+              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 89044 56243.
             </p>
           </div>
 
