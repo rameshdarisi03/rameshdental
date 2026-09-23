@@ -13,6 +13,7 @@ import {
   Upload, 
   Plus, 
   Loader2, 
+  CheckCircle,
   CheckCircle2, 
   AlertCircle,
   Download,
