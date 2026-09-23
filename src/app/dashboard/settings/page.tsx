@@ -29,9 +29,11 @@ import {
   RotateCcw,
   Palette,
   Check,
-  Copy
+  Copy,
+  X
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { THEME_OPTIONS, ThemeKey } from "@/components/public/ThemeSwitcher";
 import { syncMetaThemeColor } from "@/lib/themeHelper";
 
@@ -42,13 +44,204 @@ interface UserProfile {
   name: string;
 }
 
+interface ConfigChangeItem {
+  category: string;
+  detail: string;
+}
+
+function computeConfigDiff(
+  initial: ClinicConfig | null, 
+  current: ClinicConfig,
+  themeDiff?: { initialTheme: ThemeKey; currentTheme: ThemeKey }
+): ConfigChangeItem[] {
+  if (!initial) return [];
+  const diffs: ConfigChangeItem[] = [];
+
+  // 1. Online booking toggle
+  if (initial.enablePublicBooking !== current.enablePublicBooking) {
+    diffs.push({
+      category: "Public Booking",
+      detail: current.enablePublicBooking !== false ? "Switched to Enabled (Online Appointment Booking)" : "Switched to Disabled (Direct WhatsApp/Call Mode)",
+    });
+  }
+
+  // 2. Slot duration
+  if (initial.slotDuration !== current.slotDuration) {
+    diffs.push({
+      category: "Slot Duration",
+      detail: `Changed from ${initial.slotDuration} min to ${current.slotDuration} min`,
+    });
+  }
+
+  // 3. Shifts & Sessions
+  if (initial.morningStart !== current.morningStart || initial.morningEnd !== current.morningEnd) {
+    diffs.push({
+      category: "Morning Session",
+      detail: `${current.morningStart} – ${current.morningEnd} (previously ${initial.morningStart} – ${initial.morningEnd})`,
+    });
+  }
+
+  if (initial.eveningStart !== current.eveningStart || initial.eveningEnd !== current.eveningEnd) {
+    diffs.push({
+      category: "Evening Session",
+      detail: `${current.eveningStart} – ${current.eveningEnd} (previously ${initial.eveningStart} – ${initial.eveningEnd})`,
+    });
+  }
+
+  // 4. Day-by-Day schedule
+  const days: Array<{ key: WeekdayKey; label: string }> = [
+    { key: "monday", label: "Monday" },
+    { key: "tuesday", label: "Tuesday" },
+    { key: "wednesday", label: "Wednesday" },
+    { key: "thursday", label: "Thursday" },
+    { key: "friday", label: "Friday" },
+    { key: "saturday", label: "Saturday" },
+    { key: "sunday", label: "Sunday" },
+  ];
+
+  days.forEach(({ key, label }) => {
+    const initDay = initial.daySchedules?.[key] || DEFAULT_DAY_SCHEDULES[key];
+    const currDay = current.daySchedules?.[key] || DEFAULT_DAY_SCHEDULES[key];
+
+    if (initDay.isOpen !== currDay.isOpen) {
+      if (!currDay.isOpen) {
+        diffs.push({
+          category: `${label}`,
+          detail: `Marked as Closed (was Open ${initDay.openTime} – ${initDay.closeTime})`,
+        });
+      } else {
+        diffs.push({
+          category: `${label}`,
+          detail: `Marked as Open (${currDay.openTime} – ${currDay.closeTime})`,
+        });
+      }
+    } else if (currDay.isOpen && (initDay.openTime !== currDay.openTime || initDay.closeTime !== currDay.closeTime)) {
+      diffs.push({
+        category: `${label}`,
+        detail: `Hours changed to ${currDay.openTime} – ${currDay.closeTime} (was ${initDay.openTime} – ${initDay.closeTime})`,
+      });
+    }
+  });
+
+  // 5. Therapists list
+  const initTherapists = initial.therapists || [];
+  const currTherapists = current.therapists || [];
+  const addedTherapists = currTherapists.filter((t) => !initTherapists.includes(t));
+  const removedTherapists = initTherapists.filter((t) => !currTherapists.includes(t));
+
+  if (addedTherapists.length > 0) {
+    diffs.push({
+      category: "Therapists Added",
+      detail: `+ ${addedTherapists.join(", ")}`,
+    });
+  }
+  if (removedTherapists.length > 0) {
+    diffs.push({
+      category: "Therapists Removed",
+      detail: `- ${removedTherapists.join(", ")}`,
+    });
+  }
+
+  // 6. Capacity & Overrides
+  if (initial.defaultCapacityPerSlot !== current.defaultCapacityPerSlot) {
+    diffs.push({
+      category: "Slot Capacity",
+      detail: `Default changed to ${current.defaultCapacityPerSlot} patients/slot (was ${initial.defaultCapacityPerSlot})`,
+    });
+  }
+  if (JSON.stringify(initial.hourlyCapacityOverrides || {}) !== JSON.stringify(current.hourlyCapacityOverrides || {})) {
+    const count = Object.keys(current.hourlyCapacityOverrides || {}).length;
+    diffs.push({
+      category: "Hourly Overrides",
+      detail: `Custom hourly slot capacities updated (${count} active override${count === 1 ? '' : 's'})`,
+    });
+  }
+
+  // 7. Booking & Walk-in Rules
+  if (initial.adminWalkInGraceType !== current.adminWalkInGraceType) {
+    diffs.push({
+      category: "Walk-in Grace",
+      detail: `Tolerance set to ${current.adminWalkInGraceType?.replace(/_/g, " ")}`,
+    });
+  }
+  if (initial.publicBookingCutoffMinutes !== current.publicBookingCutoffMinutes) {
+    diffs.push({
+      category: "Booking Cutoff",
+      detail: `Cutoff set to ${current.publicBookingCutoffMinutes} min prior`,
+    });
+  }
+
+  // 8. Contact & Location
+  if (initial.phone !== current.phone && (initial.phone || current.phone)) {
+    diffs.push({
+      category: "Phone Number",
+      detail: `${current.phone || "cleared"}`,
+    });
+  }
+  if (initial.email !== current.email && (initial.email || current.email)) {
+    diffs.push({
+      category: "Email Address",
+      detail: `${current.email || "cleared"}`,
+    });
+  }
+  if (initial.address !== current.address && (initial.address || current.address)) {
+    diffs.push({
+      category: "Clinic Address",
+      detail: `Location address text updated`,
+    });
+  }
+  if (initial.googleMapsLink !== current.googleMapsLink && (initial.googleMapsLink || current.googleMapsLink)) {
+    diffs.push({
+      category: "Google Maps Link",
+      detail: `Directions URL updated`,
+    });
+  }
+  if ((initial.landmark || "") !== (current.landmark || "")) {
+    diffs.push({
+      category: "Landmark",
+      detail: current.landmark ? `Updated to "${current.landmark}"` : "Cleared",
+    });
+  }
+  if ((initial.googleMapsEmbed || "") !== (current.googleMapsEmbed || "")) {
+    diffs.push({
+      category: "Interactive Map",
+      detail: current.googleMapsEmbed ? "Interactive Google Maps embed updated" : "Embed code cleared",
+    });
+  }
+  if ((initial.operationalHoursText || "").trim() !== (current.operationalHoursText || "").trim()) {
+    diffs.push({
+      category: "Hours Note",
+      detail: current.operationalHoursText ? "Custom schedule summary text updated" : "Reset to default auto-generated format",
+    });
+  }
+
+  // 9. Website Color Theme
+  if (themeDiff && themeDiff.initialTheme !== themeDiff.currentTheme) {
+    const initThemeObj = THEME_OPTIONS.find((t) => t.id === themeDiff.initialTheme);
+    const currThemeObj = THEME_OPTIONS.find((t) => t.id === themeDiff.currentTheme);
+    diffs.push({
+      category: "Website Theme",
+      detail: `Color palette changed to ${currThemeObj?.name || themeDiff.currentTheme} (was ${initThemeObj?.name || themeDiff.initialTheme})`,
+    });
+  }
+
+  return diffs;
+}
+
 export default function DashboardSettings() {
+  const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeKey>("teal");
+  const [initialTheme, setInitialTheme] = useState<ThemeKey>("teal");
+
+  // Initial config snapshot to compute granular diff
+  const [initialConfig, setInitialConfig] = useState<ClinicConfig | null>(null);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingNavigationUrl, setPendingNavigationUrl] = useState<string | null>(null);
 
   // Expandable Hourly Overrides & Help Tooltip state
   const [showHourlyOverrides, setShowHourlyOverrides] = useState(false);
@@ -134,6 +327,7 @@ export default function DashboardSettings() {
       try {
         const fetched = await getClinicConfig();
         setConfig(fetched);
+        setInitialConfig(JSON.parse(JSON.stringify(fetched)));
         
         if (fetched.hourlyCapacityOverrides && Object.keys(fetched.hourlyCapacityOverrides).length > 0) {
           setShowHourlyOverrides(true);
@@ -148,6 +342,7 @@ export default function DashboardSettings() {
         // Load active website theme
         const savedTheme = (localStorage.getItem("gpc_public_theme") as ThemeKey) || "teal";
         setCurrentTheme(savedTheme);
+        setInitialTheme(savedTheme);
       } catch (err) {
         console.error(err);
       } finally {
@@ -179,6 +374,91 @@ export default function DashboardSettings() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
+
+  // 1. Intercept client-side link navigation when form has unsaved changes
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const handleAnchorClick = (e: MouseEvent) => {
+      // Ignore if modifier keys or not primary click
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
+      const target = e.target as HTMLElement | null;
+      const anchor = target?.closest("a");
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+
+      // Ignore anchor jumps, script links, tel:, mailto:, or new tabs
+      if (
+        href.startsWith("#") || 
+        href.startsWith("javascript:") || 
+        href.startsWith("tel:") || 
+        href.startsWith("mailto:") || 
+        anchor.target === "_blank"
+      ) {
+        return;
+      }
+
+      // Check if it's the exact same page
+      try {
+        const currentUrl = new URL(window.location.href);
+        const targetUrl = new URL(anchor.href, window.location.origin);
+        if (targetUrl.pathname === currentUrl.pathname && targetUrl.search === currentUrl.search) {
+          return;
+        }
+      } catch {
+        // Continue to intercept
+      }
+
+      // Intercept navigation and prompt with modal
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavigationUrl(anchor.href);
+      setShowUnsavedModal(true);
+    };
+
+    document.addEventListener("click", handleAnchorClick, { capture: true });
+    return () => {
+      document.removeEventListener("click", handleAnchorClick, { capture: true });
+    };
+  }, [isDirty]);
+
+  // 2. Intercept browser back/forward button navigation when form has unsaved changes
+  useEffect(() => {
+    if (!isDirty) return;
+
+    // Push guard state so Back button triggers popstate before unmounting
+    if (!window.history.state?.unsavedGuard) {
+      window.history.pushState({ unsavedGuard: true }, "", window.location.href);
+    }
+
+    const handlePopState = () => {
+      // Re-push state so user remains on this page while modal is active
+      window.history.pushState({ unsavedGuard: true }, "", window.location.href);
+      setPendingNavigationUrl("BACK_NAVIGATION");
+      setShowUnsavedModal(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [isDirty]);
+
+  // 3. Escape key dismisses modal (Keep Editing)
+  useEffect(() => {
+    if (!showUnsavedModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowUnsavedModal(false);
+        setPendingNavigationUrl(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showUnsavedModal]);
 
   const handleDayScheduleToggle = (day: WeekdayKey) => {
     setConfig((prev) => {
@@ -285,7 +565,7 @@ export default function DashboardSettings() {
     setSavedSuccess(false);
   };
 
-  const handleSave = async (e?: React.FormEvent) => {
+  const handleSave = async (e?: React.FormEvent): Promise<boolean> => {
     if (e) e.preventDefault();
     setSaving(true);
     setSavedSuccess(false);
@@ -306,6 +586,8 @@ export default function DashboardSettings() {
         setSavedSuccess(true);
         setIsDirty(false);
         setConfig(updatedConfig);
+        setInitialConfig(JSON.parse(JSON.stringify(updatedConfig)));
+        setInitialTheme(currentTheme);
         
         // Update saving timestamp
         const now = new Date();
@@ -313,20 +595,80 @@ export default function DashboardSettings() {
           ", " + now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
         setLastSavedTime(formatted);
         localStorage.setItem("gpc_config_saved_at", formatted);
+        return true;
       } else {
         alert("Failed to save settings. Please try again.");
+        return false;
       }
     } catch (err) {
       console.error(err);
       alert("Error saving settings.");
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   const handleDiscard = () => {
-    if (confirm("Are you sure you want to discard all unsaved changes?")) {
-      window.location.reload();
+    setPendingNavigationUrl(null);
+    setShowUnsavedModal(true);
+  };
+
+  const handleStay = () => {
+    setShowUnsavedModal(false);
+    setPendingNavigationUrl(null);
+  };
+
+  const handleDiscardAndLeave = () => {
+    setIsDirty(false);
+    setShowUnsavedModal(false);
+
+    // Revert form state in memory to initial snapshot
+    if (initialConfig) {
+      setConfig(JSON.parse(JSON.stringify(initialConfig)));
+    }
+    setCurrentTheme(initialTheme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gpc_public_theme", initialTheme);
+      document.documentElement.setAttribute("data-theme", initialTheme);
+      syncMetaThemeColor(initialTheme);
+    }
+
+    if (pendingNavigationUrl === "BACK_NAVIGATION") {
+      if (window.history.length > 2) {
+        window.history.go(-2);
+      } else {
+        router.push("/dashboard");
+      }
+    } else if (pendingNavigationUrl) {
+      if (pendingNavigationUrl.startsWith("http")) {
+        window.location.href = pendingNavigationUrl;
+      } else {
+        router.push(pendingNavigationUrl);
+      }
+    }
+    setPendingNavigationUrl(null);
+  };
+
+  const handleSaveAndContinue = async () => {
+    const success = await handleSave();
+    if (success) {
+      setIsDirty(false);
+      setShowUnsavedModal(false);
+      if (pendingNavigationUrl === "BACK_NAVIGATION") {
+        if (window.history.length > 2) {
+          window.history.go(-2);
+        } else {
+          router.push("/dashboard");
+        }
+      } else if (pendingNavigationUrl) {
+        if (pendingNavigationUrl.startsWith("http")) {
+          window.location.href = pendingNavigationUrl;
+        } else {
+          router.push(pendingNavigationUrl);
+        }
+      }
+      setPendingNavigationUrl(null);
     }
   };
 
@@ -405,6 +747,8 @@ export default function DashboardSettings() {
       </div>
     );
   }
+
+  const pendingDiffs = computeConfigDiff(initialConfig, config, { initialTheme, currentTheme });
 
   return (
     <div className="flex flex-col min-h-screen -m-4 sm:-m-6 md:-m-8 bg-[#f8fafc] dark:bg-slate-955">
@@ -1496,6 +1840,132 @@ export default function DashboardSettings() {
           </button>
         </div>
       </footer>
+
+      {/* Unsaved Changes Confirmation Modal (Fully Responsive & Mobile Safe) */}
+      {showUnsavedModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="unsaved-modal-title"
+          onClick={handleStay}
+        >
+          <div 
+            className="relative w-full max-w-lg max-h-[90dvh] sm:max-h-[85dvh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header (Fixed / Never Shrinks) */}
+            <div className="shrink-0 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/70">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 id="unsaved-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                    Unsaved Settings
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Modifications will be lost if you leave without saving
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleStay}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0 bg-transparent"
+                title="Close and continue editing"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-3.5">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                You have modified clinic configuration settings. Here is a summary of all changes:
+              </p>
+
+              {/* Pending Changes Diff Box */}
+              <div className="rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 p-3 sm:p-4 flex flex-col">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-amber-200/60 dark:border-amber-900/40">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                    Pending Changes ({pendingDiffs.length})
+                  </span>
+                  {pendingDiffs.length > 2 && (
+                    <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 font-medium">
+                      Scroll to review all
+                    </span>
+                  )}
+                </div>
+
+                <div className="max-h-40 sm:max-h-52 overflow-y-auto pr-1 space-y-2 divide-y divide-amber-200/50 dark:divide-amber-900/30">
+                  {pendingDiffs.length > 0 ? (
+                    pendingDiffs.map((item, idx) => (
+                      <div key={idx} className="pt-2 first:pt-0 flex items-start gap-2.5 text-xs">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300/60 dark:border-amber-800/40">
+                          {item.category}
+                        </span>
+                        <span className="flex-1 text-slate-700 dark:text-slate-200 font-medium leading-relaxed break-words">
+                          {item.detail}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-2 text-xs text-amber-800 dark:text-amber-300 font-medium">
+                      Configuration edits in progress.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                Choose an action below to proceed:
+              </p>
+            </div>
+
+            {/* Modal Footer (Never Crops, Mobile-First Stacked) */}
+            <div className="shrink-0 p-3.5 sm:p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-2.5">
+              <button
+                type="button"
+                onClick={handleStay}
+                disabled={saving}
+                className="order-3 sm:order-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-center bg-white dark:bg-slate-800"
+              >
+                Keep Editing
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDiscardAndLeave}
+                disabled={saving}
+                className="order-2 sm:order-2 px-4 py-2.5 rounded-xl border border-red-200 dark:border-red-900/50 text-red-650 dark:text-red-400 bg-red-50/80 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-xs sm:text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                <span>{pendingNavigationUrl ? "Discard & Leave" : "Discard Changes"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAndContinue}
+                disabled={saving}
+                className="order-1 sm:order-3 px-5 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 border-0"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 shrink-0" />
+                    <span>{pendingNavigationUrl ? "Save & Continue" : "Save Changes"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
