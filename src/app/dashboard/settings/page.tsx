@@ -612,7 +612,7 @@ export default function DashboardSettings() {
                       Operational Shifts & Durations
                     </h3>
                     <p className="text-[10px] text-slate-400 mt-1 font-semibold">
-                      Configure timing slots and clinical session hours
+                      Configure appointment slot lengths and doctor shifts. Booking slots automatically respect each day&apos;s open/close timings below.
                     </p>
                   </div>
                 </div>
@@ -767,7 +767,7 @@ export default function DashboardSettings() {
                       Day-by-Day Operating Hours
                     </h3>
                     <p className="text-[10px] text-slate-400 mt-1 font-semibold">
-                      Custom opening & closing hours shown on the public Locate Us page
+                      Clinic door timings shown on Locate Us. Booking slots strictly respect each day&apos;s open/close times (e.g. Sunday automatically stops at 5:00 PM).
                     </p>
                   </div>
                 </div>

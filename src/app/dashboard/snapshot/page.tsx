@@ -21,6 +21,7 @@ import {
   ClinicConfig,
   getClinicConfig,
   generateSlotsFromHours,
+  generateSlotsForDay,
   getSlotCapacity,
   DEFAULT_CLINIC_CONFIG,
   isSlotInPast
@@ -153,13 +154,7 @@ export default function DaySnapshot() {
   ];
 
   // Dynamic slots generated according to Settings configurations
-  const allSlots = generateSlotsFromHours(
-    clinicConfig.morningStart,
-    clinicConfig.morningEnd,
-    clinicConfig.eveningStart,
-    clinicConfig.eveningEnd,
-    clinicConfig.slotDuration
-  );
+  const allSlots = generateSlotsForDay(clinicConfig, selectedDate);
 
   const isMorningSlot = (time: string) => {
     const [hourStr, minAndMod] = time.split(":");

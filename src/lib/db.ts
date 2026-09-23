@@ -172,7 +172,7 @@ export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
 }
 
 // Convert "09:30 AM" to total minutes from midnight
-function parseTimeToMinutes(timeStr: string): number {
+export function parseTimeToMinutes(timeStr: string): number {
   const [time, modifier] = timeStr.split(" ");
   const [rawHours, minutes] = time.split(":").map(Number);
   let hours = rawHours;
@@ -186,7 +186,7 @@ function parseTimeToMinutes(timeStr: string): number {
 }
 
 // Convert minutes back to "09:30 AM"
-function formatMinutesToTime(totalMinutes: number): string {
+export function formatMinutesToTime(totalMinutes: number): string {
   let hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   const modifier = hours >= 12 ? "PM" : "AM";
@@ -294,6 +294,75 @@ export function generateSlotsFromHours(
   } catch (error) {
     console.error("Error generating dynamic slots: ", error);
   }
+  return slots;
+}
+
+// Helper: Get weekday key ("monday" | "tuesday" | ...) from a YYYY-MM-DD date string
+export function getWeekdayKey(dateStr: string): WeekdayKey {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const dateObj = new Date(year, month - 1, day);
+  return dateObj.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase() as WeekdayKey;
+}
+
+// Generate slots for a specific date or day, respecting:
+// 1. That specific day's open/close times from daySchedules
+// 2. That day's isOpen status (0 slots if marked closed)
+// 3. Shift boundaries & lunch break (morningStart -> morningEnd, eveningStart -> eveningEnd)
+export function generateSlotsForDay(
+  config: ClinicConfig,
+  dateStrOrDayKey?: string
+): string[] {
+  if (!config) return [];
+
+  let dayKey: WeekdayKey | undefined;
+  if (dateStrOrDayKey) {
+    if (dateStrOrDayKey.includes("-")) {
+      dayKey = getWeekdayKey(dateStrOrDayKey);
+    } else {
+      dayKey = dateStrOrDayKey.toLowerCase() as WeekdayKey;
+    }
+  }
+
+  // If day is closed according to daySchedules or weeklyHolidays, return 0 slots
+  if (dayKey) {
+    const daySched = config.daySchedules?.[dayKey] || DEFAULT_DAY_SCHEDULES[dayKey];
+    if (daySched && !daySched.isOpen) {
+      return [];
+    }
+    if (config.weeklyHolidays?.[dayKey] === true) {
+      return [];
+    }
+  }
+
+  const duration = config.slotDuration || 30;
+  const daySched = dayKey ? (config.daySchedules?.[dayKey] || DEFAULT_DAY_SCHEDULES[dayKey]) : undefined;
+
+  // Day's outer boundary (e.g. 09:30 AM to 08:00 PM on Mon, or 09:00 AM to 05:00 PM on Sun)
+  const dayOpenMins = daySched ? parseTimeToMinutes(daySched.openTime) : 0;
+  const dayCloseMins = daySched ? parseTimeToMinutes(daySched.closeTime) : 24 * 60;
+
+  // Morning shift: start at max(morningStart, dayOpenMins), end at min(morningEnd, dayCloseMins)
+  const mStartMins = Math.max(parseTimeToMinutes(config.morningStart), dayOpenMins);
+  const mEndMins = Math.min(parseTimeToMinutes(config.morningEnd), dayCloseMins);
+
+  const slots: string[] = [];
+
+  if (mStartMins < mEndMins) {
+    for (let t = mStartMins; t <= mEndMins - duration; t += duration) {
+      slots.push(formatMinutesToTime(t));
+    }
+  }
+
+  // Evening shift: start at max(eveningStart, dayOpenMins), end at min(eveningEnd, dayCloseMins)
+  const eStartMins = Math.max(parseTimeToMinutes(config.eveningStart), dayOpenMins);
+  const eEndMins = Math.min(parseTimeToMinutes(config.eveningEnd), dayCloseMins);
+
+  if (eStartMins < eEndMins) {
+    for (let t = eStartMins; t <= eEndMins - duration; t += duration) {
+      slots.push(formatMinutesToTime(t));
+    }
+  }
+
   return slots;
 }
 

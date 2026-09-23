@@ -9,6 +9,7 @@ import {
   submitBookingRequest,
   getClinicConfig,
   generateSlotsFromHours,
+  generateSlotsForDay,
   getSlotCapacity,
   DEFAULT_CLINIC_CONFIG,
   ClinicConfig,
@@ -92,14 +93,8 @@ function BookingFormContent() {
     loadConfig();
   }, []);
 
-  // Generate slots dynamically based on active shift boundaries and durations
-  const allSlots = generateSlotsFromHours(
-    clinicConfig.morningStart,
-    clinicConfig.morningEnd,
-    clinicConfig.eveningStart,
-    clinicConfig.eveningEnd,
-    clinicConfig.slotDuration
-  );
+  // Generate slots dynamically based on active shift boundaries, respecting individual day open/close hours from daySchedules
+  const allSlots = generateSlotsForDay(clinicConfig, formData.date || undefined);
 
   // Check if a time slot is a morning slot
   const isMorningSlot = (time: string) => {

@@ -28,7 +28,7 @@ import {
   X
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions } from "@/lib/patientsDb";
-import { getClinicConfig, ClinicConfig, generateSlotsFromHours, isSlotInPast } from "@/lib/db";
+import { getClinicConfig, ClinicConfig, generateSlotsFromHours, generateSlotsForDay, isSlotInPast } from "@/lib/db";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { sanitizePhone, sanitizeName, isValidIndianPhone, isValidEmail } from "@/lib/sanitizer";
@@ -152,13 +152,7 @@ export default function PatientsPage() {
             therapistName: config.therapists[0]
           }));
         }
-        const slots = generateSlotsFromHours(
-          config.morningStart,
-          config.morningEnd,
-          config.eveningStart,
-          config.eveningEnd,
-          config.slotDuration
-        );
+        const slots = generateSlotsForDay(config, formData.date || undefined);
         setTodaySlots(slots);
       } else {
         setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
