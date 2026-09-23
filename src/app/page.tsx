@@ -680,7 +680,7 @@ export default function Home() {
                   href="/book"
                   className="inline-flex items-center justify-center rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/90 dark:text-white dark:border-slate-700/80 hover:dark:border-slate-500 hover:dark:bg-slate-850"
                 >
-                  Book Free Consultation
+                  Book Appointment
                 </Link>
               ) : (
                 <a
