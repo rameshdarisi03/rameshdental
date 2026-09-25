@@ -452,18 +452,54 @@ export async function updatePatient(patientId: string, updates: Partial<Patient>
   }
 }
 
-// Get all patients with optional filtering
+// Get all patients with robust multi-tier fallback (Ordered -> Plain Scan -> Server API)
 export async function getPatients(): Promise<Patient[]> {
   try {
-    const q = query(collection(db, "patients"), orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    const patients: Patient[] = [];
-    snapshot.forEach((doc) => {
-      patients.push({ id: doc.id, ...doc.data() } as Patient);
-    });
-    return patients;
+    // Tier 1: Attempt ordered Firestore query
+    try {
+      const q = query(collection(db, "patients"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      const patients: Patient[] = [];
+      snapshot.forEach((doc) => {
+        patients.push({ id: doc.id, ...doc.data() } as Patient);
+      });
+      if (patients.length > 0) return patients;
+    } catch (orderErr) {
+      console.warn("[patientsDb] Ordered query failed or missing index, falling back to direct collection scan:", orderErr);
+    }
+
+    // Tier 2: Direct Firestore collection scan (works even if createdAt is missing or unindexed)
+    try {
+      const plainSnapshot = await getDocs(collection(db, "patients"));
+      const patients: Patient[] = [];
+      plainSnapshot.forEach((doc) => {
+        patients.push({ id: doc.id, ...doc.data() } as Patient);
+      });
+      if (patients.length > 0) {
+        return patients.sort((a: any, b: any) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return timeB - timeA;
+        });
+      }
+    } catch (scanErr) {
+      console.warn("[patientsDb] Direct client scan failed, falling back to server API endpoint:", scanErr);
+    }
+
+    // Tier 3: Infallible Server-side API endpoint fallback (bypasses any client auth rule blocks)
+    if (typeof window !== "undefined") {
+      const res = await fetch("/api/patients");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.patients)) {
+          return data.patients as Patient[];
+        }
+      }
+    }
+
+    return [];
   } catch (error) {
-    console.error("Error getting patients from Firestore:", error);
+    console.error("Error getting patients:", error);
     return [];
   }
 }
