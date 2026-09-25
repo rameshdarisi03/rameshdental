@@ -219,19 +219,18 @@ export default function ProfilePage() {
           })}
         </div>
 
-        <div className="pt-2 flex flex-col sm:flex-row gap-2">
-          <button
-            onClick={() => setShowProfileSelector(true)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#062e36] hover:bg-[#083b45] text-[#f9ab55] text-xs font-black transition-all cursor-pointer shadow-2xs"
+        <div className="pt-3 border-t border-[#21444D]/10 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-[11px]">
+            Family members are registered and linked by clinic reception.
+          </span>
+          <a
+            href="https://wa.me/918904456243?text=Hello%20Gait%20Physio%20Clinic,%20I%20would%20like%20to%20add/link%20a%20family%20member%20to%20my%20Patient%20Hub%20account."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline cursor-pointer"
           >
-            <span>+ Add Family Member</span>
-          </button>
-          <button
-            onClick={() => setShowProfileSelector(true)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-[#21444D]/20 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-[#062e36] dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
-          >
-            <span>🔗 Link Another Account</span>
-          </button>
+            Need to link another member? Chat with clinic →
+          </a>
         </div>
       </div>
 
