@@ -19,6 +19,7 @@ export interface InvoiceItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  rate?: number;
   amount: number;
 }
 

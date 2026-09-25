@@ -17,6 +17,7 @@ import {
 
 export interface Patient {
   id?: string;               // Document ID in firestore, format: "GPC-XXXXX"
+  customId?: string;
   name: string;
   email: string;
   phone: string;

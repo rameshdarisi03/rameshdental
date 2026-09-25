@@ -21,13 +21,15 @@ import {
   Search, 
   Download, 
   Loader2, 
-  MessageSquare,
-  HelpCircle,
-  Ban,
-  FileText,
-  X,
-  MoreVertical,
-  Mail
+  MessageSquare, 
+  HelpCircle, 
+  Ban, 
+  FileText, 
+  X, 
+  MoreVertical, 
+  Mail,
+  CreditCard,
+  Clock
 } from "lucide-react";
 
 export default function ClinicalBillingPage() {
