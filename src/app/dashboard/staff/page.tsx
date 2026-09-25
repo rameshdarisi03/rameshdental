@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { Lock, UserCheck, ShieldAlert, Plus, User, Mail, Loader2, Key, Trash2, ShieldCheck, AlertOctagon, X } from "lucide-react";
 
 interface UserProfile {
@@ -95,18 +95,18 @@ export default function DashboardStaff() {
     setError("");
     setSuccessMsg("");
 
+    const emailClean = formData.email.trim().toLowerCase();
+    const firebaseConfig = {
+      apiKey: "AIzaSyCQr7HOAM0NnwWNew19VIs6L4rJ7VL0ML4",
+      authDomain: "gpc01-8d819.firebaseapp.com",
+      projectId: "gpc01-8d819",
+    };
+
+    const tempAppName = `TempStaffApp_${Date.now()}`;
+    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempAuth = getAuth(tempApp);
+
     try {
-      const firebaseConfig = {
-        apiKey: "AIzaSyCQr7HOAM0NnwWNew19VIs6L4rJ7VL0ML4",
-        authDomain: "gpc01-8d819.firebaseapp.com",
-        projectId: "gpc01-8d819",
-      };
-
-      const tempAppName = `TempStaffApp_${Date.now()}`;
-      const tempApp = initializeApp(firebaseConfig, tempAppName);
-      const tempAuth = getAuth(tempApp);
-
-      const emailClean = formData.email.trim().toLowerCase();
       const userCredential = await createUserWithEmailAndPassword(tempAuth, emailClean, formData.password);
       const newUid = userCredential.user.uid;
 
@@ -135,7 +135,44 @@ export default function DashboardStaff() {
     } catch (err: any) {
       console.error("Staff creation failed: ", err);
       if (err.code === "auth/email-already-in-use") {
-        setError("This email address is already registered.");
+        const isCurrentlyActive = staffList.some(
+          (s) => s.email.toLowerCase() === emailClean
+        );
+
+        if (isCurrentlyActive) {
+          setError("A staff member is already actively registered with this email address.");
+        } else {
+          // Previously deleted account being re-added with same credentials
+          try {
+            const reLoginCred = await signInWithEmailAndPassword(tempAuth, emailClean, formData.password);
+            const reactivatedUid = reLoginCred.user.uid;
+            await signOut(tempAuth);
+
+            const newProfile = {
+              uid: reactivatedUid,
+              name: formData.name.trim(),
+              email: emailClean,
+              role: formData.role,
+              createdAt: Timestamp.now()
+            };
+            await setDoc(doc(db, "users", reactivatedUid), newProfile);
+            await fetchStaff();
+
+            setSuccessMsg(`Account for ${formData.name} restored and permissions re-activated!`);
+            setIsFormOpen(false);
+            setFormData({
+              name: "",
+              email: "",
+              role: "receptionist",
+              password: "",
+            });
+            return;
+          } catch (loginErr: any) {
+            setError(
+              "This email was previously used in the system. To re-activate this account, please enter its previous password, or delete the email from Firebase Console (Authentication tab) to register a new password."
+            );
+          }
+        }
       } else {
         setError(err.message || "Failed to create staff account. Please try again.");
       }
