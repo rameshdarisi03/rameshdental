@@ -19,6 +19,38 @@ import {
   Moon
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
+import ProfileSelectorModal from "@/components/patienthub/ProfileSelectorModal";
+
+// Dedicated Switch Profiles Icon matching user reference image
+export function SwitchProfilesIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Top right user */}
+      <circle cx="16" cy="6" r="2.5" />
+      <path d="M12.5 12a3.5 3.5 0 0 1 7 0" />
+
+      {/* Bottom left user */}
+      <circle cx="8" cy="18" r="2.5" />
+      <path d="M4.5 24a3.5 3.5 0 0 1 7 0" />
+
+      {/* Top curved clockwise arrow */}
+      <path d="M5.5 8a8 8 0 0 1 7.5-4h1" />
+      <polyline points="11 1 14 4 11 7" />
+
+      {/* Bottom curved counter-clockwise arrow */}
+      <path d="M18.5 16a8 8 0 0 1-7.5 4h-1" />
+      <polyline points="13 23 10 20 13 17" />
+    </svg>
+  );
+}
 
 export default function PatientHubLayout({
   children,
@@ -41,7 +73,7 @@ export default function PatientHubLayout({
 function PatientHubContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { patient, loading, logout } = usePatientAuth();
+  const { patient, loading, logout, availableProfiles, setShowProfileSelector } = usePatientAuth();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -213,6 +245,18 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
+            {/* Switch Profile Button (Visible when circle has > 1 profile) */}
+            {availableProfiles && availableProfiles.length > 1 && (
+              <button
+                onClick={() => setShowProfileSelector(true)}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-[#21444D]/10 dark:bg-white/10 hover:bg-[#21444D]/20 dark:hover:bg-white/20 text-[#062e36] dark:text-[#f9ab55] border border-[#21444D]/15 dark:border-white/15 transition-all text-xs font-black cursor-pointer shadow-2xs group"
+                title="Switch Patient Profile"
+              >
+                <SwitchProfilesIcon className="w-4 h-4 text-[#8a5100] dark:text-[#f9ab55] group-hover:rotate-180 transition-transform duration-500" />
+                <span className="hidden sm:inline">Switch Profile</span>
+              </button>
+            )}
+
             <Link
               href="/patienthub/profile"
               className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
@@ -241,6 +285,9 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
         </div>
       </header>
+
+      {/* Netflix/Prime Style Profile Selector Modal */}
+      <ProfileSelectorModal />
 
       {/* Main Content Area */}
       <main className="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 pt-5 pb-6">

@@ -40,7 +40,8 @@ import {
   Lock,
   Edit2,
   Ban,
-  Receipt
+  Receipt,
+  Users
 } from "lucide-react";
 import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
@@ -57,7 +58,8 @@ import {
   addConsultation, 
   addMedicalRecordFile, 
   updatePatient,
-  generateActivationCode 
+  generateActivationCode,
+  getFamilyMembers
 } from "@/lib/patientsDb";
 import { 
   getPatientPrescription,
@@ -99,6 +101,13 @@ interface Patient {
   attendanceRate?: number;
   activationCode?: string;
   activated?: boolean;
+  familyGroupId?: string;
+  relationship?: string;
+  isPrimaryAccount?: boolean;
+  primaryPatientId?: string;
+  familyHeadName?: string;
+  linkedEmails?: string[];
+  patientId?: string;
 }
 
 interface Consultation {
@@ -117,6 +126,8 @@ interface MedicalFile {
   googleDriveFileId: string;
   webViewLink?: string;
   downloadLink?: string;
+  isDoctorOnly?: boolean;
+  category?: string;
 }
 
 const compressImageFile = (file: File): Promise<File> => {
@@ -193,6 +204,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [voidReason, setVoidReason] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
@@ -511,11 +523,12 @@ PLAN:
       setPatient(pData as Patient);
 
       // Fetch timelines, files, prescription & history safely
+      const pidToLoad = pData.id || id;
       const [cListRes, fListRes, rxRes, rxHistRes, cfgRes] = await Promise.allSettled([
-        getConsultations(pData.id),
-        getMedicalRecordFiles(pData.id),
-        getPatientPrescription(pData.id),
-        getPatientPrescriptionsHistory(pData.id),
+        getConsultations(pidToLoad),
+        getMedicalRecordFiles(pidToLoad),
+        getPatientPrescription(pidToLoad),
+        getPatientPrescriptionsHistory(pidToLoad),
         getClinicConfig()
       ]);
 
@@ -546,6 +559,14 @@ PLAN:
         } catch (subErr) {
           console.warn("Invoice subscription warning:", subErr);
         }
+      }
+
+      // Load Family Circle members
+      try {
+        const famList = await getFamilyMembers(pData as any);
+        setFamilyMembers(famList.filter((m) => m.id !== pData.id));
+      } catch (famErr) {
+        console.warn("Failed to load family members:", famErr);
       }
     } catch (err: any) {
       console.error("Error loading patient details:", err);
@@ -806,20 +827,21 @@ PLAN:
           year: "numeric",
         });
 
-        const combinedText = data.formattedSoapNote || data.summaryForRecord || data.prescribedTherapies;
+        const scanData = data as any;
+        const combinedText = scanData.formattedSoapNote || scanData.summaryForRecord || scanData.prescribedTherapies;
         const doc = buildUnifiedPrescriptionPdf({
           patientName: patient.name,
           pid: patient.patientId || patient.id,
-          dateStr: data.prescriptionDate || currentDateStr,
+          dateStr: scanData.prescriptionDate || currentDateStr,
           therapistName: patient.therapistName || defaultTherapist,
-          referringDoctor: data.doctorName,
-          hospitalOrClinic: data.hospitalOrClinic,
-          prescriptionDate: data.prescriptionDate,
-          diagnosis: data.diagnosis,
-          precautionsAndRestrictions: data.precautionsAndRestrictions,
-          providerAlerts: data.providerRemindersAndAlerts,
+          referringDoctor: scanData.doctorName,
+          hospitalOrClinic: scanData.hospitalOrClinic,
+          prescriptionDate: scanData.prescriptionDate,
+          diagnosis: scanData.diagnosis,
+          precautionsAndRestrictions: scanData.precautionsAndRestrictions,
+          providerAlerts: scanData.providerRemindersAndAlerts,
           consultationSummary: combinedText,
-          rawVerbatimTranscript: data.rawVerbatimTranscript,
+          rawVerbatimTranscript: scanData.rawVerbatimTranscript,
           exercises: [],
         });
 
@@ -1744,6 +1766,74 @@ Warm regards,
               </div>
             </div>
           </div>
+
+          {/* Card: Family Circle & Linked Profiles */}
+          {((familyMembers && familyMembers.length > 0) || patient.primaryPatientId || patient.familyGroupId) && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-brand-charcoal dark:text-white font-black text-xs uppercase tracking-wider select-none">
+                  <Users className="h-4 w-4 text-brand-green" />
+                  <span>Family Circle ({familyMembers.length + 1})</span>
+                </div>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {patient.isPrimaryAccount ? "Primary Account" : (patient.relationship || "Linked Member")}
+                </span>
+              </div>
+
+              {patient.primaryPatientId && patient.familyHeadName && (
+                <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-[11px] text-blue-800 dark:text-blue-300">
+                  Linked to Family Head: <strong>{patient.familyHeadName}</strong> ({patient.primaryPatientId})
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {/* Current Patient Item */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-green/5 border border-brand-green/20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-brand-green text-white font-bold text-xs flex items-center justify-center">
+                      {patient.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white leading-tight">
+                        {patient.name} <span className="text-[10px] text-brand-green font-bold">(Viewing)</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono">{patient.id}</p>
+                    </div>
+                  </div>
+                  <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-brand-green/10 text-brand-green uppercase tracking-wide">
+                    {patient.relationship || (patient.isPrimaryAccount ? "Head" : "Self")}
+                  </span>
+                </div>
+
+                {/* Other Linked Members */}
+                {familyMembers.map((member) => (
+                  <Link
+                    key={member.id}
+                    href={`/dashboard/patients/${member.id}`}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800 transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center group-hover:bg-brand-green group-hover:text-white transition-colors">
+                        {member.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-green transition-colors leading-tight">
+                          {member.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-mono">{member.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {member.relationship || "Member"}
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Card 2: Care Metrics (Brand Green Mockup layout) */}
           <div className="bg-brand-green text-white rounded-3xl p-6 shadow-md border border-brand-green/10 space-y-4">

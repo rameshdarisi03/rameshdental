@@ -135,15 +135,22 @@ export default function AppointmentsPage() {
     try {
       const appsMap = new Map<string, Appointment>();
 
+      const pName = (patient.name || "").trim().toLowerCase();
+
       // Query by email
       if (patient.email) {
+        const cleanEmail = patient.email.toLowerCase().trim();
         const qEmail = query(
           collection(db, "appointments"),
-          where("patientEmail", "==", patient.email)
+          where("patientEmail", "==", cleanEmail)
         );
         const snapEmail = await getDocs(qEmail);
         snapEmail.forEach((d) => {
-          appsMap.set(d.id, { id: d.id, ...d.data() } as Appointment);
+          const data = d.data() as Appointment;
+          const appName = (data.patientName || "").trim().toLowerCase();
+          if (!pName || !appName || appName.includes(pName) || pName.includes(appName)) {
+            appsMap.set(d.id, { id: d.id, ...data });
+          }
         });
       }
 
@@ -160,7 +167,10 @@ export default function AppointmentsPage() {
         snapPhone.forEach((d) => {
           const data = d.data() as Appointment;
           if (data.patientPhone && data.patientPhone.includes(clean)) {
-            appsMap.set(d.id, { id: d.id, ...data });
+            const appName = (data.patientName || "").trim().toLowerCase();
+            if (!pName || !appName || appName.includes(pName) || pName.includes(appName)) {
+              appsMap.set(d.id, { id: d.id, ...data });
+            }
           }
         });
       }

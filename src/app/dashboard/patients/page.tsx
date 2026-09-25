@@ -25,9 +25,10 @@ import {
   MessageSquare,
   Sparkles,
   Trash2,
+  Users,
   X
 } from "lucide-react";
-import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions } from "@/lib/patientsDb";
+import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions, FAMILY_RELATIONSHIPS, FamilyRelationship } from "@/lib/patientsDb";
 import { getClinicConfig, ClinicConfig, generateSlotsFromHours, generateSlotsForDay, isSlotInPast } from "@/lib/db";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
@@ -51,6 +52,14 @@ interface Patient {
   joinedDate?: string;
   lastVisit?: string;
   upcoming?: string;
+  activated?: boolean;
+  activationCode?: string;
+  familyGroupId?: string;
+  relationship?: string;
+  isPrimaryAccount?: boolean;
+  primaryPatientId?: string;
+  familyHeadName?: string;
+  linkedEmails?: string[];
 }
 
 function getTodayDateString() {
@@ -154,7 +163,7 @@ export default function PatientsPage() {
             therapistName: config.therapists[0]
           }));
         }
-        const slots = generateSlotsForDay(config, formData.date || undefined);
+        const slots = generateSlotsForDay(config, undefined);
         setTodaySlots(slots);
       } else {
         setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
@@ -268,20 +277,33 @@ export default function PatientsPage() {
 
   // Duplicate detection state
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateCheckResult | null>(null);
+  const [isFamilyMemberRegistration, setIsFamilyMemberRegistration] = useState(false);
+  const [familyRelationship, setFamilyRelationship] = useState<FamilyRelationship>("Spouse");
+  const [linkedFamilyHead, setLinkedFamilyHead] = useState<any | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const next = { ...prev, [name]: value };
       
-      // Trigger real-time duplicate check if phone or name is entered
-      if (name === "phone" || name === "name") {
+      // Trigger real-time duplicate check if phone, name, or email is entered
+      if (name === "phone" || name === "name" || name === "email") {
         const cleanPhone = sanitizePhone(name === "phone" ? value : prev.phone);
         const cleanName = sanitizeName(name === "name" ? value : prev.name);
+        const cleanEmail = (name === "email" ? value : prev.email).trim().toLowerCase();
 
-        if (cleanPhone.length >= 10 || cleanName.length >= 3) {
-          checkDuplicatePatient(cleanPhone, cleanName).then((res) => {
-            setDuplicateInfo(res.isDuplicate || res.matchType === "family_member" ? res : null);
+        if (cleanPhone.length >= 10 || cleanName.length >= 3 || cleanEmail.includes("@")) {
+          checkDuplicatePatient(cleanPhone, cleanName, cleanEmail).then((res) => {
+            if (res.isDuplicate || res.matchType === "family_member") {
+              setDuplicateInfo(res);
+              if (res.matchType === "family_member" && res.existingPatient) {
+                setLinkedFamilyHead(res.existingPatient);
+              }
+            } else {
+              setDuplicateInfo(null);
+              setIsFamilyMemberRegistration(false);
+              setLinkedFamilyHead(null);
+            }
           });
         } else {
           setDuplicateInfo(null);
@@ -322,7 +344,7 @@ export default function PatientsPage() {
 
       // 1. Create Patient in Firestore Client-side
       console.log("[Client Page] Creating patient profile in Firestore...", cleanName);
-      const newPatient = await createPatient({
+      const newPatientPayload: any = {
         name: cleanName,
         email: formData.email ? formData.email.trim().toLowerCase() : "",
         phone: `${dialCode} ${cleanPhone}`,
@@ -334,7 +356,21 @@ export default function PatientsPage() {
         joinedDate: formData.joinedDate || getTodayDateString(),
         upcoming: isWalkIn ? `Today (${walkInSlot})` : (formData.upcoming || formData.joinedDate || "Pending Schedule"),
         lastVisit: isWalkIn ? "Today" : "N/A"
-      });
+      };
+
+      if (isFamilyMemberRegistration && linkedFamilyHead) {
+        newPatientPayload.relationship = familyRelationship;
+        newPatientPayload.primaryPatientId = linkedFamilyHead.id;
+        newPatientPayload.familyHeadName = linkedFamilyHead.name;
+        newPatientPayload.familyGroupId = linkedFamilyHead.familyGroupId || `FAM-${linkedFamilyHead.id}`;
+        const linkedEmailsSet = new Set<string>();
+        if (linkedFamilyHead.email) linkedEmailsSet.add(linkedFamilyHead.email.toLowerCase().trim());
+        (linkedFamilyHead.linkedEmails || []).forEach((e: string) => linkedEmailsSet.add(e.toLowerCase().trim()));
+        if (formData.email) linkedEmailsSet.add(formData.email.toLowerCase().trim());
+        newPatientPayload.linkedEmails = Array.from(linkedEmailsSet);
+      }
+
+      const newPatient = await createPatient(newPatientPayload);
 
       console.log("[Client Page] Created Patient doc ID:", newPatient.id);
 
@@ -396,6 +432,10 @@ export default function PatientsPage() {
       setModalOpen(false);
       setIsWalkInSession(false);
       setWalkInSlot("");
+      setIsFamilyMemberRegistration(false);
+      setLinkedFamilyHead(null);
+      setFamilyRelationship("Spouse");
+      setDuplicateInfo(null);
       // Reset form
       setFormData({
         name: "",
@@ -1028,16 +1068,16 @@ export default function PatientsPage() {
                     />
                   </div>
 
-                  {/* Real-Time Duplicate Patient Alert Banner */}
+                  {/* Real-Time Exact Duplicate Patient Alert Banner */}
                   {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && (
                     <div className="mt-2 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
                       <AlertCircle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                       <div className="space-y-1 text-xs">
                         <p className="font-black text-rose-900 dark:text-rose-200">
-                          ⚠️ Patient Already Exists
+                          ⚠️ Patient Already Exists in Database ({duplicateInfo.matchField === "email" ? "Matching Email" : "Matching Phone"})
                         </p>
                         <p className="text-rose-800 dark:text-rose-300 font-semibold">
-                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>) is already registered with this exact contact number.
+                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>)
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <Link
@@ -1052,17 +1092,57 @@ export default function PatientsPage() {
                     </div>
                   )}
 
-                  {/* Family Member Shared Contact Notice */}
+                  {/* Family Member Shared Contact Notice & Relationship Selector */}
                   {!duplicateInfo?.isDuplicate && duplicateInfo?.matchType === "family_member" && duplicateInfo.existingPatient && (
-                    <div className="mt-2 p-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
-                      <CheckCircle2 className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5 text-xs">
-                        <p className="font-black text-teal-900 dark:text-teal-200">
-                          👨‍👩‍👧 Family Contact Shared
-                        </p>
-                        <p className="text-teal-800 dark:text-teal-300 font-medium leading-relaxed">
-                          This mobile number is on file with family member <strong>{duplicateInfo.existingPatient.name}</strong>. A separate, individual medical record and Patient ID will be created for <strong>{formData.name}</strong>.
-                        </p>
+                    <div className="mt-2 p-3.5 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                      <Users className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      <div className="space-y-2 text-xs flex-1">
+                        <div>
+                          <p className="font-black text-blue-900 dark:text-blue-200">
+                            ℹ️ Shared Contact: Linked to Existing Patient
+                          </p>
+                          <p className="text-blue-800 dark:text-blue-300 font-medium mt-0.5 leading-relaxed">
+                            This {duplicateInfo.matchField === "email" ? "email" : "phone number"} belongs to registered patient <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-bold">{duplicateInfo.existingPatient.id}</span>).
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsFamilyMemberRegistration(true);
+                              setLinkedFamilyHead(duplicateInfo.existingPatient!);
+                            }}
+                            className={`inline-flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer ${
+                              isFamilyMemberRegistration
+                                ? "bg-blue-600 text-white"
+                                : "bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200"
+                            }`}
+                          >
+                            <span>{isFamilyMemberRegistration ? "✓ Registering as Family Member" : `+ Link as Family Member of ${duplicateInfo.existingPatient.name}`}</span>
+                          </button>
+                        </div>
+
+                        {/* Relationship Dropdown */}
+                        {isFamilyMemberRegistration && (
+                          <div className="pt-2 mt-2 border-t border-blue-200 dark:border-blue-800/60 space-y-1.5 animate-in fade-in">
+                            <label className="block text-[10px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-200">
+                              Relationship to {linkedFamilyHead?.name} *
+                            </label>
+                            <select
+                              value={familyRelationship}
+                              onChange={(e) => setFamilyRelationship(e.target.value as any)}
+                              className="w-full rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                            >
+                              {FAMILY_RELATIONSHIPS.filter(r => r !== "Self").map((rel) => (
+                                <option key={rel} value={rel}>{rel}</option>
+                              ))}
+                            </select>
+                            <p className="text-[10.5px] text-blue-700 dark:text-blue-300 leading-relaxed">
+                              ✓ Creates an individual patient file for clinical care, and links them into a shared Family Circle in Patient Hub.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

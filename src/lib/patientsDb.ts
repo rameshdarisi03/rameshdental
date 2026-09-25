@@ -33,12 +33,35 @@ export interface Patient {
   lastVisit?: string;        // DD-MM-YYYY or Date
   upcoming?: string;         // DD-MM-YYYY or string representation
   reminders?: string[];      // clinical provider reminders
-  attendanceRate?: number;   // attendance reliability percentage
   activationCode?: string;   // portal activation code, format: "GPC-XXXXX"
   activated?: boolean;       // whether patient portal account is registered
   authUid?: string;          // Firebase auth UID link
+  
+  // Multi-User Family Circle & Profile Switcher
+  familyGroupId?: string;           // Canonical Family Group ID (e.g., "FAM-GPC-1024")
+  relationship?: "Self" | "Spouse" | "Husband" | "Wife" | "Son" | "Daughter" | "Father" | "Mother" | "Brother" | "Sister" | "Other";
+  isPrimaryAccount?: boolean;       // true if this patient is the primary account owner
+  primaryPatientId?: string;       // PID of the family head (e.g., "GPC-1024")
+  familyHeadName?: string;         // Name of the primary account holder
+  linkedEmails?: string[];          // List of all emails permitted to access this profile
+  
   createdAt: Timestamp;
 }
+
+export type FamilyRelationship = "Self" | "Spouse" | "Husband" | "Wife" | "Son" | "Daughter" | "Father" | "Mother" | "Brother" | "Sister" | "Other";
+export const FAMILY_RELATIONSHIPS: FamilyRelationship[] = [
+  "Self",
+  "Spouse",
+  "Husband",
+  "Wife",
+  "Son",
+  "Daughter",
+  "Father",
+  "Mother",
+  "Brother",
+  "Sister",
+  "Other"
+];
 
 export interface Consultation {
   id?: string;
@@ -115,36 +138,59 @@ import { sanitizePatientPayload, sanitizePhone, sanitizeName } from "./sanitizer
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
   matchType?: "exact" | "family_member" | "name_collision";
+  matchField?: "phone" | "email" | "both";
   existingPatient?: Patient;
   message?: string;
 }
 
-export async function checkDuplicatePatient(phone?: string, name?: string): Promise<DuplicateCheckResult> {
+export async function checkDuplicatePatient(
+  phone?: string, 
+  name?: string,
+  email?: string
+): Promise<DuplicateCheckResult> {
   try {
     const cleanPhone = sanitizePhone(phone);
     const cleanName = sanitizeName(name).trim().toLowerCase();
+    const cleanEmail = (email || "").trim().toLowerCase();
     
-    if (!cleanPhone && !cleanName) {
+    if (!cleanPhone && !cleanName && !cleanEmail) {
       return { isDuplicate: false };
     }
 
     const all = await getDocs(collection(db, "patients"));
     
     let phoneMatchPatient: Patient | null = null;
+    let emailMatchPatient: Patient | null = null;
     let nameMatchPatient: Patient | null = null;
 
     for (const d of all.docs) {
       const data = d.data() as Patient;
       const pPhone = sanitizePhone(data.phone);
       const pName = (data.name || "").trim().toLowerCase();
+      const pEmail = (data.email || "").trim().toLowerCase();
+      const pLinkedEmails = (data.linkedEmails || []).map((e) => e.trim().toLowerCase());
 
-      // Check for exact phone match (10 digits)
-      if (cleanPhone && cleanPhone.length === 10 && pPhone === cleanPhone) {
-        // If BOTH phone AND name match -> 100% Exact Duplicate
+      // Check for email match
+      if (cleanEmail && (pEmail === cleanEmail || pLinkedEmails.includes(cleanEmail))) {
         if (cleanName && pName === cleanName) {
           return {
             isDuplicate: true,
             matchType: "exact",
+            matchField: "email",
+            existingPatient: { id: d.id, ...data },
+            message: `Patient "${data.name}" is already registered with this email (${cleanEmail}).`,
+          };
+        }
+        emailMatchPatient = { id: d.id, ...data };
+      }
+
+      // Check for phone match (10 digits)
+      if (cleanPhone && cleanPhone.length === 10 && pPhone === cleanPhone) {
+        if (cleanName && pName === cleanName) {
+          return {
+            isDuplicate: true,
+            matchType: "exact",
+            matchField: "phone",
             existingPatient: { id: d.id, ...data },
             message: `Patient "${data.name}" is already registered with this phone number (${pPhone}).`,
           };
@@ -152,29 +198,41 @@ export async function checkDuplicatePatient(phone?: string, name?: string): Prom
         phoneMatchPatient = { id: d.id, ...data };
       }
 
-      // Check for name match with different phone
+      // Check for name match with different phone/email
       if (cleanName && cleanName.length > 2 && pName === cleanName) {
         nameMatchPatient = { id: d.id, ...data };
       }
     }
 
-    // Scenario 2: Phone matches, but name is different (e.g. child, spouse, or parent sharing phone)
-    if (phoneMatchPatient) {
+    // Scenario 1: Email matches, but name differs (e.g. spouse or child sharing email)
+    if (emailMatchPatient) {
       return {
-        isDuplicate: false, // NOT a blocker - allow registration of family member!
+        isDuplicate: false, // NOT a blocker - allow family member profile creation!
         matchType: "family_member",
-        existingPatient: phoneMatchPatient,
-        message: `Phone number is shared with family member "${phoneMatchPatient.name}". A separate individual profile will be created.`,
+        matchField: "email",
+        existingPatient: emailMatchPatient,
+        message: `Email is already linked to family member "${emailMatchPatient.name}". A separate individual profile will be created in this Family Circle.`,
       };
     }
 
-    // Scenario 3: Name matches, but phone is different (two people with same name)
+    // Scenario 2: Phone matches, but name differs (e.g. child, spouse, or parent sharing phone)
+    if (phoneMatchPatient) {
+      return {
+        isDuplicate: false, // NOT a blocker - allow family member profile creation!
+        matchType: "family_member",
+        matchField: "phone",
+        existingPatient: phoneMatchPatient,
+        message: `Phone number is shared with family member "${phoneMatchPatient.name}". A separate individual profile will be created in this Family Circle.`,
+      };
+    }
+
+    // Scenario 3: Name matches, but phone/email differs (two people with same name)
     if (nameMatchPatient) {
       return {
-        isDuplicate: false, // NOT a blocker - people can have the same name!
+        isDuplicate: false,
         matchType: "name_collision",
         existingPatient: nameMatchPatient,
-        message: `Another patient is named "${nameMatchPatient.name}" with a different contact number.`,
+        message: `Another patient is named "${nameMatchPatient.name}" with different contact details.`,
       };
     }
 
@@ -182,6 +240,86 @@ export async function checkDuplicatePatient(phone?: string, name?: string): Prom
   } catch (err) {
     console.warn("Duplicate check failed safely:", err);
     return { isDuplicate: false };
+  }
+}
+
+/**
+ * Fetch all linked family members for a patient
+ */
+export async function getFamilyMembers(patient: Patient): Promise<Patient[]> {
+  try {
+    const patientsRef = collection(db, "patients");
+    const snap = await getDocs(patientsRef);
+    const all = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Patient));
+
+    const targetGroupId = patient.familyGroupId;
+    const targetEmail = (patient.email || "").trim().toLowerCase();
+    const targetLinkedEmails = (patient.linkedEmails || []).map((e) => e.trim().toLowerCase());
+
+    const family = all.filter((p) => {
+      if (patient.id && p.id === patient.id) return true;
+      if (targetGroupId && p.familyGroupId && p.familyGroupId === targetGroupId) return true;
+      if (patient.id && (p.primaryPatientId === patient.id || (p.id && patient.primaryPatientId === p.id))) return true;
+      
+      const pEmail = (p.email || "").trim().toLowerCase();
+      if (targetEmail && pEmail && pEmail === targetEmail) return true;
+      if (targetEmail && p.linkedEmails && p.linkedEmails.map((e) => e.trim().toLowerCase()).includes(targetEmail)) return true;
+      if (pEmail && targetLinkedEmails.includes(pEmail)) return true;
+      
+      return false;
+    });
+
+    if (!family.some((f) => f.id === patient.id)) {
+      family.unshift(patient);
+    }
+
+    return family;
+  } catch (err) {
+    console.warn("Failed to fetch family members:", err);
+    return [patient];
+  }
+}
+
+/**
+ * Symmetrically link two patients into the same Family Circle
+ */
+export async function linkPatientsInFamilyCircle(
+  primaryPatient: Patient,
+  memberPatient: Patient,
+  relationship: Patient["relationship"]
+): Promise<void> {
+  try {
+    if (!primaryPatient.id || !memberPatient.id) return;
+    const familyGroupId = primaryPatient.familyGroupId || `FAM-${primaryPatient.id}`;
+
+    const emailsSet = new Set<string>();
+    if (primaryPatient.email) emailsSet.add(primaryPatient.email.trim().toLowerCase());
+    if (memberPatient.email) emailsSet.add(memberPatient.email.trim().toLowerCase());
+    (primaryPatient.linkedEmails || []).forEach((e) => emailsSet.add(e.trim().toLowerCase()));
+    (memberPatient.linkedEmails || []).forEach((e) => emailsSet.add(e.trim().toLowerCase()));
+    const linkedEmails = Array.from(emailsSet);
+
+    // Update primary patient
+    const primaryRef = doc(db, "patients", primaryPatient.id);
+    await updateDoc(primaryRef, {
+      familyGroupId,
+      isPrimaryAccount: true,
+      linkedEmails,
+    });
+
+    // Update member patient
+    const memberRef = doc(db, "patients", memberPatient.id);
+    await updateDoc(memberRef, {
+      familyGroupId,
+      primaryPatientId: primaryPatient.id,
+      familyHeadName: primaryPatient.name,
+      relationship: relationship || "Family Member",
+      linkedEmails,
+      activated: primaryPatient.activated || memberPatient.activated || false,
+    });
+  } catch (err) {
+    console.error("Failed to link family circle:", err);
+    throw err;
   }
 }
 
@@ -206,6 +344,39 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
       activated: sanitizedData.activated || false,
       createdAt: Timestamp.now(),
     };
+
+    // Symmetrical Family Circle Linking & Activation Inheritance
+    if (newPatient.primaryPatientId) {
+      try {
+        const primaryRef = doc(db, "patients", newPatient.primaryPatientId);
+        const primarySnap = await getDoc(primaryRef);
+        if (primarySnap.exists()) {
+          const primaryData = primarySnap.data() as Patient;
+          const familyGroupId = primaryData.familyGroupId || `FAM-${newPatient.primaryPatientId}`;
+          
+          const emailsSet = new Set<string>();
+          if (primaryData.email) emailsSet.add(primaryData.email.trim().toLowerCase());
+          if (newPatient.email) emailsSet.add(newPatient.email.trim().toLowerCase());
+          (primaryData.linkedEmails || []).forEach(e => emailsSet.add(e.trim().toLowerCase()));
+          (newPatient.linkedEmails || []).forEach(e => emailsSet.add(e.trim().toLowerCase()));
+          const linkedEmails = Array.from(emailsSet);
+
+          await updateDoc(primaryRef, {
+            familyGroupId,
+            isPrimaryAccount: true,
+            linkedEmails,
+          });
+
+          newPatient.familyGroupId = familyGroupId;
+          newPatient.linkedEmails = linkedEmails;
+          if (primaryData.activated) {
+            newPatient.activated = true;
+          }
+        }
+      } catch (linkErr) {
+        console.warn("Failed to link primary patient in createPatient:", linkErr);
+      }
+    }
 
     await setDoc(docRef, newPatient);
 

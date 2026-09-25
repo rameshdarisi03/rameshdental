@@ -17,12 +17,15 @@ import {
   Sun,
   Folder,
   FileText,
-  Receipt
+  Receipt,
+  Users,
+  Check
 } from "lucide-react";
+import { SwitchProfilesIcon } from "@/app/patienthub/layout";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { patient, loading, logout } = usePatientAuth();
+  const { patient, loading, logout, availableProfiles, selectProfile, setShowProfileSelector } = usePatientAuth();
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -132,6 +135,103 @@ export default function ProfilePage() {
               <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Firebase Encrypted Patient Record</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Family Circle & Multi-Profile Management */}
+      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-[#8a5100] dark:text-[#f9ab55]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400">
+              Family Circle ({availableProfiles.length})
+            </h3>
+          </div>
+          {availableProfiles.length > 1 && (
+            <button
+              onClick={() => setShowProfileSelector(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-black text-brand-green dark:text-[#f9ab55] hover:underline cursor-pointer"
+            >
+              <SwitchProfilesIcon className="w-3.5 h-3.5" />
+              <span>Switch Profile</span>
+            </button>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Manage family members sharing this portal. Each profile retains completely independent clinical notes, prescriptions, and invoices.
+        </p>
+
+        <div className="space-y-2.5">
+          {availableProfiles.map((p) => {
+            const isActive = patient?.id === p.id;
+            const relationship = p.relationship || (p.isPrimaryAccount ? "Primary / Self" : "Family Member");
+            
+            return (
+              <div
+                key={p.id}
+                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                  isActive
+                    ? "bg-brand-green/5 dark:bg-brand-green/10 border-brand-green/30 shadow-2xs ring-1 ring-brand-green/20"
+                    : "bg-[#FAF9F9] dark:bg-slate-900/60 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs uppercase shadow-2xs ${
+                    isActive
+                      ? "bg-brand-green text-white"
+                      : "bg-[#062e36] text-[#f9ab55]"
+                  }`}>
+                    {p.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-[#062e36] dark:text-slate-100">
+                        {p.name}
+                      </p>
+                      {isActive && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/50">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {relationship} • <span className="font-mono">{p.id}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {!isActive ? (
+                  <button
+                    onClick={() => p.id && selectProfile(p.id)}
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-brand-green hover:text-white dark:hover:bg-brand-green text-[#062e36] dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                  >
+                    Select
+                  </button>
+                ) : (
+                  <span className="text-[10px] font-bold text-brand-green uppercase tracking-wider">
+                    Viewing
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => setShowProfileSelector(true)}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-[#062e36] hover:bg-[#083b45] text-[#f9ab55] text-xs font-black transition-all cursor-pointer shadow-2xs"
+          >
+            <span>+ Add Family Member</span>
+          </button>
+          <button
+            onClick={() => setShowProfileSelector(true)}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-[#21444D]/20 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-[#062e36] dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+          >
+            <span>🔗 Link Another Account</span>
+          </button>
         </div>
       </div>
 

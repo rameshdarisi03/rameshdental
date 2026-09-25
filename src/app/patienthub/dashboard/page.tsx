@@ -204,7 +204,7 @@ export default function DashboardPage() {
               Next Care Appointment
             </span>
             <h3 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
-              {patient?.assignedTherapist || "Dr. Kinnera (Lead Physiotherapist)"}
+              {patient?.therapistName || "Dr. Kinnera (Lead Physiotherapist)"}
             </h3>
             <p className="text-xs text-slate-300 font-medium mt-1 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-[#f9ab55]" />

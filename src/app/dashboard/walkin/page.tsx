@@ -22,7 +22,9 @@ import {
   updatePatient,
   checkDuplicatePatient,
   DuplicateCheckResult,
-  Patient
+  Patient,
+  FAMILY_RELATIONSHIPS,
+  FamilyRelationship
 } from "@/lib/patientsDb";
 import { 
   sanitizePhone, 
@@ -47,7 +49,8 @@ import {
   ShieldCheck,
   Search,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Users
 } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
@@ -269,8 +272,11 @@ function WalkInBookingContent() {
     return getRemainingCapacity(time) <= 0;
   };
 
-  // Real-time duplicate check state
+  // Real-time duplicate & family circle state
   const [duplicateInfo, setDuplicateInfo] = useState<DuplicateCheckResult | null>(null);
+  const [isFamilyMemberRegistration, setIsFamilyMemberRegistration] = useState(false);
+  const [familyRelationship, setFamilyRelationship] = useState<FamilyRelationship>("Spouse");
+  const [linkedFamilyHead, setLinkedFamilyHead] = useState<Patient | null>(null);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -279,13 +285,23 @@ function WalkInBookingContent() {
     setFormData((prev) => {
       const next = { ...prev, [name]: value };
 
-      if (patientType === "new" && (name === "patientPhone" || name === "patientName")) {
+      if (patientType === "new" && (name === "patientPhone" || name === "patientName" || name === "patientEmail")) {
         const cleanPhone = sanitizePhone(name === "patientPhone" ? value : prev.patientPhone);
         const cleanName = sanitizeName(name === "patientName" ? value : prev.patientName);
+        const cleanEmail = sanitizeEmail(name === "patientEmail" ? value : prev.patientEmail);
 
-        if (cleanPhone.length >= 10 || cleanName.length >= 3) {
-          checkDuplicatePatient(cleanPhone, cleanName).then((res) => {
-            setDuplicateInfo(res.isDuplicate ? res : null);
+        if (cleanPhone.length >= 10 || cleanName.length >= 3 || cleanEmail.includes("@")) {
+          checkDuplicatePatient(cleanPhone, cleanName, cleanEmail).then((res) => {
+            if (res.isDuplicate || res.matchType === "family_member") {
+              setDuplicateInfo(res);
+              if (res.matchType === "family_member" && res.existingPatient) {
+                setLinkedFamilyHead(res.existingPatient);
+              }
+            } else {
+              setDuplicateInfo(null);
+              setIsFamilyMemberRegistration(false);
+              setLinkedFamilyHead(null);
+            }
           });
         } else {
           setDuplicateInfo(null);
@@ -299,6 +315,8 @@ function WalkInBookingContent() {
     setSelectedPatient(patient);
     setPatientType("existing");
     setDuplicateInfo(null);
+    setIsFamilyMemberRegistration(false);
+    setLinkedFamilyHead(null);
     setFormData((prev) => ({
       ...prev,
       patientName: patient.name,
@@ -488,6 +506,7 @@ function WalkInBookingContent() {
         serviceId: "General Physiotherapy Consultation",
         date: getTodayDateString(),
         slot: "",
+        assignedTherapist: "",
         notes: "",
       });
 
@@ -508,7 +527,7 @@ function WalkInBookingContent() {
       // Automate Patient Profile Integration
       if (patientType === "new") {
         try {
-          await createPatient({
+          const newPatientPayload: any = {
             name: patientName,
             email: patientEmail,
             phone: fullPhone,
@@ -516,7 +535,21 @@ function WalkInBookingContent() {
             status: "active",
             lastVisit: isFuture ? "N/A" : formattedBookingDate,
             upcoming: isFuture ? formattedBookingDate : "Pending Schedule"
-          });
+          };
+
+          if (isFamilyMemberRegistration && linkedFamilyHead) {
+            newPatientPayload.relationship = familyRelationship;
+            newPatientPayload.primaryPatientId = linkedFamilyHead.id;
+            newPatientPayload.familyHeadName = linkedFamilyHead.name;
+            newPatientPayload.familyGroupId = linkedFamilyHead.familyGroupId || `FAM-${linkedFamilyHead.id}`;
+            const linkedEmailsSet = new Set<string>();
+            if (linkedFamilyHead.email) linkedEmailsSet.add(linkedFamilyHead.email.toLowerCase().trim());
+            (linkedFamilyHead.linkedEmails || []).forEach(e => linkedEmailsSet.add(e.toLowerCase().trim()));
+            if (patientEmail) linkedEmailsSet.add(patientEmail.toLowerCase().trim());
+            newPatientPayload.linkedEmails = Array.from(linkedEmailsSet);
+          }
+
+          await createPatient(newPatientPayload);
         } catch (patientErr) {
           console.error("Failed to register new patient profile: ", patientErr);
         }
@@ -549,6 +582,10 @@ function WalkInBookingContent() {
       setSelectedPatient(null);
       setSearchQuery("");
       setPatientType("new");
+      setIsFamilyMemberRegistration(false);
+      setLinkedFamilyHead(null);
+      setFamilyRelationship("Spouse");
+      setDuplicateInfo(null);
 
     } catch (err: any) {
       console.error("Booking error: ", err);
@@ -770,30 +807,6 @@ function WalkInBookingContent() {
                       className="flex-grow rounded-r-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-955 px-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
                   </div>
-
-                  {/* Real-time duplicate patient warning card */}
-                  {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && patientType === "new" && (
-                    <div className="mt-2.5 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
-                      <AlertCircle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                      <div className="space-y-1 text-xs">
-                        <p className="font-black text-amber-900 dark:text-amber-200">
-                          ⚠️ Patient Already Exists in Database ({duplicateInfo.matchType === "phone" ? "Matching Phone" : "Matching Name"})
-                        </p>
-                        <p className="text-amber-800 dark:text-amber-300 font-semibold">
-                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>)
-                        </p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectDuplicatePatient(duplicateInfo.existingPatient!)}
-                            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded-xl shadow-2xs transition-colors cursor-pointer"
-                          >
-                            <span>✓ Load & Select Existing Patient</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div>
@@ -812,6 +825,92 @@ function WalkInBookingContent() {
                     />
                   </div>
                 </div>
+
+                {/* 1. Exact Duplicate Warning Card */}
+                {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && patientType === "new" && (
+                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                    <AlertCircle className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs flex-1">
+                      <p className="font-black text-amber-900 dark:text-amber-200">
+                        ⚠️ Patient Already Exists in Database ({duplicateInfo.matchField === "email" ? "Matching Email" : "Matching Phone"})
+                      </p>
+                      <p className="text-amber-800 dark:text-amber-300 font-semibold">
+                        <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>)
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectDuplicatePatient(duplicateInfo.existingPatient!)}
+                          className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer"
+                        >
+                          <span>✓ Load & Select Existing Patient</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Shared Contact / Family Member Card */}
+                {!duplicateInfo?.isDuplicate && duplicateInfo?.matchType === "family_member" && duplicateInfo.existingPatient && patientType === "new" && (
+                  <div className="p-3.5 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl flex items-start gap-2.5 animate-slide-down">
+                    <Users className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="space-y-2 text-xs flex-1">
+                      <div>
+                        <p className="font-black text-blue-900 dark:text-blue-200">
+                          ℹ️ Shared Contact: Linked to Existing Patient
+                        </p>
+                        <p className="text-blue-800 dark:text-blue-300 font-medium mt-0.5">
+                          This {duplicateInfo.matchField === "email" ? "email address" : "phone number"} belongs to registered patient <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-bold">{duplicateInfo.existingPatient.id}</span>).
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectDuplicatePatient(duplicateInfo.existingPatient!)}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                        >
+                          <span>This is {duplicateInfo.existingPatient.name}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFamilyMemberRegistration(true);
+                            setLinkedFamilyHead(duplicateInfo.existingPatient!);
+                          }}
+                          className={`inline-flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer ${
+                            isFamilyMemberRegistration
+                              ? "bg-blue-600 text-white"
+                              : "bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200"
+                          }`}
+                        >
+                          <span>{isFamilyMemberRegistration ? "✓ Registering as Family Member" : `+ Link as Family Member of ${duplicateInfo.existingPatient.name}`}</span>
+                        </button>
+                      </div>
+
+                      {/* Relationship Dropdown */}
+                      {isFamilyMemberRegistration && (
+                        <div className="pt-2 mt-2 border-t border-blue-200 dark:border-blue-800/60 space-y-1.5 animate-in fade-in">
+                          <label className="block text-[10px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-200">
+                            Relationship to {linkedFamilyHead?.name} *
+                          </label>
+                          <select
+                            value={familyRelationship}
+                            onChange={(e) => setFamilyRelationship(e.target.value as any)}
+                            className="w-full rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                          >
+                            {FAMILY_RELATIONSHIPS.filter(r => r !== "Self").map((rel) => (
+                              <option key={rel} value={rel}>{rel}</option>
+                            ))}
+                          </select>
+                          <p className="text-[10.5px] text-blue-700 dark:text-blue-300 leading-relaxed">
+                            ✓ Creates an individual patient file for clinical care, and links them into a shared Family Circle in Patient Hub.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               selectedPatient && (
