@@ -393,6 +393,11 @@ function WalkInBookingContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (patientType === "existing" && !selectedPatient) {
+      setErrorMessage("Please search and select an existing patient first.");
+      return;
+    }
+
     if (!formData.slot) {
       setErrorMessage("Please select a time slot before confirming.");
       return;
@@ -783,7 +788,7 @@ function WalkInBookingContent() {
             )}
 
             {/* Read-Only/Editable Fields depending on Selection */}
-            {(!selectedPatient || patientType === "new") ? (
+            {patientType === "new" ? (
               <>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
@@ -913,7 +918,7 @@ function WalkInBookingContent() {
                 )}
               </>
             ) : (
-              selectedPatient && (
+              selectedPatient ? (
                 <div className="bg-brand-sand/50 dark:bg-brand-green/5 border border-brand-green/10 p-4.5 rounded-2xl space-y-3 animate-fade-in-up">
                   <div className="flex justify-between items-center text-[10px] font-black text-brand-green uppercase tracking-wider">
                     <span>Patient Profile Summary</span>
@@ -957,6 +962,12 @@ function WalkInBookingContent() {
                   >
                     Change Patient Selection
                   </button>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-950/40 border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                  <p className="text-xs text-slate-400 font-semibold">
+                    Search and select an existing patient above to proceed.
+                  </p>
                 </div>
               )
             )}
