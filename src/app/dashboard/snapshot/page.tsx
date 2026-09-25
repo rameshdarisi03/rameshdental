@@ -452,6 +452,47 @@ export default function DaySnapshot() {
       );
 
       const targetApp = appointments.find((a) => a.id === appointmentId);
+      const updatedApp = targetApp ? { ...targetApp, ...auditData } : null;
+
+      // Trigger Automated Email if patient has an email
+      if (updatedApp && updatedApp.patientEmail) {
+        if (newStatus === "approved") {
+          const calUrl = generateGoogleCalendarUrl(updatedApp as Appointment);
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_APPROVED",
+              payload: {
+                patientName: updatedApp.patientName,
+                patientEmail: updatedApp.patientEmail,
+                serviceId: updatedApp.serviceId,
+                date: updatedApp.date,
+                slot: updatedApp.slot,
+                assignedTherapist: updatedApp.assignedTherapist || "Clinical Team",
+                googleCalendarUrl: calUrl,
+              },
+            }),
+          }).catch((err) => console.warn("[Email Engine] Failed to dispatch approval email:", err));
+        } else if (newStatus === "rejected") {
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_REJECTED",
+              payload: {
+                patientName: updatedApp.patientName,
+                patientEmail: updatedApp.patientEmail,
+                serviceId: updatedApp.serviceId,
+                date: updatedApp.date,
+                slot: updatedApp.slot,
+                reason: "Schedule conflict or clinic slot capacity limits.",
+              },
+            }),
+          }).catch((err) => console.warn("[Email Engine] Failed to dispatch rejection email:", err));
+        }
+      }
+
       if (sendWhatsApp && targetApp) {
         triggerWhatsAppRedirect({ ...targetApp, ...auditData }, newStatus === "approved");
       }

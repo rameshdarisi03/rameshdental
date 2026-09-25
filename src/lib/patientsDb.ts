@@ -204,6 +204,30 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     };
 
     await setDoc(docRef, newPatient);
+
+    // Auto-trigger Patient Onboarding & Portal Activation Email
+    if (newPatient.email && newPatient.activationCode) {
+      try {
+        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+        fetch(`${baseUrl}/api/email/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "PATIENT_ONBOARDING",
+            payload: {
+              patientName: newPatient.name,
+              patientEmail: newPatient.email,
+              activationCode: newPatient.activationCode,
+            },
+          }),
+        }).catch((err) => {
+          console.warn("[Onboarding Email] Failed to dispatch onboarding email:", err);
+        });
+      } catch (emailErr) {
+        console.warn("[Onboarding Email] Error:", emailErr);
+      }
+    }
+
     return newPatient;
   } catch (error) {
     console.error("Error creating patient in Firestore:", error);

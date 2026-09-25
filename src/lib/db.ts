@@ -475,6 +475,32 @@ export async function submitBookingRequest(
     };
     await addDoc(appointmentsRef, sanitizedBooking);
 
+    // 4. Trigger Automated Email Notifications (Patient Acknowledgement + Clinic Desk Alert)
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      fetch(`${baseUrl}/api/email/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "BOOKING_RECEIVED",
+          payload: {
+            patientName: sanitizedBooking.patientName,
+            patientEmail: sanitizedBooking.patientEmail,
+            patientPhone: sanitizedBooking.patientPhone,
+            serviceId: sanitizedBooking.serviceId,
+            date: sanitizedBooking.date,
+            slot: sanitizedBooking.slot,
+            notes: sanitizedBooking.notes,
+            notifyAdmin: true,
+          },
+        }),
+      }).catch((err) => {
+        console.warn("[Booking Email] Failed to dispatch booking received email:", err);
+      });
+    } catch (e) {
+      console.warn("[Booking Email] Error triggering email:", e);
+    }
+
     return { success: true };
   } catch (error: unknown) {
     console.error("Error submitting appointment: ", error);

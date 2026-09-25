@@ -439,6 +439,31 @@ function WalkInBookingContent() {
         slot: formData.slot,
       });
 
+      // Trigger Walk-in Booking Confirmation Email
+      if (formData.patientEmail) {
+        const calUrl = generateGoogleCalendarUrl({
+          date: formData.date,
+          slot: formData.slot,
+          serviceId: formData.serviceId,
+        });
+        fetch("/api/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "WALKIN_CONFIRMED",
+            payload: {
+              patientName: formData.patientName,
+              patientEmail: formData.patientEmail,
+              serviceId: formData.serviceId,
+              date: formData.date,
+              slot: formData.slot,
+              assignedTherapist: formData.assignedTherapist || "Clinical Team",
+              googleCalendarUrl: calUrl,
+            },
+          }),
+        }).catch((err) => console.warn("[Email Engine] Failed to dispatch walk-in email:", err));
+      }
+
       // Directly trigger WhatsApp alert if checked
       if (manualNotifyWhatsApp) {
         triggerWhatsAppRedirect({

@@ -206,6 +206,48 @@ export default function DashboardAppointments() {
         prev.map((app) => (app.id === appId ? { ...app, ...auditData } : app))
       );
 
+      // Trigger Automated Email if patient has an email
+      const targetApp = appointments.find((a) => a.id === appId);
+      const updatedApp = targetApp ? { ...targetApp, ...auditData } : null;
+
+      if (updatedApp && updatedApp.patientEmail) {
+        if (newStatus === "approved") {
+          const calUrl = generateGoogleCalendarUrl(updatedApp as Appointment);
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_APPROVED",
+              payload: {
+                patientName: updatedApp.patientName,
+                patientEmail: updatedApp.patientEmail,
+                serviceId: updatedApp.serviceId,
+                date: updatedApp.date,
+                slot: updatedApp.slot,
+                assignedTherapist: updatedApp.assignedTherapist || "Clinical Team",
+                googleCalendarUrl: calUrl,
+              },
+            }),
+          }).catch((err) => console.warn("[Email Engine] Failed to dispatch approval email:", err));
+        } else if (newStatus === "rejected") {
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_REJECTED",
+              payload: {
+                patientName: updatedApp.patientName,
+                patientEmail: updatedApp.patientEmail,
+                serviceId: updatedApp.serviceId,
+                date: updatedApp.date,
+                slot: updatedApp.slot,
+                reason: "Schedule conflict or clinic slot capacity limits.",
+              },
+            }),
+          }).catch((err) => console.warn("[Email Engine] Failed to dispatch rejection email:", err));
+        }
+      }
+
       // Trigger WhatsApp if approved and requested
       if (newStatus === "approved" && shouldNotify) {
         const approvedApp = appointments.find((a) => a.id === appId);
@@ -333,6 +375,27 @@ export default function DashboardAppointments() {
       await addDoc(collection(db, "appointments"), newBooking);
 
       setIsManualBookingOpen(false);
+
+      // Trigger Walk-in / Manual Booking Confirmation Email
+      if (manualForm.patientEmail) {
+        const calUrl = generateGoogleCalendarUrl(newBooking as Appointment);
+        fetch("/api/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "WALKIN_CONFIRMED",
+            payload: {
+              patientName: manualForm.patientName,
+              patientEmail: manualForm.patientEmail,
+              serviceId: manualForm.serviceId,
+              date: manualForm.date,
+              slot: manualForm.slot,
+              assignedTherapist: "Clinical Team",
+              googleCalendarUrl: calUrl,
+            },
+          }),
+        }).catch((err) => console.warn("[Email Engine] Failed to dispatch manual booking email:", err));
+      }
       
       // Directly trigger WhatsApp without modal if checked
       if (manualNotifyWhatsApp) {
