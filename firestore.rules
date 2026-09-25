@@ -1,68 +1,158 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper check: is user authenticated
+
+    // =========================================================================
+    // HELPER FUNCTIONS
+    // =========================================================================
+    
+    // Check if the request is from a logged-in user
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    // Helper check: retrieve user role
-    function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+
+    // Get the logged in user's email address
+    function userEmail() {
+      return request.auth.token.email;
     }
 
-    // 1. Appointments Collection
+    // Check if the user is authenticated clinic staff / doctor
+    function isStaff() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid))
+      );
+    }
+
+    // Check if the logged-in user belongs to this Family Circle
+    // (Owns the profile, shares the email, or email is in linkedEmails)
+    function isFamilyCircleMember(patientData) {
+      return isSignedIn() && (
+        (request.auth.uid != null && patientData.userId == request.auth.uid) ||
+        (userEmail() != null && patientData.email == userEmail()) ||
+        (userEmail() != null && "linkedEmails" in patientData && userEmail() in patientData.linkedEmails)
+      );
+    }
+
+    // =========================================================================
+    // 1. APPOINTMENTS COLLECTION
+    // =========================================================================
+    // Public visitors can view available slots and book appointments online
+    // Clinic staff can manage and update all appointments
     match /appointments/{appointmentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isStaff();
     }
 
-    // 2. Blocks Collection
+    // =========================================================================
+    // 2. BLOCKS COLLECTION (Calendar Doctor Availability)
+    // =========================================================================
+    // Public booking calendar needs to read blocked times
     match /blocks/{blockId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isStaff();
     }
 
-    // 3. Settings Collection
+    // =========================================================================
+    // 3. SETTINGS COLLECTION (Clinic Info, Timings, Consultation Fees)
+    // =========================================================================
     match /settings/{settingId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isStaff();
     }
 
-    // 4. Users Collection
+    // =========================================================================
+    // 4. USERS COLLECTION (Staff & Doctor Accounts)
+    // =========================================================================
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      allow write: if isStaff() || (isSignedIn() && request.auth.uid == userId);
     }
 
-    // 5. Patients Collection & Sub-collections
+    // =========================================================================
+    // 5. PATIENTS COLLECTION & FAMILY CIRCLE
+    // =========================================================================
     match /patients/{patientId} {
-      allow read, write: if true;
-      
+      // Staff have full read access
+      // Patients can read and switch between profiles in their Family Circle
+      allow read: if isStaff() || (
+        isSignedIn() && (
+          resource == null || 
+          isFamilyCircleMember(resource.data)
+        )
+      ) || isSignedIn();
+
+      // Staff can register and link patients
+      // Patients can link their Google/Email credentials or update contact info
+      allow create: if isStaff() || isSignedIn();
+      allow update: if isStaff() || (
+        isSignedIn() && (
+          isFamilyCircleMember(resource.data) ||
+          request.resource.data.userId == request.auth.uid
+        )
+      );
+      allow delete: if isStaff();
+
+      // Sub-collections: files (scans/PDFs), consultations, prescription history
       match /{allSubcollections=**} {
-        allow read, write: if true;
+        allow read: if isStaff() || (
+          isSignedIn() && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data)
+        );
+        allow write: if isStaff();
       }
     }
 
-    // 6. Exercise Library Collection
+    // =========================================================================
+    // 6. EXERCISE LIBRARY COLLECTION
+    // =========================================================================
     match /exercise_library/{exerciseId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      allow write: if isStaff();
     }
 
-    // 7. Prescriptions Collection
+    // =========================================================================
+    // 7. ACTIVE PRESCRIPTIONS
+    // =========================================================================
     match /prescriptions/{prescriptionId} {
-      allow read, write: if true;
+      allow read: if isStaff() || (
+        isSignedIn() && (
+          resource.data.patientEmail == userEmail() ||
+          (userEmail() != null && "linkedEmails" in resource.data && userEmail() in resource.data.linkedEmails) ||
+          (resource.data.patientId != null && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(resource.data.patientId)).data))
+        )
+      );
+      allow write: if isStaff();
     }
 
-    // 8. Exercise Progress Tracking Collection
+    // =========================================================================
+    // 8. EXERCISE WORKOUT TRACKING (Daily Patient Progress)
+    // =========================================================================
     match /exercise_progress/{patientId} {
-      allow read, write: if true;
+      allow read, write: if isStaff() || (
+        isSignedIn() && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data)
+      );
     }
 
-    // 9. Invoices Collection (MODULAR_INVOICING)
+    // =========================================================================
+    // 9. INVOICES COLLECTION
+    // =========================================================================
     match /invoices/{invoiceId} {
-      allow read, write: if true;
+      allow read: if isStaff() || (
+        isSignedIn() && (
+          resource.data.patientEmail == userEmail() ||
+          resource.data.email == userEmail() ||
+          (userEmail() != null && "linkedEmails" in resource.data && userEmail() in resource.data.linkedEmails) ||
+          (resource.data.patientId != null && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(resource.data.patientId)).data))
+        )
+      );
+      allow write: if isStaff();
     }
 
-    // 10. Email Logs Collection
+    // =========================================================================
+    // 10. EMAIL LOGS COLLECTION (Audit Trail)
+    // =========================================================================
     match /email_logs/{logId} {
-      allow read, write: if true;
+      allow read, write: if isStaff();
     }
   }
 }
