@@ -224,6 +224,7 @@ export interface PatientInvoiceIdentifier {
   phone?: string;
   name?: string;
   customId?: string;
+  excludeVoided?: boolean;
 }
 
 /**
@@ -282,7 +283,14 @@ export function subscribePatientInvoices(
       return;
     }
 
+    const shouldExcludeVoided = typeof identifier !== "string" && Boolean(identifier?.excludeVoided);
+
     const matched = all.filter((inv) => {
+      // If excludeVoided is requested (e.g., Patient Hub app), omit voided/cancelled invoices
+      if (shouldExcludeVoided && (inv.status === "voided" || inv.status === "cancelled")) {
+        return false;
+      }
+
       const invPid = (inv.patientId || "").trim().toUpperCase();
       const invEmail = (inv.patientEmail || "").trim().toLowerCase();
       const invRawPhone = (inv.patientPhone || "").replace(/\D/g, "");

@@ -80,9 +80,6 @@ export default function CreateEditInvoiceModal({
   const [serviceDate, setServiceDate] = useState(
     initialInvoice?.serviceDate || new Date().toISOString().split("T")[0]
   );
-  const [dueDate, setDueDate] = useState(
-    initialInvoice?.dueDate || new Date().toISOString().split("T")[0]
-  );
   
   const [items, setItems] = useState<InvoiceItem[]>(
     initialInvoice?.items || [
@@ -248,7 +245,7 @@ export default function CreateEditInvoiceModal({
         patientPhone: sanitizePhone(patientPhone),
         therapistName: therapistName,
         serviceDate: serviceDate || new Date().toISOString().split("T")[0],
-        dueDate: dueDate || new Date().toISOString().split("T")[0],
+        dueDate: serviceDate || new Date().toISOString().split("T")[0],
         items: sanitizedItems,
         subtotal: subtotal,
         taxRate: taxRate,
@@ -256,7 +253,7 @@ export default function CreateEditInvoiceModal({
         discount: discount,
         totalAmount: totalAmount,
         currency: "INR",
-        status: targetStatus,
+        status: "paid" as const,
         paymentMethod: paymentMethod,
         notes: sanitizeText(notes, 2000),
         revision: isEditMode ? ((initialInvoice?.revision || 1) + 1) : 1
@@ -317,9 +314,9 @@ export default function CreateEditInvoiceModal({
                 invoiceNumber: currentInvNumber,
                 amount: totalAmount,
                 serviceDate,
-                dueDate,
+                dueDate: serviceDate,
                 paymentMethod,
-                status: targetStatus,
+                status: "paid",
                 pdfBase64,
               },
             }),
@@ -331,11 +328,7 @@ export default function CreateEditInvoiceModal({
         }
       }
 
-      onSuccess(
-        isEditMode
-          ? `Invoice ${currentInvNumber} updated & re-synced successfully!`
-          : `Invoice ${currentInvNumber} generated & synced to Patient Hub!`
-      );
+      onSuccess(`Invoice ${currentInvNumber} generated & synced to Patient Hub!`);
     } catch (err: any) {
       console.error("Error saving invoice:", err);
       setModalError(err.message || "Failed to save invoice.");
@@ -362,7 +355,7 @@ export default function CreateEditInvoiceModal({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 min-w-0">
                 <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base truncate">
-                  {isEditMode ? "Edit / Correct Clinical Invoice" : "Generate Clinical Invoice"}
+                  Generate Clinical Invoice
                 </h3>
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-brand-green/15 text-brand-green text-[10px] font-black tracking-wider shrink-0">
                   {currentInvNumber}
@@ -492,26 +485,14 @@ export default function CreateEditInvoiceModal({
             </div>
           </div>
 
-          {/* Row 2: Service Date & Due Date */}
+          {/* Row 2: Service Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Service Date</label>
               <input
                 type="date"
                 value={serviceDate}
-                onChange={(e) => {
-                  setServiceDate(e.target.value);
-                  setDueDate(e.target.value);
-                }}
-                className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Payment Due Date</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={(e) => setServiceDate(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
               />
             </div>
@@ -723,24 +704,13 @@ export default function CreateEditInvoiceModal({
             <button
               type="button"
               disabled={submitting}
-              onClick={() => handleSaveInvoice("pending")}
-              className="px-4 py-2.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-white hover:bg-slate-100 text-xs font-black uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 group relative"
-            >
-              <span>Save as Pending</span>
-              <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block w-44 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                Save invoice as unpaid for patients paying later
-              </span>
-            </button>
-            <button
-              type="button"
-              disabled={submitting}
               onClick={() => handleSaveInvoice("paid")}
               className="px-6 py-2.5 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-102 active:scale-98 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50 group relative"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              <span>Confirm</span>
+              <span>Confirm & Issue Invoice</span>
               <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-48 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                Generate invoice & sync to Patient Hub & Google Drive
+                Generate official paid invoice, sync to Drive & send receipt
               </span>
             </button>
           </div>

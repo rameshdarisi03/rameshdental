@@ -102,7 +102,8 @@ export default function DashboardPage() {
       email: patient.email,
       phone: patient.phone,
       name: patient.name,
-      customId: patient.activationCode
+      customId: patient.activationCode,
+      excludeVoided: true
     }, setPatientInvoices);
 
     libUnsub = subscribeExerciseLibrary((liveLibrary) => {

@@ -55,7 +55,8 @@ export default function RecordsPage() {
       email: patient.email,
       phone: patient.phone,
       name: patient.name,
-      customId: patient.activationCode
+      customId: patient.activationCode,
+      excludeVoided: true
     }, setInvoices);
     rxUnsub = subscribePatientPrescription(patient.id, (rx) => {
       setActivePrescription(rx);
