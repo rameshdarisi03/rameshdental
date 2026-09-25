@@ -78,22 +78,77 @@ export default function Navbar() {
     return null;
   }
 
-  const navLinks = [
-    { name: "Home", href: "/", desktopHidden: true },
-    { name: "Services", href: "/services" },
-    { name: "Team", href: "/team" },
-    { name: "Gallery", href: "/gallery" },
-    { name: "Articles", href: "/articles" },
-    { name: "FAQ", href: "/faq" },
-    { name: "Locate Us", href: "/locate-us" },
-    ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/patienthub/login" }] : [])
+  interface NavItem {
+    name: string;
+    href: string;
+    sectionId?: string;
+    desktopHidden?: boolean;
+  }
+
+  const navLinks: NavItem[] = [
+    { name: "Home", href: "/#home", sectionId: "home", desktopHidden: true },
+    { name: "Services", href: "/#services", sectionId: "services" },
+    { name: "Team", href: "/#team", sectionId: "team" },
+    { name: "Gallery", href: "/#gallery", sectionId: "gallery" },
+    { name: "Articles", href: "/#articles", sectionId: "articles" },
+    { name: "FAQ", href: "/#faq", sectionId: "faq" },
+    { name: "Locate Us", href: "/#locate-us", sectionId: "locate-us" },
+    ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/#patient-hub", sectionId: "patient-hub" }] : [])
   ];
 
-  const isActive = (link: { href: string }) => {
-    if (link.href === "/") {
-      return pathname === "/";
+  const [activeSection, setActiveSection] = useState<string>("");
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      setActiveSection("");
+      return;
     }
-    return pathname?.startsWith(link.href);
+
+    const sectionIds = ["services", "team", "gallery", "articles", "patient-hub", "faq", "locate-us"];
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 140;
+      let currentSection = "";
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPos >= top && scrollPos < top + height) {
+            currentSection = id;
+          }
+        }
+      }
+      setActiveSection(currentSection);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, link: NavItem) => {
+    if (pathname === "/" && link.sectionId) {
+      e.preventDefault();
+      const el = document.getElementById(link.sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.history.pushState(null, "", `#${link.sectionId}`);
+        setActiveSection(link.sectionId);
+      }
+      setIsOpen(false);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  const isActive = (link: NavItem) => {
+    if (pathname === "/") {
+      if (link.sectionId) {
+        return activeSection === link.sectionId;
+      }
+      return !activeSection;
+    }
+    return false;
   };
 
   return (
@@ -118,7 +173,8 @@ export default function Navbar() {
               <Link
                 key={link.name}
                 href={link.href}
-                className={`whitespace-nowrap px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-900/60 dark:hover:text-brand-green/80 ${
+                onClick={(e) => handleNavClick(e, link)}
+                className={`whitespace-nowrap px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-lg text-xs lg:text-sm font-medium transition-colors hover:text-brand-green hover:bg-slate-50 dark:hover:bg-slate-900/60 dark:hover:text-brand-green/80 cursor-pointer ${
                   isActive(link)
                     ? "text-brand-green dark:text-teal-400 font-bold bg-brand-green/10 dark:bg-brand-green/20"
                     : "text-slate-600 dark:text-slate-300"
@@ -208,7 +264,7 @@ export default function Navbar() {
             <Link
               key={link.name}
               href={link.href}
-              onClick={() => setIsOpen(false)}
+              onClick={(e) => handleNavClick(e, link)}
               className={`block rounded-lg px-3 py-2 text-base font-medium transition-colors ${
                 isActive(link)
                   ? "bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-400 font-semibold"

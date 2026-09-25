@@ -37,6 +37,11 @@
   --color-slate-955: #060b13;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
 /* 🌊 1. Default Palette: Medical Teal */
 :root, [data-theme="teal"] {
   --brand-green: #0e5e6f;

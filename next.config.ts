@@ -12,7 +12,32 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/about",
-        destination: "/team",
+        destination: "/#team",
+        permanent: true,
+      },
+      {
+        source: "/services",
+        destination: "/#services",
+        permanent: true,
+      },
+      {
+        source: "/team",
+        destination: "/#team",
+        permanent: true,
+      },
+      {
+        source: "/gallery",
+        destination: "/#gallery",
+        permanent: true,
+      },
+      {
+        source: "/faq",
+        destination: "/#faq",
+        permanent: true,
+      },
+      {
+        source: "/locate-us",
+        destination: "/#locate-us",
         permanent: true,
       },
     ];
