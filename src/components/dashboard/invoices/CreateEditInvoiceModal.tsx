@@ -96,6 +96,7 @@ export default function CreateEditInvoiceModal({
     initialInvoice?.paymentMethod || "UPI"
   );
   const [notes, setNotes] = useState(initialInvoice?.notes || "");
+  const [emailPdfToPatient, setEmailPdfToPatient] = useState(true);
 
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -295,6 +296,38 @@ export default function CreateEditInvoiceModal({
           });
         } catch (driveErr) {
           console.warn("Google Drive invoice archiving warning:", driveErr);
+        }
+      }
+
+      // Auto-send Tax Invoice PDF to Patient Email if requested
+      if (emailPdfToPatient && patientEmail && patientEmail.includes("@")) {
+        try {
+          const pdf = buildInvoicePdf({ ...invoicePayload, id: "temp" });
+          const dataUri = pdf.output("datauristring");
+          const pdfBase64 = dataUri.split(",")[1];
+
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "INVOICE_DELIVERY",
+              payload: {
+                patientName: sanitizeName(patientName),
+                patientEmail: sanitizeEmail(patientEmail),
+                invoiceNumber: currentInvNumber,
+                amount: totalAmount,
+                serviceDate,
+                dueDate,
+                paymentMethod,
+                status: targetStatus,
+                pdfBase64,
+              },
+            }),
+          }).catch((emailErr) => {
+            console.warn("[Invoice Email] Background dispatch error:", emailErr);
+          });
+        } catch (emailGenErr) {
+          console.warn("[Invoice Email] PDF generation for email error:", emailGenErr);
         }
       }
 
@@ -652,6 +685,27 @@ export default function CreateEditInvoiceModal({
               </span>
             </div>
           </div>
+
+          {/* Email PDF Option */}
+          {patientEmail && patientEmail.includes("@") && (
+            <div className="flex items-center justify-between p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/50 rounded-2xl">
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 select-none">
+                <input
+                  type="checkbox"
+                  checked={emailPdfToPatient}
+                  onChange={(e) => setEmailPdfToPatient(e.target.checked)}
+                  className="rounded border-slate-300 text-brand-green focus:ring-brand-green h-4 w-4 accent-emerald-600 cursor-pointer"
+                />
+                <span className="flex items-center gap-1.5 flex-wrap">
+                  <span>✉️ Email Tax Invoice PDF directly to</span>
+                  <span className="text-brand-green dark:text-emerald-400 font-black">{patientEmail}</span>
+                </span>
+              </label>
+              <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider hidden sm:inline-block">
+                Auto-Attachment
+              </span>
+            </div>
+          )}
 
         </div>
 

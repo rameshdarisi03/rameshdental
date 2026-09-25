@@ -909,6 +909,49 @@ PLAN:
             console.warn("Auto-uploading consultation sheet to Drive failed:", autoUploadErr);
           }
         }
+
+        // Dispatch Consultation & Prescription Report PDF to patient email (strictly for clinical notes)
+        if (patient?.email && patient.email.includes("@")) {
+          try {
+            const hasExercises = Boolean(activePrescription?.exercises && activePrescription.exercises.length > 0);
+            const rxDoc = buildUnifiedPrescriptionPdf({
+              patientName: patient.name,
+              pid: patient.id,
+              dateStr: formattedDate,
+              therapistName: loggingTherapist,
+              durationDays: activePrescription?.durationDays || 14,
+              consultationSummary: notes,
+              generalNotes: hasExercises ? activePrescription?.generalNotes : undefined,
+              exercises: hasExercises ? activePrescription?.exercises : [],
+              diagnosis: patient.treatmentPlan,
+              providerAlerts: patient.reminders || [],
+            });
+            const dataUri = rxDoc.output("datauristring");
+            const pdfBase64 = dataUri.split(",")[1];
+
+            fetch("/api/email/send", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "CONSULTATION_REPORT",
+                payload: {
+                  patientName: patient.name,
+                  patientEmail: patient.email,
+                  date: formattedDate,
+                  therapistName: loggingTherapist,
+                  diagnosis: patient.treatmentPlan,
+                  summary: notes,
+                  exercisesCount: hasExercises ? activePrescription?.exercises?.length : 0,
+                  pdfBase64,
+                },
+              }),
+            }).catch((emailErr) => {
+              console.warn("[Consultation Email] Background dispatch error:", emailErr);
+            });
+          } catch (pdfEmailErr) {
+            console.warn("[Consultation Email] Failed to generate PDF for email:", pdfEmailErr);
+          }
+        }
       }
 
       // Success Reset
@@ -1018,6 +1061,62 @@ PLAN:
       window.open(url, "_blank");
     } catch (err) {
       console.error("Consultation view failed:", err);
+    }
+  };
+
+  const handleEmailConsultationPdf = async (consult: Consultation) => {
+    if (!patient?.email || !patient.email.includes("@")) {
+      setFormError(`Patient ${patient?.name || "Patient"} does not have a registered email address.`);
+      setTimeout(() => setFormError(""), 4000);
+      return;
+    }
+
+    try {
+      const hasExercises = Boolean(activePrescription?.exercises && activePrescription.exercises.length > 0);
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: consult.date,
+        therapistName: consult.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription?.durationDays || 14,
+        consultationSummary: consult.summary,
+        diagnosis: patient?.treatmentPlan,
+        providerAlerts: patient?.reminders || [],
+        exercises: hasExercises ? activePrescription?.exercises : [],
+      });
+      const dataUri = doc.output("datauristring");
+      const pdfBase64 = dataUri.split(",")[1];
+
+      setFormSuccess("Sending consultation report PDF to patient email...");
+      const res = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "CONSULTATION_REPORT",
+          payload: {
+            patientName: patient.name,
+            patientEmail: patient.email,
+            date: consult.date,
+            therapistName: consult.therapistName || patient?.therapistName || defaultTherapist,
+            diagnosis: patient?.treatmentPlan,
+            summary: consult.summary,
+            exercisesCount: hasExercises ? activePrescription?.exercises?.length : 0,
+            pdfBase64,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch email");
+      }
+
+      setFormSuccess(`✉️ Consultation report PDF sent to ${patient.email}!`);
+      setTimeout(() => setFormSuccess(""), 4000);
+    } catch (err: any) {
+      console.error("Consultation email failed:", err);
+      setFormError(err.message || "Failed to dispatch consultation email.");
+      setTimeout(() => setFormError(""), 4000);
     }
   };
 
@@ -2030,6 +2129,17 @@ Warm regards,
                                   <Download className="w-3.5 h-3.5" />
                                   <span>Download PDF</span>
                                 </button>
+                                {patient?.email && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEmailConsultationPdf(consult)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-all cursor-pointer"
+                                    title={`Email consultation report PDF to ${patient.email}`}
+                                  >
+                                    <Mail className="w-3.5 h-3.5" />
+                                    <span>Email PDF</span>
+                                  </button>
+                                )}
                               </div>
 
                               {isLong && (

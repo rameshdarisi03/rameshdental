@@ -8,6 +8,8 @@ import {
   sendAppointmentRejectionEmail,
   sendAppointmentRescheduledEmail,
   sendPreSessionReminderEmail,
+  sendInvoiceDeliveryEmail,
+  sendConsultationReportEmail,
   sendEmail,
 } from "@/lib/email";
 
@@ -59,6 +61,14 @@ export async function POST(req: NextRequest) {
 
       case "APPOINTMENT_REMINDER":
         result = await sendPreSessionReminderEmail(payload);
+        break;
+
+      case "INVOICE_DELIVERY":
+        result = await sendInvoiceDeliveryEmail(payload);
+        break;
+
+      case "CONSULTATION_REPORT":
+        result = await sendConsultationReportEmail(payload);
         break;
 
       case "CUSTOM":

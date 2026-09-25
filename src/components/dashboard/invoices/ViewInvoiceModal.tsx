@@ -3,12 +3,14 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Invoice } from "@/lib/invoicesDb";
-import { X, Download, MessageSquare, Receipt, CheckCircle2, Clock, Ban } from "lucide-react";
+import { X, Download, MessageSquare, Receipt, CheckCircle2, Clock, Ban, Mail, Loader2 } from "lucide-react";
 
 export interface ViewInvoiceModalProps {
   invoice: Invoice | null;
   onClose: () => void;
   onDownload: () => void;
+  onEmail?: () => void;
+  isEmailing?: boolean;
   whatsappUrl: string;
 }
 
@@ -16,6 +18,8 @@ export default function ViewInvoiceModal({
   invoice,
   onClose,
   onDownload,
+  onEmail,
+  isEmailing,
   whatsappUrl
 }: ViewInvoiceModalProps) {
   const [mounted, setMounted] = useState(false);
@@ -199,6 +203,18 @@ export default function ViewInvoiceModal({
               <MessageSquare className="h-4 w-4" />
               <span>WhatsApp</span>
             </a>
+          )}
+          {invoice.patientEmail && !isVoided && onEmail && (
+            <button
+              type="button"
+              onClick={onEmail}
+              disabled={isEmailing}
+              className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+              title={`Email PDF to ${invoice.patientEmail}`}
+            >
+              {isEmailing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              <span>{isEmailing ? "Sending..." : "Email PDF"}</span>
+            </button>
           )}
           <button
             type="button"

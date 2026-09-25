@@ -32,7 +32,8 @@ import {
   Check,
   FileText,
   X,
-  MoreVertical
+  MoreVertical,
+  Mail
 } from "lucide-react";
 
 export default function ClinicalBillingPage() {
@@ -61,6 +62,7 @@ export default function ClinicalBillingPage() {
   const [voidingInvoice, setVoidingInvoice] = useState<Invoice | null>(null);
   const [voidReason, setVoidReason] = useState("");
   const [mobileActionInvoice, setMobileActionInvoice] = useState<Invoice | null>(null);
+  const [emailingInvoiceId, setEmailingInvoiceId] = useState<string | null>(null);
 
   // Quick Payment Menu State
   const [activePaymentMenuId, setActivePaymentMenuId] = useState<string | null>(null);
@@ -242,6 +244,58 @@ export default function ClinicalBillingPage() {
       console.error("PDF generation failed:", err);
       setActionError("Failed to generate PDF.");
       setTimeout(() => setActionError(""), 3000);
+    }
+  };
+
+  // Email PDF to Patient Action
+  const handleEmailInvoicePdf = async (inv: Invoice) => {
+    if (!inv.patientEmail || !inv.patientEmail.includes("@")) {
+      setActionError(`Patient ${inv.patientName} does not have a valid email address.`);
+      setTimeout(() => setActionError(""), 4000);
+      return;
+    }
+
+    setEmailingInvoiceId(inv.id);
+    setActionSuccess("");
+    setActionError("");
+
+    try {
+      const pdf = buildInvoicePdf(inv);
+      const dataUri = pdf.output("datauristring");
+      const pdfBase64 = dataUri.split(",")[1];
+
+      const res = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "INVOICE_DELIVERY",
+          payload: {
+            patientName: inv.patientName,
+            patientEmail: inv.patientEmail,
+            invoiceNumber: inv.invoiceNumber,
+            amount: inv.totalAmount,
+            serviceDate: inv.serviceDate,
+            dueDate: inv.dueDate,
+            paymentMethod: inv.paymentMethod,
+            status: inv.status,
+            pdfBase64,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch email");
+      }
+
+      setActionSuccess(`✉️ Invoice ${inv.invoiceNumber} PDF emailed to ${inv.patientEmail}!`);
+      setTimeout(() => setActionSuccess(""), 4000);
+    } catch (err: any) {
+      console.error("Failed to email invoice PDF:", err);
+      setActionError(err.message || "Failed to dispatch invoice email.");
+      setTimeout(() => setActionError(""), 4000);
+    } finally {
+      setEmailingInvoiceId(null);
     }
   };
 
@@ -615,6 +669,26 @@ Warm regards,
                             </span>
                           </button>
 
+                          {/* 3b. Email PDF Button */}
+                          {inv.patientEmail && !isVoided && (
+                            <button
+                              type="button"
+                              disabled={emailingInvoiceId === inv.id}
+                              onClick={() => handleEmailInvoicePdf(inv)}
+                              className="p-2 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 transition-colors group relative cursor-pointer shadow-2xs disabled:opacity-50"
+                              title={`Email PDF invoice to ${inv.patientEmail}`}
+                            >
+                              {emailingInvoiceId === inv.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
+                              ) : (
+                                <Mail className="h-4 w-4" />
+                              )}
+                              <span className="absolute right-0 bottom-full mb-1.5 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
+                                Email PDF receipt to {inv.patientEmail}
+                              </span>
+                            </button>
+                          )}
+
                           {/* 4. View Details Button */}
                           <button
                             type="button"
@@ -789,6 +863,8 @@ Warm regards,
           invoice={viewingInvoice}
           onClose={() => setViewingInvoice(null)}
           onDownload={() => handleDownloadPdf(viewingInvoice)}
+          onEmail={() => handleEmailInvoicePdf(viewingInvoice)}
+          isEmailing={emailingInvoiceId === viewingInvoice.id}
           whatsappUrl={getWhatsAppShareUrl(viewingInvoice)}
         />
       )}
@@ -923,6 +999,28 @@ Warm regards,
                 </div>
                 <span>Download PDF Tax Receipt</span>
               </button>
+
+              {/* 3b. Email PDF */}
+              {mobileActionInvoice.patientEmail && mobileActionInvoice.status !== "voided" && (
+                <button
+                  type="button"
+                  disabled={emailingInvoiceId === mobileActionInvoice.id}
+                  onClick={() => {
+                    handleEmailInvoicePdf(mobileActionInvoice);
+                    setMobileActionInvoice(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-teal-50/70 dark:bg-teal-950/40 hover:bg-teal-100/70 text-xs font-black text-teal-700 dark:text-teal-300 transition-colors disabled:opacity-50"
+                >
+                  <div className="p-2 rounded-xl bg-teal-100 dark:bg-teal-900/50 text-teal-700">
+                    {emailingInvoiceId === mobileActionInvoice.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
+                  </div>
+                  <span>Email PDF Tax Receipt ({mobileActionInvoice.patientEmail})</span>
+                </button>
+              )}
 
               {/* 4. View Breakdown */}
               <button

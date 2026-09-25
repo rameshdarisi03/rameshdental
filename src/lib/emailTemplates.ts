@@ -570,3 +570,173 @@ export function renderPreSessionReminderEmail(params: {
     html: wrapEmail("Session Reminder", body),
   };
 }
+
+// 9. Invoice Delivery Email (with attached PDF)
+export function renderInvoiceDeliveryEmail(params: {
+  patientName: string;
+  invoiceNumber: string;
+  amount: number;
+  serviceDate: string;
+  dueDate?: string;
+  paymentMethod?: string;
+  status: string;
+}): { subject: string; html: string } {
+  const isPaid = (params.status || "").toLowerCase() === "paid";
+  const portalUrl = `${BASE_URL}/patienthub/records`;
+
+  const body = `
+    <div style="text-align: left;">
+      <span style="display: inline-block; background-color: ${isPaid ? '#ecfdf5' : '#fffbeb'}; color: ${isPaid ? '#059669' : '#d97706'}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 50px; margin-bottom: 12px;">
+        ${isPaid ? 'Payment Receipt & Tax Invoice' : 'Tax Invoice & Payment Due'}
+      </span>
+      <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
+        Tax Invoice #${params.invoiceNumber}
+      </h1>
+      <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+        Dear ${params.patientName}, your clinical services tax invoice and official receipt is attached to this email as a PDF document.
+      </p>
+
+      <!-- Invoice Summary Box -->
+      <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Invoice Number</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.invoiceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Total Amount</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: 900; font-size: 16px;">₹${(params.amount || 0).toLocaleString("en-IN")}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Status</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+            <span style="display: inline-block; background-color: ${isPaid ? '#ecfdf5' : '#fff7ed'}; color: ${isPaid ? '#059669' : '#c2410c'}; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 4px;">
+              ${params.status.toUpperCase()}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Service Date</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 700;">${params.serviceDate}</td>
+        </tr>
+        ${params.paymentMethod ? `
+        <tr>
+          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Payment Mode</td>
+          <td style="padding: 12px 16px; color: #062e36; font-weight: 700;">${params.paymentMethod}</td>
+        </tr>
+        ` : ''}
+      </table>
+
+      <!-- Attachment Notice Callout -->
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 13px; color: #166534; font-weight: 700;">
+          📎 Attached: <span style="font-weight: 800;">${params.invoiceNumber}_Invoice.pdf</span>
+        </p>
+        <p style="margin: 4px 0 0; font-size: 12px; color: #15803d;">
+          You can download, print, or save the attached PDF for your insurance claim and medical tax records.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${portalUrl}" class="mobile-button" style="display: inline-block; background-color: #059669; color: #ffffff; font-size: 13px; font-weight: 800; padding: 14px 32px; border-radius: 50px; text-decoration: none; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);">
+          📄 View All Billing Records in Patient Hub
+        </a>
+      </div>
+
+      <p style="margin: 20px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+        Need assistance with your invoice or insurance documentation? Reply directly to this email or call our desk at <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a>.
+      </p>
+    </div>
+  `;
+
+  return {
+    subject: `Tax Invoice & Receipt #${params.invoiceNumber} - Gait Physio Clinic`,
+    html: wrapEmail("Tax Invoice & Receipt", body),
+  };
+}
+
+// 10. Consultation Summary & Prescription Email (with attached PDF)
+export function renderConsultationReportEmail(params: {
+  patientName: string;
+  date: string;
+  therapistName?: string;
+  diagnosis?: string;
+  summary?: string;
+  exercisesCount?: number;
+}): { subject: string; html: string } {
+  const portalUrl = `${BASE_URL}/patienthub`;
+
+  const body = `
+    <div style="text-align: left;">
+      <span style="display: inline-block; background-color: #ecfdf5; color: #059669; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 50px; margin-bottom: 12px;">
+        Clinical Session Summary
+      </span>
+      <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
+        Your Rehabilitation & Consultation Report
+      </h1>
+      <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+        Dear ${params.patientName}, thank you for attending your physiotherapy session at Gait Physio Clinic. Your official clinical case sheet and rehabilitation prescription is attached to this email.
+      </p>
+
+      <!-- Consultation Meta Box -->
+      <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Consultation Date</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.date}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Attending Therapist</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: 800;">${params.therapistName || 'Dr. Kinnera'}</td>
+        </tr>
+        ${params.diagnosis ? `
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Diagnosis / Target</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 700;">${params.diagnosis}</td>
+        </tr>
+        ` : ''}
+        ${params.exercisesCount !== undefined && params.exercisesCount > 0 ? `
+        <tr>
+          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Prescribed Exercises</td>
+          <td style="padding: 12px 16px; color: #059669; font-weight: 800;">${params.exercisesCount} Home Exercises Prescribed</td>
+        </tr>
+        ` : ''}
+      </table>
+
+      ${params.summary ? `
+      <!-- Therapist Notes Snippet -->
+      <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #059669; border-radius: 8px; padding: 14px 18px; margin: 18px 0;">
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">
+          Therapist Session Notes
+        </p>
+        <p style="margin: 0; font-size: 13px; color: #1e293b; line-height: 1.6; white-space: pre-line;">
+          ${params.summary}
+        </p>
+      </div>
+      ` : ''}
+
+      <!-- Attachment Notice Callout -->
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 13px; color: #166534; font-weight: 700;">
+          📎 Attached: <span style="font-weight: 800;">Consultation_Prescription_Report.pdf</span>
+        </p>
+        <p style="margin: 4px 0 0; font-size: 12px; color: #15803d;">
+          Contains your complete clinical evaluation, precautions, therapeutic targets, and personalized home exercise prescription.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${portalUrl}" class="mobile-button" style="display: inline-block; background-color: #062e36; color: #ffffff; font-size: 13px; font-weight: 800; padding: 14px 32px; border-radius: 50px; text-decoration: none; box-shadow: 0 4px 12px rgba(6, 46, 54, 0.25);">
+          🏃 Access Your Video Exercises in Patient Hub
+        </a>
+      </div>
+
+      <p style="margin: 20px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+        Have questions about your exercises or experiencing discomfort? Contact your therapist at <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a>.
+      </p>
+    </div>
+  `;
+
+  return {
+    subject: `Clinical Consultation Summary & Rehabilitation Report - Gait Physio Clinic`,
+    html: wrapEmail("Consultation & Prescription Report", body),
+  };
+}

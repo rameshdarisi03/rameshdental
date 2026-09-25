@@ -7,12 +7,19 @@ export interface EmailRecipient {
   name?: string;
 }
 
+export interface EmailAttachment {
+  name: string;
+  content?: string; // base64 encoded content
+  url?: string;     // public URL
+}
+
 export interface SendEmailOptions {
   to: EmailRecipient | EmailRecipient[];
   subject: string;
   htmlContent: string;
   replyTo?: { email: string; name?: string };
   tags?: string[];
+  attachments?: EmailAttachment[];
 }
 
 export interface SendEmailResult {
@@ -43,7 +50,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     return { success: false, error: "No valid recipient email provided." };
   }
 
-  const payload = {
+  const payload: any = {
     sender: {
       name: senderName,
       email: senderEmail,
@@ -60,6 +67,10 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     htmlContent: options.htmlContent,
     tags: options.tags || ["transactional"],
   };
+
+  if (options.attachments && options.attachments.length > 0) {
+    payload.attachment = options.attachments;
+  }
 
   try {
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -276,5 +287,77 @@ export async function sendPreSessionReminderEmail(params: {
     subject,
     htmlContent: html,
     tags: ["appointment-reminder"],
+  });
+}
+
+// 9. Send Tax Invoice & Receipt Email with PDF Attachment
+export async function sendInvoiceDeliveryEmail(params: {
+  patientName: string;
+  patientEmail: string;
+  invoiceNumber: string;
+  amount: number;
+  serviceDate: string;
+  dueDate?: string;
+  paymentMethod?: string;
+  status: string;
+  pdfBase64?: string;
+  pdfUrl?: string;
+}): Promise<SendEmailResult> {
+  const { subject, html } = templates.renderInvoiceDeliveryEmail(params);
+  const attachments: EmailAttachment[] = [];
+  if (params.pdfBase64) {
+    attachments.push({
+      name: `${params.invoiceNumber}_Invoice.pdf`,
+      content: params.pdfBase64,
+    });
+  } else if (params.pdfUrl) {
+    attachments.push({
+      name: `${params.invoiceNumber}_Invoice.pdf`,
+      url: params.pdfUrl,
+    });
+  }
+
+  return sendEmail({
+    to: { email: params.patientEmail, name: params.patientName },
+    subject,
+    htmlContent: html,
+    tags: ["invoice-delivery"],
+    attachments: attachments.length > 0 ? attachments : undefined,
+  });
+}
+
+// 10. Send Clinical Consultation & Prescription Email with PDF Attachment
+export async function sendConsultationReportEmail(params: {
+  patientName: string;
+  patientEmail: string;
+  date: string;
+  therapistName?: string;
+  diagnosis?: string;
+  summary?: string;
+  exercisesCount?: number;
+  pdfBase64?: string;
+  pdfUrl?: string;
+}): Promise<SendEmailResult> {
+  const { subject, html } = templates.renderConsultationReportEmail(params);
+  const attachments: EmailAttachment[] = [];
+  const cleanDate = params.date ? params.date.replace(/[^a-zA-Z0-9]/g, "_") : "Report";
+  if (params.pdfBase64) {
+    attachments.push({
+      name: `Consultation_Report_${cleanDate}.pdf`,
+      content: params.pdfBase64,
+    });
+  } else if (params.pdfUrl) {
+    attachments.push({
+      name: `Consultation_Report_${cleanDate}.pdf`,
+      url: params.pdfUrl,
+    });
+  }
+
+  return sendEmail({
+    to: { email: params.patientEmail, name: params.patientName },
+    subject,
+    htmlContent: html,
+    tags: ["consultation-report"],
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 }
