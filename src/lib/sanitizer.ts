@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Security & Input Sanitization Engine for Gait Physio Clinic
  * Compliant with OWASP Top 10 Application Security Standards.
  * Defends against XSS, NoSQL/Firestore Injection, HTML tag exploits, and malformed telecom inputs.
@@ -127,6 +127,9 @@ export function sanitizePatientPayload<T extends Record<string, any>>(payload: T
   }
   if ("reminders" in sanitized && Array.isArray(sanitized.reminders)) {
     sanitized.reminders = sanitized.reminders.map(r => sanitizeText(r, 200)).filter(Boolean);
+  }
+  if ("joinedDate" in sanitized && typeof sanitized.joinedDate === "string") {
+    sanitized.joinedDate = sanitizeText(sanitized.joinedDate, 50);
   }
 
   return sanitized as T;

@@ -28,6 +28,7 @@ export interface Patient {
   googleDriveFolderId?: string; // Google Drive folder ID reference
   therapistId?: string;      // ID of the primary therapist
   therapistName?: string;    // Name of the primary therapist
+  joinedDate?: string;       // YYYY-MM-DD or DD-MM-YYYY format
   lastVisit?: string;        // DD-MM-YYYY or Date
   upcoming?: string;         // DD-MM-YYYY or string representation
   reminders?: string[];      // clinical provider reminders
@@ -195,9 +196,11 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
       ? sanitizedData.activationCode || generateActivationCode()
       : "";
 
+    const todayStr = new Date().toISOString().split("T")[0];
     const newPatient: Patient = {
       ...sanitizedData,
       id: patientId,
+      joinedDate: sanitizedData.joinedDate || todayStr,
       activationCode,
       activated: sanitizedData.activated || false,
       createdAt: Timestamp.now(),

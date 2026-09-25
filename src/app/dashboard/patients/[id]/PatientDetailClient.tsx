@@ -91,6 +91,8 @@ interface Patient {
   status: "active" | "completed" | "pending";
   googleDriveFolderId?: string;
   therapistName?: string;
+  joinedDate?: string;
+  createdAt?: any;
   lastVisit?: string;
   upcoming?: string;
   reminders?: string[];
@@ -294,6 +296,95 @@ export default function PatientDetailClient({ id }: { id: string }) {
       setEmailError(err.message || "Failed to update email.");
     } finally {
       setSavingEmail(false);
+    }
+  };
+
+  // Joining date management states
+  const [isEditingJoinedDate, setIsEditingJoinedDate] = useState(false);
+  const [joinedDateInput, setJoinedDateInput] = useState("");
+  const [savingJoinedDate, setSavingJoinedDate] = useState(false);
+
+  const resolveJoinedDate = (p: Patient | null, consults: Consultation[]): string => {
+    if (!p) return "";
+    if (p.joinedDate && p.joinedDate.trim()) {
+      return p.joinedDate.trim();
+    }
+    // Fallback 1: createdAt Timestamp or ISO string
+    if (p.createdAt) {
+      try {
+        if (typeof p.createdAt.toDate === "function") {
+          const d = p.createdAt.toDate();
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return `${yyyy}-${mm}-${dd}`;
+        } else if (p.createdAt.seconds) {
+          const d = new Date(p.createdAt.seconds * 1000);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return `${yyyy}-${mm}-${dd}`;
+        } else if (typeof p.createdAt === "string") {
+          const d = new Date(p.createdAt);
+          if (!isNaN(d.getTime())) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
+          }
+        }
+      } catch {
+        // Ignore fallback error
+      }
+    }
+    // Fallback 2: Earliest consultation date
+    if (consults && consults.length > 0) {
+      const first = consults[consults.length - 1];
+      if (first && first.date) {
+        const parts = first.date.split("-");
+        if (parts.length === 3) {
+          if (parts[0].length === 4) return first.date; // YYYY-MM-DD
+          return `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY to YYYY-MM-DD
+        }
+      }
+    }
+    return "";
+  };
+
+  const formatDisplayDate = (rawDate: string): string => {
+    if (!rawDate) return "N/A";
+    try {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+        const [y, m, d] = rawDate.split("-");
+        const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+        return dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      }
+      if (/^\d{2}-\d{2}-\d{4}$/.test(rawDate)) {
+        const [d, m, y] = rawDate.split("-");
+        const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+        return dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      }
+      const parsed = new Date(rawDate);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      }
+      return rawDate;
+    } catch {
+      return rawDate;
+    }
+  };
+
+  const handleSaveJoinedDate = async () => {
+    if (!joinedDateInput || !patient || !id) return;
+    setSavingJoinedDate(true);
+    try {
+      await updatePatient(id, { joinedDate: joinedDateInput });
+      setPatient((prev) => prev ? { ...prev, joinedDate: joinedDateInput } : null);
+      setIsEditingJoinedDate(false);
+    } catch (err) {
+      console.error("Failed to update joining date:", err);
+    } finally {
+      setSavingJoinedDate(false);
     }
   };
 
@@ -1383,12 +1474,59 @@ Warm regards,
             </h2>
             
             <div className="space-y-4">
-              <div>
-                <p className="text-[9px] font-extrabold uppercase text-slate-400">Treatment Plan</p>
-                <p className="text-xs font-bold text-brand-green mt-1 bg-brand-bg dark:bg-brand-green/10 border border-brand-green/10 px-2.5 py-1 rounded-xl inline-block lowercase">
-                  {patient.treatmentPlan}
-                </p>
-              </div>
+              {(() => {
+                const currentJoinedDateRaw = resolveJoinedDate(patient, consultations);
+                return (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[9px] font-extrabold uppercase text-slate-400">Treatment Plan</p>
+                      <p className="text-xs font-bold text-brand-green mt-1 bg-brand-bg dark:bg-brand-green/10 border border-brand-green/10 px-2.5 py-1 rounded-xl inline-block lowercase">
+                        {patient.treatmentPlan}
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-extrabold uppercase text-slate-400">Date Joined</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isEditingJoinedDate) {
+                              setJoinedDateInput(currentJoinedDateRaw || new Date().toISOString().split("T")[0]);
+                            }
+                            setIsEditingJoinedDate(!isEditingJoinedDate);
+                          }}
+                          className="text-[9px] font-extrabold text-brand-green hover:underline cursor-pointer"
+                        >
+                          {isEditingJoinedDate ? "Cancel" : "Edit"}
+                        </button>
+                      </div>
+                      {isEditingJoinedDate ? (
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <input
+                            type="date"
+                            value={joinedDateInput}
+                            onChange={(e) => setJoinedDateInput(e.target.value)}
+                            className="w-full text-xs font-bold px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-brand-green text-slate-900 dark:text-white cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveJoinedDate}
+                            disabled={savingJoinedDate || !joinedDateInput}
+                            className="px-2.5 py-1 rounded-xl bg-brand-green text-white text-[10px] font-black cursor-pointer hover:bg-brand-green-hover disabled:opacity-50 shrink-0"
+                          >
+                            {savingJoinedDate ? "..." : "Save"}
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 px-2.5 py-1 rounded-xl inline-block">
+                          {formatDisplayDate(currentJoinedDateRaw)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
               
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-850 pt-3">
                 <div>

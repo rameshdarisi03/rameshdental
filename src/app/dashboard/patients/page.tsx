@@ -48,6 +48,7 @@ interface Patient {
   status: "active" | "completed" | "pending";
   googleDriveFolderId?: string;
   therapistName?: string;
+  joinedDate?: string;
   lastVisit?: string;
   upcoming?: string;
 }
@@ -92,6 +93,7 @@ export default function PatientsPage() {
     treatmentPlan: "",
     therapistName: "Dr. Sarah Jenkins", // Default matching mockup
     status: "active" as "active" | "completed" | "pending",
+    joinedDate: getTodayDateString(),
     upcoming: "",
   });
 
@@ -329,7 +331,8 @@ export default function PatientsPage() {
         treatmentPlan: formData.treatmentPlan,
         status: formData.status,
         therapistName: formData.therapistName,
-        upcoming: isWalkIn ? `Today (${walkInSlot})` : (formData.upcoming || "Pending Schedule"),
+        joinedDate: formData.joinedDate || getTodayDateString(),
+        upcoming: isWalkIn ? `Today (${walkInSlot})` : (formData.upcoming || formData.joinedDate || "Pending Schedule"),
         lastVisit: isWalkIn ? "Today" : "N/A"
       });
 
@@ -403,6 +406,7 @@ export default function PatientsPage() {
         treatmentPlan: "",
         therapistName: enrolledTherapists[0] || "Dr. Sarah Jenkins",
         status: "active",
+        joinedDate: getTodayDateString(),
         upcoming: "",
       });
       
@@ -1116,7 +1120,7 @@ export default function PatientsPage() {
                 </div>
 
                 {/* Assigned Therapist */}
-                <div className={isWalkInSession ? "col-span-2 sm:col-span-1" : ""}>
+                <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
                     Assigned Therapist
                   </label>
@@ -1134,22 +1138,19 @@ export default function PatientsPage() {
                   </select>
                 </div>
 
-                {/* Upcoming Schedule (if not walk-in) */}
-                {!isWalkInSession && (
-                  <div>
-                    <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                      Initial Appointment Schedule (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      name="upcoming"
-                      placeholder="e.g. Nov 02, 2026 14:00"
-                      value={formData.upcoming}
-                      onChange={handleInputChange}
-                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
-                    />
-                  </div>
-                )}
+                {/* Date Joined / First Visit */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
+                    Date Joined / First Visit
+                  </label>
+                  <input
+                    type="date"
+                    name="joinedDate"
+                    value={formData.joinedDate}
+                    onChange={handleInputChange}
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-bold outline-none focus:border-brand-green cursor-pointer text-slate-900 dark:text-white"
+                  />
+                </div>
 
                 {/* In-Clinic Walk-in Session Toggle */}
                 <div className="col-span-2 pt-2 border-t border-slate-100 dark:border-slate-850 space-y-3">
