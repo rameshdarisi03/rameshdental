@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Opt out firebase-admin from bundling so Node.js native modules work in serverless
+  serverExternalPackages: ["firebase-admin"],
+
   // Ignore typescript warnings during build to ensure deployment succeeds
   typescript: {
     ignoreBuildErrors: true,

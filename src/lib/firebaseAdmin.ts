@@ -14,12 +14,15 @@ export function getFirebaseAdmin() {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
     if (privateKey) {
+      // Remove any wrapping quotes that might have been copied into Vercel UI
+      privateKey = privateKey.trim().replace(/^["']|["']$/g, "");
+      // Replace literal \n escape sequences with actual newlines
       privateKey = privateKey.replace(/\\n/g, "\n");
     }
 
     if (!projectId || !clientEmail || !privateKey) {
       throw new Error(
-        "Missing Firebase Admin credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY)."
+        "Missing Firebase Admin credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY). Please ensure these are set in Vercel Project Settings > Environment Variables."
       );
     }
 

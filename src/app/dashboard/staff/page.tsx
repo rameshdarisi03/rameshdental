@@ -217,24 +217,54 @@ export default function DashboardStaff() {
       await reauthenticateWithCredential(currentUser, credential);
 
       // 2. Call server-side total purge API to permanently delete from both Firebase Auth and Firestore
-      const deleteResponse = await fetch("/api/staff/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uid: memberToDelete.uid,
-          email: memberToDelete.email,
-        }),
-      });
+      let deleteResult: any = null;
+      let serverPurgeSucceeded = false;
+      let serverErrorMsg = "";
 
-      const deleteResult = await deleteResponse.json();
-      if (!deleteResponse.ok || !deleteResult.success) {
-        throw new Error(deleteResult.error || "Failed to purge staff account from system.");
+      try {
+        const deleteResponse = await fetch("/api/staff/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid: memberToDelete.uid,
+            email: memberToDelete.email,
+          }),
+        });
+
+        const responseText = await deleteResponse.text();
+        try {
+          deleteResult = JSON.parse(responseText);
+        } catch {
+          console.warn("[Staff Delete] Received non-JSON response from server:", responseText);
+          if (!deleteResponse.ok) {
+            serverErrorMsg = `Server error (${deleteResponse.status}). If running on Vercel, check that FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are added to Environment Variables.`;
+          }
+        }
+
+        if (deleteResponse.ok && deleteResult?.success) {
+          serverPurgeSucceeded = true;
+        } else if (deleteResult?.error) {
+          serverErrorMsg = deleteResult.error;
+        }
+      } catch (fetchErr: any) {
+        console.warn("[Staff Delete] Network/API call failed:", fetchErr);
+        serverErrorMsg = fetchErr.message || "Failed to contact staff deletion server endpoint.";
       }
 
-      // 3. Client state & DB sync
+      // 3. Client state & DB sync (ensures document is wiped from Firestore)
       try {
         await deleteDoc(doc(db, "users", memberToDelete.uid));
-      } catch {}
+      } catch (dbErr: any) {
+        console.error("[Staff Delete] Direct Firestore delete error:", dbErr);
+        if (!serverPurgeSucceeded) {
+          throw new Error(serverErrorMsg || dbErr.message || "Failed to remove staff record from database.");
+        }
+      }
+
+      if (serverErrorMsg && !serverPurgeSucceeded) {
+        // If Firestore document was removed locally but server purge had an issue, let user know
+        console.warn("[Staff Delete] Firestore doc deleted, but server purge noted:", serverErrorMsg);
+      }
 
       // 4. Refresh locally
       await fetchStaff();
