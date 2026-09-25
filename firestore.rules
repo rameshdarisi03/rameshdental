@@ -59,5 +59,10 @@ service cloud.firestore {
     match /invoices/{invoiceId} {
       allow read, write: if true;
     }
+
+    // 10. Email Logs Collection
+    match /email_logs/{logId} {
+      allow read, write: if true;
+    }
   }
 }
