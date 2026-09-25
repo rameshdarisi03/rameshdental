@@ -146,10 +146,31 @@ export default function ClinicalBillingPage() {
   const handleConfirmVoid = async () => {
     if (!voidingInvoice) return;
     try {
-      await voidInvoice(voidingInvoice.id, voidReason || "Voided by clinic administrator");
+      const reason = voidReason || "Clerical correction / bill updated";
+      await voidInvoice(voidingInvoice.id, reason);
+
+      // Auto-dispatch cancellation notice to patient email
+      if (voidingInvoice.patientEmail && voidingInvoice.patientEmail.includes("@")) {
+        fetch("/api/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "INVOICE_VOID_NOTICE",
+            payload: {
+              patientName: voidingInvoice.patientName,
+              patientEmail: voidingInvoice.patientEmail,
+              invoiceNumber: voidingInvoice.invoiceNumber,
+              amount: voidingInvoice.totalAmount,
+              serviceDate: voidingInvoice.serviceDate,
+              voidReason: reason,
+            },
+          }),
+        }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
+      }
+
       setVoidingInvoice(null);
       setVoidReason("");
-      setActionSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED.`);
+      setActionSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED & cancellation notice sent.`);
       setTimeout(() => setActionSuccess(""), 3000);
     } catch (err: any) {
       console.error("Error voiding invoice:", err);
@@ -181,6 +202,7 @@ export default function ClinicalBillingPage() {
       totalAmount: inv.totalAmount,
       currency: inv.currency || "INR",
       notes: inv.notes,
+      replacesInvoiceNumber: inv.replacesInvoiceNumber,
     });
   };
 
@@ -229,6 +251,7 @@ export default function ClinicalBillingPage() {
             dueDate: inv.dueDate,
             paymentMethod: inv.paymentMethod,
             status: inv.status,
+            replacesInvoiceNumber: inv.replacesInvoiceNumber,
             pdfBase64,
           },
         }),

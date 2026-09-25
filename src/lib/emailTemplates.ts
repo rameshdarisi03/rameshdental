@@ -580,21 +580,48 @@ export function renderInvoiceDeliveryEmail(params: {
   dueDate?: string;
   paymentMethod?: string;
   status: string;
+  replacesInvoiceNumber?: string;
 }): { subject: string; html: string } {
   const isPaid = (params.status || "").toLowerCase() === "paid";
+  const isReplacement = Boolean(params.replacesInvoiceNumber);
   const portalUrl = `${BASE_URL}/patienthub/records`;
+
+  const badgeText = isReplacement
+    ? "Updated Invoice / Payment Receipt"
+    : isPaid
+    ? "Invoice / Payment Receipt"
+    : "Invoice / Payment Due";
+
+  const badgeBg = isReplacement ? "#fffbeb" : isPaid ? "#ecfdf5" : "#fffbeb";
+  const badgeColor = isReplacement ? "#b45309" : isPaid ? "#059669" : "#d97706";
+
+  const subject = isReplacement
+    ? `Updated Invoice / Payment Receipt #${params.invoiceNumber} (Replaces #${params.replacesInvoiceNumber}) - Gait Physio Clinic`
+    : `Invoice / Payment Receipt #${params.invoiceNumber} - Gait Physio Clinic`;
 
   const body = `
     <div style="text-align: left;">
-      <span style="display: inline-block; background-color: ${isPaid ? '#ecfdf5' : '#fffbeb'}; color: ${isPaid ? '#059669' : '#d97706'}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 50px; margin-bottom: 12px;">
-        ${isPaid ? 'Invoice / Payment Receipt' : 'Invoice / Payment Due'}
+      <span style="display: inline-block; background-color: ${badgeBg}; color: ${badgeColor}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 50px; margin-bottom: 12px;">
+        ${badgeText}
       </span>
       <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
-        Invoice #${params.invoiceNumber}
+        ${isReplacement ? `Updated Invoice #${params.invoiceNumber}` : `Invoice #${params.invoiceNumber}`}
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
         Dear ${params.patientName}, your official treatment invoice and payment receipt is attached to this email as a PDF document.
       </p>
+
+      ${isReplacement ? `
+      <!-- Automated Replacement Clarification Banner (Patient Friendly, Zero Confusion) -->
+      <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 12px; padding: 14px 18px; margin: 18px 0;">
+        <p style="margin: 0 0 5px; font-size: 13px; font-weight: 800; color: #92400e;">
+          ⚠️ Important Billing Update:
+        </p>
+        <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.6;">
+          This updated receipt replaces your previous bill <strong>#${params.replacesInvoiceNumber}</strong>, which was cancelled. A clerical correction was made to your treatment items. <strong>You have NOT been charged twice.</strong>
+        </p>
+      </div>
+      ` : ''}
 
       <!-- Invoice Summary Box -->
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -602,6 +629,12 @@ export function renderInvoiceDeliveryEmail(params: {
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Invoice Number</td>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.invoiceNumber}</td>
         </tr>
+        ${isReplacement ? `
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Replaces Bill</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #b45309; font-weight: 800;">#${params.replacesInvoiceNumber} (Cancelled)</td>
+        </tr>
+        ` : ''}
         <tr>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Total Amount</td>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: 900; font-size: 16px;">₹${(params.amount || 0).toLocaleString("en-IN")}</td>
@@ -649,8 +682,87 @@ export function renderInvoiceDeliveryEmail(params: {
   `;
 
   return {
-    subject: `Invoice / Payment Receipt #${params.invoiceNumber} - Gait Physio Clinic`,
-    html: wrapEmail("Invoice / Payment Receipt", body),
+    subject,
+    html: wrapEmail(isReplacement ? "Updated Invoice / Payment Receipt" : "Invoice / Payment Receipt", body),
+  };
+}
+
+// 10. Invoice Cancellation / Void Notice Email
+export function renderInvoiceVoidNoticeEmail(params: {
+  patientName: string;
+  invoiceNumber: string;
+  amount: number;
+  serviceDate: string;
+  voidReason?: string;
+}): { subject: string; html: string } {
+  const portalUrl = `${BASE_URL}/patienthub/records`;
+  const reasonText = params.voidReason || "Clerical correction / bill updated";
+
+  const body = `
+    <div style="text-align: left;">
+      <span style="display: inline-block; background-color: #fef2f2; color: #b91c1c; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 50px; margin-bottom: 12px;">
+        Billing Update • Invoice Cancelled
+      </span>
+      <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
+        Invoice #${params.invoiceNumber} Has Been Cancelled
+      </h1>
+      <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>#${params.invoiceNumber}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our clinic billing records.
+      </p>
+
+      <!-- Cancellation Details Box -->
+      <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Invoice Number</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.invoiceNumber}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Status</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+            <span style="display: inline-block; background-color: #fef2f2; color: #b91c1c; font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 2px 8px; border-radius: 4px;">
+              CANCELLED / VOIDED
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Original Amount</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 700; text-decoration: line-through;">₹${(params.amount || 0).toLocaleString("en-IN")}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Service Date</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 700;">${params.serviceDate}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Reason</td>
+          <td style="padding: 12px 16px; color: #991b1b; font-weight: 700;">${reasonText}</td>
+        </tr>
+      </table>
+
+      <!-- Next Steps & Reassurance Callout -->
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; margin: 20px 0;">
+        <p style="margin: 0 0 4px; font-size: 13px; font-weight: 800; color: #166534;">
+          ℹ️ What This Means For You:
+        </p>
+        <p style="margin: 0; font-size: 12.5px; color: #15803d; line-height: 1.6;">
+          If this invoice was cancelled to correct treatment details or billing amounts, an <strong>updated replacement receipt</strong> will be issued and emailed to you shortly. You do not need to take any action, and you will not be billed twice.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${portalUrl}" class="mobile-button" style="display: inline-block; background-color: #062e36; color: #ffffff; font-size: 13px; font-weight: 800; padding: 14px 32px; border-radius: 50px; text-decoration: none; box-shadow: 0 4px 12px rgba(6, 46, 54, 0.25);">
+          📄 Check Valid Invoices in Patient Hub
+        </a>
+      </div>
+
+      <p style="margin: 20px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+        Have questions regarding this cancellation? Contact our clinic desk directly at <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a> or reply to this email.
+      </p>
+    </div>
+  `;
+
+  return {
+    subject: `Notice: Cancellation of Invoice #${params.invoiceNumber} - Gait Physio Clinic`,
+    html: wrapEmail("Invoice Cancellation Notice", body),
   };
 }
 

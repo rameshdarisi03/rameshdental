@@ -536,6 +536,7 @@ export interface UnifiedInvoiceParams {
   totalAmount?: number;
   currency?: string;
   notes?: string;
+  replacesInvoiceNumber?: string;
 }
 
 export function getInvoiceFileName(patientName: string, dateInput?: any): string {
@@ -576,7 +577,8 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
-  doc.text(`INVOICE / PAYMENT RECEIPT #${params.invoiceNumber || "INV-001"}`, 48, y + 55);
+  const invoiceTitle = `INVOICE / PAYMENT RECEIPT #${params.invoiceNumber || "INV-001"}${params.replacesInvoiceNumber ? ` (Replaces #${params.replacesInvoiceNumber})` : ""}`;
+  doc.text(invoiceTitle, 48, y + 55);
 
   y += 84;
 
@@ -702,8 +704,13 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   // 5. Notes Box (Left) + Detailed Financial Summary (Right)
   const summaryBoxY = y;
 
-  // Left: Clinical Notes / Diagnoses
-  if (params.notes && params.notes.trim()) {
+  // Left: Clinical Notes / Diagnoses & Replacement Notice
+  const notesText = [
+    params.notes?.trim(),
+    params.replacesInvoiceNumber ? `Notice: Replaces cancelled bill #${params.replacesInvoiceNumber}.` : ""
+  ].filter(Boolean).join("\n\n");
+
+  if (notesText) {
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
     doc.roundedRect(30, summaryBoxY, 260, 75, 6, 6, "FD");
@@ -711,12 +718,12 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
     doc.setFontSize(7.5);
     doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
     doc.setFont("helvetica", "bold");
-    doc.text("CLINICAL NOTES & DIAGNOSIS:", 40, summaryBoxY + 16);
+    doc.text("CLINICAL NOTES & DETAILS:", 40, summaryBoxY + 16);
 
     doc.setFontSize(8);
     doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
     doc.setFont("helvetica", "normal");
-    const splitNotes = doc.splitTextToSize(params.notes, 240);
+    const splitNotes = doc.splitTextToSize(notesText, 240);
     doc.text(splitNotes, 40, summaryBoxY + 30);
   }
 

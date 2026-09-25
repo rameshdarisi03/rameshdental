@@ -103,6 +103,31 @@ export default function ViewInvoiceModal({
             </div>
           </div>
 
+          {/* Replacement / Cancellation Notices */}
+          {invoice.replacesInvoiceNumber && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+              <span className="font-bold text-sm">🔄</span>
+              <span>
+                <strong>Replacement Receipt:</strong> Replaces cancelled bill <strong>#{invoice.replacesInvoiceNumber}</strong>. Patient has not been charged twice.
+              </span>
+            </div>
+          )}
+
+          {invoice.replacedByInvoiceNumber && (
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-800 dark:text-rose-200 flex items-center gap-2">
+              <span className="font-bold text-sm">⚠️</span>
+              <span>
+                <strong>Voided Bill:</strong> This invoice was cancelled and replaced by updated receipt <strong>#{invoice.replacedByInvoiceNumber}</strong>.
+              </span>
+            </div>
+          )}
+
+          {isVoided && invoice.voidReason && (
+            <div className="p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-700 dark:text-slate-300">
+              <strong className="text-slate-900 dark:text-white">Cancellation Reason:</strong> {invoice.voidReason}
+            </div>
+          )}
+
           {/* Bill To & Meta Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
             <div>

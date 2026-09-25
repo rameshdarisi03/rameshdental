@@ -300,6 +300,7 @@ export async function sendInvoiceDeliveryEmail(params: {
   dueDate?: string;
   paymentMethod?: string;
   status: string;
+  replacesInvoiceNumber?: string;
   pdfBase64?: string;
   pdfUrl?: string;
 }): Promise<SendEmailResult> {
@@ -321,8 +322,26 @@ export async function sendInvoiceDeliveryEmail(params: {
     to: { email: params.patientEmail, name: params.patientName },
     subject,
     htmlContent: html,
-    tags: ["invoice-delivery"],
+    tags: ["invoice-delivery", params.replacesInvoiceNumber ? "invoice-replacement" : "invoice-original"],
     attachments: attachments.length > 0 ? attachments : undefined,
+  });
+}
+
+// 10. Send Invoice Cancellation / Void Notice Email
+export async function sendInvoiceVoidNoticeEmail(params: {
+  patientName: string;
+  patientEmail: string;
+  invoiceNumber: string;
+  amount: number;
+  serviceDate: string;
+  voidReason?: string;
+}): Promise<SendEmailResult> {
+  const { subject, html } = templates.renderInvoiceVoidNoticeEmail(params);
+  return sendEmail({
+    to: { email: params.patientEmail, name: params.patientName },
+    subject,
+    htmlContent: html,
+    tags: ["invoice-void-notice"],
   });
 }
 

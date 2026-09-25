@@ -44,6 +44,8 @@ export interface Invoice {
   paymentMethod: "UPI" | "Cash" | "Card" | "Insurance Claim" | "Net Banking";
   notes?: string;
   voidReason?: string;
+  replacesInvoiceNumber?: string;
+  replacedByInvoiceNumber?: string;
   revision?: number;
   createdAt?: any;
   updatedAt?: any;
@@ -142,10 +144,72 @@ export async function createInvoice(invoiceData: Omit<Invoice, "id" | "createdAt
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
+    // If this invoice replaces a previously voided bill, auto-mark the old bill as replaced
+    if (invoiceData.replacesInvoiceNumber) {
+      try {
+        const voidedQuery = query(
+          collection(db, INVOICES_COLLECTION),
+          where("invoiceNumber", "==", invoiceData.replacesInvoiceNumber)
+        );
+        const voidedSnap = await getDocs(voidedQuery);
+        if (!voidedSnap.empty) {
+          const oldDocRef = doc(db, INVOICES_COLLECTION, voidedSnap.docs[0].id);
+          await updateDoc(oldDocRef, {
+            replacedByInvoiceNumber: invoiceData.invoiceNumber,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch (linkErr) {
+        console.warn("Failed to mark voided invoice as replaced:", linkErr);
+      }
+    }
+
     return docRef.id;
   } catch (err) {
     console.error("Error creating invoice:", err);
     throw err;
+  }
+}
+
+/**
+ * Automatically detect the most recent voided invoice for a patient that has not yet been replaced.
+ */
+export async function findLatestUnreplacedVoidedInvoice(identifier: {
+  patientId?: string;
+  customId?: string;
+  phone?: string;
+  email?: string;
+}): Promise<Invoice | null> {
+  try {
+    const invoicesRef = collection(db, INVOICES_COLLECTION);
+    const q = query(invoicesRef, orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+
+    const normPhone = (p?: string) => (p || "").replace(/\D/g, "").slice(-10);
+
+    for (const d of snap.docs) {
+      const data = d.data() as Invoice;
+      const isVoid = data.status === "voided" || data.status === "cancelled";
+      if (!isVoid) continue;
+      // Skip if already replaced by a newer bill
+      if (data.replacedByInvoiceNumber) continue;
+
+      // Check matching patient
+      let isMatch = false;
+      if (identifier.patientId && data.patientId && data.patientId === identifier.patientId) isMatch = true;
+      else if (identifier.customId && data.patientId && data.patientId === identifier.customId) isMatch = true;
+      else if (identifier.phone && data.patientPhone && normPhone(data.patientPhone) === normPhone(identifier.phone)) isMatch = true;
+      else if (identifier.email && data.patientEmail && data.patientEmail.toLowerCase() === identifier.email.toLowerCase()) isMatch = true;
+
+      if (isMatch) {
+        return { ...data, id: d.id };
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn("Failed to check for unreplaced voided invoice:", err);
+    return null;
   }
 }
 

@@ -131,6 +131,7 @@ export default function RecordsPage() {
         totalAmount: inv.totalAmount,
         currency: inv.currency || "INR",
         notes: inv.notes,
+        replacesInvoiceNumber: inv.replacesInvoiceNumber,
       });
 
       const fileName = getInvoiceFileName(inv.patientName || patient?.name || "Patient", inv.serviceDate || new Date());

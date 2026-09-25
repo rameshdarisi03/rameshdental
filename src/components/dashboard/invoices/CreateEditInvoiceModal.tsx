@@ -8,7 +8,8 @@ import {
   CLINICAL_SERVICES_PRESETS,
   generateInvoiceNumber,
   createInvoice,
-  updateInvoice
+  updateInvoice,
+  findLatestUnreplacedVoidedInvoice
 } from "@/lib/invoicesDb";
 import { Patient } from "@/lib/patientsDb";
 import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeText } from "@/lib/sanitizer";
@@ -94,6 +95,10 @@ export default function CreateEditInvoiceModal({
   );
   const [notes, setNotes] = useState(initialInvoice?.notes || "");
   const [emailPdfToPatient, setEmailPdfToPatient] = useState(true);
+  const [replacesInvoiceNumber, setReplacesInvoiceNumber] = useState<string>(
+    initialInvoice?.replacesInvoiceNumber || ""
+  );
+  const [detectedVoidedBill, setDetectedVoidedBill] = useState<Invoice | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -117,6 +122,43 @@ export default function CreateEditInvoiceModal({
       }
     }
   }, [initialPatient, initialInvoice]);
+
+  // Auto-detect if patient has a recently voided bill requiring replacement
+  useEffect(() => {
+    if (isEditMode) return;
+    const cleanPid = (patientPid || selectedPatientId || "").trim();
+    const cleanEmail = (patientEmail || "").trim();
+    const cleanPhone = (patientPhone || "").trim();
+
+    if (!cleanPid && !cleanEmail && !cleanPhone) {
+      setReplacesInvoiceNumber("");
+      setDetectedVoidedBill(null);
+      return;
+    }
+
+    let isMounted = true;
+    findLatestUnreplacedVoidedInvoice({
+      patientId: cleanPid,
+      customId: cleanPid,
+      email: cleanEmail,
+      phone: cleanPhone,
+    }).then((voided) => {
+      if (!isMounted) return;
+      if (voided) {
+        setDetectedVoidedBill(voided);
+        setReplacesInvoiceNumber(voided.invoiceNumber);
+      } else {
+        setDetectedVoidedBill(null);
+        setReplacesInvoiceNumber("");
+      }
+    }).catch((err) => {
+      console.warn("Error auto-detecting voided bill:", err);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [patientPid, selectedPatientId, patientEmail, patientPhone, isEditMode]);
 
   // Smartphone native back-button interception
   useEffect(() => {
@@ -256,6 +298,7 @@ export default function CreateEditInvoiceModal({
         status: "paid" as const,
         paymentMethod: paymentMethod,
         notes: sanitizeText(notes, 2000),
+        replacesInvoiceNumber: replacesInvoiceNumber || undefined,
         revision: isEditMode ? ((initialInvoice?.revision || 1) + 1) : 1
       };
 
@@ -276,7 +319,7 @@ export default function CreateEditInvoiceModal({
 
       if (driveFolderId) {
         try {
-          const pdf = buildInvoicePdf({ ...invoicePayload, id: "temp" });
+          const pdf = buildInvoicePdf({ ...invoicePayload, replacesInvoiceNumber: replacesInvoiceNumber || undefined, id: "temp" });
           const pdfBlob = pdf.output("blob");
           const pdfFile = new File([pdfBlob], `${currentInvNumber}_Invoice.pdf`, {
             type: "application/pdf",
@@ -299,7 +342,7 @@ export default function CreateEditInvoiceModal({
       // Auto-send Tax Invoice PDF to Patient Email if requested
       if (emailPdfToPatient && patientEmail && patientEmail.includes("@")) {
         try {
-          const pdf = buildInvoicePdf({ ...invoicePayload, id: "temp" });
+          const pdf = buildInvoicePdf({ ...invoicePayload, replacesInvoiceNumber: replacesInvoiceNumber || undefined, id: "temp" });
           const dataUri = pdf.output("datauristring");
           const pdfBase64 = dataUri.split(",")[1];
 
@@ -317,6 +360,7 @@ export default function CreateEditInvoiceModal({
                 dueDate: serviceDate,
                 paymentMethod,
                 status: "paid",
+                replacesInvoiceNumber: replacesInvoiceNumber || undefined,
                 pdfBase64,
               },
             }),
@@ -394,6 +438,36 @@ export default function CreateEditInvoiceModal({
           {modalError && (
             <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-xs font-bold text-rose-600 dark:text-rose-400">
               {modalError}
+            </div>
+          )}
+
+          {/* Auto-Linked Replacement Invoice Banner */}
+          {replacesInvoiceNumber && (
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0 text-sm font-bold">
+                  🔄
+                </span>
+                <div>
+                  <p className="text-xs font-black text-amber-900 dark:text-amber-200">
+                    Auto-Linked Replacement: Replaces Cancelled Bill #{replacesInvoiceNumber}
+                  </p>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                    This updated bill replaces voided invoice #{replacesInvoiceNumber}. The patient will receive a clear replacement receipt reassuring them that they have NOT been charged twice.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setReplacesInvoiceNumber("");
+                  setDetectedVoidedBill(null);
+                }}
+                className="px-2.5 py-1 text-[11px] font-bold text-amber-800 hover:text-amber-950 dark:text-amber-300 bg-amber-200/60 hover:bg-amber-200 dark:bg-amber-900/60 rounded-lg transition-colors cursor-pointer shrink-0"
+                title="Unlink this replacement"
+              >
+                Unlink
+              </button>
             </div>
           )}
 
