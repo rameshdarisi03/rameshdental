@@ -12,7 +12,8 @@ import {
   limit,
   Timestamp,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  deleteField
 } from "firebase/firestore";
 
 export interface Patient {
@@ -290,7 +291,13 @@ export async function linkPatientsInFamilyCircle(
 ): Promise<void> {
   try {
     if (!primaryPatient.id || !memberPatient.id) return;
-    const familyGroupId = primaryPatient.familyGroupId || `FAM-${primaryPatient.id}`;
+    
+    // Determine the actual head of the circle if primaryPatient is already a member
+    const familyHeadId = primaryPatient.primaryPatientId || primaryPatient.id;
+    const familyHeadName = primaryPatient.primaryPatientId 
+      ? (primaryPatient.familyHeadName || primaryPatient.name) 
+      : primaryPatient.name;
+    const familyGroupId = primaryPatient.familyGroupId || memberPatient.familyGroupId || `FAM-${familyHeadId}`;
 
     const emailsSet = new Set<string>();
     if (primaryPatient.email) emailsSet.add(primaryPatient.email.trim().toLowerCase());
@@ -303,7 +310,7 @@ export async function linkPatientsInFamilyCircle(
     const primaryRef = doc(db, "patients", primaryPatient.id);
     await updateDoc(primaryRef, {
       familyGroupId,
-      isPrimaryAccount: true,
+      isPrimaryAccount: !primaryPatient.primaryPatientId,
       linkedEmails,
     });
 
@@ -311,14 +318,37 @@ export async function linkPatientsInFamilyCircle(
     const memberRef = doc(db, "patients", memberPatient.id);
     await updateDoc(memberRef, {
       familyGroupId,
-      primaryPatientId: primaryPatient.id,
-      familyHeadName: primaryPatient.name,
+      primaryPatientId: familyHeadId,
+      familyHeadName: familyHeadName,
       relationship: relationship || "Family Member",
       linkedEmails,
       activated: primaryPatient.activated || memberPatient.activated || false,
     });
   } catch (err) {
     console.error("Failed to link family circle:", err);
+    throw err;
+  }
+}
+
+/**
+ * Unlink a patient from their Family Circle
+ */
+export async function unlinkPatientFromFamilyCircle(
+  patientToUnlink: Patient
+): Promise<void> {
+  try {
+    if (!patientToUnlink.id) return;
+    const docRef = doc(db, "patients", patientToUnlink.id);
+    await updateDoc(docRef, {
+      primaryPatientId: deleteField(),
+      familyGroupId: deleteField(),
+      familyHeadName: deleteField(),
+      relationship: "Self",
+      isPrimaryAccount: true,
+      linkedEmails: [],
+    });
+  } catch (err) {
+    console.error("Failed to unlink patient from family circle:", err);
     throw err;
   }
 }

@@ -41,13 +41,16 @@ import {
   Edit2,
   Ban,
   Receipt,
-  Users
+  Users,
+  Unlink,
+  UserPlus
 } from "lucide-react";
 import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
 import DocumentScannerModal, { ScanResult } from "@/components/dashboard/DocumentScannerModal";
 import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
 import PatientDeleteModal from "@/components/dashboard/PatientDeleteModal";
+import LinkFamilyMemberModal from "@/components/dashboard/LinkFamilyMemberModal";
 import { PatientDeleteOptions } from "@/lib/patientsDb";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import { Timestamp } from "firebase/firestore";
@@ -59,7 +62,8 @@ import {
   addMedicalRecordFile, 
   updatePatient,
   generateActivationCode,
-  getFamilyMembers
+  getFamilyMembers,
+  unlinkPatientFromFamilyCircle
 } from "@/lib/patientsDb";
 import { 
   getPatientPrescription,
@@ -209,8 +213,43 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isLinkFamilyModalOpen, setIsLinkFamilyModalOpen] = useState(false);
   const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
   const [workoutProgress, setWorkoutProgress] = useState<PatientWorkoutProgress | null>(null);
+
+  const handleUnlinkMember = async (member: any) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to unlink ${member.name} (${member.id}) from this Family Circle?\n\nTheir clinical notes, prescriptions, and files will remain 100% safe and intact.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await unlinkPatientFromFamilyCircle(member);
+      if (patient) {
+        const famList = await getFamilyMembers(patient as any);
+        setFamilyMembers(famList.filter((m) => m.id !== patient.id));
+      }
+      setFormSuccess(`Unlinked ${member.name} from Family Circle.`);
+    } catch (err) {
+      console.error("Failed to unlink family member:", err);
+      alert("Failed to unlink member. Please try again.");
+    }
+  };
+
+  const handleFamilyLinked = async () => {
+    if (patient) {
+      try {
+        const famList = await getFamilyMembers(patient as any);
+        setFamilyMembers(famList.filter((m) => m.id !== patient.id));
+        setFormSuccess("Patient successfully linked to Family Circle!");
+      } catch (err) {
+        console.warn("Failed to reload family members:", err);
+      }
+    }
+  };
 
   const handleDeleteSuccess = (deletedOptions: PatientDeleteOptions) => {
     if (deletedOptions.profile) {
@@ -1767,73 +1806,107 @@ Warm regards,
             </div>
           </div>
 
-          {/* Card: Family Circle & Linked Profiles */}
-          {((familyMembers && familyMembers.length > 0) || patient.primaryPatientId || patient.familyGroupId) && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-brand-charcoal dark:text-white font-black text-xs uppercase tracking-wider select-none">
-                  <Users className="h-4 w-4 text-brand-green" />
-                  <span>Family Circle ({familyMembers.length + 1})</span>
+          {/* Card: Family Circle & Linked Profiles (Always Available to Staff) */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-brand-charcoal dark:text-white font-black text-xs uppercase tracking-wider select-none">
+                <Users className="h-4 w-4 text-brand-green" />
+                <span>Family Circle ({familyMembers.length + 1})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLinkFamilyModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-brand-green/10 hover:bg-brand-green text-brand-green hover:text-white dark:bg-brand-green/20 dark:hover:bg-brand-green text-[10.5px] font-black transition-all cursor-pointer shadow-2xs group"
+                title="Link an existing patient to this Family Circle"
+              >
+                <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-200" />
+                <span>Link Member</span>
+              </button>
+            </div>
+
+            {patient.primaryPatientId && patient.familyHeadName && (
+              <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-[11px] text-blue-800 dark:text-blue-300">
+                Linked to Family Head: <strong>{patient.familyHeadName}</strong> ({patient.primaryPatientId})
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {/* Current Patient Item */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-green/5 border border-brand-green/20">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-brand-green text-white font-bold text-xs flex items-center justify-center">
+                    {patient.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-900 dark:text-white leading-tight">
+                      {patient.name} <span className="text-[10px] text-brand-green font-bold">(Viewing)</span>
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono">{patient.id}</p>
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400">
-                  {patient.isPrimaryAccount ? "Primary Account" : (patient.relationship || "Linked Member")}
+                <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-brand-green/10 text-brand-green uppercase tracking-wide">
+                  {patient.relationship || (patient.isPrimaryAccount ? "Head" : "Self")}
                 </span>
               </div>
 
-              {patient.primaryPatientId && patient.familyHeadName && (
-                <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-[11px] text-blue-800 dark:text-blue-300">
-                  Linked to Family Head: <strong>{patient.familyHeadName}</strong> ({patient.primaryPatientId})
-                </div>
-              )}
-
-              <div className="space-y-2">
-                {/* Current Patient Item */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-green/5 border border-brand-green/20">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-brand-green text-white font-bold text-xs flex items-center justify-center">
-                      {patient.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-xs font-black text-slate-900 dark:text-white leading-tight">
-                        {patient.name} <span className="text-[10px] text-brand-green font-bold">(Viewing)</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-mono">{patient.id}</p>
-                    </div>
-                  </div>
-                  <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-brand-green/10 text-brand-green uppercase tracking-wide">
-                    {patient.relationship || (patient.isPrimaryAccount ? "Head" : "Self")}
-                  </span>
-                </div>
-
-                {/* Other Linked Members */}
-                {familyMembers.map((member) => (
+              {/* Other Linked Members */}
+              {familyMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800 transition-colors group"
+                >
                   <Link
-                    key={member.id}
                     href={`/dashboard/patients/${member.id}`}
-                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-100 dark:border-slate-800 transition-colors group cursor-pointer"
+                    className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center group-hover:bg-brand-green group-hover:text-white transition-colors">
-                        {member.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-green transition-colors leading-tight">
-                          {member.name}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-mono">{member.id}</p>
-                      </div>
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center group-hover:bg-brand-green group-hover:text-white transition-colors shrink-0">
+                      {member.name.charAt(0)}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                        {member.relationship || "Member"}
-                      </span>
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-green transition-colors leading-tight truncate">
+                        {member.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono">{member.id}</p>
                     </div>
                   </Link>
-                ))}
-              </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      {member.relationship || "Member"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleUnlinkMember(member)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                      title={`Unlink ${member.name} from Family Circle`}
+                    >
+                      <Unlink className="w-3.5 h-3.5" />
+                    </button>
+                    <Link href={`/dashboard/patients/${member.id}`}>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+
+              {/* Empty state when 0 other members */}
+              {familyMembers.length === 0 && (
+                <div className="p-3 rounded-2xl bg-slate-50/60 dark:bg-slate-950/30 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-2">
+                  <p className="text-[11px] text-slate-400">
+                    No other family members linked to this account yet.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsLinkFamilyModalOpen(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline cursor-pointer"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Link an existing patient</span>
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Card 2: Care Metrics (Brand Green Mockup layout) */}
           <div className="bg-brand-green text-white rounded-3xl p-6 shadow-md border border-brand-green/10 space-y-4">
@@ -2911,6 +2984,17 @@ Warm regards,
           patientName={patient.name}
           onClose={() => setIsDeleteModalOpen(false)}
           onSuccess={handleDeleteSuccess}
+        />
+      )}
+
+      {/* Link Family Member Modal */}
+      {isLinkFamilyModalOpen && patient && (
+        <LinkFamilyMemberModal
+          isOpen={isLinkFamilyModalOpen}
+          onClose={() => setIsLinkFamilyModalOpen(false)}
+          currentPatient={patient as any}
+          currentFamilyMembers={familyMembers}
+          onLinked={handleFamilyLinked}
         />
       )}
 
