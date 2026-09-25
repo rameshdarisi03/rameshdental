@@ -158,14 +158,33 @@ export async function checkDuplicatePatient(
       return { isDuplicate: false };
     }
 
-    const all = await getDocs(collection(db, "patients"));
+    // Tier 1: Dedicated Server-side API endpoint (Infallible, runs with Firebase Admin privileges)
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/patients/check-duplicate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, name, email }),
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result && typeof result.isDuplicate === "boolean") {
+            return result as DuplicateCheckResult;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("[patientsDb] /api/patients/check-duplicate fetch error, using local fallback:", apiErr);
+      }
+    }
+
+    // Tier 2: In-memory fallback via getPatients() (which has its own 3-tier fallback)
+    const all = await getPatients();
     
     let phoneMatchPatient: Patient | null = null;
     let emailMatchPatient: Patient | null = null;
     let nameMatchPatient: Patient | null = null;
 
-    for (const d of all.docs) {
-      const data = d.data() as Patient;
+    for (const data of all) {
       const pPhone = sanitizePhone(data.phone);
       const pName = (data.name || "").trim().toLowerCase();
       const pEmail = (data.email || "").trim().toLowerCase();
@@ -178,11 +197,11 @@ export async function checkDuplicatePatient(
             isDuplicate: true,
             matchType: "exact",
             matchField: "email",
-            existingPatient: { id: d.id, ...data },
+            existingPatient: data,
             message: `Patient "${data.name}" is already registered with this email (${cleanEmail}).`,
           };
         }
-        emailMatchPatient = { id: d.id, ...data };
+        emailMatchPatient = data;
       }
 
       // Check for phone match (10 digits)
@@ -192,16 +211,16 @@ export async function checkDuplicatePatient(
             isDuplicate: true,
             matchType: "exact",
             matchField: "phone",
-            existingPatient: { id: d.id, ...data },
+            existingPatient: data,
             message: `Patient "${data.name}" is already registered with this phone number (${pPhone}).`,
           };
         }
-        phoneMatchPatient = { id: d.id, ...data };
+        phoneMatchPatient = data;
       }
 
       // Check for name match with different phone/email
       if (cleanName && cleanName.length > 2 && pName === cleanName) {
-        nameMatchPatient = { id: d.id, ...data };
+        nameMatchPatient = data;
       }
     }
 

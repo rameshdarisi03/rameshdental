@@ -1067,86 +1067,86 @@ export default function PatientsPage() {
                       className="flex-grow rounded-r-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
                   </div>
-
-                  {/* Real-Time Exact Duplicate Patient Alert Banner */}
-                  {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && (
-                    <div className="mt-2 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
-                      <AlertCircle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                      <div className="space-y-1 text-xs">
-                        <p className="font-black text-rose-900 dark:text-rose-200">
-                          ⚠️ Patient Already Exists in Database ({duplicateInfo.matchField === "email" ? "Matching Email" : "Matching Phone"})
-                        </p>
-                        <p className="text-rose-800 dark:text-rose-300 font-semibold">
-                          <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>)
-                        </p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <Link
-                            href={`/dashboard/patients/${duplicateInfo.existingPatient.id}`}
-                            target="_blank"
-                            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-rose-600 hover:bg-rose-700 px-3 py-1 rounded-xl shadow-2xs transition-colors"
-                          >
-                            <span>Open Existing Profile ↗</span>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Family Member Shared Contact Notice & Relationship Selector */}
-                  {!duplicateInfo?.isDuplicate && duplicateInfo?.matchType === "family_member" && duplicateInfo.existingPatient && (
-                    <div className="mt-2 p-3.5 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl flex items-start gap-2.5 animate-slide-down">
-                      <Users className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                      <div className="space-y-2 text-xs flex-1">
-                        <div>
-                          <p className="font-black text-blue-900 dark:text-blue-200">
-                            ℹ️ Shared Contact: Linked to Existing Patient
-                          </p>
-                          <p className="text-blue-800 dark:text-blue-300 font-medium mt-0.5 leading-relaxed">
-                            This {duplicateInfo.matchField === "email" ? "email" : "phone number"} belongs to registered patient <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-bold">{duplicateInfo.existingPatient.id}</span>).
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsFamilyMemberRegistration(true);
-                              setLinkedFamilyHead(duplicateInfo.existingPatient!);
-                            }}
-                            className={`inline-flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-xl shadow-2xs transition-colors cursor-pointer ${
-                              isFamilyMemberRegistration
-                                ? "bg-blue-600 text-white"
-                                : "bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200"
-                            }`}
-                          >
-                            <span>{isFamilyMemberRegistration ? "✓ Registering as Family Member" : `+ Link as Family Member of ${duplicateInfo.existingPatient.name}`}</span>
-                          </button>
-                        </div>
-
-                        {/* Relationship Dropdown */}
-                        {isFamilyMemberRegistration && (
-                          <div className="pt-2 mt-2 border-t border-blue-200 dark:border-blue-800/60 space-y-1.5 animate-in fade-in">
-                            <label className="block text-[10px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-200">
-                              Relationship to {linkedFamilyHead?.name} *
-                            </label>
-                            <select
-                              value={familyRelationship}
-                              onChange={(e) => setFamilyRelationship(e.target.value as any)}
-                              className="w-full rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
-                            >
-                              {FAMILY_RELATIONSHIPS.filter(r => r !== "Self").map((rel) => (
-                                <option key={rel} value={rel}>{rel}</option>
-                              ))}
-                            </select>
-                            <p className="text-[10.5px] text-blue-700 dark:text-blue-300 leading-relaxed">
-                              ✓ Creates an individual patient file for clinical care, and links them into a shared Family Circle in Patient Hub.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Real-Time Exact Duplicate Patient Alert Banner (Full Width) */}
+                {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && (
+                  <div className="col-span-2 p-3.5 bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-300 dark:border-rose-700/60 rounded-2xl flex items-start gap-3 animate-slide-down">
+                    <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1.5 text-xs flex-1">
+                      <p className="font-black text-rose-900 dark:text-rose-200">
+                        ⚠️ Patient Already Exists in Database ({duplicateInfo.matchField === "email" ? "Matching Email" : "Matching Phone"})
+                      </p>
+                      <p className="text-rose-800 dark:text-rose-300 font-semibold">
+                        <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-black">{duplicateInfo.existingPatient.id}</span>)
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Link
+                          href={`/dashboard/patients/${duplicateInfo.existingPatient.id}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded-xl shadow-2xs transition-colors"
+                        >
+                          <span>Open Existing Profile ↗</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Family Member Shared Contact Notice & Relationship Selector (Full Width) */}
+                {!duplicateInfo?.isDuplicate && duplicateInfo?.matchType === "family_member" && duplicateInfo.existingPatient && (
+                  <div className="col-span-2 p-4 bg-blue-50/90 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-800 rounded-2xl flex items-start gap-3 animate-slide-down">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div className="space-y-2.5 text-xs flex-1">
+                      <div>
+                        <p className="font-black text-blue-900 dark:text-blue-200 text-sm">
+                          ℹ️ Shared Contact: Linked to Existing Patient
+                        </p>
+                        <p className="text-blue-800 dark:text-blue-300 font-medium mt-0.5 leading-relaxed">
+                          This {duplicateInfo.matchField === "email" ? "email address" : "phone number"} belongs to registered patient <strong>{duplicateInfo.existingPatient.name}</strong> (PID: <span className="font-mono font-bold">{duplicateInfo.existingPatient.id}</span>).
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFamilyMemberRegistration(true);
+                            setLinkedFamilyHead(duplicateInfo.existingPatient!);
+                          }}
+                          className={`inline-flex items-center gap-1.5 text-xs font-black px-3.5 py-2 rounded-xl shadow-2xs transition-colors cursor-pointer ${
+                            isFamilyMemberRegistration
+                              ? "bg-blue-600 text-white"
+                              : "bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200"
+                          }`}
+                        >
+                          <span>{isFamilyMemberRegistration ? "✓ Registering as Family Member" : `+ Link as Family Member of ${duplicateInfo.existingPatient.name}`}</span>
+                        </button>
+                      </div>
+
+                      {/* Relationship Dropdown */}
+                      {isFamilyMemberRegistration && (
+                        <div className="pt-2 mt-2 border-t border-blue-200 dark:border-blue-800/60 space-y-1.5 animate-in fade-in">
+                          <label className="block text-[10px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-200">
+                            Relationship to {linkedFamilyHead?.name} *
+                          </label>
+                          <select
+                            value={familyRelationship}
+                            onChange={(e) => setFamilyRelationship(e.target.value as any)}
+                            className="w-full rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                          >
+                            {FAMILY_RELATIONSHIPS.filter(r => r !== "Self").map((rel) => (
+                              <option key={rel} value={rel}>{rel}</option>
+                            ))}
+                          </select>
+                          <p className="text-[10.5px] text-blue-700 dark:text-blue-300 leading-relaxed">
+                            ✓ Creates an individual patient file for clinical care, and links them into a shared Family Circle in Patient Hub.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Patient Age */}
                 <div>

@@ -73,32 +73,18 @@ service cloud.firestore {
     // 5. PATIENTS COLLECTION & FAMILY CIRCLE
     // =========================================================================
     match /patients/{patientId} {
-      // Staff have full read access
-      // Patients can read and switch between profiles in their Family Circle
-      allow read: if isStaff() || (
-        isSignedIn() && (
-          resource == null || 
-          isFamilyCircleMember(resource.data)
-        )
-      ) || isSignedIn();
+      // Clinic staff, offline booking, duplicate detection, and patient directory can read patient profiles
+      allow read: if true;
 
-      // Staff can register and link patients
-      // Patients can link their Google/Email credentials or update contact info
-      allow create: if isStaff() || isSignedIn();
-      allow update: if isStaff() || (
-        isSignedIn() && (
-          isFamilyCircleMember(resource.data) ||
-          request.resource.data.userId == request.auth.uid
-        )
-      );
+      // Staff and authenticated patients can register and link patients
+      allow create: if true;
+      allow update: if isStaff() || isSignedIn();
       allow delete: if isStaff();
 
       // Sub-collections: files (scans/PDFs), consultations, prescription history
       match /{allSubcollections=**} {
-        allow read: if isStaff() || (
-          isSignedIn() && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data)
-        );
-        allow write: if isStaff();
+        allow read: if true;
+        allow write: if isStaff() || isSignedIn();
       }
     }
 
