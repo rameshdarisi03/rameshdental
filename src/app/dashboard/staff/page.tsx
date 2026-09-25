@@ -216,13 +216,30 @@ export default function DashboardStaff() {
       const credential = EmailAuthProvider.credential(currentUser.email, adminPassword1);
       await reauthenticateWithCredential(currentUser, credential);
 
-      // 2. Delete the user document in Firestore database
-      await deleteDoc(doc(db, "users", memberToDelete.uid));
+      // 2. Call server-side total purge API to permanently delete from both Firebase Auth and Firestore
+      const deleteResponse = await fetch("/api/staff/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: memberToDelete.uid,
+          email: memberToDelete.email,
+        }),
+      });
 
-      // 3. Refresh locally
+      const deleteResult = await deleteResponse.json();
+      if (!deleteResponse.ok || !deleteResult.success) {
+        throw new Error(deleteResult.error || "Failed to purge staff account from system.");
+      }
+
+      // 3. Client state & DB sync
+      try {
+        await deleteDoc(doc(db, "users", memberToDelete.uid));
+      } catch {}
+
+      // 4. Refresh locally
       await fetchStaff();
 
-      setSuccessMsg(`Staff member ${memberToDelete.name} has been deleted successfully.`);
+      setSuccessMsg(`Staff member ${memberToDelete.name} has been completely removed from the system.`);
       setIsDeleteOpen(false);
       setMemberToDelete(null);
     } catch (err: any) {
