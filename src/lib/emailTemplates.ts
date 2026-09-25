@@ -587,13 +587,13 @@ export function renderInvoiceDeliveryEmail(params: {
   const body = `
     <div style="text-align: left;">
       <span style="display: inline-block; background-color: ${isPaid ? '#ecfdf5' : '#fffbeb'}; color: ${isPaid ? '#059669' : '#d97706'}; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; border-radius: 50px; margin-bottom: 12px;">
-        ${isPaid ? 'Payment Receipt & Tax Invoice' : 'Tax Invoice & Payment Due'}
+        ${isPaid ? 'Invoice / Payment Receipt' : 'Invoice / Payment Due'}
       </span>
       <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
-        Tax Invoice #${params.invoiceNumber}
+        Invoice #${params.invoiceNumber}
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your clinical services tax invoice and official receipt is attached to this email as a PDF document.
+        Dear ${params.patientName}, your official treatment invoice and payment receipt is attached to this email as a PDF document.
       </p>
 
       <!-- Invoice Summary Box -->
@@ -649,8 +649,8 @@ export function renderInvoiceDeliveryEmail(params: {
   `;
 
   return {
-    subject: `Tax Invoice & Receipt #${params.invoiceNumber} - Gait Physio Clinic`,
-    html: wrapEmail("Tax Invoice & Receipt", body),
+    subject: `Invoice / Payment Receipt #${params.invoiceNumber} - Gait Physio Clinic`,
+    html: wrapEmail("Invoice / Payment Receipt", body),
   };
 }
 

@@ -77,7 +77,7 @@ import {
   buildUnifiedInvoicePdf,
   getInvoiceFileName
 } from "@/lib/prescriptionPdf";
-import { getClinicConfig } from "@/lib/db";
+import { getClinicConfig, ClinicConfig } from "@/lib/db";
 
 interface Patient {
   id: string;
@@ -187,6 +187,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [files, setFiles] = useState<MedicalFile[]>([]);
   const [prescriptionsHistory, setPrescriptionsHistory] = useState<PatientPrescription[]>([]);
   const [patientInvoices, setPatientInvoices] = useState<Invoice[]>([]);
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig | null>(null);
   const [isPatientInvoiceModalOpen, setIsPatientInvoiceModalOpen] = useState(false);
   const [voidingInvoice, setVoidingInvoice] = useState<Invoice | null>(null);
   const [voidReason, setVoidReason] = useState("");
@@ -510,17 +511,19 @@ PLAN:
       setPatient(pData as Patient);
 
       // Fetch timelines, files, prescription & history safely
-      const [cListRes, fListRes, rxRes, rxHistRes] = await Promise.allSettled([
+      const [cListRes, fListRes, rxRes, rxHistRes, cfgRes] = await Promise.allSettled([
         getConsultations(pData.id),
         getMedicalRecordFiles(pData.id),
         getPatientPrescription(pData.id),
-        getPatientPrescriptionsHistory(pData.id)
+        getPatientPrescriptionsHistory(pData.id),
+        getClinicConfig()
       ]);
 
       const cList = cListRes.status === "fulfilled" ? cListRes.value : [];
       const fList = fListRes.status === "fulfilled" ? fListRes.value : [];
       const rx = rxRes.status === "fulfilled" ? rxRes.value : null;
       const rxHist = rxHistRes.status === "fulfilled" ? rxHistRes.value : [];
+      if (cfgRes.status === "fulfilled") setClinicConfig(cfgRes.value);
 
       setConsultations(cList as Consultation[]);
       setFiles(fList as MedicalFile[]);
@@ -1219,6 +1222,8 @@ PLAN:
       patientId: inv.patientId || patient?.id,
       patientEmail: inv.patientEmail || patient?.email,
       patientPhone: inv.patientPhone || patient?.phone,
+      clinicAddress: clinicConfig?.address,
+      clinicPhone: clinicConfig?.phone,
       therapistName: inv.therapistName || patient?.therapistName || defaultTherapist,
       serviceDate: inv.serviceDate,
       dueDate: inv.dueDate,

@@ -8,6 +8,7 @@ import {
   Invoice 
 } from "@/lib/invoicesDb";
 import { getPatients, Patient } from "@/lib/patientsDb";
+import { getClinicConfig, ClinicConfig } from "@/lib/db";
 import { FEATURES } from "@/lib/features";
 import jsPDF from "jspdf";
 import { buildUnifiedInvoicePdf } from "@/lib/prescriptionPdf";
@@ -45,6 +46,7 @@ export default function ClinicalBillingPage() {
   // Firestore & Data States
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [clinicConfig, setClinicConfig] = useState<ClinicConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Filter & Search States
@@ -63,7 +65,7 @@ export default function ClinicalBillingPage() {
   const [actionSuccess, setActionSuccess] = useState("");
   const [actionError, setActionError] = useState("");
 
-  // Subscribe to real-time invoices & load patients
+  // Subscribe to real-time invoices & load patients & clinic config
   useEffect(() => {
     setLoading(true);
     const unsubscribe = subscribeInvoices((data) => {
@@ -71,15 +73,19 @@ export default function ClinicalBillingPage() {
       setLoading(false);
     });
 
-    async function loadPatientsList() {
+    async function loadInitialData() {
       try {
-        const pList = await getPatients();
-        setPatients(pList);
+        const [pList, cfg] = await Promise.allSettled([
+          getPatients(),
+          getClinicConfig(),
+        ]);
+        if (pList.status === "fulfilled") setPatients(pList.value);
+        if (cfg.status === "fulfilled") setClinicConfig(cfg.value);
       } catch (err) {
-        console.error("Error loading patients list for invoicing:", err);
+        console.error("Error loading initial data for invoicing:", err);
       }
     }
-    loadPatientsList();
+    loadInitialData();
 
     return () => unsubscribe();
   }, []);
@@ -160,6 +166,8 @@ export default function ClinicalBillingPage() {
       patientId: inv.patientId,
       patientEmail: inv.patientEmail,
       patientPhone: inv.patientPhone,
+      clinicAddress: clinicConfig?.address,
+      clinicPhone: clinicConfig?.phone,
       therapistName: inv.therapistName,
       serviceDate: inv.serviceDate,
       dueDate: inv.dueDate,

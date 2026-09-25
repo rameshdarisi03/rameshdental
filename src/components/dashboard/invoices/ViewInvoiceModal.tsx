@@ -63,7 +63,7 @@ export default function ViewInvoiceModal({
               GPC
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">Tax Invoice & Receipt</h3>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Invoice / Payment Receipt</h3>
               <p className="text-[10px] font-bold text-slate-500">{invoice.invoiceNumber}</p>
             </div>
           </div>
@@ -85,8 +85,8 @@ export default function ViewInvoiceModal({
             <div>
               <h4 className="font-black text-brand-green text-sm">Gait Physio Clinic</h4>
               <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-0.5">
-                123 Clinical Wellness Way, Sector 4<br />
-                Bengaluru, Karnataka 560001 • +91 89044 56243
+                Shop No. 26 (2nd Floor) & Shop No. 06 (3rd Floor)<br />
+                ITPL Main Road, Whitefield, Bengaluru - 560066 • +91 89044 56243
               </p>
             </div>
             <div className="text-right">

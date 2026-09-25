@@ -515,6 +515,8 @@ export interface UnifiedInvoiceParams {
   patientId?: string;
   patientEmail?: string;
   patientPhone?: string;
+  clinicAddress?: string;
+  clinicPhone?: string;
   therapistName?: string;
   serviceDate?: string;
   dueDate?: string;
@@ -554,23 +556,29 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
 
   // 1. Header Banner
   doc.setFillColor(brandForest[0], brandForest[1], brandForest[2]);
-  doc.roundedRect(30, y, pageWidth - 60, 68, 8, 8, "F");
+  doc.roundedRect(30, y, pageWidth - 60, 70, 8, 8, "F");
 
+  // Line 1: Clinic Name
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("GAIT PHYSIO CLINIC", 48, y + 26);
+  doc.setFontSize(15.5);
+  doc.text("GAIT PHYSIO CLINIC", 48, y + 23);
 
-  doc.setFontSize(9.5);
+  // Line 2: Clinic Location & Contact (Directly under clinic name)
+  const addressText = params.clinicAddress || "Shop No. 26 (2nd Flr) & Shop No. 06 (3rd Flr), ITPL Main Rd, Whitefield, Bengaluru - 560066";
+  const phoneText = params.clinicPhone || "+91 89044 56243";
+  doc.setFontSize(7.8);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(215, 228, 232);
+  doc.text(`${addressText} • ${phoneText}`, 48, y + 38);
+
+  // Line 3: Receipt Details (Swapped to third line, renamed to INVOICE / PAYMENT RECEIPT)
+  doc.setFontSize(9.5);
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
-  doc.text(`TAX INVOICE & RECEIPT #${params.invoiceNumber || "INV-001"}`, 48, y + 42);
+  doc.text(`INVOICE / PAYMENT RECEIPT #${params.invoiceNumber || "INV-001"}`, 48, y + 55);
 
-  doc.setFontSize(8);
-  doc.setTextColor(220, 230, 235);
-  doc.text("123 Clinical Wellness Way, Sector 4, Bengaluru • +91 89044 56243", 48, y + 56);
-
-  y += 82;
+  y += 84;
 
   // 2. Invoice Meta & Patient Information Card
   doc.setFillColor(249, 250, 251);
@@ -774,7 +782,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setFontSize(7.5);
   doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
   doc.text(
-    `This is a computer-generated tax invoice for Gait Physio Clinic. Please quote #${params.invoiceNumber} for insurance claims.`,
+    `This is an official computer-generated invoice and payment receipt for Gait Physio Clinic. Please quote #${params.invoiceNumber} for insurance claims & tax filing.`,
     pageWidth / 2,
     footerY,
     { align: "center" }
