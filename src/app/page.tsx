@@ -1067,10 +1067,9 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="p-6 pt-0 space-y-2">
-                    {/* Disappears when public booking is disabled! */}
-                    {clinicConfig.enablePublicBooking !== false && (
+                  {/* Action Buttons: Only rendered when online booking is enabled */}
+                  {clinicConfig.enablePublicBooking !== false && (
+                    <div className="p-6 pt-0 space-y-2">
                       <Link
                         href={`/book?therapist=${encodeURIComponent(doctor.name)}`}
                         className="w-full inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-xs transition-transform active:scale-95"
@@ -1078,20 +1077,16 @@ export default function Home() {
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Book Consultation</span>
                       </Link>
-                    )}
 
-                    <Link
-                      href={`/team#${doctor.id}`}
-                      className={`w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors ${
-                        clinicConfig.enablePublicBooking !== false
-                          ? "bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
-                          : "bg-brand-green hover:bg-brand-green-hover text-white font-black shadow-xs active:scale-95"
-                      }`}
-                    >
-                      <span>View Full Profile</span>
-                      <span className="text-sm leading-none">→</span>
-                    </Link>
-                  </div>
+                      <Link
+                        href={`/team#${doctor.id}`}
+                        className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
+                      >
+                        <span>View Full Profile</span>
+                        <span className="text-sm leading-none">→</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               );
             })}
