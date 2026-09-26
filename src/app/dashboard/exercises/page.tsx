@@ -63,6 +63,7 @@ export default function ExerciseLibraryAdminPage() {
   const [defaultSets, setDefaultSets] = useState(3);
   const [defaultReps, setDefaultReps] = useState("10");
   const [saving, setSaving] = useState(false);
+  const [addError, setAddError] = useState("");
 
   // Modal State for editing exercise
   const [editingExercise, setEditingExercise] = useState<ExerciseItem | null>(null);
@@ -74,6 +75,7 @@ export default function ExerciseLibraryAdminPage() {
   const [editDefaultSets, setEditDefaultSets] = useState(3);
   const [editDefaultReps, setEditDefaultReps] = useState("10");
   const [updating, setUpdating] = useState(false);
+  const [editError, setEditError] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -99,25 +101,34 @@ export default function ExerciseLibraryAdminPage() {
 
   const handleAddExercise = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !youtubeUrl) return;
+    setAddError("");
+    if (!title.trim() || !youtubeUrl.trim()) {
+      setAddError("Please fill in both the exercise title and YouTube URL.");
+      return;
+    }
+
+    const youtubeId = extractYoutubeId(youtubeUrl);
+    if (!youtubeId || youtubeId.length < 5) {
+      setAddError("Could not detect a valid YouTube video ID from the URL. Please verify the link.");
+      return;
+    }
 
     setSaving(true);
     try {
-      const youtubeId = extractYoutubeId(youtubeUrl);
       const tags = tagsInput
         .split(",")
         .map((t) => t.trim().toUpperCase())
         .filter(Boolean);
 
       const newItem = await addExerciseToLibrary({
-        title,
-        youtubeUrl,
+        title: title.trim(),
+        youtubeUrl: youtubeUrl.trim(),
         youtubeId,
-        duration: duration || "1:00",
+        duration: duration.trim() || "1:00",
         category,
-        tags,
+        tags: tags.length > 0 ? tags : [category.toUpperCase()],
         defaultSets: Number(defaultSets) || 3,
-        defaultReps: defaultReps || "10"
+        defaultReps: String(defaultReps).trim() || "10"
       });
 
       setExercises([newItem, ...exercises]);
@@ -128,8 +139,12 @@ export default function ExerciseLibraryAdminPage() {
       setCategory("Shoulder");
       setDuration("1:00");
       setTagsInput("STRENGTH, MOBILITY");
-    } catch (err) {
+      setDefaultSets(3);
+      setDefaultReps("10");
+      setAddError("");
+    } catch (err: any) {
       console.error("Error adding exercise:", err);
+      setAddError(err?.message || "Failed to save exercise to database. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -140,33 +155,43 @@ export default function ExerciseLibraryAdminPage() {
     setEditTitle(ex.title);
     setEditYoutubeUrl(ex.youtubeUrl || `https://www.youtube.com/watch?v=${ex.youtubeId}`);
     setEditCategory(ex.category);
-    setEditDuration(ex.duration);
+    setEditDuration(ex.duration || "1:00");
     setEditTagsInput((ex.tags || []).join(", "));
     setEditDefaultSets(ex.defaultSets || 3);
     setEditDefaultReps(ex.defaultReps || "10");
+    setEditError("");
   };
 
   const handleUpdateExercise = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingExercise || !editTitle || !editYoutubeUrl) return;
+    setEditError("");
+    if (!editingExercise || !editTitle.trim() || !editYoutubeUrl.trim()) {
+      setEditError("Please fill in both the exercise title and YouTube URL.");
+      return;
+    }
+
+    const youtubeId = extractYoutubeId(editYoutubeUrl);
+    if (!youtubeId || youtubeId.length < 5) {
+      setEditError("Could not detect a valid YouTube video ID from the URL. Please verify the link.");
+      return;
+    }
 
     setUpdating(true);
     try {
-      const youtubeId = extractYoutubeId(editYoutubeUrl);
       const tags = editTagsInput
         .split(",")
         .map((t) => t.trim().toUpperCase())
         .filter(Boolean);
 
       const updatedPayload = {
-        title: editTitle,
-        youtubeUrl: editYoutubeUrl,
+        title: editTitle.trim(),
+        youtubeUrl: editYoutubeUrl.trim(),
         youtubeId,
-        duration: editDuration || "1:00",
+        duration: editDuration.trim() || "1:00",
         category: editCategory,
-        tags,
+        tags: tags.length > 0 ? tags : [editCategory.toUpperCase()],
         defaultSets: Number(editDefaultSets) || 3,
-        defaultReps: editDefaultReps || "10"
+        defaultReps: String(editDefaultReps).trim() || "10"
       };
 
       await updateExerciseInLibrary(editingExercise.id, updatedPayload);
@@ -181,8 +206,10 @@ export default function ExerciseLibraryAdminPage() {
       );
 
       setEditingExercise(null);
-    } catch (err) {
+      setEditError("");
+    } catch (err: any) {
       console.error("Error updating exercise:", err);
+      setEditError(err?.message || "Failed to update exercise. Please try again.");
     } finally {
       setUpdating(false);
     }
@@ -421,6 +448,13 @@ export default function ExerciseLibraryAdminPage() {
 
             <form onSubmit={handleAddExercise} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
+                {addError && (
+                  <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-bold border border-red-200 dark:border-red-900/50 flex items-center justify-between">
+                    <span>{addError}</span>
+                    <button type="button" onClick={() => setAddError("")} className="text-xs font-bold px-1.5 py-0.5 hover:opacity-75">✕</button>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
                     Exercise Title
@@ -454,25 +488,30 @@ export default function ExerciseLibraryAdminPage() {
                   />
                 </div>
 
+                {youtubeUrl && extractYoutubeId(youtubeUrl) && (
+                  <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                    <img
+                      src={`https://img.youtube.com/vi/${extractYoutubeId(youtubeUrl)}/mqdefault.jpg`}
+                      alt="YouTube Preview"
+                      className="w-20 h-12 rounded-xl object-cover shrink-0 bg-black"
+                      onError={(e) => { (e.target as any).style.display = 'none'; }}
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        Valid YouTube Video Detected
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                        ID: {extractYoutubeId(youtubeUrl)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                      Target Anatomy
-                    </label>
-                    <select
-                      value={targetRegion}
-                      onChange={(e) => setTargetRegion(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
-                    >
-                      {TARGET_REGIONS.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                      Clinical Goal
+                      Target Anatomy / Category
                     </label>
                     <select
                       value={category}
@@ -483,6 +522,19 @@ export default function ExerciseLibraryAdminPage() {
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Estimated Duration
+                    </label>
+                    <input
+                      type="text"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      placeholder="e.g. 1:00 or 45 sec"
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                    />
                   </div>
                 </div>
 
@@ -577,6 +629,13 @@ export default function ExerciseLibraryAdminPage() {
 
             <form onSubmit={handleUpdateExercise} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
+                {editError && (
+                  <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-bold border border-red-200 dark:border-red-900/50 flex items-center justify-between">
+                    <span>{editError}</span>
+                    <button type="button" onClick={() => setEditError("")} className="text-xs font-bold px-1.5 py-0.5 hover:opacity-75">✕</button>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
                     Exercise Title
@@ -603,25 +662,30 @@ export default function ExerciseLibraryAdminPage() {
                   />
                 </div>
 
+                {editYoutubeUrl && extractYoutubeId(editYoutubeUrl) && (
+                  <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                    <img
+                      src={`https://img.youtube.com/vi/${extractYoutubeId(editYoutubeUrl)}/mqdefault.jpg`}
+                      alt="YouTube Preview"
+                      className="w-20 h-12 rounded-xl object-cover shrink-0 bg-black"
+                      onError={(e) => { (e.target as any).style.display = 'none'; }}
+                    />
+                    <div className="text-[11px] leading-tight">
+                      <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        Valid YouTube Video Detected
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                        ID: {extractYoutubeId(editYoutubeUrl)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                      Target Anatomy
-                    </label>
-                    <select
-                      value={editTargetRegion}
-                      onChange={(e) => setEditTargetRegion(e.target.value)}
-                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green cursor-pointer"
-                    >
-                      {TARGET_REGIONS.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                      Clinical Goal
+                      Target Anatomy / Category
                     </label>
                     <select
                       value={editCategory}
@@ -632,6 +696,19 @@ export default function ExerciseLibraryAdminPage() {
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Estimated Duration
+                    </label>
+                    <input
+                      type="text"
+                      value={editDuration}
+                      onChange={(e) => setEditDuration(e.target.value)}
+                      placeholder="e.g. 1:00 or 45 sec"
+                      className="w-full px-4 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-brand-green"
+                    />
                   </div>
                 </div>
 
