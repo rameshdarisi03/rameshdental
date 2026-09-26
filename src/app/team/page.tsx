@@ -2,53 +2,20 @@ import React from "react";
 import Link from "next/link";
 import PageHeader from "@/components/public/PageHeader";
 import { Award, ShieldCheck, HeartHandshake, CheckCircle2, Calendar, Star, GraduationCap } from "lucide-react";
+import { getClinicConfig, DEFAULT_TEAM_MEMBERS } from "@/lib/db";
 
-const teamMembers = [
-  {
-    name: "Dr. Madem Kinnera",
-    role: "Lead Physiotherapist & Gait Specialist",
-    qualifications: "MPT (Orthopaedics), Certified Gait Analyst, MIAP",
-    experience: "10+ Years Clinical Practice",
-    bio: "Dr. Madem Kinnera is the founder and lead clinical specialist at Gait Physio Clinic. Specializing in orthopedic rehabilitation and biomechanical gait assessment, she has successfully treated thousands of patients suffering from complex spine conditions, sports tears, and postural misalignments. Her philosophy centers on finding the root mechanical trigger rather than merely masking pain.",
-    specialties: [
-      "Biomechanical Gait Analysis",
-      "Spine & Disc Decompression",
-      "Sports ACL & Meniscus Rehab",
-      "Post-Surgical Joint Restoration"
-    ],
-    image: "/images/hero_physio_session.webp"
-  },
-  {
-    name: "Dr. Mohammad",
-    role: "Senior Sports Physical Therapist",
-    qualifications: "BPT, Sports Injury & Dry Needling Certified",
-    experience: "6+ Years Clinical Practice",
-    bio: "Dr. Mohammad specializes in athletic conditioning, acute musculoskeletal trauma, and rapid return-to-sport protocols. He works closely with runners, gym enthusiasts, and competitive athletes to restore explosive strength and joint stability.",
-    specialties: [
-      "Athletic Return-to-Play",
-      "Dry Needling & Myofascial Release",
-      "Shoulder & Rotator Cuff Rehab",
-      "Functional Movement Screening"
-    ],
-    image: "/images/services/sports_injury.webp"
-  },
-  {
-    name: "Dr. Charmi",
-    role: "Consultant Neuro & Geriatric Specialist",
-    qualifications: "BPT, Neuro-Rehabilitation Certified",
-    experience: "5+ Years Clinical Practice",
-    bio: "Dr. Charmi focuses on neuro-motor re-education, fall prevention in elderly patients, and gentle postpartum core restoration. Her patient-first demeanor brings tremendous confidence to patients recovering from debilitating mobility restrictions.",
-    specialties: [
-      "Stroke & Neuropathy Recovery",
-      "Senior Balance & Fall Prevention",
-      "Tailbone (Coccydynia) Therapy",
-      "Pelvic Floor & Core Stability"
-    ],
-    image: "/images/services/geriatric.webp"
-  }
-];
+export const revalidate = 60;
 
-export default function TeamPage() {
+export default async function TeamPage() {
+  const config = await getClinicConfig();
+  const members = (config.teamMembers && config.teamMembers.length > 0
+    ? config.teamMembers
+    : DEFAULT_TEAM_MEMBERS)
+    .filter((m) => m.isActive !== false)
+    .sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1));
+
+  const enableBooking = config.enablePublicBooking !== false;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter',sans-serif]">
       <PageHeader
@@ -98,23 +65,26 @@ export default function TeamPage() {
 
         {/* Team Members List */}
         <div className="space-y-8">
-          {teamMembers.map((member, idx) => (
+          {members.map((member, idx) => (
             <div
-              key={member.name}
+              id={member.id}
+              key={member.id || member.name}
               className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs p-6 sm:p-8 flex flex-col ${
                 idx % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"
-              } gap-8 items-center`}
+              } gap-8 items-center scroll-mt-28`}
             >
               {/* Photo */}
               <div className="w-full lg:w-1/3 aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative shrink-0 shadow-sm">
                 <img
-                  src={member.image}
+                  src={member.image || "/images/dr-kinnera-portrait.jpg"}
                   alt={member.name}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-black px-3 py-1 rounded-full">
-                  {member.experience}
-                </div>
+                {member.experience && (
+                  <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-black px-3 py-1 rounded-full">
+                    {member.experience}
+                  </div>
+                )}
               </div>
 
               {/* Bio & Details */}
@@ -131,40 +101,49 @@ export default function TeamPage() {
                   <p className="text-xs sm:text-sm font-bold text-brand-green mt-0.5">
                     {member.role}
                   </p>
-                  <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-1">
-                    <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>{member.qualifications}</span>
-                  </p>
+                  {member.qualifications && (
+                    <p className="text-xs text-slate-400 font-semibold flex items-center gap-1.5 mt-1">
+                      <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{member.qualifications}</span>
+                    </p>
+                  )}
                 </div>
 
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  {member.bio}
-                </p>
+                {member.bio && (
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {member.bio}
+                  </p>
+                )}
 
                 {/* Specialties */}
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
-                    Core Specializations
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {member.specialties.map((spec) => (
-                      <div key={spec} className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-brand-green shrink-0" />
-                        <span>{spec}</span>
-                      </div>
-                    ))}
+                {member.specialties && member.specialties.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                      Core Specializations
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {member.specialties.map((spec) => (
+                        <div key={spec} className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-brand-green shrink-0" />
+                          <span>{spec}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="pt-2">
-                  <Link
-                    href="/book"
-                    className="inline-flex items-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-transform active:scale-95"
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Book Appointment with {member.name.split(" ")[1]}</span>
-                  </Link>
-                </div>
+                {/* Appointment Booking Button (Constraint: Disappears when public booking is disabled) */}
+                {enableBooking && (
+                  <div className="pt-2">
+                    <Link
+                      href={`/book?therapist=${encodeURIComponent(member.name)}`}
+                      className="inline-flex items-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-transform active:scale-95"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Book Appointment with {member.name.replace("Dr. ", "")}</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           ))}

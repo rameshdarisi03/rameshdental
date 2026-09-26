@@ -65,6 +65,58 @@ export const DEFAULT_DAY_SCHEDULES: Record<WeekdayKey, DaySchedule> = {
   sunday: { isOpen: true, openTime: "09:00 AM", closeTime: "05:00 PM" },
 };
 
+export interface TeamDoctorProfile {
+  id: string;
+  name: string;
+  role: string;
+  qualifications?: string;
+  experience?: string;
+  specialties?: string[];
+  image: string;
+  bio?: string;
+  isActive?: boolean;
+  displayOrder?: number;
+}
+
+export const DEFAULT_TEAM_MEMBERS: TeamDoctorProfile[] = [
+  {
+    id: "dr-kinnera",
+    name: "Dr. Madem Kinnera",
+    role: "Lead Physiotherapist & Gait Specialist",
+    qualifications: "MPT (Orthopaedics), Certified Gait Analyst, MIAP",
+    experience: "10+ Years Clinical Practice",
+    specialties: ["Biomechanical Gait Analysis", "Spine & Disc Decompression", "Post-Surgical Joint Restoration"],
+    image: "/images/dr-kinnera-portrait.jpg",
+    bio: "Dr. Madem Kinnera is the founder and lead clinical specialist at Gait Physio Clinic. Specializing in orthopedic rehabilitation and biomechanical gait assessment, she has successfully treated thousands of patients suffering from complex spine conditions, sports tears, and postural misalignments.",
+    isActive: true,
+    displayOrder: 1,
+  },
+  {
+    id: "dr-mohammad",
+    name: "Dr. Mohammad",
+    role: "Senior Sports Physical Therapist",
+    qualifications: "BPT, Sports Injury & Dry Needling Certified",
+    experience: "6+ Years Clinical Practice",
+    specialties: ["Athletic Return-to-Play", "Dry Needling & Myofascial Release", "Shoulder & Rotator Cuff Rehab"],
+    image: "/images/dr-rohan-portrait.jpg",
+    bio: "Dr. Mohammad specializes in athletic conditioning, acute musculoskeletal trauma, and rapid return-to-sport protocols. He works closely with runners, gym enthusiasts, and competitive athletes to restore explosive strength and joint stability.",
+    isActive: true,
+    displayOrder: 2,
+  },
+  {
+    id: "dr-charmi",
+    name: "Dr. Charmi",
+    role: "Consultant Neuro & Geriatric Specialist",
+    qualifications: "BPT, Neuro-Rehabilitation Certified",
+    experience: "5+ Years Clinical Practice",
+    specialties: ["Stroke & Neuropathy Recovery", "Senior Balance & Fall Prevention", "Pelvic Floor & Core Stability"],
+    image: "/images/services/geriatric.webp",
+    bio: "Dr. Charmi focuses on neuro-motor re-education, fall prevention in elderly patients, and gentle postpartum core restoration. Her patient-first demeanor brings tremendous confidence to patients recovering from debilitating mobility restrictions.",
+    isActive: true,
+    displayOrder: 3,
+  }
+];
+
 export interface ClinicConfig {
   enablePublicBooking?: boolean; // Master toggle for public online booking access
   weeklyHolidays: {
@@ -86,6 +138,7 @@ export interface ClinicConfig {
   eveningEnd: string; // "07:00 PM"
   operationalHoursText: string;
   therapists: string[];
+  teamMembers?: TeamDoctorProfile[];
   adminWalkInGraceType?: "end_of_slot" | "15_min" | "30_min" | "anytime_today"; // Admin walk-in late tolerance
   publicBookingCutoffMinutes?: number; // Public cutoff before slot starts: 0, 15, 30, 60
   address?: string;
@@ -117,7 +170,8 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   eveningStart: "02:00 PM",
   eveningEnd: "08:00 PM",
   operationalHoursText: "Mon - Sat: 09:30 AM - 08:00 PM | Sun: 09:00 AM - 05:00 PM",
-  therapists: ["Dr. Sarah Jenkins", "Dr. Rohan Das"],
+  therapists: ["Dr. Madem Kinnera", "Dr. Mohammad", "Dr. Charmi"],
+  teamMembers: DEFAULT_TEAM_MEMBERS,
   adminWalkInGraceType: "end_of_slot",
   publicBookingCutoffMinutes: 0,
   address: "Shop No. 26 (2nd Floor) & Shop No. 06 (3rd Floor), ITPL Main Road, Prasanth Extension, Near Hope Farm Signal, Whitefield, Bengaluru, Karnataka - 560066",

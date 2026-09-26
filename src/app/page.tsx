@@ -39,7 +39,7 @@ import {
   Flame,
   X
 } from "lucide-react";
-import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
+import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG, TeamDoctorProfile, DEFAULT_TEAM_MEMBERS } from "@/lib/db";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import { articles } from "@/data/articles";
 
@@ -153,50 +153,6 @@ export default function Home() {
     },
   ];
 
-  // Integrated Specialists/Team data
-  interface TherapistProfile {
-    name: string;
-    role: string;
-    image: string;
-    years: string;
-    headline: string;
-    desc: string;
-    quote: string;
-    signature: string;
-  }
-
-  const therapistProfiles: TherapistProfile[] = [
-    {
-      name: "Dr. Kinnera, BPT, MPT",
-      role: "Senior Physiotherapist & Clinical Director",
-      image: "/images/dr-kinnera-portrait.jpg",
-      years: "12+",
-      headline: "Passionate About Providing Expert Care And Support",
-      desc: "Behind every successful recovery is a physiotherapist's passion for care, relentless support, and expert guidance. Dr. Kinnera is committed to resolving underlying biomechanical dysfunctions, relieving acute and chronic pain, and helping you achieve long-term physical health.",
-      quote: "True Healing Comes From More Than Treatments—It's Built On Trust, Patience, And Compassion, Reflected In Each Small Victory And Ongoing Encouragement.",
-      signature: "Dr. Kinnera",
-    }
-  ];
-
-  const [teamIndex, setTeamIndex] = useState(0);
-
-  const nextTeamSlide = useCallback(() => {
-    setTeamIndex((prev) => (prev + 1) % therapistProfiles.length);
-  }, [therapistProfiles.length]);
-
-  const prevTeamSlide = useCallback(() => {
-    setTeamIndex((prev) => (prev - 1 + therapistProfiles.length) % therapistProfiles.length);
-  }, [therapistProfiles.length]);
-
-  // Autoplay for team slider
-  useEffect(() => {
-    if (therapistProfiles.length <= 1) return;
-    const timer = setInterval(() => {
-      nextTeamSlide();
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [nextTeamSlide, therapistProfiles.length]);
-
   // Integrated Gallery data
   const galleryItems = [
     {
@@ -271,6 +227,15 @@ export default function Home() {
     }
     loadConfig();
   }, []);
+
+  // Active Clinical Specialists for 3-doctor showcase
+  const activeDoctors: TeamDoctorProfile[] = (
+    clinicConfig.teamMembers && clinicConfig.teamMembers.length > 0
+      ? clinicConfig.teamMembers
+      : DEFAULT_TEAM_MEMBERS
+  )
+    .filter((doc) => doc.isActive !== false)
+    .sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1));
 
   // PWA App Installation Support with Smart Device Detection
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -1025,124 +990,112 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Our Specialists / Team Section */}
+      {/* Our Specialists / Team Section - 3 Doctor Showcase Grid */}
       <section id="team" className="py-20 bg-brand-bg dark:bg-slate-955 relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
           
           <div className="text-center max-w-3xl mx-auto mb-14 reveal-on-scroll">
+            <div className="flex items-center justify-center gap-2 text-brand-green dark:text-teal-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest mb-2">
+              <span className="h-[2px] w-8 bg-brand-green dark:bg-teal-400 rounded-full"></span>
+              OUR CLINICAL SPECIALISTS
+              <span className="h-[2px] w-8 bg-brand-green dark:bg-teal-400 rounded-full"></span>
+            </div>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
               Meet Our Specialists
             </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 max-w-xl mx-auto leading-relaxed">
+              Certified physiotherapists and movement analysts combining deep biomechanical expertise with personalized 1-on-1 rehabilitation.
+            </p>
           </div>
 
-          {therapistProfiles.length > 1 && (
-            <>
-              <div className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 hidden lg:block">
-                <button
-                  onClick={prevTeamSlide}
-                  className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
-                  title="Previous Specialist"
+          {/* 3-Doctor Showcase Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+            {activeDoctors.map((doctor) => {
+              return (
+                <div
+                  key={doctor.id || doctor.name}
+                  className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-xl hover:border-brand-green/40 transition-all duration-300 flex flex-col justify-between"
                 >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="absolute top-1/2 -translate-y-1/2 -right-4 z-20 hidden lg:block">
-                <button
-                  onClick={nextTeamSlide}
-                  className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
-                  title="Next Specialist"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </>
-          )}
-
-          <div key={teamIndex} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full">
-            <div className="lg:col-span-5 relative animate-fade-in-left">
-              <div className="relative max-w-md mx-auto">
-                <img
-                  src={therapistProfiles[teamIndex].image}
-                  alt={`${therapistProfiles[teamIndex].name} Standing in GPC Clinic`}
-                  className="w-full rounded-[2.5rem] object-cover aspect-[3/4] shadow-[0_15px_35px_-10px_var(--brand-shadow-hover)] border-4 border-white dark:border-slate-900 transition-all duration-300"
-                />
-                <div className="absolute -right-8 top-1/2 z-10 w-24 h-24 rounded-full bg-brand-green text-white flex flex-col items-center justify-center border-4 border-slate-50 dark:border-slate-950 shadow-xl text-center select-none animate-float-badge">
-                  <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{therapistProfiles[teamIndex].years}</span>
-                  <span className="text-[7.5px] font-black uppercase tracking-wider mt-1.5 leading-tight">
-                    Years of<br />Expertise
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-7 space-y-6">
-              <div className="flex items-center gap-2 text-brand-green dark:text-teal-400 font-extrabold text-[10px] sm:text-xs uppercase tracking-widest animate-fade-in-up">
-                <span className="h-[2px] w-8 bg-brand-green dark:bg-teal-400 rounded-full"></span>
-                OUR TRUSTED SUPPORT
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white leading-tight animate-fade-in-up delay-100">
-                Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
-              </h2>
-
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal animate-fade-in-up delay-200">
-                {therapistProfiles[teamIndex].desc}
-              </p>
-
-              <div className="border-l-4 border-brand-green dark:border-teal-500 bg-brand-sand/60 dark:bg-brand-green/5 p-4 sm:p-5 rounded-r-2xl italic text-[11px] sm:text-xs font-normal text-slate-655 dark:text-slate-350 leading-relaxed animate-fade-in-up delay-300">
-                "{therapistProfiles[teamIndex].quote}"
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-6 pt-6 border-t border-slate-200/60 dark:border-slate-800 animate-fade-in-up delay-400">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={therapistProfiles[teamIndex].image}
-                    alt={`${therapistProfiles[teamIndex].name} Profile Icon`}
-                    className="w-12 h-12 rounded-full object-cover border border-brand-green/20 ring-4 ring-brand-green/5 shrink-0"
-                  />
+                  {/* Photo with Experience Badge */}
                   <div>
-                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none block mb-1">
-                      {therapistProfiles[teamIndex].role}
-                    </span>
-                    <h4 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
-                      {therapistProfiles[teamIndex].name}
-                    </h4>
+                    <div className="relative aspect-[4/5] bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <img
+                        src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
+                        alt={`${doctor.name} - ${doctor.role}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent opacity-70 group-hover:opacity-50 transition-opacity" />
+                      
+                      {/* Experience Badge */}
+                      {doctor.experience && (
+                        <div className="absolute top-4 left-4 bg-slate-900/85 backdrop-blur-md text-white text-[10.5px] font-black px-3 py-1 rounded-full border border-white/20 shadow-md flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse" />
+                          <span>{doctor.experience}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Doctor Info */}
+                    <div className="p-6 space-y-3">
+                      <div>
+                        <h3 className="text-lg sm:text-xl font-black text-brand-charcoal dark:text-white leading-snug group-hover:text-brand-green transition-colors">
+                          {doctor.name}
+                        </h3>
+                        <p className="text-xs font-bold text-brand-green dark:text-teal-400 mt-1">
+                          {doctor.role}
+                        </p>
+                        {doctor.qualifications && (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
+                            {doctor.qualifications}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Specialties Pills */}
+                      {doctor.specialties && doctor.specialties.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {doctor.specialties.slice(0, 3).map((spec, sIdx) => (
+                            <span
+                              key={sIdx}
+                              className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50"
+                            >
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="p-6 pt-0 space-y-2">
+                    {/* Disappears when public booking is disabled! */}
+                    {clinicConfig.enablePublicBooking !== false && (
+                      <Link
+                        href={`/book?therapist=${encodeURIComponent(doctor.name)}`}
+                        className="w-full inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-xs transition-transform active:scale-95"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Book Consultation</span>
+                      </Link>
+                    )}
+
+                    <Link
+                      href={`/team#${doctor.id}`}
+                      className={`w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors ${
+                        clinicConfig.enablePublicBooking !== false
+                          ? "bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
+                          : "bg-brand-green hover:bg-brand-green-hover text-white font-black shadow-xs active:scale-95"
+                      }`}
+                    >
+                      <span>View Full Profile</span>
+                      <span className="text-sm leading-none">→</span>
+                    </Link>
                   </div>
                 </div>
-
-                <div className="font-[family-name:var(--font-signature)] text-4xl sm:text-5xl text-brand-green dark:text-teal-400 font-medium select-none pr-4 rotate-[-3deg] transform origin-center tracking-wide">
-                  {therapistProfiles[teamIndex].signature}
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
-
-          {therapistProfiles.length > 1 && (
-            <div className="flex items-center justify-center gap-4 pt-12">
-              <button
-                onClick={prevTeamSlide}
-                className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex gap-2">
-                {therapistProfiles.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setTeamIndex(idx)}
-                    className={`h-2.5 rounded-full transition-all duration-350 cursor-pointer ${idx === teamIndex ? "bg-brand-green w-6" : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"}`}
-                    title={`View Specialist ${idx + 1}`}
-                  />
-                ))}
-              </div>
-              <button
-                onClick={nextTeamSlide}
-                className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
 
         </div>
       </section>

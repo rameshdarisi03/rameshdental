@@ -42,6 +42,7 @@ function BookingFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedService = searchParams ? searchParams.get("service") || "" : "";
+  const preselectedTherapist = searchParams ? searchParams.get("therapist") || "" : "";
 
   // Settings config state
   const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
@@ -54,7 +55,7 @@ function BookingFormContent() {
     serviceId: preselectedService || "General Physiotherapy Consultation",
     date: getTodayDateString(),
     slot: "",
-    notes: "",
+    notes: preselectedTherapist ? `Requested Specialist: ${preselectedTherapist}` : "",
   });
 
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -339,6 +340,24 @@ function BookingFormContent() {
           {errorMessage && (
             <div className="p-4 mb-6 bg-red-50 border border-red-200 text-red-700 text-xs font-black rounded-2xl animate-shake max-w-md mx-auto text-center shadow-sm">
               {errorMessage}
+            </div>
+          )}
+          {/* Preselected Specialist Banner */}
+          {preselectedTherapist && (
+            <div className="mb-6 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-slate-600 dark:text-slate-300">
+                  Booking priority consultation with:{" "}
+                  <strong className="text-brand-charcoal dark:text-white font-black">{preselectedTherapist}</strong>
+                </span>
+              </div>
+              <Link
+                href="/book"
+                className="text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline"
+              >
+                Clear
+              </Link>
             </div>
           )}
 

@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { getClinicConfig, saveClinicConfig, ClinicConfig, generateSlotsFromHours, getSlotCapacity, DEFAULT_DAY_SCHEDULES, DaySchedule, WeekdayKey } from "@/lib/db";
+import { 
+  getClinicConfig, 
+  saveClinicConfig, 
+  ClinicConfig, 
+  generateSlotsFromHours, 
+  getSlotCapacity, 
+  DEFAULT_DAY_SCHEDULES, 
+  DaySchedule, 
+  WeekdayKey,
+  TeamDoctorProfile,
+  DEFAULT_TEAM_MEMBERS
+} from "@/lib/db";
 import { 
   Loader2, 
   Save, 
@@ -31,7 +42,13 @@ import {
   Palette,
   Check,
   Copy,
-  X
+  X,
+  Camera,
+  Upload,
+  Eye,
+  EyeOff,
+  Edit3,
+  Stethoscope
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -140,6 +157,15 @@ function computeConfigDiff(
     diffs.push({
       category: "Therapists Removed",
       detail: `- ${removedTherapists.join(", ")}`,
+    });
+  }
+
+  // Doctor Profiles & Photos
+  if (JSON.stringify(initial.teamMembers || []) !== JSON.stringify(current.teamMembers || [])) {
+    const count = current.teamMembers?.length || 0;
+    diffs.push({
+      category: "Doctors & Roster",
+      detail: `Clinical team profiles or photos modified (${count} doctor${count === 1 ? '' : 's'} enrolled)`,
     });
   }
 
@@ -270,7 +296,8 @@ export default function DashboardSettings() {
     eveningStart: "02:00 PM",
     eveningEnd: "08:00 PM",
     operationalHoursText: "",
-    therapists: [],
+    therapists: ["Dr. Madem Kinnera", "Dr. Mohammad", "Dr. Charmi"],
+    teamMembers: DEFAULT_TEAM_MEMBERS,
     address: "",
     landmark: "",
     phone: "",
@@ -284,6 +311,201 @@ export default function DashboardSettings() {
   const [newTherapistName, setNewTherapistName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState("Oct 12, 2023, 10:45 AM");
+
+  // Doctor Profile & Photo Manager state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editingDoctor, setEditingDoctor] = useState<TeamDoctorProfile | null>(null);
+  const [isNewDoctor, setIsNewDoctor] = useState(false);
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [formDocName, setFormDocName] = useState("");
+  const [formDocRole, setFormDocRole] = useState("");
+  const [formDocQualifications, setFormDocQualifications] = useState("");
+  const [formDocExperience, setFormDocExperience] = useState("");
+  const [formDocSpecialties, setFormDocSpecialties] = useState("");
+  const [formDocImage, setFormDocImage] = useState("");
+  const [formDocBio, setFormDocBio] = useState("");
+  const [formDocIsActive, setFormDocIsActive] = useState(true);
+  const [formDocOrder, setFormDocOrder] = useState(1);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handleOpenAddDoctor = () => {
+    setIsNewDoctor(true);
+    setEditingDoctor(null);
+    setFormDocName("");
+    setFormDocRole("Physiotherapist & Rehabilitation Specialist");
+    setFormDocQualifications("BPT, MIAP");
+    setFormDocExperience("3+ Years Clinical Practice");
+    setFormDocSpecialties("Musculoskeletal Rehab, Postural Assessment, Manual Therapy");
+    setFormDocImage("/images/dr-kinnera-portrait.jpg");
+    setFormDocBio("");
+    setFormDocIsActive(true);
+    const count = (config.teamMembers && config.teamMembers.length > 0) ? config.teamMembers.length : DEFAULT_TEAM_MEMBERS.length;
+    setFormDocOrder(count + 1);
+    setShowDoctorModal(true);
+  };
+
+  const handleOpenEditDoctor = (doc: TeamDoctorProfile) => {
+    setIsNewDoctor(false);
+    setEditingDoctor(doc);
+    setFormDocName(doc.name);
+    setFormDocRole(doc.role);
+    setFormDocQualifications(doc.qualifications || "");
+    setFormDocExperience(doc.experience || "");
+    setFormDocSpecialties((doc.specialties || []).join(", "));
+    setFormDocImage(doc.image || "");
+    setFormDocBio(doc.bio || "");
+    setFormDocIsActive(doc.isActive !== false);
+    setFormDocOrder(doc.displayOrder || 1);
+    setShowDoctorModal(true);
+  };
+
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file (JPG, PNG, WebP).");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const MAX_DIMENSION = 800; // Optimal 800px max for doctor portraits
+
+          if (width > height) {
+            if (width > MAX_DIMENSION) {
+              height = Math.round((height * MAX_DIMENSION) / width);
+              width = MAX_DIMENSION;
+            }
+          } else {
+            if (height > MAX_DIMENSION) {
+              width = Math.round((width * MAX_DIMENSION) / height);
+              height = MAX_DIMENSION;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL("image/jpeg", 0.84);
+            setFormDocImage(compressed);
+          }
+        } catch (err) {
+          console.error("Error compressing image:", err);
+          alert("Failed to process image.");
+        } finally {
+          setUploadingPhoto(false);
+        }
+      };
+      img.onerror = () => {
+        setUploadingPhoto(false);
+        alert("Failed to load image file.");
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveDoctorModal = () => {
+    const trimmedName = formDocName.trim();
+    if (!trimmedName) {
+      alert("Please enter doctor name.");
+      return;
+    }
+    const specialtiesArray = formDocSpecialties
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    let updatedMembers: TeamDoctorProfile[] = [...(config.teamMembers || DEFAULT_TEAM_MEMBERS)];
+
+    if (isNewDoctor) {
+      const newDoc: TeamDoctorProfile = {
+        id: `doc-${Date.now()}`,
+        name: trimmedName,
+        role: formDocRole.trim() || "Physiotherapist",
+        qualifications: formDocQualifications.trim(),
+        experience: formDocExperience.trim(),
+        specialties: specialtiesArray.length > 0 ? specialtiesArray : ["Physiotherapy & Rehabilitation"],
+        image: formDocImage.trim() || "/images/dr-kinnera-portrait.jpg",
+        bio: formDocBio.trim(),
+        isActive: formDocIsActive,
+        displayOrder: formDocOrder || updatedMembers.length + 1,
+      };
+      updatedMembers.push(newDoc);
+    } else if (editingDoctor) {
+      updatedMembers = updatedMembers.map((doc) => {
+        if (doc.id === editingDoctor.id) {
+          return {
+            ...doc,
+            name: trimmedName,
+            role: formDocRole.trim() || "Physiotherapist",
+            qualifications: formDocQualifications.trim(),
+            experience: formDocExperience.trim(),
+            specialties: specialtiesArray.length > 0 ? specialtiesArray : doc.specialties,
+            image: formDocImage.trim() || doc.image,
+            bio: formDocBio.trim(),
+            isActive: formDocIsActive,
+            displayOrder: formDocOrder || doc.displayOrder || 1,
+          };
+        }
+        return doc;
+      });
+    }
+
+    updatedMembers.sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1));
+    const updatedTherapists = updatedMembers.map((d) => d.name);
+
+    setConfig((prev) => ({
+      ...prev,
+      teamMembers: updatedMembers,
+      therapists: updatedTherapists,
+    }));
+    setIsDirty(true);
+    setSavedSuccess(false);
+    setShowDoctorModal(false);
+  };
+
+  const handleToggleDoctorActive = (id: string) => {
+    const currentMembers = config.teamMembers || DEFAULT_TEAM_MEMBERS;
+    const updated = currentMembers.map((doc) =>
+      doc.id === id ? { ...doc, isActive: doc.isActive === false ? true : false } : doc
+    );
+    setConfig((prev) => ({
+      ...prev,
+      teamMembers: updated,
+    }));
+    setIsDirty(true);
+    setSavedSuccess(false);
+  };
+
+  const handleDeleteDoctor = (id: string, name: string) => {
+    const currentMembers = config.teamMembers || DEFAULT_TEAM_MEMBERS;
+    if (currentMembers.length <= 1) {
+      alert("At least one doctor profile must remain enrolled.");
+      return;
+    }
+    if (confirm(`Are you sure you want to remove ${name} from the clinical team?`)) {
+      const updated = currentMembers.filter((doc) => doc.id !== id);
+      const updatedTherapists = updated.map((d) => d.name);
+      setConfig((prev) => ({
+        ...prev,
+        teamMembers: updated,
+        therapists: updatedTherapists,
+      }));
+      setIsDirty(true);
+      setSavedSuccess(false);
+    }
+  };
 
   const hourOptions = {
     morningStart: ["08:00 AM", "08:30 AM", "09:00 AM", "09:30 AM", "10:00 AM"],
@@ -329,6 +551,9 @@ export default function DashboardSettings() {
     async function loadData() {
       try {
         const fetched = await getClinicConfig();
+        if (!fetched.teamMembers || fetched.teamMembers.length === 0) {
+          fetched.teamMembers = DEFAULT_TEAM_MEMBERS;
+        }
         setConfig(fetched);
         setInitialConfig(JSON.parse(JSON.stringify(fetched)));
         
@@ -1612,7 +1837,7 @@ export default function DashboardSettings() {
                   {/* Styled Map frame */}
                   <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-955 h-36">
                     <iframe
-                      src={getEmbedUrl(config.googleMapsEmbed) || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.012301980838!2d77.7479703!3d12.9711227!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTLCsDU4JzE2LjAiTiA3N8KwNDQnNTIuNyJFCg!5e0!3m2!1sen!2sin!4v1700000000000"}
+                      src={getEmbedUrl(config.googleMapsEmbed || "") || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3888.012301980838!2d77.7479703!3d12.9711227!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTLCsDU4JzE2LjAiTiA3N8KwNDQnNTIuNyJFCg!5e0!3m2!1sen!2sin!4v1700000000000"}
                       className="absolute inset-0 w-full h-full border-0"
                       allowFullScreen={false}
                       loading="lazy"
@@ -1644,7 +1869,7 @@ export default function DashboardSettings() {
           {/* Right Column (Span 4) */}
           <div className="lg:col-span-4 space-y-8">
             
-            {/* Therapists Card */}
+            {/* Doctors & Team Profile Manager Card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm space-y-5">
               
               <div className="flex items-center justify-between">
@@ -1654,122 +1879,118 @@ export default function DashboardSettings() {
                   </div>
                   <div>
                     <h3 className="font-black text-brand-charcoal dark:text-white text-sm leading-none">
-                      Therapists
+                      Doctors & Roster
                     </h3>
                     <p className="text-[10px] text-slate-400 mt-1 font-semibold">
-                      Manage active clinical staff
+                      Photos, qualifications & homepage showcase
                     </p>
                   </div>
                 </div>
 
-                {/* White Plus on Dark Green Button */}
+                {/* Add Doctor Button */}
                 <button
                   type="button"
-                  onClick={() => setShowAddForm((prev) => !prev)}
-                  className="h-7 w-7 rounded-full bg-brand-green text-white hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-sm border-0"
-                  title="Add Staff Therapist"
+                  onClick={handleOpenAddDoctor}
+                  className="px-3 py-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm border-0"
+                  title="Add New Doctor"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add Doctor</span>
                 </button>
               </div>
 
-              {/* Therapist Cards List */}
-              <div className="space-y-3 pt-2 max-h-[300px] overflow-y-auto pr-0.5">
-                {/* Expandable Add Staff Form */}
-                {showAddForm && (
-                  <div className="p-3.5 border border-brand-green/20 bg-brand-bg/15 rounded-xl space-y-3 animate-fade-in-up">
-                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                      Staff Member Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Dr. Rohan Sharma"
-                      value={newTherapistName}
-                      onChange={(e) => setNewTherapistName(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs outline-none focus:border-brand-green text-slate-700 dark:text-slate-250 font-semibold"
-                      autoFocus
-                    />
-                    <div className="flex justify-end gap-2 text-[10px] select-none">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAddForm(false);
-                          setNewTherapistName("");
-                        }}
-                        className="px-3 py-1 text-slate-450 hover:text-slate-600 dark:hover:text-slate-300 font-bold bg-transparent border-0 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const trimmed = newTherapistName.trim();
-                          if (!trimmed) return;
-                          if (config.therapists && config.therapists.includes(trimmed)) {
-                            alert("This therapist is already enrolled.");
-                            return;
-                          }
-                          setConfig((prev) => ({
-                            ...prev,
-                            therapists: prev.therapists ? [...prev.therapists, trimmed] : [trimmed],
-                          }));
-                          setNewTherapistName("");
-                          setShowAddForm(false);
-                          setIsDirty(true);
-                          setSavedSuccess(false);
-                        }}
-                        className="px-3.5 py-1 bg-brand-green text-white font-black rounded-lg cursor-pointer border-0 shadow-sm"
-                      >
-                        Add Therapist
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {config.therapists && config.therapists.map((therapist) => {
-                  const meta = getTherapistMeta(therapist);
-                  const IconComp = meta.icon;
+              {/* Doctor Profiles List */}
+              <div className="space-y-3 pt-2 max-h-[440px] overflow-y-auto pr-1">
+                {((config.teamMembers && config.teamMembers.length > 0) ? config.teamMembers : DEFAULT_TEAM_MEMBERS).map((doctor) => {
+                  const isHidden = doctor.isActive === false;
                   return (
                     <div
-                      key={therapist}
-                      className={`flex items-center justify-between p-3 border rounded-xl transition-all ${meta.bgColor}`}
+                      key={doctor.id || doctor.name}
+                      className={`p-3.5 border rounded-2xl transition-all ${
+                        isHidden 
+                          ? "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-75"
+                          : "bg-white dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-brand-green/40"
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${meta.iconColor}`}>
-                          <IconComp className="h-4 w-4" />
+                      <div className="flex items-start gap-3">
+                        {/* Photo Thumbnail with Quick-Edit Overlay */}
+                        <div className="relative group shrink-0">
+                          <img
+                            src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
+                            alt={doctor.name}
+                            className="w-14 h-16 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs bg-slate-100"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditDoctor(doctor)}
+                            className="absolute inset-0 bg-black/60 text-white rounded-xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-0.5 transition-opacity cursor-pointer border-0 text-[8px] font-bold"
+                            title="Replace Photo"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-white" />
+                            <span>Edit</span>
+                          </button>
                         </div>
-                        <div>
-                          <h4 className="text-xs font-black text-brand-charcoal dark:text-white leading-tight">
-                            {therapist}
-                          </h4>
-                          <span className={`text-[9px] uppercase tracking-wider font-extrabold block mt-0.5 ${meta.roleColor}`}>
-                            {meta.role}
-                          </span>
+
+                        {/* Doctor Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <h4 className="text-xs font-black text-brand-charcoal dark:text-white truncate">
+                              {doctor.name}
+                            </h4>
+                            <span
+                              className={`text-[8.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                isHidden
+                                  ? "bg-slate-200/80 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                  : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
+                              }`}
+                            >
+                              {isHidden ? "Hidden" : "Active"}
+                            </span>
+                          </div>
+
+                          <p className="text-[10px] font-bold text-brand-green truncate mt-0.5">
+                            {doctor.role}
+                          </p>
+
+                          <p className="text-[9.5px] text-slate-400 truncate mt-0.5">
+                            {doctor.experience || doctor.qualifications || "Physiotherapy Specialist"}
+                          </p>
+
+                          {/* Quick Action Buttons */}
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditDoctor(doctor)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-brand-green/10 hover:text-brand-green text-slate-700 dark:text-slate-300 text-[10px] font-bold transition-colors cursor-pointer border-0"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit & Replace Photo</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleDoctorActive(doctor.id)}
+                              className={`p-1 rounded-lg text-xs transition-colors cursor-pointer border-0 ${
+                                isHidden
+                                  ? "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                  : "text-emerald-600 hover:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                              title={isHidden ? "Unhide: Show on Website" : "Hide from Website"}
+                            >
+                              {isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDoctor(doctor.id, doctor.name)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0 ml-auto"
+                              title="Delete doctor profile"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Remove Therapist Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (config.therapists.length <= 1) {
-                            alert("At least one therapist must remain enrolled.");
-                            return;
-                          }
-                          if (confirm(`Are you sure you want to remove ${therapist}?`)) {
-                            setConfig((prev) => ({
-                              ...prev,
-                              therapists: prev.therapists.filter((t) => t !== therapist),
-                            }));
-                            setIsDirty(true);
-                            setSavedSuccess(false);
-                          }
-                        }}
-                        className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer border-0 bg-transparent"
-                        title="Remove therapist"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
                     </div>
                   );
                 })}
@@ -1957,6 +2178,243 @@ export default function DashboardSettings() {
                 )}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Doctor Profile & Photo Manager Modal */}
+      {showDoctorModal && mounted && createPortal(
+        <div className="fixed inset-0 z-50 bg-slate-955/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-fade-in-up my-auto max-h-[92vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/60 dark:bg-slate-900/60">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
+                  <Stethoscope className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
+                    {isNewDoctor ? "Add Doctor Profile" : "Edit Doctor Profile & Photo"}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-semibold">
+                    Configures homepage showcase & appointment booking
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDoctorModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-6 overflow-y-auto space-y-5 text-left">
+              
+              {/* Photo Upload & Preview Section */}
+              <div className="p-4 rounded-2xl bg-brand-bg/40 dark:bg-slate-950/50 border border-brand-green/20 space-y-3">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Doctor Portrait Photo
+                </label>
+                
+                <div className="flex items-center gap-4">
+                  {/* Photo Preview */}
+                  <div className="relative shrink-0">
+                    <img
+                      src={formDocImage || "/images/dr-kinnera-portrait.jpg"}
+                      alt="Doctor Preview"
+                      className="w-20 h-24 rounded-2xl object-cover border-2 border-brand-green/30 shadow-md bg-white dark:bg-slate-800"
+                    />
+                    {uploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Controls */}
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoFileUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer border-0"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{uploadingPhoto ? "Compressing..." : "Upload Photo (File)"}</span>
+                    </button>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      Pick any JPG/PNG. We automatically compress it into a lightweight portrait!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Direct Image URL input */}
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-400 mb-1">
+                    Or Enter Direct Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={formDocImage}
+                    onChange={(e) => setFormDocImage(e.target.value)}
+                    placeholder="e.g. /images/dr-kinnera-portrait.jpg or https://..."
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-brand-green font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Full Name & Designation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Doctor Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formDocName}
+                    onChange={(e) => setFormDocName(e.target.value)}
+                    placeholder="e.g. Dr. Madem Kinnera"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-100 font-bold outline-none focus:border-brand-green"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Role / Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formDocRole}
+                    onChange={(e) => setFormDocRole(e.target.value)}
+                    placeholder="e.g. Lead Physiotherapist & Gait Specialist"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-100 font-bold outline-none focus:border-brand-green"
+                  />
+                </div>
+              </div>
+
+              {/* Qualifications & Experience */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Qualifications
+                  </label>
+                  <input
+                    type="text"
+                    value={formDocQualifications}
+                    onChange={(e) => setFormDocQualifications(e.target.value)}
+                    placeholder="e.g. MPT (Orthopaedics), Certified Gait Analyst, MIAP"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Experience Badge
+                  </label>
+                  <input
+                    type="text"
+                    value={formDocExperience}
+                    onChange={(e) => setFormDocExperience(e.target.value)}
+                    placeholder="e.g. 10+ Years Clinical Practice"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green"
+                  />
+                </div>
+              </div>
+
+              {/* Key Specialties */}
+              <div className="space-y-1">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Key Specialties / Focus Tags (Comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={formDocSpecialties}
+                  onChange={(e) => setFormDocSpecialties(e.target.value)}
+                  placeholder="e.g. Biomechanical Gait Analysis, Spine & Disc Decompression, Sports Rehab"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green"
+                />
+                <p className="text-[9.5px] text-slate-400">
+                  Separated by commas. Displayed as specialty pills on homepage cards.
+                </p>
+              </div>
+
+              {/* Bio / Summary */}
+              <div className="space-y-1">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Doctor Biography / Summary
+                </label>
+                <textarea
+                  rows={3}
+                  value={formDocBio}
+                  onChange={(e) => setFormDocBio(e.target.value)}
+                  placeholder="Clinical background, treatment philosophy, or message to patients..."
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Display Order & Active Toggle */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    Display Order:
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={formDocOrder}
+                    onChange={(e) => setFormDocOrder(parseInt(e.target.value) || 1)}
+                    className="w-16 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-800 dark:text-white outline-none focus:border-brand-green"
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formDocIsActive}
+                    onChange={(e) => setFormDocIsActive(e.target.checked)}
+                    className="h-4 w-4 rounded text-brand-green focus:ring-brand-green cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    Visible on Website
+                  </span>
+                </label>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowDoctorModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0 bg-transparent"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveDoctorModal}
+                className="px-5 py-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer border-0 flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save Doctor Profile</span>
+              </button>
+            </div>
+
           </div>
         </div>,
         document.body
