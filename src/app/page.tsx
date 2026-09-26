@@ -237,6 +237,47 @@ export default function Home() {
     .filter((doc) => doc.isActive !== false)
     .sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1));
 
+  // Smartphone Doctor Sliding Carousel State
+  const [mobileDoctorIndex, setMobileDoctorIndex] = useState(0);
+  const [doctorTouchStartX, setDoctorTouchStartX] = useState<number | null>(null);
+  const [doctorTouchEndX, setDoctorTouchEndX] = useState<number | null>(null);
+  const [isDoctorPaused, setIsDoctorPaused] = useState(false);
+
+  // Auto-slide every 2 seconds on mobile
+  useEffect(() => {
+    if (activeDoctors.length <= 1 || isDoctorPaused) return;
+    const interval = setInterval(() => {
+      setMobileDoctorIndex((prev) => (prev + 1) % activeDoctors.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [activeDoctors.length, isDoctorPaused]);
+
+  const handleDoctorTouchStart = (e: React.TouchEvent) => {
+    setIsDoctorPaused(true);
+    setDoctorTouchStartX(e.targetTouches[0].clientX);
+    setDoctorTouchEndX(null);
+  };
+
+  const handleDoctorTouchMove = (e: React.TouchEvent) => {
+    setDoctorTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleDoctorTouchEnd = () => {
+    setIsDoctorPaused(false);
+    if (!doctorTouchStartX || !doctorTouchEndX) return;
+    const distance = doctorTouchStartX - doctorTouchEndX;
+    const minSwipeDistance = 45; // 45px swipe threshold
+    if (distance > minSwipeDistance) {
+      // Swiped Left -> Next Doctor
+      setMobileDoctorIndex((prev) => (prev + 1) % activeDoctors.length);
+    } else if (distance < -minSwipeDistance) {
+      // Swiped Right -> Previous Doctor
+      setMobileDoctorIndex((prev) => (prev - 1 + activeDoctors.length) % activeDoctors.length);
+    }
+    setDoctorTouchStartX(null);
+    setDoctorTouchEndX(null);
+  };
+
   // PWA App Installation Support with Smart Device Detection
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
@@ -1008,8 +1049,8 @@ export default function Home() {
             </p>
           </div>
 
-          {/* 3-Doctor Showcase Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+          {/* Desktop: 3-Doctor Showcase Grid in 1 shot */}
+          <div className="hidden lg:grid lg:grid-cols-3 gap-8 items-stretch">
             {activeDoctors.map((doctor) => {
               return (
                 <div
@@ -1090,6 +1131,144 @@ export default function Home() {
                 </div>
               );
             })}
+          </div>
+
+          {/* Smartphone / Mobile: Sliding Carousel with arrows & touch swipe every 2s */}
+          <div className="lg:hidden relative max-w-md mx-auto">
+            {/* Carousel Frame */}
+            <div
+              className="overflow-hidden rounded-3xl"
+              onTouchStart={handleDoctorTouchStart}
+              onTouchMove={handleDoctorTouchMove}
+              onTouchEnd={handleDoctorTouchEnd}
+            >
+              <div
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${mobileDoctorIndex * 100}%)` }}
+              >
+                {activeDoctors.map((doctor) => (
+                  <div key={doctor.id || doctor.name} className="w-full shrink-0 px-1">
+                    <div className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full">
+                      {/* Photo with Experience Badge */}
+                      <div>
+                        <div className="relative aspect-[4/5] bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <img
+                            src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
+                            alt={`${doctor.name} - ${doctor.role}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent opacity-70" />
+                          
+                          {/* Experience Badge */}
+                          {doctor.experience && (
+                            <div className="absolute top-4 left-4 bg-slate-900/85 backdrop-blur-md text-white text-[10.5px] font-black px-3 py-1 rounded-full border border-white/20 shadow-md flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse" />
+                              <span>{doctor.experience}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Doctor Info */}
+                        <div className="p-6 space-y-3">
+                          <div>
+                            <h3 className="text-lg sm:text-xl font-black text-brand-charcoal dark:text-white leading-snug">
+                              {doctor.name}
+                            </h3>
+                            <p className="text-xs font-bold text-brand-green dark:text-teal-400 mt-1">
+                              {doctor.role}
+                            </p>
+                            {doctor.qualifications && (
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
+                                {doctor.qualifications}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Specialties Pills */}
+                          {doctor.specialties && doctor.specialties.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {doctor.specialties.slice(0, 3).map((spec, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50"
+                                >
+                                  {spec}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons: Only rendered when online booking is enabled */}
+                      {clinicConfig.enablePublicBooking !== false && (
+                        <div className="p-6 pt-0 space-y-2">
+                          <Link
+                            href={`/book?therapist=${encodeURIComponent(doctor.name)}`}
+                            className="w-full inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-xs transition-transform active:scale-95"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>Book Consultation</span>
+                          </Link>
+
+                          <Link
+                            href={`/team#${doctor.id}`}
+                            className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
+                          >
+                            <span>View Full Profile</span>
+                            <span className="text-sm leading-none">→</span>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Left & Right Arrow Marks */}
+            {activeDoctors.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMobileDoctorIndex((prev) => (prev - 1 + activeDoctors.length) % activeDoctors.length)}
+                  className="absolute top-[38%] -translate-y-1/2 -left-3 z-20 h-10 w-10 rounded-full bg-white/95 dark:bg-slate-900/95 text-brand-charcoal dark:text-white flex items-center justify-center shadow-xl border border-slate-200/80 dark:border-slate-700/80 hover:bg-brand-green hover:text-white transition-all active:scale-90 cursor-pointer"
+                  title="Previous Specialist"
+                  aria-label="Previous Specialist"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileDoctorIndex((prev) => (prev + 1) % activeDoctors.length)}
+                  className="absolute top-[38%] -translate-y-1/2 -right-3 z-20 h-10 w-10 rounded-full bg-white/95 dark:bg-slate-900/95 text-brand-charcoal dark:text-white flex items-center justify-center shadow-xl border border-slate-200/80 dark:border-slate-700/80 hover:bg-brand-green hover:text-white transition-all active:scale-90 cursor-pointer"
+                  title="Next Specialist"
+                  aria-label="Next Specialist"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
+            {/* Sliding Pagination Dots */}
+            {activeDoctors.length > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-6">
+                {activeDoctors.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setMobileDoctorIndex(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                      idx === mobileDoctorIndex 
+                        ? "bg-brand-green w-7" 
+                        : "bg-slate-300 dark:bg-slate-700 w-2 hover:bg-slate-400"
+                    }`}
+                    aria-label={`Slide to specialist ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
