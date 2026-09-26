@@ -65,11 +65,24 @@ function LoginContent() {
         setDeviceType("desktop");
       }
 
-      setIsStandalone(
+      const standalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
-        (document.referrer && document.referrer.indexOf("android-app://") !== -1)
-      );
+        (document.referrer && document.referrer.indexOf("android-app://") !== -1);
+      setIsStandalone(standalone);
+
+      if (standalone || localStorage.getItem("gpc_pwa_installed") === "true") {
+        setIsAppInstalled(true);
+      }
+
+      if ("getInstalledRelatedApps" in navigator) {
+        (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
+          if (relatedApps && relatedApps.length > 0) {
+            setIsAppInstalled(true);
+            localStorage.setItem("gpc_pwa_installed", "true");
+          }
+        }).catch(() => {});
+      }
       
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
@@ -86,7 +99,10 @@ function LoginContent() {
       const handleAppInstalled = () => {
         setIsAppInstalled(true);
         setDeferredPrompt(null);
-        if (typeof window !== "undefined") (window as any).deferredPrompt = null;
+        if (typeof window !== "undefined") {
+          (window as any).deferredPrompt = null;
+          localStorage.setItem("gpc_pwa_installed", "true");
+        }
       };
 
       window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -116,7 +132,10 @@ function LoginContent() {
           setIsAppInstalled(true);
           setIsInstallable(false);
           setDeferredPrompt(null);
-          if (typeof window !== "undefined") (window as any).deferredPrompt = null;
+          if (typeof window !== "undefined") {
+            (window as any).deferredPrompt = null;
+            localStorage.setItem("gpc_pwa_installed", "true");
+          }
         }
         return;
       } catch (err) {
@@ -419,21 +438,44 @@ function LoginContent() {
         )}
       </div>
 
-      {/* PWA App Installation Button (Image 2 Banner Button Style) */}
-      {mounted && !isStandalone && (
-        <button
-          onClick={handleInstallClick}
-          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#062e36] hover:bg-[#0a4552] dark:bg-white/10 dark:hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-[#062e36]/20 dark:border-white/20 shadow-md hover:shadow-lg active:scale-95 text-center cursor-pointer group z-10"
-        >
-          <Download className="w-4 h-4 text-[#f9ab55] group-hover:animate-bounce" />
-          <span>
-            {isStandalone
-              ? "Open GaitPhysio App ✓"
-              : deviceType === "ios"
-              ? "Install on iPhone"
-              : "Install GaitPhysio App"}
-          </span>
-        </button>
+      {/* PWA App Installation Button & Status Note */}
+      {mounted && (
+        <div className="flex flex-col items-center gap-2 text-center max-w-sm px-4 z-10">
+          {!isStandalone ? (
+            <>
+              <button
+                onClick={handleInstallClick}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#062e36] hover:bg-[#0a4552] dark:bg-white/10 dark:hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-[#062e36]/20 dark:border-white/20 shadow-md hover:shadow-lg active:scale-95 text-center cursor-pointer group"
+              >
+                <Download className="w-4 h-4 text-[#f9ab55] group-hover:animate-bounce" />
+                <span>
+                  {isAppInstalled
+                    ? "Open GaitPhysio App ✓"
+                    : deviceType === "ios"
+                    ? "Install on iPhone"
+                    : "Install GaitPhysio App"}
+                </span>
+              </button>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                {isAppInstalled ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                    ✓ App is installed on this device. Tap above or launch from your home screen / Start menu.
+                  </span>
+                ) : (
+                  <span>
+                    Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Windows Start Menu.
+                  </span>
+                )}
+              </p>
+            </>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Running in GaitPhysio App Mode
+            </div>
+          )}
+        </div>
       )}
 
       {/* Smart Device-Specific Install Notification Toast */}
@@ -450,6 +492,9 @@ function LoginContent() {
                   <p className="text-[11px] text-slate-300">
                     Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Share ⎋</span> at bottom, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Add to Home Screen ⊞</span>
                   </p>
+                  <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                    Already installed? Search for <strong>GaitPhysio</strong> on your home screen.
+                  </p>
                 </>
               ) : deviceType === "android" ? (
                 <>
@@ -457,12 +502,18 @@ function LoginContent() {
                   <p className="text-[11px] text-slate-300">
                     Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">⋮ menu</span> at top right, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install App</span>
                   </p>
+                  <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                    Already installed? Look for <strong>GaitPhysio</strong> in your App Drawer.
+                  </p>
                 </>
               ) : (
                 <>
                   <p className="font-black text-white">Desktop App Ready:</p>
                   <p className="text-[11px] text-slate-300">
                     Click the <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install icon ⊞</span> at the right of your address bar.
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                    Already installed? Search for <strong>GaitPhysio</strong> in Windows Start Menu or Mac Applications.
                   </p>
                 </>
               )}

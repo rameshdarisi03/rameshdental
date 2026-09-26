@@ -305,6 +305,19 @@ export default function Home() {
         setIsStandaloneApp(true);
       }
 
+      if (isStandalone || localStorage.getItem("gpc_pwa_installed") === "true") {
+        setIsAppInstalled(true);
+      }
+
+      if ("getInstalledRelatedApps" in navigator) {
+        (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
+          if (relatedApps && relatedApps.length > 0) {
+            setIsAppInstalled(true);
+            localStorage.setItem("gpc_pwa_installed", "true");
+          }
+        }).catch(() => {});
+      }
+
       const ua = navigator.userAgent || "";
       if (/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream) {
         setDeviceType("ios");
@@ -328,6 +341,10 @@ export default function Home() {
       window.addEventListener("appinstalled", () => {
         setIsAppInstalled(true);
         setDeferredPrompt(null);
+        if (typeof window !== "undefined") {
+          (window as any).deferredPrompt = null;
+          localStorage.setItem("gpc_pwa_installed", "true");
+        }
       });
 
       return () => window.removeEventListener("beforeinstallprompt", handleBeforePrompt);
@@ -350,7 +367,10 @@ export default function Home() {
         if (outcome === "accepted") {
           setIsAppInstalled(true);
           setDeferredPrompt(null);
-          if (typeof window !== "undefined") (window as any).deferredPrompt = null;
+          if (typeof window !== "undefined") {
+            (window as any).deferredPrompt = null;
+            localStorage.setItem("gpc_pwa_installed", "true");
+          }
         }
         return;
       } catch (err) {
@@ -1933,28 +1953,41 @@ export default function Home() {
                 </div>
 
                 {/* Primary Action Buttons - Mobile First Focus */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 pt-2">
                   <a
                     href={patientHubHref}
-                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs sm:text-sm font-black transition-all shadow-lg hover:shadow-brand-green/30 active:scale-95 text-center cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs sm:text-sm font-black transition-all shadow-lg hover:shadow-brand-green/30 active:scale-95 text-center cursor-pointer shrink-0"
                   >
                     <span>{isPatientActive ? "Open Patient Hub" : "Log in to Patient Hub"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </a>
 
-                  <button
-                    onClick={handleInstallApp}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
-                  >
-                    <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
-                    <span>
-                      {isAppInstalled
-                        ? "Open GaitPhysio App ✓"
-                        : deviceType === "ios"
-                        ? "Install on iPhone"
-                        : "Install GaitPhysio App"}
-                    </span>
-                  </button>
+                  <div className="flex flex-col items-center sm:items-start gap-1.5">
+                    <button
+                      onClick={handleInstallApp}
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
+                    >
+                      <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
+                      <span>
+                        {isAppInstalled
+                          ? "Open GaitPhysio App ✓"
+                          : deviceType === "ios"
+                          ? "Install on iPhone"
+                          : "Install GaitPhysio App"}
+                      </span>
+                    </button>
+                    <p className="text-[11px] text-slate-300/80 font-normal pl-1">
+                      {isAppInstalled ? (
+                        <span className="text-emerald-300 font-medium">
+                          ✓ Installed. Launch from your home screen or Start menu.
+                        </span>
+                      ) : (
+                        <span>
+                          Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -2035,12 +2068,28 @@ export default function Home() {
                       <p className="text-[11px] text-slate-300">
                         Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Share ⎋</span> at bottom, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Add to Home Screen ⊞</span>
                       </p>
+                      <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                        Already installed? Search for <strong>GaitPhysio</strong> on your home screen.
+                      </p>
                     </>
-                  ) : (
+                  ) : deviceType === "android" ? (
                     <>
                       <p className="font-black text-white">Direct Android Install:</p>
                       <p className="text-[11px] text-slate-300">
                         Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">⋮ menu</span> at top right, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install App</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                        Already installed? Look for <strong>GaitPhysio</strong> in your App Drawer.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-black text-white">Desktop App Ready:</p>
+                      <p className="text-[11px] text-slate-300">
+                        Click the <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install icon ⊞</span> at the right of your address bar.
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
+                        Already installed? Search for <strong>GaitPhysio</strong> in Windows Start Menu or Mac Applications.
                       </p>
                     </>
                   )}
