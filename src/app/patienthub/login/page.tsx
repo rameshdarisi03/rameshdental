@@ -50,11 +50,21 @@ function LoginContent() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
   const [installInstructions, setInstallInstructions] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
+      const ua = (navigator.userAgent || "").toLowerCase();
+      if (/ipad|iphone|ipod/.test(ua) && !(window as any).MSStream) {
+        setDeviceType("ios");
+      } else if (/android/.test(ua)) {
+        setDeviceType("android");
+      } else {
+        setDeviceType("desktop");
+      }
+
       setIsStandalone(
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
@@ -408,29 +418,21 @@ function LoginContent() {
         )}
       </div>
 
-      {/* PWA App Installation Hub */}
+      {/* PWA App Installation Button (Image 2 Banner Button Style) */}
       {mounted && !isStandalone && (
-        <div className="w-full max-w-md bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-white/10 p-5 rounded-3xl shadow-sm flex items-center justify-between gap-4 z-10">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-[#062e36] text-[#f9ab55] flex items-center justify-center shrink-0">
-              <Smartphone className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-[#062e36] dark:text-white">Install GaitPhysio App</h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                1-tap access on your home screen
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleInstallClick}
-            className="inline-flex items-center gap-1.5 bg-[#062e36] dark:bg-[#f9ab55] text-white dark:text-[#062e36] px-4 py-2 rounded-full text-xs font-bold transition-transform hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Install</span>
-          </button>
-        </div>
+        <button
+          onClick={handleInstallClick}
+          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#062e36] hover:bg-[#0a4552] dark:bg-white/10 dark:hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-[#062e36]/20 dark:border-white/20 shadow-md hover:shadow-lg active:scale-95 text-center cursor-pointer group z-10"
+        >
+          <Download className="w-4 h-4 text-[#f9ab55] group-hover:animate-bounce" />
+          <span>
+            {isStandalone
+              ? "Open GaitPhysio App ✓"
+              : deviceType === "ios"
+              ? "Install on iPhone"
+              : "Install GaitPhysio App"}
+          </span>
+        </button>
       )}
 
       {/* PWA Help Overlay Modal */}
