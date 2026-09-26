@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePatientAuth } from "@/providers/PatientAuthProvider";
-import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Smartphone, Download, QrCode, Monitor, X } from "lucide-react";
+import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Download, X } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function LoginPage() {
@@ -50,8 +49,9 @@ function LoginContent() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [showDeviceHelper, setShowDeviceHelper] = useState(false);
   const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
-  const [installInstructions, setInstallInstructions] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -75,56 +75,57 @@ function LoginContent() {
         setDeferredPrompt((window as any).deferredPrompt);
         setIsInstallable(true);
       }
-    }
 
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-      if (typeof window !== "undefined") {
+      const handleBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setIsInstallable(true);
         (window as any).deferredPrompt = e;
-      }
-    };
+      };
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      const handleAppInstalled = () => {
+        setIsAppInstalled(true);
+        setDeferredPrompt(null);
+        if (typeof window !== "undefined") (window as any).deferredPrompt = null;
+      };
 
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    };
+      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.addEventListener("appinstalled", handleAppInstalled);
+
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        window.removeEventListener("appinstalled", handleAppInstalled);
+      };
+    }
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
+    // If already installed, open patient portal directly
+    if (isAppInstalled || isStandalone) {
+      window.location.href = "/patienthub/dashboard";
+      return;
+    }
+
+    // Direct 1-tap installation using native browser prompt (Android, Chrome, Edge, Desktop)
+    const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
+    if (promptToUse) {
       try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        promptToUse.prompt();
+        const { outcome } = await promptToUse.userChoice;
         if (outcome === "accepted") {
+          setIsAppInstalled(true);
           setIsInstallable(false);
+          setDeferredPrompt(null);
+          if (typeof window !== "undefined") (window as any).deferredPrompt = null;
         }
-        setDeferredPrompt(null);
         return;
       } catch (err) {
-        console.error("Error triggering install prompt:", err);
+        console.error("Direct install error:", err);
       }
     }
 
-    const ua = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(ua);
-    const isAndroid = /android/.test(ua);
-
-    if (isIOS) {
-      setInstallInstructions(
-        "To install on iOS: Tap the 'Share' button (square icon with up arrow) at the bottom of Safari, scroll down, and select 'Add to Home Screen'."
-      );
-    } else if (isAndroid) {
-      setInstallInstructions(
-        "To install on Android: Tap the three vertical dots menu icon in Chrome (top right), then select 'Add to Home screen' or 'Install app'."
-      );
-    } else {
-      setInstallInstructions(
-        "To install on Desktop: Click the 'Install App' icon (square with arrow) at the right side of your Chrome or Edge address bar. \n\nNote: If the install icon is not showing, the app might already be installed on your computer! Please search your Windows Start Menu or macOS Applications list for 'Gait Physio Clinic'."
-      );
-    }
+    // Smart device-specific floating toast fallback (exact same as homepage banner)
+    setShowDeviceHelper(true);
   };
 
   useEffect(() => {
@@ -435,48 +436,45 @@ function LoginContent() {
         </button>
       )}
 
-      {/* PWA Help Overlay Modal */}
-      {mounted && installInstructions && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
-            {/* Header */}
-            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-50/60 via-white to-orange-50/40 dark:from-slate-850 dark:to-slate-900 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#f9ab55] text-[#062e36] flex items-center justify-center shadow-sm shrink-0">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Installation Guide</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Add to Home Screen</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setInstallInstructions(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+      {/* Smart Device-Specific Install Notification Toast */}
+      {showDeviceHelper && (
+        <div className="fixed bottom-5 left-4 right-4 z-50 max-w-sm mx-auto bg-slate-900/98 text-white border border-white/20 rounded-2xl p-4 shadow-2xl backdrop-blur-xl animate-fade-in flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous text-lg font-bold">
+              📲
             </div>
-
-            {/* Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
-              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">
-                {installInstructions}
-              </p>
-            </div>
-
-            {/* Sticky Footer */}
-            <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50/80 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end shrink-0">
-              <button
-                onClick={() => setInstallInstructions(null)}
-                className="bg-[#f9ab55] hover:bg-[#e5971a] text-[#062e36] px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Got It
-              </button>
+            <div className="text-xs">
+              {deviceType === "ios" ? (
+                <>
+                  <p className="font-black text-white">Direct iPhone Install:</p>
+                  <p className="text-[11px] text-slate-300">
+                    Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Share ⎋</span> at bottom, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Add to Home Screen ⊞</span>
+                  </p>
+                </>
+              ) : deviceType === "android" ? (
+                <>
+                  <p className="font-black text-white">Direct Android Install:</p>
+                  <p className="text-[11px] text-slate-300">
+                    Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">⋮ menu</span> at top right, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install App</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-black text-white">Desktop App Ready:</p>
+                  <p className="text-[11px] text-slate-300">
+                    Click the <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install icon ⊞</span> at the right of your address bar.
+                  </p>
+                </>
+              )}
             </div>
           </div>
-        </div>,
-        document.body
+          <button
+            onClick={() => setShowDeviceHelper(false)}
+            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-300 hover:text-white shrink-0 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       {/* Build Identifier Badge */}
