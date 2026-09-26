@@ -45,7 +45,15 @@ export interface Patient {
   primaryPatientId?: string;       // PID of the family head (e.g., "GPC-1024")
   familyHeadName?: string;         // Name of the primary account holder
   linkedEmails?: string[];          // List of all emails permitted to access this profile
-  
+
+  // Multi-Day Package Consultation Draft
+  consultationDraft?: {
+    notes: string;
+    visitDate?: string;
+    savedAt?: string;
+    savedBy?: string;
+  } | null;
+
   createdAt: Timestamp;
 }
 

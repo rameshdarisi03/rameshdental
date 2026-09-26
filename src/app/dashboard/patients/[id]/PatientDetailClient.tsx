@@ -43,7 +43,10 @@ import {
   Receipt,
   Users,
   Unlink,
-  UserPlus
+  UserPlus,
+  Paperclip,
+  Bookmark,
+  Check
 } from "lucide-react";
 import jsPDF from "jspdf";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
@@ -288,6 +291,14 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [formSuccess, setFormSuccess] = useState("");
   const [formError, setFormError] = useState("");
 
+  // Multi-Day Package Consultation Draft & Attachment Dropdown states
+  const [hasDraft, setHasDraft] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftSavedSuccess, setDraftSavedSuccess] = useState(false);
+  const [draftMetadata, setDraftMetadata] = useState<{ savedAt?: string; savedBy?: string } | null>(null);
+  const [showAttachDropdown, setShowAttachDropdown] = useState(false);
+  const attachDropdownRef = useRef<HTMLDivElement>(null);
+
   const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([]);
   const [selectedTherapist, setSelectedTherapist] = useState<string>("");
 
@@ -490,6 +501,124 @@ PLAN:
 • Home Exercise Prescriptions: 
 • Next Review Date: `;
     setNotes(template);
+  };
+
+  const insertPackageSkeleton = () => {
+    const today = new Date();
+    const dStr = (offsetDays: number) => {
+      const target = new Date(today);
+      target.setDate(today.getDate() + offsetDays);
+      const dd = String(target.getDate()).padStart(2, "0");
+      const mm = String(target.getMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}`;
+    };
+
+    const template = `7-DAY REHABILITATION PACKAGE PROGRESS LOG:
+• Day 1 (${dStr(0)}): Initial Assessment | Modalities: Cryotherapy + IFT | VAS: 7/10 | Range of Motion: 
+• Day 2 (${dStr(1)}): Modalities: Ultrasound + Laser | Isometric Quad Sets (3x10) | Tolerance: Good
+• Day 3 (${dStr(2)}): Modalities: Joint Mobilization | Active Assisted ROM | VAS: 5/10
+• Day 4 (${dStr(3)}): Modalities: Electrotherapy | Straight Leg Raises (3x10) | Swelling reduced
+• Day 5 (${dStr(4)}): Modalities: Resistance Bands | Gait Training & Weight Bearing Ambulation
+• Day 6 (${dStr(5)}): Modalities: Static Cycling (10m) | Core & Balance Drills | VAS: 3/10
+• Day 7 (${dStr(6)}): Milestone Evaluation | ROM Restored to 95° | Discharged to Home Protocol`;
+
+    if (notes.trim()) {
+      setNotes((prev) => `${prev}\n\n${template}`);
+    } else {
+      setNotes(template);
+    }
+  };
+
+  // Close attachment dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (attachDropdownRef.current && !attachDropdownRef.current.contains(event.target as Node)) {
+        setShowAttachDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Restore consultation draft from localStorage or cloud
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const localDraft = localStorage.getItem(`gpc_draft_${id}`);
+      let draftObj = localDraft ? JSON.parse(localDraft) : null;
+      if (!draftObj && patient?.consultationDraft) {
+        draftObj = patient.consultationDraft;
+      }
+      if (draftObj && draftObj.notes && draftObj.notes.trim()) {
+        setHasDraft(true);
+        setDraftMetadata({ savedAt: draftObj.savedAt, savedBy: draftObj.savedBy });
+        setNotes((curr) => (!curr.trim() ? draftObj.notes : curr));
+        if (draftObj.visitDate) {
+          setVisitDate((curr) => (!curr ? draftObj.visitDate : curr));
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore consultation draft:", e);
+    }
+  }, [id, patient]);
+
+  // Save consultation draft
+  const handleSaveDraft = async () => {
+    if (!notes.trim() || !id) return;
+    setSavingDraft(true);
+    setFormError("");
+    setFormSuccess("");
+
+    try {
+      let loggingTherapist = patient?.therapistName || defaultTherapist;
+      const userJson = localStorage.getItem("gpc_user");
+      if (userJson) {
+        try {
+          const userObj = JSON.parse(userJson);
+          if (userObj.name) loggingTherapist = userObj.name;
+        } catch {}
+      }
+
+      const draftPayload = {
+        notes: notes.trim(),
+        visitDate: visitDate || new Date().toISOString().split("T")[0],
+        savedAt: new Date().toISOString(),
+        savedBy: loggingTherapist,
+      };
+
+      localStorage.setItem(`gpc_draft_${id}`, JSON.stringify(draftPayload));
+      try {
+        await updatePatient(id, { consultationDraft: draftPayload });
+      } catch (cloudErr) {
+        console.warn("Failed to sync draft to cloud, saved locally:", cloudErr);
+      }
+
+      setHasDraft(true);
+      setDraftMetadata({ savedAt: draftPayload.savedAt, savedBy: draftPayload.savedBy });
+      setDraftSavedSuccess(true);
+      setFormSuccess("📝 Package progress draft saved! You can keep adding chronological sessions before finalizing.");
+      setTimeout(() => setDraftSavedSuccess(false), 3000);
+    } catch (err: any) {
+      setFormError("Failed to save draft: " + (err?.message || "Unknown error"));
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  // Discard draft
+  const handleDiscardDraft = async () => {
+    if (!window.confirm("Are you sure you want to discard this consultation draft?")) return;
+    if (id) {
+      localStorage.removeItem(`gpc_draft_${id}`);
+      try {
+        await updatePatient(id, { consultationDraft: null });
+      } catch {}
+    }
+    setNotes("");
+    setHasDraft(false);
+    setDraftMetadata(null);
+    setFormSuccess("Draft discarded.");
+    setTimeout(() => setFormSuccess(""), 3000);
   };
 
   const toggleLogExpand = (logId: string) => {
@@ -1119,6 +1248,16 @@ PLAN:
       if (fileInput) fileInput.value = "";
       const cameraInput = document.getElementById("camera-input") as HTMLInputElement;
       if (cameraInput) cameraInput.value = "";
+
+      // Clear saved draft since consultation is now finalized
+      if (id) {
+        localStorage.removeItem(`gpc_draft_${id}`);
+        try {
+          await updatePatient(id, { consultationDraft: null });
+        } catch {}
+      }
+      setHasDraft(false);
+      setDraftMetadata(null);
 
       // Reload
       loadPatientDetails();
@@ -2240,6 +2379,16 @@ Warm regards,
                         <span>+ SOAP Template</span>
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={insertPackageSkeleton}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:border-amber-500 hover:text-amber-600 transition-all cursor-pointer"
+                        title="Insert 7-Day Package Progress Log Template"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                        <span>+ 7-Day Package Log</span>
+                      </button>
+
                       {notes && (
                         <button
                           type="button"
@@ -2279,6 +2428,27 @@ Warm regards,
 
                   {/* Spacious Clinical Notes Area */}
                   <div className="space-y-1.5">
+                    {/* Active Package Draft Banner */}
+                    {hasDraft && (
+                      <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 shadow-xs mb-2">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Bookmark className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span className="truncate">
+                            <strong>Active Package Draft:</strong> Keep logging each session chronologically. Click <em>Log Consultation</em> when package is complete.
+                            {draftMetadata?.savedAt ? ` (Saved ${new Date(draftMetadata.savedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })})` : ""}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDiscardDraft}
+                          className="text-xs font-bold text-red-600 dark:text-red-400 hover:underline shrink-0 cursor-pointer"
+                          title="Discard this draft and clear text"
+                        >
+                          Discard Draft
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between px-1">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Session Details & SOAP Clinical Recovery Notes
@@ -2334,30 +2504,51 @@ Warm regards,
                         </span>
                       </button>
 
-                      {/* Option 2: Choose File */}
-                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
-                        <Upload className="w-4 h-4 text-brand-green" />
-                        <span>Choose File</span>
-                        <input
-                          type="file"
-                          id="file-input"
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </label>
+                      {/* Option 2: Single Clubbed Button with Dropdown (Upload & Camera) */}
+                      <div className="relative" ref={attachDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowAttachDropdown((prev) => !prev)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-700 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-xs transition-all hover:bg-slate-50 dark:hover:bg-slate-850"
+                        >
+                          <Paperclip className="w-4 h-4 text-brand-green" />
+                          <span>Attach Document</span>
+                          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showAttachDropdown ? "rotate-180" : ""}`} />
+                        </button>
 
-                      {/* Option 3: Camera Capture */}
-                      <label className="relative flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-black text-slate-600 dark:text-slate-350 hover:text-brand-green hover:border-brand-green/30 cursor-pointer shadow-sm transition-all hover:bg-slate-50">
-                        <Camera className="w-4 h-4 text-brand-green" />
-                        <span>Take Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </label>
+                        {showAttachDropdown && (
+                          <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-1.5 z-30 animate-in fade-in zoom-in-95 duration-100">
+                            <label className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                              <Upload className="w-4 h-4 text-brand-green shrink-0" />
+                              <span>Choose File (PDF/Scan)</span>
+                              <input
+                                type="file"
+                                id="file-input"
+                                className="hidden"
+                                onChange={(e) => {
+                                  handleFileChange(e);
+                                  setShowAttachDropdown(false);
+                                }}
+                              />
+                            </label>
+                            <label className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                              <Camera className="w-4 h-4 text-brand-green shrink-0" />
+                              <span>Take Photo (Camera)</span>
+                              <input
+                                type="file"
+                                id="camera-input"
+                                accept="image/*"
+                                capture="environment"
+                                className="hidden"
+                                onChange={(e) => {
+                                  handleFileChange(e);
+                                  setShowAttachDropdown(false);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2374,23 +2565,52 @@ Warm regards,
                       </span>
                     )}
 
-                    <button
-                      type="submit"
-                      disabled={submitting || (!notes.trim() && !selectedFile)}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Saving Session...</span>
-                        </>
-                      ) : (
-                        <>
-                          <PlusCircle className="w-4 h-4" />
-                          <span>Log Consultation</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      {/* Save Draft Button */}
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        disabled={savingDraft || !notes.trim()}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 px-5 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-xs active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        title="Save current progress as a draft without finalizing PDF"
+                      >
+                        {savingDraft ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                            <span>Saving Draft...</span>
+                          </>
+                        ) : draftSavedSuccess ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-500" />
+                            <span className="text-emerald-600 dark:text-emerald-400">Draft Saved!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Bookmark className="w-4 h-4 text-amber-500" />
+                            <span>Save Draft</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Log Consultation Button */}
+                      <button
+                        type="submit"
+                        disabled={submitting || (!notes.trim() && !selectedFile)}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white px-6 py-3 text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Saving Session...</span>
+                          </>
+                        ) : (
+                          <>
+                            <PlusCircle className="w-4 h-4" />
+                            <span>Log Consultation</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
