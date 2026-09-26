@@ -764,15 +764,6 @@ export default function DashboardSettings() {
         </div>
         
         <div className="flex items-center gap-4 sm:gap-6">
-          <Link
-            href="/"
-            target="_blank"
-            className="hidden sm:inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-slate-500 hover:text-brand-green dark:text-slate-400 transition-colors"
-          >
-            <Globe className="h-4 w-4" />
-            View Website
-          </Link>
-          
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-655 dark:text-emerald-400 border border-emerald-100/60 dark:border-emerald-900/40 text-[9px] font-black uppercase tracking-wider">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />

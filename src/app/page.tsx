@@ -337,7 +337,7 @@ export default function Home() {
   const handleInstallApp = async () => {
     // If already installed, open patient portal directly
     if (isAppInstalled) {
-      window.location.href = "/patienthub/login";
+      window.location.href = patientHubHref;
       return;
     }
 
@@ -1934,13 +1934,13 @@ export default function Home() {
 
                 {/* Primary Action Buttons - Mobile First Focus */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-                  <Link
+                  <a
                     href={patientHubHref}
                     className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs sm:text-sm font-black transition-all shadow-lg hover:shadow-brand-green/30 active:scale-95 text-center cursor-pointer"
                   >
                     <span>{isPatientActive ? "Open Patient Hub" : "Log in to Patient Hub"}</span>
                     <ArrowRight className="w-4 h-4" />
-                  </Link>
+                  </a>
 
                   <button
                     onClick={handleInstallApp}
