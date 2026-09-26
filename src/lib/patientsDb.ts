@@ -658,6 +658,28 @@ export async function deletePatientData(
   patientId: string,
   options: PatientDeleteOptions
 ): Promise<{ success: boolean; message: string }> {
+  // Tier 1: Infallible Server-side API endpoint (Runs with Firebase Admin SDK privileges)
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/patients/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, options }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          return { success: true, message: json.message || "Selected patient records purged successfully." };
+        } else if (json.error) {
+          console.warn("[deletePatientData] Server API reported error, trying direct client deletion:", json.error);
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[deletePatientData] Server API route unreachable, falling back to direct client deletion:", apiErr);
+    }
+  }
+
+  // Tier 2: Direct Client-side Firestore SDK deletion (Uses firestore.rules)
   try {
     const patientDocRef = doc(db, "patients", patientId);
     const patientSnap = await getDoc(patientDocRef);
@@ -702,7 +724,7 @@ export async function deletePatientData(
 
     // 2. Delete Consultations & Prescriptions (Session Notes + Prescribed Home Exercises)
     if (options.consultationsAndPrescriptions) {
-      // Purge assigned exercises / prescriptions
+      // Purge assigned exercises / prescriptions subcollection
       const prescriptionsSnap = await getDocs(collection(db, "patients", patientId, "prescriptions"));
       for (const pDoc of prescriptionsSnap.docs) {
         await deleteDoc(pDoc.ref);
@@ -713,6 +735,11 @@ export async function deletePatientData(
       for (const cDoc of consultSnap.docs) {
         await deleteDoc(cDoc.ref);
       }
+
+      // Purge top-level prescription doc if exists
+      try {
+        await deleteDoc(doc(db, "prescriptions", patientId));
+      } catch {}
     }
 
     // 3. Delete Medical Scans & Diagnostic Reports
@@ -743,6 +770,11 @@ export async function deletePatientData(
 
       const allPrescripts = await getDocs(collection(db, "patients", patientId, "prescriptions"));
       for (const d of allPrescripts.docs) await deleteDoc(d.ref);
+
+      // Clean up exercise progress
+      try {
+        await deleteDoc(doc(db, "exercise_progress", patientId));
+      } catch {}
 
       // Finally delete the main patient document
       await deleteDoc(patientDocRef);

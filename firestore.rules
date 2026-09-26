@@ -11,25 +11,41 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Get the logged in user's email address
+    // Get the logged in user's email address (normalized lowercase)
     function userEmail() {
-      return request.auth.token.email;
+      return request.auth != null && request.auth.token.email != null 
+        ? request.auth.token.email.lower() 
+        : "";
     }
 
     // Check if the user is authenticated clinic staff / doctor
+    // Resilient multi-tier verification:
+    // 1. Has active profile in /users/{uid}
+    // 2. Or has staff role in custom auth claims
+    // 3. Or email domain belongs to official clinic domains (@gaitphysio.com, @gaitphysioclinic.com)
+    // 4. Or matches authorized clinic administrator emails
     function isStaff() {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        (request.auth.token.role != null && request.auth.token.role in ['admin', 'receptionist', 'staff', 'doctor']) ||
+        (userEmail().matches('.*@gaitphysio\\.com$') || userEmail().matches('.*@gaitphysioclinic\\.com$')) ||
+        userEmail() in [
+          'admin@gaitphysio.com',
+          'receptionist@gaitphysio.com',
+          'info@gaitphysioclinic.com',
+          'gaitphysioclinic@gmail.com'
+        ]
       );
     }
 
     // Check if the logged-in user belongs to this Family Circle
-    // (Owns the profile, shares the email, or email is in linkedEmails)
+    // (Matches authUid, legacy userId, primary email, or email in linkedEmails)
     function isFamilyCircleMember(patientData) {
       return isSignedIn() && (
-        (request.auth.uid != null && patientData.userId == request.auth.uid) ||
-        (userEmail() != null && patientData.email == userEmail()) ||
-        (userEmail() != null && "linkedEmails" in patientData && userEmail() in patientData.linkedEmails)
+        (request.auth.uid != null && "authUid" in patientData && patientData.authUid == request.auth.uid) ||
+        (request.auth.uid != null && "userId" in patientData && patientData.userId == request.auth.uid) ||
+        (userEmail() != "" && "email" in patientData && patientData.email.lower() == userEmail()) ||
+        (userEmail() != "" && "linkedEmails" in patientData && userEmail() in patientData.linkedEmails)
       );
     }
 
@@ -37,7 +53,7 @@ service cloud.firestore {
     // 1. APPOINTMENTS COLLECTION
     // =========================================================================
     // Public visitors can view available slots and book appointments online
-    // Clinic staff can manage and update all appointments
+    // Clinic staff can manage, confirm, and update all appointments
     match /appointments/{appointmentId} {
       allow read: if true;
       allow create: if true;
@@ -50,7 +66,7 @@ service cloud.firestore {
     // Public booking calendar needs to read blocked times
     match /blocks/{blockId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write, delete: if isStaff();
     }
 
     // =========================================================================
@@ -58,7 +74,7 @@ service cloud.firestore {
     // =========================================================================
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write, delete: if isStaff();
     }
 
     // =========================================================================
@@ -66,14 +82,14 @@ service cloud.firestore {
     // =========================================================================
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+      allow write, delete: if isStaff() || (isSignedIn() && request.auth.uid == userId);
     }
 
     // =========================================================================
     // 5. PATIENTS COLLECTION & FAMILY CIRCLE
     // =========================================================================
     match /patients/{patientId} {
-      // Clinic staff, offline booking, duplicate detection, and patient directory can read patient profiles
+      // Clinic staff, duplicate detection, and patient directory can read patient profiles
       allow read: if true;
 
       // Staff and authenticated patients can register and link patients
@@ -81,10 +97,10 @@ service cloud.firestore {
       allow update: if isStaff() || isSignedIn();
       allow delete: if isStaff();
 
-      // Sub-collections: files (scans/PDFs), consultations, prescription history
+      // Sub-collections: files (scans/PDFs), consultations (SOAP notes), prescription history
       match /{allSubcollections=**} {
         allow read: if true;
-        allow write: if isStaff() || isSignedIn();
+        allow write, delete: if isStaff() || isSignedIn();
       }
     }
 
@@ -92,8 +108,8 @@ service cloud.firestore {
     // 6. EXERCISE LIBRARY COLLECTION
     // =========================================================================
     match /exercise_library/{exerciseId} {
-      allow read: if isSignedIn();
-      allow write: if isStaff();
+      allow read: if true;
+      allow write, delete: if isStaff();
     }
 
     // =========================================================================
@@ -103,19 +119,22 @@ service cloud.firestore {
       allow read: if isStaff() || (
         isSignedIn() && (
           resource.data.patientEmail == userEmail() ||
-          (userEmail() != null && "linkedEmails" in resource.data && userEmail() in resource.data.linkedEmails) ||
+          (userEmail() != "" && "linkedEmails" in resource.data && userEmail() in resource.data.linkedEmails) ||
           (resource.data.patientId != null && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(resource.data.patientId)).data))
         )
       );
-      allow write: if isStaff();
+      allow write, delete: if isStaff();
     }
 
     // =========================================================================
     // 8. EXERCISE WORKOUT TRACKING (Daily Patient Progress)
     // =========================================================================
     match /exercise_progress/{patientId} {
-      allow read, write: if isStaff() || (
-        isSignedIn() && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data)
+      allow read, write, delete: if isStaff() || (
+        isSignedIn() && (
+          request.auth.uid != null ||
+          isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data)
+        )
       );
     }
 
@@ -127,18 +146,18 @@ service cloud.firestore {
         isSignedIn() && (
           resource.data.patientEmail == userEmail() ||
           resource.data.email == userEmail() ||
-          (userEmail() != null && "linkedEmails" in resource.data && userEmail() in resource.data.linkedEmails) ||
+          (userEmail() != "" && "linkedEmails" in resource.data && userEmail() in resource.data.linkedEmails) ||
           (resource.data.patientId != null && isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(resource.data.patientId)).data))
         )
       );
-      allow write: if isStaff();
+      allow write, delete: if isStaff();
     }
 
     // =========================================================================
     // 10. EMAIL LOGS COLLECTION (Audit Trail)
     // =========================================================================
     match /email_logs/{logId} {
-      allow read, write: if isStaff();
+      allow read, write, delete: if isStaff();
     }
   }
 }
