@@ -97,6 +97,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://gaitphysioclinic.com",
   },
+  manifest: "/manifest.json",
 };
 
 const clinicStructuredData = {

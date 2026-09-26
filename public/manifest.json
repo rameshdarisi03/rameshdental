@@ -2,12 +2,12 @@
   "name": "GaitPhysio",
   "short_name": "GaitPhysio",
   "description": "Premium patient recovery dashboard and exercise tracker for Gait Physio Clinic",
-  "start_url": "/patienthub/dashboard",
+  "start_url": "/patienthub/login",
   "display": "standalone",
   "background_color": "#062e36",
   "theme_color": "#062e36",
   "orientation": "portrait",
-  "scope": "/patienthub",
+  "scope": "/",
   "icons": [
     {
       "src": "/images/gait_physio_logo.png",

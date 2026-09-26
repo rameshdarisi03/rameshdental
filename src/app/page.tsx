@@ -281,44 +281,78 @@ export default function Home() {
     loadConfig();
   }, []);
 
-  // PWA App Installation Support
+  // PWA App Installation Support with Smart Device Detection
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
+  const [showDeviceHelper, setShowDeviceHelper] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const ua = navigator.userAgent || "";
+      if (/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream) {
+        setDeviceType("ios");
+      } else if (/android/i.test(ua)) {
+        setDeviceType("android");
+      } else {
+        setDeviceType("desktop");
+      }
+
+      // Check if running in standalone mode (already installed)
+      if (
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes("android-app://")
+      ) {
+        setIsAppInstalled(true);
+      }
+
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
       }
+
       const handleBeforePrompt = (e: any) => {
         e.preventDefault();
         setDeferredPrompt(e);
         (window as any).deferredPrompt = e;
       };
       window.addEventListener("beforeinstallprompt", handleBeforePrompt);
-      if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+
+      window.addEventListener("appinstalled", () => {
         setIsAppInstalled(true);
-      }
+        setDeferredPrompt(null);
+      });
+
       return () => window.removeEventListener("beforeinstallprompt", handleBeforePrompt);
     }
   }, []);
 
   const handleInstallApp = async () => {
-    if (deferredPrompt) {
+    // If already installed, open patient portal directly
+    if (isAppInstalled) {
+      window.location.href = "/patienthub/login";
+      return;
+    }
+
+    // Direct 1-tap installation using native browser prompt (Android, Chrome, Edge, Desktop)
+    const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
+    if (promptToUse) {
       try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        promptToUse.prompt();
+        const { outcome } = await promptToUse.userChoice;
         if (outcome === "accepted") {
           setIsAppInstalled(true);
           setDeferredPrompt(null);
+          if (typeof window !== "undefined") (window as any).deferredPrompt = null;
         }
+        return;
       } catch (err) {
-        console.error("Install prompt error:", err);
+        console.error("Direct install error:", err);
       }
-    } else {
-      setShowInstallModal(true);
     }
+
+    // Smart device-specific fallback
+    setShowDeviceHelper(true);
   };
 
   // Real Google Reviews from Gait Physio Clinic Profile (4.9 Rating • 117+ Reviews)
@@ -1907,7 +1941,13 @@ export default function Home() {
                     className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
                   >
                     <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
-                    <span>{isAppInstalled ? "App Installed ✓" : "Install GaitPhysio App"}</span>
+                    <span>
+                      {isAppInstalled
+                        ? "Open GaitPhysio App ✓"
+                        : deviceType === "ios"
+                        ? "Install on iPhone"
+                        : "Install GaitPhysio App"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1975,46 +2015,37 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Smartphone Install Guide Modal / Dialog */}
-          {showInstallModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-              <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-brand-green dark:text-teal-400" />
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Install GaitPhysio App</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowInstallModal(false)}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+          {/* Smart Device-Specific Install Notification */}
+          {showDeviceHelper && (
+            <div className="fixed bottom-5 left-4 right-4 z-50 max-w-sm mx-auto bg-slate-900/98 text-white border border-white/20 rounded-2xl p-4 shadow-2xl backdrop-blur-xl animate-fade-in flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous text-lg font-bold">
+                  📲
                 </div>
-
-                <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
-                  <div className="p-3 rounded-2xl bg-brand-bg dark:bg-slate-800 space-y-1">
-                    <p className="font-bold text-slate-900 dark:text-white">📱 On iPhone / iPad (Safari):</p>
-                    <p className="text-[11px] leading-relaxed">
-                      Tap the <strong>Share</strong> button (box with arrow) at the bottom, then scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-brand-bg dark:bg-slate-800 space-y-1">
-                    <p className="font-bold text-slate-900 dark:text-white">🤖 On Android (Chrome / Edge):</p>
-                    <p className="text-[11px] leading-relaxed">
-                      Tap the <strong>three dots (⋮)</strong> menu at the top-right, then tap <strong>&quot;Install App&quot;</strong> or <strong>&quot;Add to Home Screen&quot;</strong>.
-                    </p>
-                  </div>
+                <div className="text-xs">
+                  {deviceType === "ios" ? (
+                    <>
+                      <p className="font-black text-white">Direct iPhone Install:</p>
+                      <p className="text-[11px] text-slate-300">
+                        Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Share ⎋</span> at bottom, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Add to Home Screen ⊞</span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-black text-white">Direct Android Install:</p>
+                      <p className="text-[11px] text-slate-300">
+                        Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">⋮ menu</span> at top right, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install App</span>
+                      </p>
+                    </>
+                  )}
                 </div>
-
-                <button
-                  onClick={() => setShowInstallModal(false)}
-                  className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black shadow-sm hover:bg-brand-green-hover transition-colors"
-                >
-                  Got It
-                </button>
               </div>
+              <button
+                onClick={() => setShowDeviceHelper(false)}
+                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-300 hover:text-white shrink-0"
+              >
+                ✕
+              </button>
             </div>
           )}
 
