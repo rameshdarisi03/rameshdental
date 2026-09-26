@@ -175,16 +175,6 @@ export default function Home() {
       desc: "Behind every successful recovery is a physiotherapist's passion for care, relentless support, and expert guidance. Dr. Kinnera is committed to resolving underlying biomechanical dysfunctions, relieving acute and chronic pain, and helping you achieve long-term physical health.",
       quote: "True Healing Comes From More Than Treatments—It's Built On Trust, Patience, And Compassion, Reflected In Each Small Victory And Ongoing Encouragement.",
       signature: "Dr. Kinnera",
-    },
-    {
-      name: "Dr. Rohan, BPT, MPT",
-      role: "Lead Physiotherapist & Spine Rehabilitation Specialist",
-      image: "/images/dr-rohan-portrait.jpg",
-      years: "8+",
-      headline: "Empowering Movement And Rebuilding Structural Resilience",
-      desc: "Dedicated to helping patients reclaim their physical strength, Dr. Rohan combines evidence-based spinal care with manual therapy techniques. He focuses on restoring spinal function, correcting posture, and designing custom rehabilitation protocols for fast, sustainable recovery.",
-      quote: "Rehabilitation Is About Reconnecting With Your Body's Potential, Reclaiming What Was Lost, And Walking Forward With Strength And Renewed Confidence.",
-      signature: "Dr. Rohan",
     }
   ];
 
@@ -200,11 +190,12 @@ export default function Home() {
 
   // Autoplay for team slider
   useEffect(() => {
+    if (therapistProfiles.length <= 1) return;
     const timer = setInterval(() => {
       nextTeamSlide();
     }, 4000);
     return () => clearInterval(timer);
-  }, [nextTeamSlide]);
+  }, [nextTeamSlide, therapistProfiles.length]);
 
   // Integrated Gallery data
   const galleryItems = [
@@ -1012,24 +1003,28 @@ export default function Home() {
             </h2>
           </div>
 
-          <div className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 hidden lg:block">
-            <button
-              onClick={prevTeamSlide}
-              className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
-              title="Previous Specialist"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="absolute top-1/2 -translate-y-1/2 -right-4 z-20 hidden lg:block">
-            <button
-              onClick={nextTeamSlide}
-              className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
-              title="Next Specialist"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+          {therapistProfiles.length > 1 && (
+            <>
+              <div className="absolute top-1/2 -translate-y-1/2 -left-4 z-20 hidden lg:block">
+                <button
+                  onClick={prevTeamSlide}
+                  className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
+                  title="Previous Specialist"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="absolute top-1/2 -translate-y-1/2 -right-4 z-20 hidden lg:block">
+                <button
+                  onClick={nextTeamSlide}
+                  className="p-3.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/50 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
+                  title="Next Specialist"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </>
+          )}
 
           <div key={teamIndex} className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center w-full">
             <div className="lg:col-span-5 relative animate-fade-in-left">
@@ -1055,15 +1050,7 @@ export default function Home() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-black text-brand-charcoal dark:text-white leading-tight animate-fade-in-up delay-100">
-                {therapistProfiles[teamIndex].headline.includes("Providing") ? (
-                  <>
-                    Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
-                  </>
-                ) : (
-                  <>
-                    Empowering Movement And <span className="text-brand-green dark:text-teal-400">Rebuilding Structural</span> Resilience
-                  </>
-                )}
+                Passionate About <span className="text-brand-green dark:text-teal-400">Providing Expert Care</span> And Support
               </h2>
 
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal animate-fade-in-up delay-200">
@@ -1095,55 +1082,35 @@ export default function Home() {
                   {therapistProfiles[teamIndex].signature}
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="pt-2 animate-fade-in-up delay-400">
-                {clinicConfig.enablePublicBooking !== false ? (
-                  <Link
-                    href="/book"
-                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
-                  >
-                    <span>Request Booking</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                ) : (
-                  <a
-                    href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent(`Hello Gait Physio Clinic, I would like to schedule a consultation with ${therapistProfiles[teamIndex]?.name || 'a therapist'}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Inquire via WhatsApp</span>
-                  </a>
-                )}
+          {therapistProfiles.length > 1 && (
+            <div className="flex items-center justify-center gap-4 pt-12">
+              <button
+                onClick={prevTeamSlide}
+                className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex gap-2">
+                {therapistProfiles.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setTeamIndex(idx)}
+                    className={`h-2.5 rounded-full transition-all duration-350 cursor-pointer ${idx === teamIndex ? "bg-brand-green w-6" : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"}`}
+                    title={`View Specialist ${idx + 1}`}
+                  />
+                ))}
               </div>
+              <button
+                onClick={nextTeamSlide}
+                className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-4 pt-12">
-            <button
-              onClick={prevTeamSlide}
-              className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="flex gap-2">
-              {therapistProfiles.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setTeamIndex(idx)}
-                  className={`h-2.5 rounded-full transition-all duration-350 cursor-pointer ${idx === teamIndex ? "bg-brand-green w-6" : "bg-slate-300 dark:bg-slate-700 w-2.5 hover:bg-slate-400"}`}
-                  title={`View Specialist ${idx + 1}`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={nextTeamSlide}
-              className="lg:hidden p-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-charcoal dark:text-white hover:bg-brand-green hover:text-white transition-all shadow"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          )}
 
         </div>
       </section>

@@ -16,7 +16,7 @@ export default function Testimonials() {
       type: "IT Consultant",
       service: "Spine & Neck Care",
       rating: 5,
-      comment: "Working on a desk for 9 hours daily gave me intense cervical pain. Dr. Rohan guided me through targeted neck exercises and ergonomic posture corrections. The relief has been absolute. Very professional!",
+      comment: "Working on a desk for 9 hours daily gave me intense cervical pain. Dr. Kinnera guided me through targeted neck exercises and ergonomic posture corrections. The relief has been absolute. Very professional!",
     },
     {
       name: "Abhishek Das",
