@@ -1991,63 +1991,36 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right Column: Live Smartphone Preview Card (Hidden on mobile/tablet, shown only on desktop) */}
-              <div className="hidden lg:flex lg:col-span-5 justify-center">
-                <div className="w-full max-w-xs bg-slate-900/95 border border-white/15 rounded-3xl p-5 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4">
-                  
-                  {/* Top Bar */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-xs font-black text-white">Patient Hub App</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      Live
+              {/* Right Column: Authentic Smartphone App Showcase */}
+              <div className="hidden lg:flex lg:col-span-5 justify-center items-center">
+                <div className="relative group">
+                  {/* Subtle Ambient Glow */}
+                  <div className="absolute -inset-4 bg-gradient-to-r from-brand-green/25 to-teal-500/25 rounded-[48px] blur-2xl opacity-60 group-hover:opacity-85 transition-opacity duration-500" />
+
+                  {/* Floating Live Badge */}
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-900/95 border border-white/20 shadow-lg backdrop-blur-md">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-black tracking-wider uppercase text-emerald-300">
+                      Live Patient Hub
                     </span>
                   </div>
 
-                  {/* Interactive Status Widgets */}
-                  <div className="space-y-2.5">
-                    {/* Routine Progress */}
-                    <div className="bg-white/5 rounded-2xl p-3 border border-white/5 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-slate-300">Today&apos;s Routine</span>
-                        <span className="text-[10px] text-brand-luminous font-black">Day 4 • Streak 🔥 4</span>
-                      </div>
-                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-brand-luminous h-full rounded-full w-3/4" />
-                      </div>
-                    </div>
-
-                    {/* Prescribed Video Exercise */}
-                    <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-brand-green/30 flex items-center justify-center text-brand-luminous">
-                          <Dumbbell className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-black text-white">Knee Extension Drills</p>
-                          <p className="text-[10px] text-slate-400">3 sets × 12 reps</p>
-                        </div>
-                      </div>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    </div>
-
-                    {/* Next Consultation */}
-                    <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400">
-                          <CalendarCheck className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="text-[11px] font-black text-white">Session with Dr. Kinnera</p>
-                          <p className="text-[10px] text-slate-400">Confirmed Clinic Slot</p>
-                        </div>
-                      </div>
-                      <span className="text-[9px] bg-brand-green/30 text-emerald-300 font-bold px-2 py-0.5 rounded-full">Active</span>
+                  {/* Smartphone Chassis Frame */}
+                  <div className="relative w-[280px] sm:w-[290px] rounded-[38px] p-2 bg-gradient-to-b from-slate-700 via-slate-800 to-slate-950 border border-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-black/50">
+                    {/* Screen Container */}
+                    <div className="relative rounded-[30px] overflow-hidden bg-slate-950 shadow-inner aspect-[1/2]">
+                      <Image
+                        src="/images/patienthub_app_preview.jpg"
+                        alt="Gait Physio Patient Hub Portal"
+                        width={512}
+                        height={1024}
+                        className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
+                        priority
+                      />
+                      {/* Subtle Glass Reflection */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.03] to-white/[0.10] pointer-events-none rounded-[30px]" />
                     </div>
                   </div>
-
                 </div>
               </div>
 
