@@ -266,6 +266,20 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
+                // Standalone PWA App Mode Guard:
+                // When opened as an installed app on Android, iOS, or Desktop, restrict view exclusively to Patient Hub
+                var isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                   window.navigator.standalone === true || 
+                                   (document.referrer && document.referrer.indexOf('android-app://') !== -1);
+                if (isStandalone) {
+                  var p = window.location.pathname;
+                  if (p === '/' || (!p.startsWith('/patienthub') && !p.startsWith('/dashboard') && p !== '/login')) {
+                    window.location.replace('/patienthub/login');
+                  }
+                }
+              } catch (e) {}
+
+              try {
                 var themeColorMap = {
                   teal: { primary: '#0e5e6f', dark: '#091316' },
                   sage: { primary: '#5d7a6d', dark: '#0f1412' },

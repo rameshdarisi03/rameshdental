@@ -1,5 +1,5 @@
 // Service Worker for Gait Physio Clinic PWA Standalone App
-const CACHE_NAME = "gpc-pwa-v8";
+const CACHE_NAME = "gpc-pwa-v9";
 const ASSETS_TO_CACHE = ["/manifest.json", "/images/gait_physio_logo.png"];
 
 self.addEventListener("install", (event) => {

@@ -55,7 +55,11 @@ function LoginContent() {
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
-      setIsStandalone(window.matchMedia("(display-mode: standalone)").matches);
+      setIsStandalone(
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true ||
+        (document.referrer && document.referrer.indexOf("android-app://") !== -1)
+      );
       
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
