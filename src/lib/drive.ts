@@ -21,6 +21,7 @@ async function callAppsScript(payload: any) {
       ...payload,
       token: secretToken,
     }),
+    redirect: "follow",
   });
 
   if (!response.ok) {
