@@ -18,7 +18,8 @@ import {
   CalendarDays,
   Download,
   Info,
-  ChevronDown
+  ChevronDown,
+  ArrowUpRight
 } from "lucide-react";
 import Link from "next/link";
 import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
@@ -541,14 +542,6 @@ export default function DashboardAnalytics() {
             Live Connection
           </span>
         </div>
-        
-        <Link
-          href="/"
-          target="_blank"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#DCE3DC] bg-white dark:bg-slate-900 dark:border-slate-800 px-3.5 py-1.5 text-xs font-semibold text-[#182625] dark:text-white hover:bg-slate-50 transition-all select-none"
-        >
-          <span>🌐 View Website</span>
-        </Link>
       </div>
 
       {/* Page Header and Dotted Gait Rule */}
@@ -730,7 +723,15 @@ export default function DashboardAnalytics() {
         <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:50ms] flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Est. Revenue</span>
-            <span className="text-xs shrink-0 select-none">₹</span>
+            <a
+              href="#revenue-history"
+              onClick={(e) => e.preventDefault()}
+              title="View Revenue History (Coming Soon)"
+              className="h-6 w-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-brand-green flex items-center justify-center hover:bg-brand-green hover:text-white transition-all cursor-pointer shadow-2xs group/btn"
+              aria-label="View Revenue History"
+            >
+              <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+            </a>
           </div>
           
           <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>

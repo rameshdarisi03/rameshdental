@@ -12,10 +12,43 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("Root GlobalError caught:", error);
+    // Auto-clean stale service workers and old caches if a root boundary error was encountered
+    if (typeof window !== "undefined") {
+      try {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const reg of registrations) {
+              reg.unregister().catch(() => {});
+            }
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then((keys) => {
+            for (const key of keys) {
+              caches.delete(key).catch(() => {});
+            }
+          });
+        }
+      } catch (e) {}
+    }
   }, [error]);
 
-  const handleFullRefresh = () => {
+  const handleFullRefresh = async () => {
     if (typeof window !== "undefined") {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            await reg.unregister();
+          }
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+          }
+        }
+      } catch (e) {}
       window.location.reload();
     } else {
       reset();

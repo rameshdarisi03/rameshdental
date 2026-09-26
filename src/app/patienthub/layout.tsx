@@ -95,6 +95,8 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isLoginRoute = pathname === "/patienthub/login" || pathname?.startsWith("/patienthub/login");
+
   // Dedicated Clean Route Protection Guard (TenoPilot pattern)
   useEffect(() => {
     if (!FEATURES.enablePatientHub) {
@@ -104,15 +106,15 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
     if (loading) return;
 
-    if (!patient && pathname !== "/patienthub/login") {
+    if (!patient && !isLoginRoute) {
       router.replace("/patienthub/login");
-    } else if (patient && pathname === "/patienthub/login") {
+    } else if (patient && isLoginRoute) {
       router.replace("/patienthub/dashboard");
     }
-  }, [loading, patient, pathname, router]);
+  }, [loading, patient, isLoginRoute, router]);
 
   // Render clean children directly for login page
-  if (pathname === "/patienthub/login") {
+  if (isLoginRoute) {
     return <div className="min-h-screen">{children}</div>;
   }
 
