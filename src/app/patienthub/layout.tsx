@@ -21,8 +21,8 @@ import {
 import { FEATURES } from "@/lib/features";
 import ProfileSelectorModal from "@/components/patienthub/ProfileSelectorModal";
 
-// Dedicated Switch Profiles Icon matching user reference image
-export function SwitchProfilesIcon({ className = "w-5 h-5" }: { className?: string }) {
+// Dedicated Modern Switch Profiles Icon
+export function SwitchProfilesIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -33,21 +33,21 @@ export function SwitchProfilesIcon({ className = "w-5 h-5" }: { className?: stri
       strokeLinejoin="round"
       className={className}
     >
-      {/* Top right user */}
-      <circle cx="16" cy="6" r="2.5" />
-      <path d="M12.5 12a3.5 3.5 0 0 1 7 0" />
+      {/* Top right profile silhouette */}
+      <circle cx="15.5" cy="6.5" r="2.2" />
+      <path d="M12.5 11.5a3 3 0 0 1 6 0" />
 
-      {/* Bottom left user */}
-      <circle cx="8" cy="18" r="2.5" />
-      <path d="M4.5 24a3.5 3.5 0 0 1 7 0" />
+      {/* Bottom left profile silhouette */}
+      <circle cx="8.5" cy="17.5" r="2.2" />
+      <path d="M5.5 22.5a3 3 0 0 1 6 0" />
 
       {/* Top curved clockwise arrow */}
-      <path d="M5.5 8a8 8 0 0 1 7.5-4h1" />
-      <polyline points="11 1 14 4 11 7" />
+      <path d="M6 7.5a6.5 6.5 0 0 1 6-3.5h1.5" />
+      <polyline points="11 2 13.5 4 11 6" />
 
       {/* Bottom curved counter-clockwise arrow */}
-      <path d="M18.5 16a8 8 0 0 1-7.5 4h-1" />
-      <polyline points="13 23 10 20 13 17" />
+      <path d="M18 16.5a6.5 6.5 0 0 1-6 3.5h-1.5" />
+      <polyline points="13 22 10.5 20 13 18" />
     </svg>
   );
 }
@@ -144,15 +144,6 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const patientName = patient?.name || "Patient";
-  const initials = patientName
-    .trim()
-    .split(/\s+/)
-    .map((n) => n[0] || "")
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "PT";
-
   return (
     <div className="min-h-screen bg-[#F9F9F7] dark:bg-[#121a1d] text-[#1A1C1B] dark:text-[#f1f0f1] flex flex-col pb-24 md:pb-8 font-['Inter',sans-serif]">
       {/* Top Header Navbar */}
@@ -160,17 +151,17 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           
           {/* Brand Logo Link */}
-          <Link href="/patienthub/dashboard" className="flex items-center gap-2.5 group">
+          <Link href="/patienthub/dashboard" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
             <img 
               src="/images/gait_physio_logo.png" 
               alt="GaitPhysio" 
-              className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
+              className="h-8 w-8 sm:h-9 sm:w-9 object-contain transition-transform group-hover:scale-105 shrink-0"
             />
-            <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tight text-brand-green dark:text-white leading-none">
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-brand-green dark:text-white leading-none whitespace-nowrap">
                 Gait Physio Clinic
               </span>
-              <span className="text-[8px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-1">
+              <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-1">
                 Patient Hub
               </span>
             </div>
@@ -230,12 +221,12 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
 
-          {/* Desktop Right Hand Toolbar */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Hand Toolbar */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-[#21444D]/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+              className="w-9 h-9 rounded-full hover:bg-[#21444D]/10 dark:hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer shrink-0"
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {isDark ? (
@@ -245,38 +236,25 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            {/* Switch Profile Button (Visible when circle has > 1 profile) */}
+            {/* Enhanced Switch Profile Button (Visible when circle has > 1 profile) */}
             {availableProfiles && availableProfiles.length > 1 && (
               <button
                 onClick={() => setShowProfileSelector(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-[#21444D]/10 dark:bg-white/10 hover:bg-[#21444D]/20 dark:hover:bg-white/20 text-[#062e36] dark:text-[#f9ab55] border border-[#21444D]/15 dark:border-white/15 transition-all text-xs font-black cursor-pointer shadow-2xs group"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-brand-green/10 dark:bg-[#f9ab55]/15 hover:bg-brand-green/20 dark:hover:bg-[#f9ab55]/25 text-brand-green dark:text-[#f9ab55] border border-brand-green/20 dark:border-[#f9ab55]/30 transition-all text-xs font-black cursor-pointer shadow-2xs group shrink-0"
                 title="Switch Patient Profile"
+                aria-label="Switch Patient Profile"
               >
-                <SwitchProfilesIcon className="w-4 h-4 text-[#8a5100] dark:text-[#f9ab55] group-hover:rotate-180 transition-transform duration-500" />
-                <span className="hidden sm:inline">Switch Profile</span>
+                <SwitchProfilesIcon className="w-4 h-4 text-brand-green dark:text-[#f9ab55] group-hover:rotate-180 transition-transform duration-500" />
+                <span className="hidden md:inline">Switch Profile</span>
+                <span className="text-[10px] font-black bg-brand-green dark:bg-[#f9ab55] text-white dark:text-[#062e36] px-1.5 py-0.5 rounded-full leading-none">
+                  {availableProfiles.length}
+                </span>
               </button>
             )}
 
-            <Link
-              href="/patienthub/profile"
-              className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
-            >
-              <div className="h-9 w-9 rounded-full bg-[#062e36] text-[#f9ab55] border border-[#f9ab55]/40 flex items-center justify-center font-bold text-xs shadow-sm">
-                {initials}
-              </div>
-              <div className="hidden sm:block text-left leading-tight">
-                <p className="text-xs font-bold text-[#062e36] dark:text-white truncate max-w-[120px]">
-                  {patientName}
-                </p>
-                <p className="text-[10px] text-[#8a5100] dark:text-[#f9ab55] font-semibold">
-                  Active Care
-                </p>
-              </div>
-            </Link>
-
             <button 
               onClick={logout}
-              className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full text-red-500 transition-colors cursor-pointer"
+              className="w-9 h-9 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full text-red-500 transition-colors cursor-pointer flex items-center justify-center shrink-0"
               title="Logout"
             >
               <LogOut className="h-4 w-4" />

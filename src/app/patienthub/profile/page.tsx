@@ -11,10 +11,7 @@ import {
   Activity, 
   LogOut, 
   Loader2, 
-  Key, 
   BellRing,
-  Moon,
-  Sun,
   Folder,
   FileText,
   Receipt,
@@ -26,27 +23,6 @@ import { SwitchProfilesIcon } from "@/app/patienthub/layout";
 export default function ProfilePage() {
   const router = useRouter();
   const { patient, loading, logout, availableProfiles, selectProfile, setShowProfileSelector } = usePatientAuth();
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    // Check local theme
-    if (typeof window !== "undefined") {
-      setIsDark(document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark");
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setIsDark(false);
-    } else {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
-    }
-  };
 
   if (loading) {
     return (
@@ -158,10 +134,6 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          Manage family members sharing this portal. Each profile retains completely independent clinical notes, prescriptions, and invoices.
-        </p>
-
         <div className="space-y-2.5">
           {availableProfiles.map((p) => {
             const isActive = patient?.id === p.id;
@@ -230,39 +202,6 @@ export default function ProfilePage() {
             className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline cursor-pointer"
           >
             Need to link another member? Chat with clinic →
-          </a>
-        </div>
-      </div>
-
-      {/* Preferences & Settings */}
-      <div className="bg-white dark:bg-[#121a1d] border border-[#21444D]/15 dark:border-slate-800 p-6 rounded-[28px] shadow-sm space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-400 px-1">Settings & Assistance</h3>
-
-        <div className="space-y-2">
-          {/* Theme switcher option */}
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center justify-between p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer border-0"
-          >
-            <div className="flex items-center gap-3 text-[#062e36] dark:text-slate-200">
-              {isDark ? <Sun className="h-4 w-4 text-[#f9ab55]" /> : <Moon className="h-4 w-4 text-slate-500" />}
-              <span className="text-xs font-bold">Portal Theme</span>
-            </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isDark ? "Dark Mode" : "Light Mode"}</span>
-          </button>
-
-          {/* Reset password reminder link */}
-          <a
-            href="https://wa.me/918904456243?text=I%20would%20like%20to%20request%20assistance%20with%20my%20Patient%20Hub%20portal"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full flex items-center justify-between p-3.5 bg-[#FAF9F9] dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-2xl transition-colors cursor-pointer"
-          >
-            <div className="flex items-center gap-3 text-[#062e36] dark:text-slate-200">
-              <Key className="h-4 w-4 text-slate-400" />
-              <span className="text-xs font-bold">Help Desk & Account Support</span>
-            </div>
-            <span className="text-[10px] font-bold text-[#8a5100] dark:text-[#f9ab55] uppercase tracking-widest">WhatsApp</span>
           </a>
         </div>
       </div>
