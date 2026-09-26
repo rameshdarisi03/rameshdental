@@ -1912,8 +1912,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right Column: Live Smartphone Preview Card */}
-              <div className="lg:col-span-5 flex justify-center">
+              {/* Right Column: Live Smartphone Preview Card (Hidden on mobile/tablet, shown only on desktop) */}
+              <div className="hidden lg:flex lg:col-span-5 justify-center">
                 <div className="w-full max-w-xs bg-slate-900/95 border border-white/15 rounded-3xl p-5 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4">
                   
                   {/* Top Bar */}
@@ -1969,13 +1969,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Direct Mobile Login Tap */}
-                  <Link
-                    href="/patienthub/login"
-                    className="block w-full py-3 text-center rounded-xl bg-brand-green hover:bg-brand-green-hover text-xs font-black text-white transition-all shadow-md active:scale-95"
-                  >
-                    Open Patient Portal →
-                  </Link>
                 </div>
               </div>
 
