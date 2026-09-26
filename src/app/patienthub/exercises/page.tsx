@@ -404,8 +404,8 @@ function ExercisesContent() {
                         <h4 className="text-xs font-bold text-[#1A1C1B] dark:text-slate-100 truncate group-hover:text-[#8a5100] dark:group-hover:text-[#f9ab55] transition-colors">
                           {ex.title}
                         </h4>
-                        <p className="text-[11px] text-slate-400 font-medium mt-0.5 truncate">
-                          {ex.description} • {ex.duration}
+                        <p className="text-xs font-black text-[#8a5100] dark:text-[#f9ab55] mt-0.5 tracking-tight truncate">
+                          {ex.description}
                         </p>
                       </div>
                     </div>
