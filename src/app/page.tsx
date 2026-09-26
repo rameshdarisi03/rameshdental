@@ -32,7 +32,12 @@ import {
   Loader2,
   MessageSquare,
   Calendar,
-  BookOpen
+  BookOpen,
+  Download,
+  Dumbbell,
+  FileText,
+  Flame,
+  X
 } from "lucide-react";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
@@ -275,6 +280,46 @@ export default function Home() {
     }
     loadConfig();
   }, []);
+
+  // PWA App Installation Support
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if ((window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+      }
+      const handleBeforePrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        (window as any).deferredPrompt = e;
+      };
+      window.addEventListener("beforeinstallprompt", handleBeforePrompt);
+      if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+        setIsAppInstalled(true);
+      }
+      return () => window.removeEventListener("beforeinstallprompt", handleBeforePrompt);
+    }
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          setIsAppInstalled(true);
+          setDeferredPrompt(null);
+        }
+      } catch (err) {
+        console.error("Install prompt error:", err);
+      }
+    } else {
+      setShowInstallModal(true);
+    }
+  };
 
   // Real Google Reviews from Gait Physio Clinic Profile (4.9 Rating • 117+ Reviews)
   const googleReviews = [
@@ -1759,154 +1804,226 @@ export default function Home() {
       </section>
 
       {/* Patient Hub Section */}
-      <section id="patient-hub" className="py-20 bg-brand-bg dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+      <section id="patient-hub" className="py-16 sm:py-20 bg-brand-bg dark:bg-slate-955 border-t border-slate-200/60 dark:border-slate-800">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-12">
           
-          <div className="text-center max-w-3xl mx-auto space-y-4 reveal-on-scroll">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green dark:text-brand-luminous bg-brand-green/10 dark:bg-brand-luminous/15 px-3 py-1.5 rounded-full">
-              Digital Rehab Companion
+          <div className="text-center max-w-3xl mx-auto space-y-3 reveal-on-scroll">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-green dark:text-brand-luminous bg-brand-green/10 dark:bg-brand-luminous/15 px-3 py-1.5 rounded-full inline-block">
+              PATIENT DIGITAL PORTAL
             </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-brand-charcoal dark:text-white">
               Patient Hub
             </h2>
-            <p className="text-base text-slate-600 dark:text-slate-400 font-medium">
-              Seamless access to your prescribed home exercise videos, recovery milestones, upcoming sessions, and clinical records.
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium">
+              Everything you need for your ongoing rehabilitation, directly accessible on your smartphone.
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto bg-gradient-to-br from-brand-charcoal to-slate-900 text-white rounded-[2.5rem] p-8 sm:p-12 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] relative overflow-hidden">
-            {/* Subtle background glow */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-brand-green/20 blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+          <div className="max-w-5xl mx-auto bg-gradient-to-br from-brand-charcoal via-slate-900 to-slate-950 text-white rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 lg:p-12 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.4)] relative overflow-hidden border border-white/10">
+            {/* Subtle luminous ambient glow */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-brand-green/25 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+              
+              {/* Left Column: 5 Core Features & Primary Action Buttons */}
               <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-brand-luminous text-[10px] font-black uppercase tracking-wider">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Interactive Care Experience</span>
-                </div>
-
-                <h3 className="text-2xl sm:text-3xl font-black leading-tight text-white">
-                  Empowering your recovery at home between clinic visits
-                </h3>
-
-                <p className="text-slate-300 text-sm leading-relaxed font-normal">
-                  Our patients receive tailored exercise regimens with video walkthroughs, instant reminders, and progress tracking curated directly by Dr. Kinnera and the clinical team.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-brand-green/20 flex items-center justify-center shrink-0 mt-0.5 text-brand-luminous">
-                      <CheckCircle2 className="w-4 h-4" />
+                
+                {/* 5 Real Features (No Fluff) */}
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 sm:p-3.5 transition-colors hover:bg-white/10">
+                    <div className="w-8 h-8 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous mt-0.5">
+                      <Dumbbell className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-white">Prescribed Exercises</h4>
-                      <p className="text-[11px] text-slate-400">Targeted routines & rep guides</p>
+                      <h4 className="text-xs sm:text-sm font-black text-white">Prescribed Video Workouts</h4>
+                      <p className="text-[11px] text-slate-300 font-normal leading-relaxed">
+                        HD guided exercise routines with custom sets, reps, and hold timers prescribed by Dr. Kinnera.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-brand-green/20 flex items-center justify-center shrink-0 mt-0.5 text-brand-luminous">
+                  <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 sm:p-3.5 transition-colors hover:bg-white/10">
+                    <div className="w-8 h-8 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous mt-0.5">
                       <CalendarCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-white">Session Calendar</h4>
-                      <p className="text-[11px] text-slate-400">View & rebook follow-ups</p>
+                      <h4 className="text-xs sm:text-sm font-black text-white">Smart Session Calendar</h4>
+                      <p className="text-[11px] text-slate-300 font-normal leading-relaxed">
+                        Track upcoming clinic appointments, check slot availability, and book follow-up visits.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-brand-green/20 flex items-center justify-center shrink-0 mt-0.5 text-brand-luminous">
-                      <ShieldCheck className="w-4 h-4" />
+                  <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 sm:p-3.5 transition-colors hover:bg-white/10">
+                    <div className="w-8 h-8 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous mt-0.5">
+                      <FileText className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-white">Clinical Records</h4>
-                      <p className="text-[11px] text-slate-400">Assessment & milestone reports</p>
+                      <h4 className="text-xs sm:text-sm font-black text-white">Clinical Records & Invoices</h4>
+                      <p className="text-[11px] text-slate-300 font-normal leading-relaxed">
+                        Instant access to doctor assessment notes, posture scans, and itemized GST insurance receipts.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-brand-green/20 flex items-center justify-center shrink-0 mt-0.5 text-brand-luminous">
-                      <Smartphone className="w-4 h-4" />
+                  <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 sm:p-3.5 transition-colors hover:bg-white/10">
+                    <div className="w-8 h-8 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous mt-0.5">
+                      <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-white">Mobile Friendly</h4>
-                      <p className="text-[11px] text-slate-400">Access anytime on your phone</p>
+                      <h4 className="text-xs sm:text-sm font-black text-white">Family Circle Switcher</h4>
+                      <p className="text-[11px] text-slate-300 font-normal leading-relaxed">
+                        Manage rehabilitation protocols for family members (spouse, children, parents) in 1 tap.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 sm:p-3.5 transition-colors hover:bg-white/10">
+                    <div className="w-8 h-8 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous mt-0.5">
+                      <Flame className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-black text-white">Daily Streak & Progress Tracker</h4>
+                      <p className="text-[11px] text-slate-300 font-normal leading-relaxed">
+                        Mark completed days, monitor mobility improvements, and receive WhatsApp clinic reminders.
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 pt-4">
+                {/* Primary Action Buttons - Mobile First Focus */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <Link
                     href="/patienthub/login"
-                    className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black transition-all shadow-lg hover:shadow-brand-green/30"
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs sm:text-sm font-black transition-all shadow-lg hover:shadow-brand-green/30 active:scale-95 text-center cursor-pointer"
                   >
                     <span>Log in to Patient Hub</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
-                  <Link
-                    href="/patienthub/dashboard"
-                    className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-all border border-white/15"
+
+                  <button
+                    onClick={handleInstallApp}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
                   >
-                    <span>View Portal Demo</span>
-                  </Link>
+                    <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
+                    <span>{isAppInstalled ? "App Installed ✓" : "Install GaitPhysio App"}</span>
+                  </button>
                 </div>
               </div>
 
+              {/* Right Column: Live Smartphone Preview Card */}
               <div className="lg:col-span-5 flex justify-center">
-                <div className="w-full max-w-xs bg-slate-900/90 border border-white/15 rounded-3xl p-6 backdrop-blur-xl shadow-2xl space-y-4">
+                <div className="w-full max-w-xs bg-slate-900/95 border border-white/15 rounded-3xl p-5 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4">
+                  
+                  {/* Top Bar */}
                   <div className="flex items-center justify-between pb-3 border-b border-white/10">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[11px] font-black text-white">Patient Portal</span>
+                      <span className="text-xs font-black text-white">Patient Hub App</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400">Active</span>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                      Live
+                    </span>
                   </div>
 
+                  {/* Interactive Status Widgets */}
                   <div className="space-y-2.5">
-                    <div className="bg-white/5 rounded-2xl p-3 border border-white/5 space-y-1">
+                    {/* Routine Progress */}
+                    <div className="bg-white/5 rounded-2xl p-3 border border-white/5 space-y-1.5">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-slate-300">Today&apos;s Protocol</span>
-                        <span className="text-[10px] text-brand-luminous font-black">2 of 3 Done</span>
+                        <span className="font-bold text-slate-300">Today&apos;s Routine</span>
+                        <span className="text-[10px] text-brand-luminous font-black">Day 4 • Streak 🔥 4</span>
                       </div>
                       <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-brand-luminous h-full rounded-full w-2/3" />
+                        <div className="bg-brand-luminous h-full rounded-full w-3/4" />
                       </div>
                     </div>
 
+                    {/* Prescribed Video Exercise */}
                     <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <Activity className="w-4 h-4 text-brand-luminous" />
+                        <div className="w-7 h-7 rounded-lg bg-brand-green/30 flex items-center justify-center text-brand-luminous">
+                          <Dumbbell className="w-3.5 h-3.5" />
+                        </div>
                         <div>
-                          <p className="text-[11px] font-black text-white">Posture Alignment</p>
-                          <p className="text-[10px] text-slate-400">85% Improvement</p>
+                          <p className="text-[11px] font-black text-white">Knee Extension Drills</p>
+                          <p className="text-[10px] text-slate-400">3 sets × 12 reps</p>
                         </div>
                       </div>
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     </div>
 
+                    {/* Next Consultation */}
                     <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <Clock className="w-4 h-4 text-teal-400" />
+                        <div className="w-7 h-7 rounded-lg bg-teal-500/20 flex items-center justify-center text-teal-400">
+                          <CalendarCheck className="w-3.5 h-3.5" />
+                        </div>
                         <div>
-                          <p className="text-[11px] font-black text-white">Next Session</p>
-                          <p className="text-[10px] text-slate-400">Tomorrow at 10:30 AM</p>
+                          <p className="text-[11px] font-black text-white">Session with Dr. Kinnera</p>
+                          <p className="text-[10px] text-slate-400">Confirmed Clinic Slot</p>
                         </div>
                       </div>
-                      <span className="text-[9px] bg-brand-green/30 text-emerald-300 font-bold px-2 py-0.5 rounded-full">Confirmed</span>
+                      <span className="text-[9px] bg-brand-green/30 text-emerald-300 font-bold px-2 py-0.5 rounded-full">Active</span>
                     </div>
                   </div>
 
+                  {/* Direct Mobile Login Tap */}
                   <Link
                     href="/patienthub/login"
-                    className="block w-full py-2.5 text-center rounded-xl bg-white/10 hover:bg-white/20 text-[11px] font-black text-white transition-colors border border-white/10"
+                    className="block w-full py-3 text-center rounded-xl bg-brand-green hover:bg-brand-green-hover text-xs font-black text-white transition-all shadow-md active:scale-95"
                   >
-                    Access Patient Portal →
+                    Open Patient Portal →
                   </Link>
                 </div>
               </div>
+
             </div>
           </div>
+
+          {/* Smartphone Install Guide Modal / Dialog */}
+          {showInstallModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+              <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-5 h-5 text-brand-green dark:text-teal-400" />
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Install GaitPhysio App</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowInstallModal(false)}
+                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="p-3 rounded-2xl bg-brand-bg dark:bg-slate-800 space-y-1">
+                    <p className="font-bold text-slate-900 dark:text-white">📱 On iPhone / iPad (Safari):</p>
+                    <p className="text-[11px] leading-relaxed">
+                      Tap the <strong>Share</strong> button (box with arrow) at the bottom, then scroll down and tap <strong>&quot;Add to Home Screen&quot;</strong>.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-brand-bg dark:bg-slate-800 space-y-1">
+                    <p className="font-bold text-slate-900 dark:text-white">🤖 On Android (Chrome / Edge):</p>
+                    <p className="text-[11px] leading-relaxed">
+                      Tap the <strong>three dots (⋮)</strong> menu at the top-right, then tap <strong>&quot;Install App&quot;</strong> or <strong>&quot;Add to Home Screen&quot;</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowInstallModal(false)}
+                  className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black shadow-sm hover:bg-brand-green-hover transition-colors"
+                >
+                  Got It
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
       </section>

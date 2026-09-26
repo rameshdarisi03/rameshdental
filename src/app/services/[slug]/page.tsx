@@ -246,7 +246,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
           <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-brand-charcoal/60 select-none">
             <Link href="/" className="hover:text-brand-green transition-colors">Home</Link>
             <ChevronRight className="w-3.5 h-3.5 text-brand-charcoal/40" />
-            <Link href="/services" className="hover:text-brand-green transition-colors">Services</Link>
+            <Link href="/#services" className="hover:text-brand-green transition-colors">Services</Link>
             <ChevronRight className="w-3.5 h-3.5 text-brand-charcoal/40" />
             <span className="text-brand-green font-extrabold">{data.title}</span>
           </div>
@@ -268,11 +268,11 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
               
               {/* Back Button */}
               <Link 
-                href="/services" 
-                className="inline-flex items-center gap-1.5 text-[11px] font-black text-brand-green dark:text-teal-400 hover:text-brand-green-hover transition-colors mb-4 border border-brand-green/20 px-3.5 py-1.5 rounded-full select-none"
+                href="/#services" 
+                className="inline-flex items-center gap-1.5 text-[11px] font-black text-brand-green dark:text-teal-400 hover:text-brand-green-hover transition-colors mb-4 border border-brand-green/20 px-3.5 py-1.5 rounded-full select-none group"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to Services</span>
+                <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                <span>Back to All Services</span>
               </Link>
 
               {/* Section 1: Overview */}
@@ -293,15 +293,45 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ slug: 
                   <Video className="w-4.5 h-4.5 text-brand-green dark:text-teal-400" />
                   Rehabilitation Demonstration Video
                 </h2>
-                <div className="relative w-full aspect-video rounded-3xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-black shadow-sm">
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src={`https://www.youtube.com/embed/${data.youtubeId}`}
-                    title={`${data.title} Demonstration`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  ></iframe>
-                </div>
+                
+                {data.youtubeId && (data as any).hasUploadedVideo ? (
+                  <div className="relative w-full aspect-video rounded-3xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-black shadow-sm">
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${data.youtubeId}`}
+                      title={`${data.title} Demonstration`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                ) : (
+                  <div className="relative w-full aspect-[16/9] rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-slate-900 via-[#062e36] to-slate-900 shadow-md flex flex-col items-center justify-center p-6 text-center text-white">
+                    <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#2dd4bf_1px,transparent_1px)] [background-size:16px_16px]" />
+                    <div className="relative z-10 space-y-3 max-w-md">
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center mx-auto text-brand-luminous shadow-sm">
+                        <Video className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-brand-luminous bg-brand-green/30 px-3 py-1 rounded-full">
+                          Clinical Video Production
+                        </span>
+                        <h3 className="text-base sm:text-lg font-black text-white mt-2">
+                          {data.title} Protocol Video
+                        </h3>
+                        <p className="text-xs text-slate-300 font-normal leading-relaxed mt-1">
+                          Dedicated in-clinic video demonstration by Dr. Madem Kinnera will be uploaded soon. Schedule a consultation for an individualized clinical assessment.
+                        </p>
+                      </div>
+                      <Link
+                        href="/book"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black transition-all shadow-md active:scale-95"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Book Initial Consultation</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Section 2: Symptoms Treated */}

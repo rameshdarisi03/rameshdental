@@ -116,7 +116,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen">{children}</div>;
   }
 
-  if (loading && !patient) {
+  if (loading || !patient) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[#062e36] text-white">
         <div className="text-center space-y-4 animate-fade-in flex flex-col items-center">
@@ -137,7 +137,7 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-300/80 font-medium pt-2">
             <Loader2 className="h-4 w-4 animate-spin text-[#f9ab55]" />
-            <span>Connecting to your care timeline...</span>
+            <span>{!patient ? "Redirecting to Patient Login..." : "Connecting to your care timeline..."}</span>
           </div>
         </div>
       </div>
