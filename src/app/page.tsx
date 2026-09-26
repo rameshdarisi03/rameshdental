@@ -278,10 +278,24 @@ export default function Home() {
   const [showDeviceHelper, setShowDeviceHelper] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [patientHubHref, setPatientHubHref] = useState("/patienthub/login");
+  const [isPatientActive, setIsPatientActive] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Standalone PWA Guard: If launched as an installed app, focus exclusively on Patient Hub
+      // Check if user is already logged in as a patient
+      try {
+        const storedPatient = localStorage.getItem("gpc_patient");
+        if (storedPatient) {
+          const parsed = JSON.parse(storedPatient);
+          if (parsed && (parsed.id || parsed.name)) {
+            setIsPatientActive(true);
+            setPatientHubHref("/patienthub/dashboard");
+          }
+        }
+      } catch (e) {}
+
+      // Standalone PWA detection (without forceful redirection)
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
@@ -289,8 +303,6 @@ export default function Home() {
 
       if (isStandalone) {
         setIsStandaloneApp(true);
-        window.location.replace("/patienthub/login");
-        return;
       }
 
       const ua = navigator.userAgent || "";
@@ -1923,10 +1935,10 @@ export default function Home() {
                 {/* Primary Action Buttons - Mobile First Focus */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                   <Link
-                    href="/patienthub/login"
+                    href={patientHubHref}
                     className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs sm:text-sm font-black transition-all shadow-lg hover:shadow-brand-green/30 active:scale-95 text-center cursor-pointer"
                   >
-                    <span>Log in to Patient Hub</span>
+                    <span>{isPatientActive ? "Open Patient Hub" : "Log in to Patient Hub"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
 
