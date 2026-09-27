@@ -5,6 +5,7 @@ import Navbar from "@/components/public/Navbar";
 import Footer from "@/components/public/Footer";
 import FloatingSocials from "@/components/public/FloatingSocials";
 import PWARegistry from "@/components/PWARegistry";
+import DynamicManifest from "@/components/DynamicManifest";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -309,6 +310,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+        <DynamicManifest />
         <PWARegistry />
         <Navbar />
         <main className="flex-grow flex flex-col">{children}</main>

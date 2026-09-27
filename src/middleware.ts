@@ -24,6 +24,6 @@ export const config = {
      * - _next/static, _next/image
      * - static files (manifest.json, sw.js, favicon.ico, images, etc.)
      */
-    "/((?!api|_next/static|_next/image|manifest.json|sw.js|favicon.ico|icon.png|apple-icon.png|images|robots.txt|sitemap.xml).*)",
+    "/((?!api|_next/static|_next/image|manifest.*\\.json|sw.js|favicon.ico|icon.png|apple-icon.png|images|robots.txt|sitemap.xml).*)",
   ],
 };

@@ -22,6 +22,7 @@ import {
   Receipt
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
+import InstallManagementAppButton from "@/components/dashboard/InstallManagementAppButton";
 
 interface UserProfile {
   uid: string;
@@ -227,8 +228,9 @@ export default function DashboardLayout({
             <Menu className="h-6 w-6" />
           </button>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <InstallManagementAppButton />
+            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider hidden sm:inline">
                 Live Connection
               </span>
