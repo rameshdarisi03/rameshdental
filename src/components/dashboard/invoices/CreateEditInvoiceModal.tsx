@@ -325,10 +325,19 @@ export default function CreateEditInvoiceModal({
             type: "application/pdf",
           });
 
+          // Format serviceDate to DD-MM-YYYY for consistent Drive subfolder organization
+          let formattedServiceDate = serviceDate;
+          if (serviceDate && serviceDate.includes("-")) {
+            const parts = serviceDate.split("-");
+            if (parts.length === 3 && parts[0].length === 4) {
+              formattedServiceDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+          }
+
           const driveFormData = new FormData();
           driveFormData.append("file", pdfFile);
           driveFormData.append("parentFolderId", driveFolderId);
-          driveFormData.append("date", serviceDate);
+          driveFormData.append("date", formattedServiceDate);
 
           await fetch("/api/drive/upload", {
             method: "POST",

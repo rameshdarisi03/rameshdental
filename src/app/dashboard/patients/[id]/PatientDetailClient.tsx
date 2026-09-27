@@ -1050,8 +1050,12 @@ PLAN:
 
         // Generate PDF Blob
         const pdfBlob = doc.output("blob");
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, "0");
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const yyyy = today.getFullYear();
+        const dateStamp = `${dd}-${mm}-${yyyy}`;
         const cleanDoctorName = (data.doctorName || data.hospitalOrClinic || "Doctor").replace(/[^a-zA-Z0-9]/g, "_");
-        const dateStamp = new Date().toISOString().split("T")[0];
         const pdfFileName = `consultation_Referral_${cleanDoctorName}_${dateStamp}.pdf`;
         const pdfFile = new File([pdfBlob], pdfFileName, { type: "application/pdf" });
 

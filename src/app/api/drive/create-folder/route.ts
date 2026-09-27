@@ -16,8 +16,13 @@ export async function POST(request: Request) {
     // If an initial date is specified, create the date subfolder too
     let dateFolderId = "";
     if (dateStr) {
-      console.log(`[API Drive] Creating initial date subfolder '${dateStr}'...`);
-      dateFolderId = await createDateSubfolder(folderId, dateStr);
+      let normalizedDate = dateStr.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+        const [yyyy, mm, dd] = normalizedDate.split("-");
+        normalizedDate = `${dd}-${mm}-${yyyy}`;
+      }
+      console.log(`[API Drive] Creating initial date subfolder '${normalizedDate}'...`);
+      dateFolderId = await createDateSubfolder(folderId, normalizedDate);
     }
 
     return NextResponse.json({ 
