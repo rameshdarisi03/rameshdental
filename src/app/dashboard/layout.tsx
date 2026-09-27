@@ -107,7 +107,9 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden">
+    <>
+      <link rel="manifest" href="/manifest-staff.json" />
+      <div className="flex h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-100 dark:border-slate-850 text-brand-green font-semibold">
@@ -271,5 +273,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </>
   );
 }

@@ -17,7 +17,6 @@ export default function InstallManagementAppButton() {
   const [showAlreadyInstalledModal, setShowAlreadyInstalledModal] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [showAndroidModal, setShowAndroidModal] = useState(false);
-  const [showDesktopModal, setShowDesktopModal] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -139,8 +138,9 @@ export default function InstallManagementAppButton() {
       return;
     }
 
-    // 6. Desktop browser fallback
-    setShowDesktopModal(true);
+    // 6. Desktop browser fallback: On desktop Chrome/Edge, if promptEvent is null on /dashboard,
+    // the app is already installed on the PC/Mac.
+    setShowAlreadyInstalledModal(true);
   };
 
   return (
@@ -281,42 +281,6 @@ export default function InstallManagementAppButton() {
             <button
               type="button"
               onClick={() => setShowAndroidModal(false)}
-              className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black cursor-pointer shadow-md"
-            >
-              Got It
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: Desktop Browser Install Instructions */}
-      {showDesktopModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
-            <button
-              type="button"
-              onClick={() => setShowDesktopModal(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-brand-green">
-              <Monitor className="w-7 h-7" />
-            </div>
-
-            <div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white">
-                Install Portal on Desktop
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                Click the <strong>Install icon (⊞)</strong> in the right corner of your browser address bar to install the Gait Physio Portal app on your PC or Mac.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowDesktopModal(false)}
               className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black cursor-pointer shadow-md"
             >
               Got It

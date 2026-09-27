@@ -23,5 +23,8 @@ export default function DynamicManifest() {
     }
   }, [pathname]);
 
-  return null;
+  const isStaffPortal = pathname?.startsWith("/dashboard") || pathname === "/login";
+  const targetManifest = isStaffPortal ? "/manifest-staff.json" : "/manifest-patient.json";
+
+  return <link rel="manifest" href={targetManifest} />;
 }
