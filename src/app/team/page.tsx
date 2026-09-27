@@ -78,7 +78,7 @@ export default async function TeamPage() {
                 <img
                   src={member.image || "/images/dr-kinnera-portrait.jpg"}
                   alt={member.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
                 {member.experience && (
                   <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-black px-3 py-1 rounded-full">

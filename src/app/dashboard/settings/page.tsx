@@ -48,7 +48,11 @@ import {
   Eye,
   EyeOff,
   Edit3,
-  Stethoscope
+  Stethoscope,
+  Crop,
+  Move,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -359,6 +363,51 @@ export default function DashboardSettings() {
     setShowDoctorModal(true);
   };
 
+  // Interactive Photo Framing & Positioner Cropper Modal State
+  const [showCropperModal, setShowCropperModal] = useState(false);
+  const [cropperRawSrc, setCropperRawSrc] = useState<string>("");
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropPanX, setCropPanX] = useState(0);
+  const [cropPanY, setCropPanY] = useState(0);
+  const [cropNaturalWidth, setCropNaturalWidth] = useState(0);
+  const [cropNaturalHeight, setCropNaturalHeight] = useState(0);
+  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [dragStartPan, setDragStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const VIEWFINDER_W = 300;
+  const VIEWFINDER_H = 375; // 4:5 Portrait aspect ratio
+
+  const openCropperWithImage = (url: string) => {
+    if (!url) return;
+    setUploadingPhoto(true);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const nw = img.naturalWidth || img.width;
+      const nh = img.naturalHeight || img.height;
+      setCropNaturalWidth(nw);
+      setCropNaturalHeight(nh);
+      setCropperRawSrc(url);
+      setCropZoom(1);
+
+      // Smart default: if image is tall, shift down slightly to give head breathing room
+      const baseScale = Math.max(VIEWFINDER_W / nw, VIEWFINDER_H / nh) || 1;
+      const dispH = nh * baseScale;
+      const defaultShiftY = dispH > VIEWFINDER_H ? Math.round((dispH - VIEWFINDER_H) * 0.2) : 0;
+      setCropPanX(0);
+      setCropPanY(defaultShiftY);
+
+      setUploadingPhoto(false);
+      setShowCropperModal(true);
+    };
+    img.onerror = () => {
+      setUploadingPhoto(false);
+      alert("Could not load image for positioning. Please check image URL or file.");
+    };
+    img.src = url;
+  };
+
   const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -371,48 +420,98 @@ export default function DashboardSettings() {
     setUploadingPhoto(true);
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          let width = img.width;
-          let height = img.height;
-          const MAX_DIMENSION = 800; // Optimal 800px max for doctor portraits
-
-          if (width > height) {
-            if (width > MAX_DIMENSION) {
-              height = Math.round((height * MAX_DIMENSION) / width);
-              width = MAX_DIMENSION;
-            }
-          } else {
-            if (height > MAX_DIMENSION) {
-              width = Math.round((width * MAX_DIMENSION) / height);
-              height = MAX_DIMENSION;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const compressed = canvas.toDataURL("image/jpeg", 0.84);
-            setFormDocImage(compressed);
-          }
-        } catch (err) {
-          console.error("Error compressing image:", err);
-          alert("Failed to process image.");
-        } finally {
-          setUploadingPhoto(false);
-        }
-      };
-      img.onerror = () => {
-        setUploadingPhoto(false);
-        alert("Failed to load image file.");
-      };
-      img.src = event.target?.result as string;
+      const rawDataUrl = event.target?.result as string;
+      openCropperWithImage(rawDataUrl);
+    };
+    reader.onerror = () => {
+      setUploadingPhoto(false);
+      alert("Failed to read file.");
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleViewfinderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsDraggingCrop(true);
+    setDragStartPos({ x: e.clientX, y: e.clientY });
+    setDragStartPan({ x: cropPanX, y: cropPanY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handleViewfinderPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDraggingCrop) return;
+    const deltaX = e.clientX - dragStartPos.x;
+    const deltaY = e.clientY - dragStartPos.y;
+    setCropPanX(dragStartPan.x + deltaX);
+    setCropPanY(dragStartPan.y + deltaY);
+  };
+
+  const handleViewfinderPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDraggingCrop) {
+      setIsDraggingCrop(false);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+  };
+
+  const handleApplyCrop = () => {
+    if (!cropperRawSrc || cropNaturalWidth === 0 || cropNaturalHeight === 0) return;
+
+    try {
+      const canvas = document.createElement("canvas");
+      const OUT_W = 600;
+      const OUT_H = 750; // High-res 4:5 portrait
+      canvas.width = OUT_W;
+      canvas.height = OUT_H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const renderOntoCanvas = (loadedImg: HTMLImageElement) => {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, OUT_W, OUT_H);
+
+        const baseScale = Math.max(VIEWFINDER_W / cropNaturalWidth, VIEWFINDER_H / cropNaturalHeight) || 1;
+        const currentScale = baseScale * cropZoom;
+        const displayedW = cropNaturalWidth * currentScale;
+        const displayedH = cropNaturalHeight * currentScale;
+
+        const R = OUT_W / VIEWFINDER_W;
+
+        const drawX = ((VIEWFINDER_W - displayedW) / 2 + cropPanX) * R;
+        const drawY = ((VIEWFINDER_H - displayedH) / 2 + cropPanY) * R;
+        const drawW = displayedW * R;
+        const drawH = displayedH * R;
+
+        ctx.drawImage(loadedImg, drawX, drawY, drawW, drawH);
+        try {
+          const resultBase64 = canvas.toDataURL("image/jpeg", 0.88);
+          setFormDocImage(resultBase64);
+          setShowCropperModal(false);
+        } catch (exportErr) {
+          console.error("Export canvas error:", exportErr);
+          alert("Browser security prevented exporting external image. Please upload a photo from your computer or device.");
+        }
+      };
+
+      const img = new Image();
+      if (!cropperRawSrc.startsWith("data:")) {
+        img.crossOrigin = "anonymous";
+      }
+      img.onload = () => renderOntoCanvas(img);
+      img.onerror = () => {
+        const imgRetry = new Image();
+        imgRetry.onload = () => renderOntoCanvas(imgRetry);
+        imgRetry.onerror = () => {
+          alert("Could not load image to apply positioning. Please upload the photo file directly.");
+        };
+        imgRetry.src = cropperRawSrc;
+      };
+      img.src = cropperRawSrc;
+    } catch (err) {
+      console.error("Error cropping image:", err);
+      alert("Failed to position and save image.");
+    }
   };
 
   const handleSaveDoctorModal = () => {
@@ -1918,7 +2017,7 @@ export default function DashboardSettings() {
                           <img
                             src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
                             alt={doctor.name}
-                            className="w-14 h-16 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs bg-slate-100"
+                            className="w-14 h-16 rounded-xl object-cover object-top border border-slate-200 dark:border-slate-700 shadow-xs bg-slate-100"
                           />
                           <button
                             type="button"
@@ -2223,16 +2322,27 @@ export default function DashboardSettings() {
                 
                 <div className="flex items-center gap-4">
                   {/* Photo Preview */}
-                  <div className="relative shrink-0">
+                  <div className="relative shrink-0 group">
                     <img
                       src={formDocImage || "/images/dr-kinnera-portrait.jpg"}
                       alt="Doctor Preview"
-                      className="w-20 h-24 rounded-2xl object-cover border-2 border-brand-green/30 shadow-md bg-white dark:bg-slate-800"
+                      className="w-20 h-24 rounded-2xl object-cover object-top border-2 border-brand-green/30 shadow-md bg-white dark:bg-slate-800"
                     />
                     {uploadingPhoto && (
                       <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
                         <Loader2 className="w-5 h-5 text-white animate-spin" />
                       </div>
+                    )}
+                    {!uploadingPhoto && (
+                      <button
+                        type="button"
+                        onClick={() => openCropperWithImage(formDocImage || "/images/dr-kinnera-portrait.jpg")}
+                        className="absolute inset-0 bg-black/55 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity cursor-pointer border-0 text-[9px] font-bold"
+                        title="Click to reposition or zoom photo"
+                      >
+                        <Crop className="w-4 h-4 text-brand-green" />
+                        <span>Move / Zoom</span>
+                      </button>
                     )}
                   </div>
 
@@ -2245,17 +2355,30 @@ export default function DashboardSettings() {
                       className="hidden"
                       onChange={handlePhotoFileUpload}
                     />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingPhoto}
-                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer border-0"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingPhoto ? "Compressing..." : "Upload Photo (File)"}</span>
-                    </button>
-                    <p className="text-[10px] text-slate-400 leading-tight">
-                      Pick any JPG/PNG. We automatically compress it into a lightweight portrait!
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingPhoto}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer border-0"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingPhoto ? "Compressing..." : "Upload Photo"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openCropperWithImage(formDocImage || "/images/dr-kinnera-portrait.jpg")}
+                        disabled={uploadingPhoto}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-250 dark:border-slate-700 shadow-xs"
+                        title="Adjust position, zoom, and frame so head is not cut off"
+                      >
+                        <Crop className="w-3.5 h-3.5 text-brand-green" />
+                        <span>Move & Reposition</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                      Click <strong>Move & Reposition</strong> to drag the photo up/down/left/right so the head and face are framed perfectly!
                     </p>
                   </div>
                 </div>
@@ -2412,6 +2535,207 @@ export default function DashboardSettings() {
               >
                 <Check className="w-4 h-4" />
                 <span>Save Doctor Profile</span>
+              </button>
+            </div>
+
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Interactive Photo Framing & Positioner Cropper Modal */}
+      {showCropperModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl overflow-hidden animate-fade-in-up my-auto flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-900/70">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
+                  <Crop className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
+                    Frame & Position Portrait
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-semibold">
+                    Drag & zoom to ensure head & face aren't chopped off
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCropperModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Viewfinder Canvas Area */}
+            <div className="p-4 sm:p-5 flex flex-col items-center select-none bg-slate-50/40 dark:bg-slate-950/40">
+              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/10 border border-brand-green/20">
+                <Move className="w-3.5 h-3.5 text-brand-green animate-pulse" />
+                <span>Click & drag inside frame to move image</span>
+              </div>
+
+              {/* Viewfinder Frame (300px x 375px = 4:5 ratio) */}
+              <div 
+                className="relative overflow-hidden rounded-2xl border-2 border-brand-green shadow-xl bg-slate-950 cursor-grab active:cursor-grabbing touch-none select-none ring-4 ring-brand-green/15"
+                style={{ width: `${VIEWFINDER_W}px`, height: `${VIEWFINDER_H}px` }}
+                onPointerDown={handleViewfinderPointerDown}
+                onPointerMove={handleViewfinderPointerMove}
+                onPointerUp={handleViewfinderPointerUp}
+                onPointerCancel={handleViewfinderPointerUp}
+              >
+                {/* Scaled & Positioned Image */}
+                {cropperRawSrc && (
+                  (() => {
+                    const baseScale = Math.max(VIEWFINDER_W / (cropNaturalWidth || 1), VIEWFINDER_H / (cropNaturalHeight || 1)) || 1;
+                    const currentScale = baseScale * cropZoom;
+                    const displayedW = (cropNaturalWidth || 300) * currentScale;
+                    const displayedH = (cropNaturalHeight || 375) * currentScale;
+                    const left = (VIEWFINDER_W - displayedW) / 2 + cropPanX;
+                    const top = (VIEWFINDER_H - displayedH) / 2 + cropPanY;
+
+                    return (
+                      <img
+                        src={cropperRawSrc}
+                        alt="Crop target"
+                        draggable={false}
+                        className="absolute max-w-none pointer-events-none select-none transition-transform duration-75 ease-out"
+                        style={{
+                          width: `${displayedW}px`,
+                          height: `${displayedH}px`,
+                          left: `${left}px`,
+                          top: `${top}px`,
+                        }}
+                      />
+                    );
+                  })()
+                )}
+
+                {/* Viewfinder Grid Guidelines (Rule of thirds) */}
+                <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 border border-white/20">
+                  <div className="border-r border-b border-white/15" />
+                  <div className="border-r border-b border-white/15" />
+                  <div className="border-b border-white/15" />
+                  <div className="border-r border-b border-white/15" />
+                  <div className="border-r border-b border-white/15" />
+                  <div className="border-b border-white/15" />
+                  <div className="border-r border-b border-white/15" />
+                  <div className="border-r border-b border-white/15" />
+                  <div />
+                </div>
+
+                {/* Corner Viewfinder Indicators */}
+                <div className="absolute top-2.5 left-2.5 w-3.5 h-3.5 border-t-2 border-l-2 border-brand-green pointer-events-none" />
+                <div className="absolute top-2.5 right-2.5 w-3.5 h-3.5 border-t-2 border-r-2 border-brand-green pointer-events-none" />
+                <div className="absolute bottom-2.5 left-2.5 w-3.5 h-3.5 border-b-2 border-l-2 border-brand-green pointer-events-none" />
+                <div className="absolute bottom-2.5 right-2.5 w-3.5 h-3.5 border-b-2 border-r-2 border-brand-green pointer-events-none" />
+                
+                {/* 4:5 Portrait Badge */}
+                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white/80 px-2 py-0.5 rounded-full text-[9px] font-bold pointer-events-none tracking-wider">
+                  4:5 PORTRAIT RATIO
+                </div>
+              </div>
+
+              {/* Zoom & Positioning Controls */}
+              <div className="w-full max-w-[300px] mt-4 space-y-3">
+                {/* Zoom Slider */}
+                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setCropZoom((prev) => Math.max(1, Number((prev - 0.1).toFixed(2))))}
+                    className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 cursor-pointer"
+                    title="Zoom Out"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 min-w-[32px] text-center">
+                    {cropZoom.toFixed(1)}x
+                  </span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.05"
+                    value={cropZoom}
+                    onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                    className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCropZoom((prev) => Math.min(3, Number((prev + 0.1).toFixed(2))))}
+                    className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 cursor-pointer"
+                    title="Zoom In"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quick Alignment Presets */}
+                <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Presets:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const baseScale = Math.max(VIEWFINDER_W / (cropNaturalWidth || 1), VIEWFINDER_H / (cropNaturalHeight || 1)) || 1;
+                        const dispH = (cropNaturalHeight || 375) * baseScale * cropZoom;
+                        const maxShiftDown = Math.max(0, Math.round((dispH - VIEWFINDER_H) / 2));
+                        setCropPanX(0);
+                        setCropPanY(maxShiftDown);
+                      }}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-colors cursor-pointer"
+                      title="Align to show top of head completely"
+                    >
+                      Head / Face Focus
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCropPanX(0);
+                        setCropPanY(0);
+                      }}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                    >
+                      Center
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCropZoom(1);
+                        setCropPanX(0);
+                        setCropPanY(0);
+                      }}
+                      className="px-2 py-1 rounded-lg text-[10.5px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer border-0 bg-transparent"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-end gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowCropperModal(false)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0 bg-transparent"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyCrop}
+                className="px-4 py-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer border-0 flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Apply Framing</span>
               </button>
             </div>
 

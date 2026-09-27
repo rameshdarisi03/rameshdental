@@ -1063,7 +1063,7 @@ export default function Home() {
                       <img
                         src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
                         alt={`${doctor.name} - ${doctor.role}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent opacity-70 group-hover:opacity-50 transition-opacity" />
                       
@@ -1155,7 +1155,7 @@ export default function Home() {
                           <img
                             src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
                             alt={`${doctor.name} - ${doctor.role}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-top"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent opacity-70" />
                           
