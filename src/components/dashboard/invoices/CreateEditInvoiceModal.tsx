@@ -338,6 +338,7 @@ export default function CreateEditInvoiceModal({
           driveFormData.append("file", pdfFile);
           driveFormData.append("parentFolderId", driveFolderId);
           driveFormData.append("date", formattedServiceDate);
+          driveFormData.append("category", "Invoices");
 
           await fetch("/api/drive/upload", {
             method: "POST",

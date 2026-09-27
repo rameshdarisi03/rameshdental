@@ -901,6 +901,7 @@ PLAN:
       uploadFormData.append("file", fileToUpload);
       uploadFormData.append("parentFolderId", activeFolderId!);
       uploadFormData.append("date", formattedDate);
+      uploadFormData.append("category", "Reports");
 
       const uploadResponse = await fetch("/api/drive/upload", {
         method: "POST",
@@ -1065,6 +1066,7 @@ PLAN:
           uploadFormData.append("file", pdfFile);
           uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
           uploadFormData.append("date", dateStamp);
+          uploadFormData.append("category", "Prescriptions");
 
           const uploadResponse = await fetch("/api/drive/upload", {
             method: "POST",
@@ -1131,6 +1133,7 @@ PLAN:
         uploadFormData.append("file", selectedFile);
         uploadFormData.append("parentFolderId", patient.googleDriveFolderId);
         uploadFormData.append("date", formattedDate);
+        uploadFormData.append("category", "Reports");
 
         const uploadResponse = await fetch("/api/drive/upload", {
           method: "POST",
@@ -1211,6 +1214,7 @@ PLAN:
             formData.append("file", fileObj);
             formData.append("parentFolderId", patient.googleDriveFolderId);
             formData.append("date", formattedDate);
+            formData.append("category", "Prescriptions");
 
             const uploadRes = await fetch("/api/drive/upload", {
               method: "POST",
