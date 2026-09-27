@@ -94,16 +94,11 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   doc.setTextColor(215, 228, 232);
   doc.text(`${CLINIC_BRAND.addressLine} • Tel: ${CLINIC_BRAND.phone}`, 108, y + 53);
 
-  // Top-Right: Document Type Tagline (CONSULTATION / PRESCRIPTION)
+  // Top-Right: Clean Document Title (CONSULTATION / PRESCRIPTION)
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("CONSULTATION / PRESCRIPTION", pageWidth - 45, y + 26, { align: "right" });
-
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(249, 171, 85);
-  doc.text("OFFICIAL MEDICAL RECORD", pageWidth - 45, y + 40, { align: "right" });
+  doc.text("CONSULTATION / PRESCRIPTION", pageWidth - 45, y + 33, { align: "right" });
 
   y += bannerHeight + 14;
 
@@ -595,30 +590,29 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
   doc.text(CLINIC_BRAND.servicesTagline, 108, y + 38);
 
-  // Left - Line 3: Clinic Location & Contact (Right below the 3 services)
-  const addressText = params.clinicAddress || CLINIC_BRAND.addressLine;
-  const phoneText = params.clinicPhone || CLINIC_BRAND.phone;
+  // Left - Line 3: Clinic Location & Contact (Right below the 3 services - concise SSOT branding)
+  const addressText = CLINIC_BRAND.addressLine;
+  const phoneText = CLINIC_BRAND.phone;
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(215, 228, 232);
   doc.text(`${addressText} • Tel: ${phoneText}`, 108, y + 53);
 
-  // Top-Right: Clean Invoice Reference (Without #)
+  // Top-Right: Clean Invoice Reference (Without # and without secondary label)
   const cleanInv = (params.invoiceNumber || "GPC-INV-001").replace(/^#+/, "");
   const cleanReplaces = (params.replacesInvoiceNumber || "").replace(/^#+/, "");
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text(`INVOICE: ${cleanInv}`, pageWidth - 45, y + 26, { align: "right" });
-
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
   if (cleanReplaces) {
+    doc.text(`INVOICE: ${cleanInv}`, pageWidth - 45, y + 26, { align: "right" });
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
     doc.text(`Replaces: ${cleanReplaces}`, pageWidth - 45, y + 40, { align: "right" });
   } else {
-    doc.text("OFFICIAL TAX INVOICE", pageWidth - 45, y + 40, { align: "right" });
+    doc.text(`INVOICE: ${cleanInv}`, pageWidth - 45, y + 33, { align: "right" });
   }
 
   y += bannerHeight + 14;
