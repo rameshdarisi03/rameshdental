@@ -50,6 +50,10 @@ function doPost(e) {
 
       // Otherwise create brand new folder
       const newFolder = parentFolder.createFolder(folderName);
+      try {
+        newFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) {}
+
       return jsonResponse({
         success: true,
         id: newFolder.getId(),
@@ -69,6 +73,13 @@ function doPost(e) {
       const mimeType = data.mimeType || "application/octet-stream";
       const blob = Utilities.newBlob(decodedBytes, mimeType, data.fileName);
       const file = targetFolder.createFile(blob);
+
+      // Enable link viewing permission so therapists, staff, and patients can view without permission prompts
+      try {
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (shareErr) {
+        // Fallback if organization policy restricts public link sharing
+      }
 
       return jsonResponse({
         success: true,
