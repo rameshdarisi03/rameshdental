@@ -306,7 +306,7 @@ export default function Home() {
         }
       } catch (e) {}
 
-      // Standalone PWA detection (without forceful redirection)
+      // Standalone PWA detection
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
@@ -314,17 +314,16 @@ export default function Home() {
 
       if (isStandalone) {
         setIsStandaloneApp(true);
-      }
-
-      if (isStandalone || localStorage.getItem("gpc_pwa_installed") === "true") {
         setIsAppInstalled(true);
       }
 
+      // Check installed related apps dynamically
       if ("getInstalledRelatedApps" in navigator) {
         (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
           if (relatedApps && relatedApps.length > 0) {
             setIsAppInstalled(true);
-            localStorage.setItem("gpc_pwa_installed", "true");
+          } else {
+            setIsAppInstalled(false);
           }
         }).catch(() => {});
       }
@@ -340,12 +339,18 @@ export default function Home() {
 
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
+        setIsAppInstalled(false);
       }
 
       const handleBeforePrompt = (e: any) => {
         e.preventDefault();
         setDeferredPrompt(e);
         (window as any).deferredPrompt = e;
+        // If beforeinstallprompt fires, the app is NOT installed
+        setIsAppInstalled(false);
+        try {
+          localStorage.removeItem("gpc_pwa_installed");
+        } catch (err) {}
       };
       window.addEventListener("beforeinstallprompt", handleBeforePrompt);
 
@@ -354,7 +359,6 @@ export default function Home() {
         setDeferredPrompt(null);
         if (typeof window !== "undefined") {
           (window as any).deferredPrompt = null;
-          localStorage.setItem("gpc_pwa_installed", "true");
         }
       });
 
@@ -365,19 +369,14 @@ export default function Home() {
   const handleInstallClick = async (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // 1. If already installed on this device or running in standalone mode
-    if (isAppInstalled || isStandaloneApp) {
+    // 1. If currently running in standalone PWA app mode
+    if (isStandaloneApp) {
       setShowAlreadyInstalledModal(true);
       return;
     }
 
-    // 2. On iOS (Safari)
-    if (deviceType === "ios") {
-      setShowIOSModal(true);
-      return;
-    }
-
-    // 3. Native install prompt (Android Chrome, Edge, Samsung Internet, Desktop Chrome)
+    // 2. Native install prompt (Android Chrome, Edge, Samsung Internet, Desktop Chrome)
+    // If deferredPrompt is available, the app is NOT installed and can be installed immediately!
     const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
     if (promptToUse) {
       try {
@@ -388,7 +387,6 @@ export default function Home() {
           setDeferredPrompt(null);
           if (typeof window !== "undefined") {
             (window as any).deferredPrompt = null;
-            localStorage.setItem("gpc_pwa_installed", "true");
           }
         }
         return;
@@ -397,13 +395,25 @@ export default function Home() {
       }
     }
 
-    // 4. If Firefox / Android where beforeinstallprompt was not available
+    // 3. If already installed on this device
+    if (isAppInstalled) {
+      setShowAlreadyInstalledModal(true);
+      return;
+    }
+
+    // 4. On iOS (Safari)
+    if (deviceType === "ios") {
+      setShowIOSModal(true);
+      return;
+    }
+
+    // 5. If Firefox / Android where beforeinstallprompt was not available
     if (deviceType === "android") {
       setShowAndroidModal(true);
       return;
     }
 
-    // 5. Desktop fallback
+    // 6. Desktop fallback
     setShowDesktopModal(true);
   };
 
@@ -2117,22 +2127,10 @@ export default function Home() {
                       className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
                     >
                       <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
-                      <span>
-                        {isAppInstalled
-                          ? "Open PatientHub App ✓"
-                          : "Install GaitPhysio PatientHub App"}
-                      </span>
+                      <span>Install GaitPhysio PatientHub App</span>
                     </button>
                     <p className="text-[11px] text-slate-300/80 font-normal pl-1">
-                      {isAppInstalled ? (
-                        <span className="text-emerald-300 font-medium">
-                          ✓ Installed. Launch from your home screen or Start menu.
-                        </span>
-                      ) : (
-                        <span>
-                          Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
-                        </span>
-                      )}
+                      Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
                     </p>
                   </div>
                 </div>
@@ -2199,19 +2197,13 @@ export default function Home() {
                   </p>
                 </div>
 
-                <div className="pt-2 flex flex-col gap-2">
-                  <a
-                    href="/patienthub/login"
-                    className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
-                  >
-                    Open Patient Hub
-                  </a>
+                <div className="pt-2">
                   <button
                     type="button"
                     onClick={() => setShowAlreadyInstalledModal(false)}
-                    className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
                   >
-                    Close
+                    Got It
                   </button>
                 </div>
               </div>

@@ -134,18 +134,14 @@ function LoginContent() {
   }, [installParam, deferredPrompt, isAppInstalled, isStandalone, deviceType]);
 
   const handleInstallClick = async () => {
-    // If already installed or running in standalone app
-    if (isAppInstalled || isStandalone) {
+    // 1. If currently running in standalone PWA app mode
+    if (isStandalone) {
       setShowAlreadyInstalledModal(true);
       return;
     }
 
-    if (deviceType === "ios") {
-      setShowIOSModal(true);
-      return;
-    }
-
-    // Direct 1-tap installation using native browser prompt (Android, Chrome, Edge, Desktop)
+    // 2. Native install prompt (Android Chrome, Edge, Samsung Internet, Desktop Chrome)
+    // If prompt is available, the app is NOT installed and can be installed immediately!
     const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
     if (promptToUse) {
       try {
@@ -157,7 +153,6 @@ function LoginContent() {
           setDeferredPrompt(null);
           if (typeof window !== "undefined") {
             (window as any).deferredPrompt = null;
-            localStorage.setItem("gpc_pwa_installed", "true");
           }
         }
         return;
@@ -166,7 +161,19 @@ function LoginContent() {
       }
     }
 
-    // Fallback: If browser didn't supply prompt (e.g., already installed WebAPK or Firefox shortcut)
+    // 3. If already installed
+    if (isAppInstalled) {
+      setShowAlreadyInstalledModal(true);
+      return;
+    }
+
+    // 4. On iOS
+    if (deviceType === "ios") {
+      setShowIOSModal(true);
+      return;
+    }
+
+    // 5. Fallback
     setShowAlreadyInstalledModal(true);
   };
 
@@ -471,25 +478,11 @@ function LoginContent() {
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#062e36] hover:bg-[#0a4552] dark:bg-white/10 dark:hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-[#062e36]/20 dark:border-white/20 shadow-md hover:shadow-lg active:scale-95 text-center cursor-pointer group"
               >
                 <Download className="w-4 h-4 text-[#f9ab55] group-hover:animate-bounce" />
-                <span>
-                  {isAppInstalled
-                    ? "Open GaitPhysio App ✓"
-                    : deviceType === "ios"
-                    ? "Install on iPhone"
-                    : "Install GaitPhysio App"}
-                </span>
+                <span>Install GaitPhysio PatientHub App</span>
               </button>
 
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                {isAppInstalled ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                    ✓ App is installed on this device. Tap above or launch from your home screen / Start menu.
-                  </span>
-                ) : (
-                  <span>
-                    Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Windows Start Menu.
-                  </span>
-                )}
+                Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Windows Start Menu.
               </p>
             </>
           ) : (
@@ -528,15 +521,10 @@ function LoginContent() {
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => {
-                  setShowAlreadyInstalledModal(false);
-                  if (patient) {
-                    router.push("/patienthub/dashboard");
-                  }
-                }}
+                onClick={() => setShowAlreadyInstalledModal(false)}
                 className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all"
               >
-                {patient ? "Open Patient Dashboard" : "Got It, Thank You!"}
+                Got It
               </button>
             </div>
           </div>
