@@ -39,7 +39,16 @@ export default function InstallManagementAppButton() {
       window.location.pathname.startsWith("/dashboard");
     setIsStandalone(isStandaloneMode);
 
+    const storedStaffInstalled =
+      localStorage.getItem("gpc_portal_installed") === "true" ||
+      localStorage.getItem("gpc_staff_pwa_installed") === "true";
+
     if (isStandaloneMode) {
+      setIsAlreadyInstalled(true);
+      try {
+        localStorage.setItem("gpc_portal_installed", "true");
+      } catch (e) {}
+    } else if (storedStaffInstalled) {
       setIsAlreadyInstalled(true);
     }
 
@@ -58,9 +67,15 @@ export default function InstallManagementAppButton() {
               url.includes("/dashboard")
             );
           });
-          setIsAlreadyInstalled(isStaffApp);
-          if (!isStaffApp) {
+          if (isStaffApp) {
+            setIsAlreadyInstalled(true);
             try {
+              localStorage.setItem("gpc_portal_installed", "true");
+            } catch (e) {}
+          } else {
+            setIsAlreadyInstalled(false);
+            try {
+              localStorage.removeItem("gpc_portal_installed");
               localStorage.removeItem("gpc_staff_pwa_installed");
             } catch (e) {}
           }
@@ -81,6 +96,7 @@ export default function InstallManagementAppButton() {
       // Browser firing beforeinstallprompt indicates app is NOT installed
       setIsAlreadyInstalled(false);
       try {
+        localStorage.removeItem("gpc_portal_installed");
         localStorage.removeItem("gpc_staff_pwa_installed");
       } catch (err) {}
     };
@@ -88,7 +104,7 @@ export default function InstallManagementAppButton() {
     const handleAppInstalled = () => {
       setIsAlreadyInstalled(true);
       try {
-        localStorage.setItem("gpc_staff_pwa_installed", "true");
+        localStorage.setItem("gpc_portal_installed", "true");
       } catch (err) {}
       setInstallPrompt(null);
       window.deferredPrompt = null;
@@ -121,7 +137,7 @@ export default function InstallManagementAppButton() {
         if (choiceResult && choiceResult.outcome === "accepted") {
           setIsAlreadyInstalled(true);
           try {
-            localStorage.setItem("gpc_staff_pwa_installed", "true");
+            localStorage.setItem("gpc_portal_installed", "true");
           } catch (err) {}
           setInstallPrompt(null);
           if (typeof window !== "undefined") {
@@ -134,8 +150,14 @@ export default function InstallManagementAppButton() {
       }
     }
 
-    // 3. If already installed on this device
-    if (isAlreadyInstalled) {
+    // 3. If verified as already installed on this device (memory or persistent storage)
+    const isPersistentStaffInstalled =
+      isAlreadyInstalled ||
+      (typeof window !== "undefined" &&
+        (localStorage.getItem("gpc_portal_installed") === "true" ||
+          localStorage.getItem("gpc_staff_pwa_installed") === "true"));
+
+    if (isPersistentStaffInstalled) {
       setShowAlreadyInstalledModal(true);
       return;
     }
@@ -196,13 +218,33 @@ export default function InstallManagementAppButton() {
               </p>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setShowAlreadyInstalledModal(false)}
                 className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
               >
                 Got It
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAlreadyInstalledModal(false);
+                  setIsAlreadyInstalled(false);
+                  try {
+                    localStorage.removeItem("gpc_portal_installed");
+                    localStorage.removeItem("gpc_staff_pwa_installed");
+                  } catch (e) {}
+                  const promptEvent = installPrompt || (typeof window !== "undefined" && window.deferredPrompt);
+                  if (promptEvent) {
+                    try {
+                      promptEvent.prompt();
+                    } catch (e) {}
+                  }
+                }}
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white underline cursor-pointer"
+              >
+                Uninstalled? Click here to reinstall
               </button>
             </div>
           </div>

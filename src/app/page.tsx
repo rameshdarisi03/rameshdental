@@ -312,8 +312,17 @@ export default function Home() {
         (document.referrer && document.referrer.indexOf("android-app://") !== -1)) &&
         window.location.pathname.startsWith("/patienthub");
 
+      const storedInstalled =
+        localStorage.getItem("gpc_patienthub_installed") === "true" ||
+        localStorage.getItem("gpc_pwa_installed") === "true";
+
       if (isStandalone) {
         setIsStandaloneApp(true);
+        setIsAppInstalled(true);
+        try {
+          localStorage.setItem("gpc_patienthub_installed", "true");
+        } catch (e) {}
+      } else if (storedInstalled) {
         setIsAppInstalled(true);
       }
 
@@ -331,9 +340,15 @@ export default function Home() {
                 url.includes("/patienthub")
               );
             });
-            setIsAppInstalled(isPatientInstalled);
-            if (!isPatientInstalled) {
+            if (isPatientInstalled) {
+              setIsAppInstalled(true);
               try {
+                localStorage.setItem("gpc_patienthub_installed", "true");
+              } catch (e) {}
+            } else if (window.location.pathname.startsWith("/patienthub")) {
+              setIsAppInstalled(false);
+              try {
+                localStorage.removeItem("gpc_patienthub_installed");
                 localStorage.removeItem("gpc_pwa_installed");
               } catch (e) {}
             }
@@ -362,6 +377,7 @@ export default function Home() {
         // If beforeinstallprompt fires, the app is NOT installed
         setIsAppInstalled(false);
         try {
+          localStorage.removeItem("gpc_patienthub_installed");
           localStorage.removeItem("gpc_pwa_installed");
         } catch (err) {}
       };
@@ -372,6 +388,9 @@ export default function Home() {
         setDeferredPrompt(null);
         if (typeof window !== "undefined") {
           (window as any).deferredPrompt = null;
+          try {
+            localStorage.setItem("gpc_patienthub_installed", "true");
+          } catch (e) {}
         }
       });
 
@@ -400,6 +419,9 @@ export default function Home() {
           setDeferredPrompt(null);
           if (typeof window !== "undefined") {
             (window as any).deferredPrompt = null;
+            try {
+              localStorage.setItem("gpc_patienthub_installed", "true");
+            } catch (e) {}
           }
         }
         return;
@@ -408,8 +430,14 @@ export default function Home() {
       }
     }
 
-    // 3. If already installed on this device
-    if (isAppInstalled) {
+    // 3. If verified as already installed on this device (memory or persistent storage)
+    const isPersistentInstalled =
+      isAppInstalled ||
+      (typeof window !== "undefined" &&
+        (localStorage.getItem("gpc_patienthub_installed") === "true" ||
+          localStorage.getItem("gpc_pwa_installed") === "true"));
+
+    if (isPersistentInstalled) {
       setShowAlreadyInstalledModal(true);
       return;
     }
@@ -2214,13 +2242,30 @@ export default function Home() {
                   </p>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-col gap-2">
                   <button
                     type="button"
                     onClick={() => setShowAlreadyInstalledModal(false)}
                     className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
                   >
                     Got It
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAlreadyInstalledModal(false);
+                      setIsAppInstalled(false);
+                      try {
+                        localStorage.removeItem("gpc_patienthub_installed");
+                        localStorage.removeItem("gpc_pwa_installed");
+                      } catch (e) {}
+                      if (typeof window !== "undefined") {
+                        window.location.href = "/patienthub/login?install=1";
+                      }
+                    }}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white underline cursor-pointer"
+                  >
+                    Uninstalled? Click here to reinstall
                   </button>
                 </div>
               </div>

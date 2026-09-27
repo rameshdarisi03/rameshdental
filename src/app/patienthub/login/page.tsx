@@ -74,7 +74,16 @@ function LoginContent() {
         window.location.pathname.startsWith("/patienthub");
       setIsStandalone(standalone);
 
+      const storedInstalled =
+        localStorage.getItem("gpc_patienthub_installed") === "true" ||
+        localStorage.getItem("gpc_pwa_installed") === "true";
+
       if (standalone) {
+        setIsAppInstalled(true);
+        try {
+          localStorage.setItem("gpc_patienthub_installed", "true");
+        } catch (e) {}
+      } else if (storedInstalled) {
         setIsAppInstalled(true);
       }
 
@@ -91,9 +100,15 @@ function LoginContent() {
                 url.includes("/patienthub")
               );
             });
-            setIsAppInstalled(isPatientApp);
-            if (!isPatientApp) {
+            if (isPatientApp) {
+              setIsAppInstalled(true);
               try {
+                localStorage.setItem("gpc_patienthub_installed", "true");
+              } catch (e) {}
+            } else {
+              setIsAppInstalled(false);
+              try {
+                localStorage.removeItem("gpc_patienthub_installed");
                 localStorage.removeItem("gpc_pwa_installed");
               } catch (e) {}
             }
@@ -113,6 +128,7 @@ function LoginContent() {
         setIsInstallable(true);
         setIsAppInstalled(false);
         try {
+          localStorage.removeItem("gpc_patienthub_installed");
           localStorage.removeItem("gpc_pwa_installed");
         } catch (err) {}
         (window as any).deferredPrompt = e;
@@ -123,7 +139,9 @@ function LoginContent() {
         setDeferredPrompt(null);
         if (typeof window !== "undefined") {
           (window as any).deferredPrompt = null;
-          localStorage.setItem("gpc_pwa_installed", "true");
+          try {
+            localStorage.setItem("gpc_patienthub_installed", "true");
+          } catch (e) {}
         }
       };
 
@@ -148,7 +166,14 @@ function LoginContent() {
         return;
       }
 
-      if (isStandalone) {
+      const isPersistent =
+        isStandalone ||
+        isAppInstalled ||
+        (typeof window !== "undefined" &&
+          (localStorage.getItem("gpc_patienthub_installed") === "true" ||
+            localStorage.getItem("gpc_pwa_installed") === "true"));
+
+      if (isPersistent) {
         setShowAlreadyInstalledModal(true);
         return;
       }
@@ -165,7 +190,11 @@ function LoginContent() {
           try {
             latePrompt.prompt();
           } catch (e) {}
-        } else if (isAppInstalled) {
+        } else if (
+          isAppInstalled ||
+          localStorage.getItem("gpc_patienthub_installed") === "true" ||
+          localStorage.getItem("gpc_pwa_installed") === "true"
+        ) {
           setShowAlreadyInstalledModal(true);
         }
       }, 700);
@@ -194,6 +223,9 @@ function LoginContent() {
           setDeferredPrompt(null);
           if (typeof window !== "undefined") {
             (window as any).deferredPrompt = null;
+            try {
+              localStorage.setItem("gpc_patienthub_installed", "true");
+            } catch (e) {}
           }
         }
         return;
@@ -202,8 +234,14 @@ function LoginContent() {
       }
     }
 
-    // 3. If already installed
-    if (isAppInstalled) {
+    // 3. If verified as already installed (memory or persistent storage)
+    const isPersistent =
+      isAppInstalled ||
+      (typeof window !== "undefined" &&
+        (localStorage.getItem("gpc_patienthub_installed") === "true" ||
+          localStorage.getItem("gpc_pwa_installed") === "true"));
+
+    if (isPersistent) {
       setShowAlreadyInstalledModal(true);
       return;
     }
@@ -559,13 +597,33 @@ function LoginContent() {
               </p>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setShowAlreadyInstalledModal(false)}
                 className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all"
               >
                 Got It
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAlreadyInstalledModal(false);
+                  setIsAppInstalled(false);
+                  try {
+                    localStorage.removeItem("gpc_patienthub_installed");
+                    localStorage.removeItem("gpc_pwa_installed");
+                  } catch (e) {}
+                  const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
+                  if (promptToUse) {
+                    try {
+                      promptToUse.prompt();
+                    } catch (e) {}
+                  }
+                }}
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white underline cursor-pointer"
+              >
+                Uninstalled? Click here to reinstall
               </button>
             </div>
           </div>
