@@ -1480,7 +1480,9 @@ PLAN:
       totalAmount: inv.totalAmount,
       currency: inv.currency || "INR",
       notes: inv.notes,
+      voidReason: inv.voidReason,
       replacesInvoiceNumber: inv.replacesInvoiceNumber,
+      replacedByInvoiceNumber: inv.replacedByInvoiceNumber,
     });
   };
 
@@ -1531,9 +1533,65 @@ PLAN:
         }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
       }
 
+      // Auto-replace PDF with stamped VOID version in Google Drive
+      try {
+        const driveFolderId = patient?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
+        if (driveFolderId) {
+          const voidedInvPayload: Invoice = {
+            ...voidingInvoice,
+            status: "voided",
+            voidReason: reason,
+          };
+          const voidPdf = buildInvoicePdf(voidedInvPayload);
+          const pdfBlob = voidPdf.output("blob");
+
+          let formattedServiceDate = voidingInvoice.serviceDate || "";
+          if (formattedServiceDate && formattedServiceDate.includes("-")) {
+            const parts = formattedServiceDate.split("-");
+            if (parts.length === 3 && parts[0].length === 4) {
+              formattedServiceDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+          }
+
+          // 1. Upload stamped void PDF replacing the original file name
+          const driveFormData = new FormData();
+          const pdfFile = new File([pdfBlob], `${voidingInvoice.invoiceNumber}_Invoice.pdf`, {
+            type: "application/pdf",
+          });
+          driveFormData.append("file", pdfFile);
+          driveFormData.append("parentFolderId", driveFolderId);
+          driveFormData.append("date", formattedServiceDate);
+          driveFormData.append("category", "Invoices");
+          driveFormData.append("replaceExisting", "true");
+
+          await fetch("/api/drive/upload", {
+            method: "POST",
+            body: driveFormData,
+          });
+
+          // 2. Also save with clear _VOIDED suffix so it is immediately noticeable in Drive list
+          const voidSuffixFormData = new FormData();
+          const voidSuffixFile = new File([pdfBlob], `${voidingInvoice.invoiceNumber}_VOIDED_Invoice.pdf`, {
+            type: "application/pdf",
+          });
+          voidSuffixFormData.append("file", voidSuffixFile);
+          voidSuffixFormData.append("parentFolderId", driveFolderId);
+          voidSuffixFormData.append("date", formattedServiceDate);
+          voidSuffixFormData.append("category", "Invoices");
+          voidSuffixFormData.append("replaceExisting", "true");
+
+          await fetch("/api/drive/upload", {
+            method: "POST",
+            body: voidSuffixFormData,
+          });
+        }
+      } catch (driveErr) {
+        console.warn("Failed to replace voided invoice in Google Drive:", driveErr);
+      }
+
       setVoidingInvoice(null);
       setVoidReason("");
-      setFormSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED & cancellation notice sent.`);
+      setFormSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED & replaced with void PDF in Google Drive.`);
       setTimeout(() => setFormSuccess(""), 4000);
     } catch (err: any) {
       console.error("Error voiding invoice:", err);

@@ -69,6 +69,19 @@ function doPost(e) {
       }
 
       const targetFolder = DriveApp.getFolderById(data.folderId);
+
+      // If replaceExisting is true, trash any existing files with this name first
+      if (data.replaceExisting) {
+        try {
+          const existingFiles = targetFolder.getFilesByName(data.fileName);
+          while (existingFiles.hasNext()) {
+            existingFiles.next().setTrashed(true);
+          }
+        } catch (trashErr) {
+          console.warn("Could not trash previous existing file: " + trashErr);
+        }
+      }
+
       const decodedBytes = Utilities.base64Decode(data.base64Data);
       const mimeType = data.mimeType || "application/octet-stream";
       const blob = Utilities.newBlob(decodedBytes, mimeType, data.fileName);

@@ -91,7 +91,8 @@ export async function uploadFileToFolder(
   folderId: string,
   fileBuffer: Buffer,
   fileName: string,
-  mimeType: string
+  mimeType: string,
+  replaceExisting?: boolean
 ): Promise<{ id: string; webViewLink: string; webContentLink: string }> {
   try {
     // Convert Buffer to base64 string for transmission
@@ -103,6 +104,7 @@ export async function uploadFileToFolder(
       fileName: fileName,
       mimeType: mimeType,
       base64Data: base64Data,
+      replaceExisting: Boolean(replaceExisting),
     });
 
     return {

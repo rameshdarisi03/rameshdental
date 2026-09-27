@@ -547,7 +547,9 @@ export interface UnifiedInvoiceParams {
   totalAmount?: number;
   currency?: string;
   notes?: string;
+  voidReason?: string;
   replacesInvoiceNumber?: string;
+  replacedByInvoiceNumber?: string;
 }
 
 export function getInvoiceFileName(patientName: string, dateInput?: any): string {
@@ -598,14 +600,25 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setTextColor(215, 228, 232);
   doc.text(`${addressText} • Tel: ${phoneText}`, 108, y + 53);
 
+  const isPaid = (params.status || "PAID").toLowerCase() === "paid";
+  const isVoid = (params.status || "").toLowerCase() === "voided" || (params.status || "").toLowerCase() === "cancelled";
+
   // Top-Right: Clean Invoice Reference (Without # and without secondary label)
   const cleanInv = (params.invoiceNumber || "GPC-INV-001").replace(/^#+/, "");
   const cleanReplaces = (params.replacesInvoiceNumber || "").replace(/^#+/, "");
+  const cleanReplacedBy = (params.replacedByInvoiceNumber || "").replace(/^#+/, "");
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  if (cleanReplaces) {
+  if (isVoid) {
+    doc.text(`INVOICE: ${cleanInv} (VOID)`, pageWidth - 45, y + 26, { align: "right" });
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 190, 190);
+    const subLabel = cleanReplacedBy ? `Replaced by: ${cleanReplacedBy}` : "CANCELLED INVOICE";
+    doc.text(subLabel, pageWidth - 45, y + 40, { align: "right" });
+  } else if (cleanReplaces) {
     doc.text(`INVOICE: ${cleanInv}`, pageWidth - 45, y + 26, { align: "right" });
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
@@ -658,9 +671,6 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setFont("helvetica", "bold");
   doc.text("PAYMENT STATUS:", 410, y + 16);
 
-  const isPaid = (params.status || "PAID").toLowerCase() === "paid";
-  const isVoid = (params.status || "").toLowerCase() === "voided" || (params.status || "").toLowerCase() === "cancelled";
-
   doc.setFontSize(9);
   if (isPaid) {
     doc.setTextColor(45, 90, 76);
@@ -670,6 +680,12 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
     doc.setTextColor(225, 29, 72);
     doc.setFont("helvetica", "bold");
     doc.text("CANCELLED / VOIDED", 410, y + 28);
+    if (params.voidReason) {
+      doc.setFontSize(7);
+      doc.setTextColor(190, 18, 60);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Reason: ${params.voidReason.slice(0, 30)}`, 410, y + 40);
+    }
   } else {
     doc.setTextColor(217, 119, 6);
     doc.setFont("helvetica", "bold");
@@ -741,6 +757,8 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
 
   // Left: Clinical Notes / Diagnoses & Replacement Notice
   const notesText = [
+    isVoid && params.voidReason ? `VOID AUDIT REASON: ${params.voidReason}` : "",
+    isVoid && params.replacedByInvoiceNumber ? `NOTICE: Replaced by updated bill ${(params.replacedByInvoiceNumber).replace(/^#+/, "")}.` : "",
     params.notes?.trim(),
     params.replacesInvoiceNumber ? `Notice: Replaces cancelled bill ${(params.replacesInvoiceNumber).replace(/^#+/, "")}.` : ""
   ].filter(Boolean).join("\n\n");
@@ -808,15 +826,45 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
 
   // Total Banner Box
   cY += 16;
-  doc.setFillColor(brandGold[0], brandGold[1], brandGold[2]);
-  doc.roundedRect(calcX + 8, cY - 10, calcWidth - 16, 24, 4, 4, "F");
+  if (isVoid) {
+    doc.setFillColor(255, 228, 230); // Soft rose background
+    doc.roundedRect(calcX + 8, cY - 10, calcWidth - 16, 24, 4, 4, "F");
 
-  doc.setTextColor(brandForest[0], brandForest[1], brandForest[2]);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text(isPaid ? "TOTAL PAID:" : "TOTAL DUE:", calcX + 16, cY + 6);
-  doc.setFontSize(11);
-  doc.text(`Rs. ${finalTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 530, cY + 6, { align: "right" });
+    doc.setTextColor(225, 29, 72);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("STATUS (VOIDED):", calcX + 16, cY + 6);
+    doc.setFontSize(9.5);
+    doc.text("Rs. 0.00 (VOID)", 530, cY + 6, { align: "right" });
+  } else {
+    doc.setFillColor(brandGold[0], brandGold[1], brandGold[2]);
+    doc.roundedRect(calcX + 8, cY - 10, calcWidth - 16, 24, 4, 4, "F");
+
+    doc.setTextColor(brandForest[0], brandForest[1], brandForest[2]);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text(isPaid ? "TOTAL PAID:" : "TOTAL DUE:", calcX + 16, cY + 6);
+    doc.setFontSize(11);
+    doc.text(`Rs. ${finalTotal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`, 530, cY + 6, { align: "right" });
+  }
+
+  // Prominent Red Watermark Across Center for Voided Invoices
+  if (isVoid) {
+    try {
+      doc.saveGraphicsState();
+      doc.setTextColor(254, 205, 211); // Rose 200 soft watermark
+      doc.setFontSize(54);
+      doc.setFont("helvetica", "bold");
+      doc.text("CANCELLED / VOIDED", pageWidth / 2, 440, { align: "center", angle: 30 });
+      doc.restoreGraphicsState();
+    } catch (e) {
+      // Fallback without rotation if angle parameter is unsupported in environment
+      doc.setTextColor(254, 205, 211);
+      doc.setFontSize(36);
+      doc.setFont("helvetica", "bold");
+      doc.text("*** CANCELLED / VOIDED ***", pageWidth / 2, 440, { align: "center" });
+    }
+  }
 
   // 6. Official Footer
   const footerY = Math.max(summaryBoxY + 95, 780);

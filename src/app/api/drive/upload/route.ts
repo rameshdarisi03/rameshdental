@@ -42,13 +42,14 @@ export async function POST(request: Request) {
     const parentFolderId = formData.get("parentFolderId") as string;
     const rawDateStr = formData.get("date") as string;
     const rawCategory = (formData.get("category") as string)?.trim() || "";
+    const replaceExisting = formData.get("replaceExisting") === "true";
 
     if (!file || !parentFolderId || !rawDateStr) {
       return NextResponse.json({ success: false, error: "Missing file, parentFolderId, or date." }, { status: 400 });
     }
 
     const dateStr = normalizeDateStr(rawDateStr);
-    console.log(`[API Drive Upload] Received file ${file.name} for folder ${parentFolderId} (date: ${dateStr}, category: ${rawCategory || "none"})...`);
+    console.log(`[API Drive Upload] Received file ${file.name} for folder ${parentFolderId} (date: ${dateStr}, category: ${rawCategory || "none"}, replaceExisting: ${replaceExisting})...`);
 
     // 1. Create / Get date subfolder (e.g., DD-MM-YYYY)
     console.log(`[API Drive Upload] Creating/Getting date folder for ${dateStr}...`);
@@ -70,7 +71,8 @@ export async function POST(request: Request) {
       targetFolderId,
       fileBuffer,
       file.name,
-      file.type || "application/octet-stream"
+      file.type || "application/octet-stream",
+      replaceExisting
     );
 
     return NextResponse.json({
