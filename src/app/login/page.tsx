@@ -266,47 +266,47 @@ export default function Login() {
         </span>
       </div>
 
+      {/* Top Right "Edit" Button (Hotstar style - placed in top corner so it never overlaps title text) */}
+      {showProfilePicker && (
+        <div className="absolute top-6 right-6 sm:top-8 sm:right-10 z-20">
+          <button
+            type="button"
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shadow-md backdrop-blur-md ${
+              isEditMode
+                ? "bg-emerald-500 text-white shadow-emerald-500/30 ring-2 ring-emerald-400"
+                : "bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700"
+            }`}
+          >
+            {isEditMode ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-white" />
+                <span>Done</span>
+              </>
+            ) : (
+              <>
+                <Edit3 className="w-3.5 h-3.5 text-slate-300" />
+                <span>Edit</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* SCENARIO 1: HOTSTAR "WHO'S LOGGING IN?" PROFILE SELECTION GRID             */}
       {/* ========================================================================= */}
       {showProfilePicker && (
         <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-10 animate-fade-in px-4">
           
-          {/* Header Row with Hotstar Title & Edit Toggle */}
-          <div className="relative flex items-center justify-center">
-            <div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white drop-shadow-md">
-                Who&apos;s logging in?
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-400 font-semibold mt-2">
-                Select your staff profile to enter your password and access clinic records.
-              </p>
-            </div>
-
-            {/* Top Right "Edit" Button (Hotstar style) */}
-            <div className="absolute right-0 top-0 sm:top-2">
-              <button
-                type="button"
-                onClick={() => setIsEditMode(!isEditMode)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                  isEditMode
-                    ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-                    : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700"
-                }`}
-              >
-                {isEditMode ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Done</span>
-                  </>
-                ) : (
-                  <>
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </>
-                )}
-              </button>
-            </div>
+          {/* Header Row with Hotstar Title */}
+          <div className="flex flex-col items-center justify-center pt-8 sm:pt-4">
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white drop-shadow-md">
+              Who&apos;s logging in?
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 font-semibold mt-2 max-w-md mx-auto leading-relaxed">
+              Select your staff profile to enter your password and access clinic records.
+            </p>
           </div>
 
           {/* Profile Tiles Row */}
