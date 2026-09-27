@@ -11,22 +11,15 @@ export default function PWARegistry() {
     if (!FEATURES.enablePatientHub) return;
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    const isPortalRoute =
-      pathname?.startsWith("/patienthub") ||
-      pathname?.startsWith("/dashboard") ||
-      pathname === "/login";
-
-    if (isPortalRoute) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          reg.update().catch(() => {});
-        })
-        .catch((err) => {
-          console.warn("Service Worker registration warning: ", err);
-        });
-    }
-  }, [pathname]);
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        reg.update().catch(() => {});
+      })
+      .catch((err) => {
+        console.warn("Service Worker registration warning: ", err);
+      });
+  }, []);
 
   return null;
 }

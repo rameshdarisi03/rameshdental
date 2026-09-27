@@ -9,33 +9,17 @@ export default function DynamicManifest() {
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    const isPatientHub = pathname?.startsWith("/patienthub");
     const isStaffPortal = pathname?.startsWith("/dashboard") || pathname === "/login";
+    const targetManifest = isStaffPortal ? "/manifest-staff.json" : "/manifest-patient.json";
 
-    let targetManifest: string | null = null;
-    if (isPatientHub) {
-      targetManifest = "/manifest-patient.json";
-    } else if (isStaffPortal) {
-      targetManifest = "/manifest-staff.json";
-    }
-
-    const existingLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-
-    if (!targetManifest) {
-      // On public website pages, remove manifest link so browsers never treat public pages as an app
-      if (existingLink && existingLink.parentNode) {
-        existingLink.parentNode.removeChild(existingLink);
-      }
-      return;
-    }
-
-    if (!existingLink) {
-      const link = document.createElement("link");
+    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
       link.rel = "manifest";
       link.setAttribute("href", targetManifest);
       document.head.appendChild(link);
-    } else if (existingLink.getAttribute("href") !== targetManifest) {
-      existingLink.setAttribute("href", targetManifest);
+    } else if (link.getAttribute("href") !== targetManifest) {
+      link.setAttribute("href", targetManifest);
     }
   }, [pathname]);
 

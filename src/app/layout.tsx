@@ -252,6 +252,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${signatureFont.variable} ${serifFont.variable} h-full antialiased`}
     >
       <head>
+        <link rel="manifest" href="/manifest-patient.json" />
         <meta name="theme-color" id="meta-theme-color" content="#0e5e6f" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
