@@ -16,6 +16,7 @@ export interface Appointment {
   patientName: string;
   patientEmail: string;
   patientPhone: string;
+  patientAddress?: string; // Residential address / locality
   serviceId: string;
   date: string; // YYYY-MM-DD
   slot: string; // e.g. "09:30 AM"
@@ -519,6 +520,7 @@ export async function submitBookingRequest(
       patientName: booking.patientName || "Patient",
       patientEmail: booking.patientEmail || "",
       patientPhone: booking.patientPhone || "",
+      patientAddress: booking.patientAddress || "",
       serviceId: booking.serviceId || "General Physiotherapy Consultation",
       date: booking.date,
       slot: booking.slot,

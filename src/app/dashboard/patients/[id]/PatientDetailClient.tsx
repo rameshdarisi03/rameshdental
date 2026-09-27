@@ -46,6 +46,7 @@ import {
   UserPlus,
   Paperclip,
   Bookmark,
+  MapPin,
   Check
 } from "lucide-react";
 import jsPDF from "jspdf";
@@ -93,6 +94,7 @@ interface Patient {
   name: string;
   email: string;
   phone: string;
+  address?: string;
   dob?: string;
   age?: string | number;
   gender?: string;
@@ -360,6 +362,39 @@ export default function PatientDetailClient({ id }: { id: string }) {
       setEmailError(err.message || "Failed to update email.");
     } finally {
       setSavingEmail(false);
+    }
+  };
+
+  // Address management states
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [addressInput, setAddressInput] = useState("");
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressError, setAddressError] = useState("");
+
+  const handleSaveAddress = async () => {
+    if (!patient || !id) return;
+    const cleanAddress = addressInput.trim();
+
+    setSavingAddress(true);
+    setAddressError("");
+
+    try {
+      await updatePatient(id, {
+        address: cleanAddress,
+      });
+
+      setPatient((prev) => prev ? {
+        ...prev,
+        address: cleanAddress,
+      } : null);
+
+      setIsEditingAddress(false);
+      setAddressInput("");
+    } catch (err: any) {
+      console.error("Error updating patient address:", err);
+      setAddressError(err.message || "Failed to update address.");
+    } finally {
+      setSavingAddress(false);
     }
   };
 
@@ -1884,6 +1919,85 @@ Warm regards,
                     >
                       <Plus className="w-3 h-3" />
                       <span>Add Email</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Residential Address / Locality */}
+              <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Residential Address</p>
+                  {!patient.address && (
+                    <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                      Optional
+                    </span>
+                  )}
+                </div>
+
+                {isEditingAddress ? (
+                  <div className="mt-1.5 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="House/Flat No, Area, City..."
+                        value={addressInput}
+                        onChange={(e) => setAddressInput(e.target.value)}
+                        className="w-full text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveAddress}
+                        disabled={savingAddress}
+                        className="px-3 py-1.5 rounded-xl bg-brand-green text-white text-[10px] font-black cursor-pointer hover:bg-brand-green-hover disabled:opacity-50 active:scale-95 shrink-0"
+                      >
+                        {savingAddress ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingAddress(false);
+                          setAddressError("");
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {addressError && (
+                      <p className="text-[10px] font-bold text-red-500">{addressError}</p>
+                    )}
+                  </div>
+                ) : patient.address ? (
+                  <div className="flex items-start justify-between gap-2 mt-0.5">
+                    <div className="flex items-start gap-1.5 text-xs font-bold text-brand-charcoal dark:text-slate-200 leading-snug">
+                      <MapPin className="w-3.5 h-3.5 text-brand-green shrink-0 mt-0.5" />
+                      <p className="break-words">{patient.address}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddressInput(patient.address || "");
+                        setIsEditingAddress(true);
+                      }}
+                      className="text-[10px] font-black text-slate-400 hover:text-brand-green cursor-pointer shrink-0 ml-1"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs text-slate-400 italic font-semibold">No address added</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddressInput("");
+                        setIsEditingAddress(true);
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-green/10 hover:bg-brand-green hover:text-white px-2.5 py-1 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add Address</span>
                     </button>
                   </div>
                 )}

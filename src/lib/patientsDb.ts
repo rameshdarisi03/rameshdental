@@ -22,6 +22,7 @@ export interface Patient {
   name: string;
   email: string;
   phone: string;
+  address?: string;          // Residential address / locality
   dob?: string;              // YYYY-MM-DD (legacy)
   age?: string | number;     // Patient age in years
   gender?: string;

@@ -50,7 +50,8 @@ import {
   Search,
   UserCheck,
   AlertCircle,
-  Users
+  Users,
+  MapPin
 } from "lucide-react";
 
 // Get today's date formatted as YYYY-MM-DD
@@ -91,6 +92,7 @@ function WalkInBookingContent() {
     patientName: "",
     patientEmail: "",
     patientPhone: "",
+    patientAddress: "",
     serviceId: "General Physiotherapy Consultation",
     date: getTodayDateString(),
     slot: "",
@@ -248,6 +250,7 @@ function WalkInBookingContent() {
       patientName: p.name,
       patientPhone: rawPhone,
       patientEmail: p.email || "",
+      patientAddress: p.address || "",
       serviceId: p.treatmentPlan || prev.serviceId,
       assignedTherapist: p.therapistName || prev.assignedTherapist,
     }));
@@ -397,6 +400,7 @@ function WalkInBookingContent() {
       patientName: patient.name,
       patientPhone: patient.phone.replace(/^\+91\s*/, ""),
       patientEmail: patient.email || "",
+      patientAddress: patient.address || "",
       assignedTherapist: patient.therapistName || prev.assignedTherapist,
     }));
   };
@@ -507,6 +511,7 @@ function WalkInBookingContent() {
         patientName: cleanName,
         patientPhone: fullPhone,
         patientEmail: cleanEmail || "",
+        patientAddress: formData.patientAddress ? formData.patientAddress.trim() : "",
         serviceId: formData.serviceId,
         date: formData.date,
         slot: formData.slot,
@@ -577,12 +582,14 @@ function WalkInBookingContent() {
       const bookingService = formData.serviceId;
       const patientName = formData.patientName;
       const patientEmail = formData.patientEmail;
+      const patientAddress = formData.patientAddress ? formData.patientAddress.trim() : "";
 
       // Reset Form State
       setFormData({
         patientName: "",
         patientEmail: "",
         patientPhone: "",
+        patientAddress: "",
         serviceId: "General Physiotherapy Consultation",
         date: getTodayDateString(),
         slot: "",
@@ -611,6 +618,7 @@ function WalkInBookingContent() {
             name: patientName,
             email: patientEmail,
             phone: fullPhone,
+            address: patientAddress,
             treatmentPlan: bookingService,
             status: "active",
             lastVisit: isFuture ? "N/A" : formattedBookingDate,
@@ -639,6 +647,9 @@ function WalkInBookingContent() {
             status: "active",
             treatmentPlan: bookingService
           };
+          if (patientAddress) {
+            updateData.address = patientAddress;
+          }
           if (isFuture) {
             updateData.upcoming = formattedBookingDate;
           } else {
@@ -741,7 +752,7 @@ function WalkInBookingContent() {
                 setPatientType("new");
                 setSelectedPatient(null);
                 setSearchQuery("");
-                setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "", patientAddress: "" }));
               }}
               className={`flex-1 rounded-lg py-2 text-xs font-black transition-all ${
                 patientType === "new"
@@ -757,7 +768,7 @@ function WalkInBookingContent() {
                 setPatientType("existing");
                 setSelectedPatient(null);
                 setSearchQuery("");
-                setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "", patientAddress: "" }));
               }}
               className={`flex-1 rounded-lg py-2 text-xs font-black transition-all ${
                 patientType === "existing"
@@ -882,6 +893,24 @@ function WalkInBookingContent() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Residential Address / Locality</span>
+                    <span className="text-[9px] font-semibold text-slate-400 lowercase">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                    <input
+                      type="text"
+                      name="patientAddress"
+                      value={formData.patientAddress}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Flat 302, Green Meadows, Indiranagar"
+                      className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-11 pr-4 py-3.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
                 {/* 1. Exact Duplicate Warning Card */}
                 {duplicateInfo?.isDuplicate && duplicateInfo.existingPatient && patientType === "new" && (
                   <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex items-start gap-2.5 animate-slide-down">
@@ -1000,6 +1029,27 @@ function WalkInBookingContent() {
                     
                     <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Active Plan:</div>
                     <div className="font-extrabold text-slate-700 dark:text-slate-355 truncate">{selectedPatient.treatmentPlan || "None"}</div>
+                    
+                    <div className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Address:</div>
+                    <div className="font-extrabold text-slate-700 dark:text-slate-355 truncate">{selectedPatient.address || formData.patientAddress || "Not specified"}</div>
+                  </div>
+
+                  {/* Quick address updater for this walk-in */}
+                  <div className="pt-2 border-t border-emerald-200/50 dark:border-teal-900/40">
+                    <label className="block text-[9px] font-black uppercase text-slate-400 mb-1">
+                      Update Address for this visit:
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-2.5 h-3.5 w-3.5 text-brand-green" />
+                      <input
+                        type="text"
+                        name="patientAddress"
+                        value={formData.patientAddress}
+                        onChange={handleInputChange}
+                        placeholder="House/Flat No, Area, Locality..."
+                        className="w-full rounded-xl border border-emerald-200 dark:border-teal-800 bg-white dark:bg-slate-900 pl-9 pr-3 py-1.5 text-xs font-semibold outline-none focus:border-brand-green text-slate-800 dark:text-white"
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -1007,7 +1057,7 @@ function WalkInBookingContent() {
                     onClick={() => {
                       setSelectedPatient(null);
                       setSearchQuery("");
-                      setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "" }));
+                      setFormData(prev => ({ ...prev, patientName: "", patientPhone: "", patientEmail: "", patientAddress: "" }));
                     }}
                     className="text-[10px] text-red-500 font-black underline hover:text-red-750 cursor-pointer block border-0 bg-transparent p-0 pt-1"
                   >

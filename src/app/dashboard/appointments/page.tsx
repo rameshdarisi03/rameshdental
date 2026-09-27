@@ -41,7 +41,8 @@ import {
   AlertCircle,
   ShieldAlert,
   ClipboardList,
-  RotateCw
+  RotateCw,
+  MapPin
 } from "lucide-react";
 
 // Helper to get today's date formatted as YYYY-MM-DD
@@ -587,6 +588,12 @@ export default function DashboardAppointments() {
                     <span className="flex items-center gap-1.5 text-brand-green bg-brand-green/10 dark:bg-brand-green/20 px-2 py-0.5 rounded-lg text-[11px] font-bold">
                       <User className="h-3.5 w-3.5" />
                       {app.assignedTherapist}
+                    </span>
+                  )}
+                  {app.patientAddress && (
+                    <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                      <MapPin className="h-3.5 w-3.5 text-brand-green shrink-0" />
+                      {app.patientAddress}
                     </span>
                   )}
                 </div>

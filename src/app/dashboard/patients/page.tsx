@@ -26,6 +26,7 @@ import {
   Sparkles,
   Trash2,
   Users,
+  MapPin,
   X
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions, FAMILY_RELATIONSHIPS, FamilyRelationship } from "@/lib/patientsDb";
@@ -42,6 +43,7 @@ interface Patient {
   name: string;
   email: string;
   phone: string;
+  address?: string;
   dob?: string;
   age?: string | number;
   gender?: string;
@@ -97,6 +99,7 @@ export default function PatientsPage() {
     name: "",
     email: "",
     phone: "",
+    address: "",
     age: "",
     gender: "Male",
     treatmentPlan: "",
@@ -348,6 +351,7 @@ export default function PatientsPage() {
         name: cleanName,
         email: formData.email ? formData.email.trim().toLowerCase() : "",
         phone: `${dialCode} ${cleanPhone}`,
+        address: formData.address ? formData.address.trim() : "",
         age: formData.age ? String(formData.age).trim() : "",
         gender: formData.gender,
         treatmentPlan: formData.treatmentPlan,
@@ -441,6 +445,7 @@ export default function PatientsPage() {
         name: "",
         email: "",
         phone: "",
+        address: "",
         age: "",
         gender: "Male",
         treatmentPlan: "",
@@ -1181,6 +1186,25 @@ export default function PatientsPage() {
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
                   </select>
+                </div>
+
+                {/* Residential Address / Locality */}
+                <div className="col-span-2">
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Residential Address / Locality</span>
+                    <span className="text-[9px] font-bold text-slate-400 lowercase">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-brand-green" />
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="e.g. Flat 302, Green Meadows, Indiranagar, Bangalore"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 pl-10 pr-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
+                    />
+                  </div>
                 </div>
 
                 {/* Treatment Plan */}
