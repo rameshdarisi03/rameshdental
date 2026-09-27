@@ -896,8 +896,16 @@ export default function Home() {
             {/* Action Buttons: "Our Services" FIRST, WhatsApp / Book SECOND */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-3.5 justify-center sm:justify-start pt-2 sm:pt-4 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
               <Link
-                href="/services"
-                className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200"
+                href="/#services"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById("services");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    window.history.pushState(null, "", "#services");
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded-full bg-brand-green hover:bg-brand-green-hover text-white px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
               >
                 Our Services
                 <ArrowRight className="ml-2 h-4.5 w-4.5 sm:h-5 sm:w-5" />
@@ -1013,7 +1021,7 @@ export default function Home() {
       </section>
 
       {/* Services / Treatments Section */}
-      <section id="services" className="py-20 bg-brand-bg dark:bg-slate-950">
+      <section id="services" className="py-20 bg-brand-bg dark:bg-slate-950 scroll-mt-16 sm:scroll-mt-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-16">
           
           <div className="max-w-3xl space-y-2 reveal-on-scroll">
