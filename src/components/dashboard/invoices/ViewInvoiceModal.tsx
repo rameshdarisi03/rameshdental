@@ -63,8 +63,8 @@ export default function ViewInvoiceModal({
               GPC
             </div>
             <div>
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">Invoice / Payment Receipt</h3>
-              <p className="text-[10px] font-bold text-slate-500">{invoice.invoiceNumber}</p>
+              <h3 className="text-sm font-black text-slate-900 dark:text-white">Invoice</h3>
+              <p className="text-[10px] font-bold text-slate-500">{invoice.invoiceNumber.replace(/^#+/, "")}</p>
             </div>
           </div>
 
@@ -119,7 +119,7 @@ export default function ViewInvoiceModal({
             <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
               <span className="font-bold text-sm">🔄</span>
               <span>
-                <strong>Replacement Receipt:</strong> Replaces cancelled bill <strong>#{invoice.replacesInvoiceNumber}</strong>. Patient has not been charged twice.
+                <strong>Replacement Invoice:</strong> Replaces cancelled bill <strong>{invoice.replacesInvoiceNumber.replace(/^#+/, "")}</strong>. Patient has not been charged twice.
               </span>
             </div>
           )}
@@ -128,7 +128,7 @@ export default function ViewInvoiceModal({
             <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-xs text-rose-800 dark:text-rose-200 flex items-center gap-2">
               <span className="font-bold text-sm">⚠️</span>
               <span>
-                <strong>Voided Bill:</strong> This invoice was cancelled and replaced by updated receipt <strong>#{invoice.replacedByInvoiceNumber}</strong>.
+                <strong>Voided Bill:</strong> This invoice was cancelled and replaced by updated bill <strong>{invoice.replacedByInvoiceNumber.replace(/^#+/, "")}</strong>.
               </span>
             </div>
           )}

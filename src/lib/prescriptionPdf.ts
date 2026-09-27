@@ -50,8 +50,7 @@ export function formatToDDMMYYYY(dateInput?: any): string {
 export function getPrescriptionFileName(patientName: string, dateInput?: any, _hasExercises: boolean = true): string {
   const cleanName = (patientName || "Patient").trim().replace(/[^a-zA-Z0-9]/g, "_");
   const dateStr = formatToDDMMYYYY(dateInput);
-  const prefix = "consultation";
-  return `${prefix}_${cleanName}_${dateStr}.pdf`;
+  return `consultation_prescription_${cleanName}_${dateStr}.pdf`;
 }
 
 export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): jsPDF {
@@ -77,35 +76,34 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
     console.warn("Could not render logo in prescription PDF:", e);
   }
 
-  // Line 1: Clinic Brand Title
+  // Left - Line 1: Clinic Brand Title
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text(CLINIC_BRAND.nameUpper, 108, y + 24);
 
-  // Line 2: Core 3 Services Tagline (Honey Gold)
+  // Left - Line 2: Core 3 Services Tagline (Title Case, Honey Gold)
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(249, 171, 85); // Honey Gold #f9ab55
-  doc.text(CLINIC_BRAND.servicesTagline.toUpperCase(), 108, y + 38);
+  doc.text(CLINIC_BRAND.servicesTagline, 108, y + 38);
 
-  // Line 3: Document Type / Clinical Record Subtitle
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(224, 242, 254); // Sky Cyan
-  doc.text(
-    hasExercises
-      ? "CLINICAL CONSULTATION & REHABILITATION PRESCRIPTION"
-      : "CLINICAL CONSULTATION & CASE SHEET RECORD",
-    108,
-    y + 51
-  );
-
-  // Line 4: Clinic Location & Contact Info
+  // Left - Line 3: Clinic Location & Contact Info (Right below the 3 services)
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(215, 228, 232);
-  doc.text(`${CLINIC_BRAND.addressLine} • Tel: ${CLINIC_BRAND.phone}`, 108, y + 64);
+  doc.text(`${CLINIC_BRAND.addressLine} • Tel: ${CLINIC_BRAND.phone}`, 108, y + 53);
+
+  // Top-Right: Document Type Tagline (CONSULTATION / PRESCRIPTION)
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text("CONSULTATION / PRESCRIPTION", pageWidth - 45, y + 26, { align: "right" });
+
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(249, 171, 85);
+  doc.text("OFFICIAL MEDICAL RECORD", pageWidth - 45, y + 40, { align: "right" });
 
   y += bannerHeight + 14;
 
@@ -585,32 +583,43 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
     console.warn("Could not render logo in invoice PDF:", e);
   }
 
-  // Line 1: Clinic Name
+  // Left - Line 1: Clinic Name
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.text(CLINIC_BRAND.nameUpper, 108, y + 24);
 
-  // Line 2: Core 3 Services Tagline (Honey Gold)
+  // Left - Line 2: Core 3 Services Tagline (Title Case, Honey Gold)
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
-  doc.text(CLINIC_BRAND.servicesTagline.toUpperCase(), 108, y + 38);
+  doc.text(CLINIC_BRAND.servicesTagline, 108, y + 38);
 
-  // Line 3: Receipt / Invoice Title
-  const invoiceTitle = `INVOICE / PAYMENT RECEIPT #${params.invoiceNumber || "INV-001"}${params.replacesInvoiceNumber ? ` (Replaces #${params.replacesInvoiceNumber})` : ""}`;
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(224, 242, 254);
-  doc.text(invoiceTitle, 108, y + 51);
-
-  // Line 4: Clinic Location & Contact
+  // Left - Line 3: Clinic Location & Contact (Right below the 3 services)
   const addressText = params.clinicAddress || CLINIC_BRAND.addressLine;
   const phoneText = params.clinicPhone || CLINIC_BRAND.phone;
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(215, 228, 232);
-  doc.text(`${addressText} • Tel: ${phoneText}`, 108, y + 64);
+  doc.text(`${addressText} • Tel: ${phoneText}`, 108, y + 53);
+
+  // Top-Right: Clean Invoice Reference (Without #)
+  const cleanInv = (params.invoiceNumber || "GPC-INV-001").replace(/^#+/, "");
+  const cleanReplaces = (params.replacesInvoiceNumber || "").replace(/^#+/, "");
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(255, 255, 255);
+  doc.text(`INVOICE: ${cleanInv}`, pageWidth - 45, y + 26, { align: "right" });
+
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
+  if (cleanReplaces) {
+    doc.text(`Replaces: ${cleanReplaces}`, pageWidth - 45, y + 40, { align: "right" });
+  } else {
+    doc.text("OFFICIAL TAX INVOICE", pageWidth - 45, y + 40, { align: "right" });
+  }
 
   y += bannerHeight + 14;
 
@@ -739,7 +748,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   // Left: Clinical Notes / Diagnoses & Replacement Notice
   const notesText = [
     params.notes?.trim(),
-    params.replacesInvoiceNumber ? `Notice: Replaces cancelled bill #${params.replacesInvoiceNumber}.` : ""
+    params.replacesInvoiceNumber ? `Notice: Replaces cancelled bill ${(params.replacesInvoiceNumber).replace(/^#+/, "")}.` : ""
   ].filter(Boolean).join("\n\n");
 
   if (notesText) {
@@ -821,7 +830,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setFontSize(7.5);
   doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
   doc.text(
-    `This is an official computer-generated invoice and payment receipt for Gait Physio Clinic. Please quote #${params.invoiceNumber} for insurance claims & tax filing.`,
+    `This is an official computer-generated invoice for Gait Physio Clinic. Please quote ${(params.invoiceNumber || "GPC-INV-001").replace(/^#+/, "")} for insurance claims & tax filing.`,
     pageWidth / 2,
     footerY,
     { align: "center" }

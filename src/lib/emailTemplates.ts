@@ -594,19 +594,21 @@ export function renderInvoiceDeliveryEmail(params: {
   const isPaid = (params.status || "").toLowerCase() === "paid";
   const isReplacement = Boolean(params.replacesInvoiceNumber);
   const portalUrl = `${BASE_URL}/patienthub/records`;
+  const cleanInv = (params.invoiceNumber || "").replace(/^#+/, "");
+  const cleanReplaces = (params.replacesInvoiceNumber || "").replace(/^#+/, "");
 
   const badgeText = isReplacement
-    ? "Updated Invoice / Payment Receipt"
+    ? "Updated Invoice"
     : isPaid
-    ? "Invoice / Payment Receipt"
-    : "Invoice / Payment Due";
+    ? "Invoice"
+    : "Invoice Due";
 
   const badgeBg = isReplacement ? "#fffbeb" : isPaid ? "#ecfdf5" : "#fffbeb";
   const badgeColor = isReplacement ? "#b45309" : isPaid ? "#059669" : "#d97706";
 
   const subject = isReplacement
-    ? `Updated Invoice / Payment Receipt #${params.invoiceNumber} (Replaces #${params.replacesInvoiceNumber}) - Gait Physio Clinic`
-    : `Invoice / Payment Receipt #${params.invoiceNumber} - Gait Physio Clinic`;
+    ? `Updated Invoice ${cleanInv} (Replaces ${cleanReplaces}) - Gait Physio Clinic`
+    : `Invoice ${cleanInv} - Gait Physio Clinic`;
 
   const body = `
     <div style="text-align: left;">
@@ -614,10 +616,10 @@ export function renderInvoiceDeliveryEmail(params: {
         ${badgeText}
       </span>
       <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
-        ${isReplacement ? `Updated Invoice #${params.invoiceNumber}` : `Invoice #${params.invoiceNumber}`}
+        ${isReplacement ? `Updated Invoice ${cleanInv}` : `Invoice ${cleanInv}`}
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your official treatment invoice and payment receipt from <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> is attached to this email as a PDF document.
+        Dear ${params.patientName}, your official treatment invoice from <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> is attached to this email as a PDF document.
       </p>
 
       ${isReplacement ? `
@@ -627,7 +629,7 @@ export function renderInvoiceDeliveryEmail(params: {
           ⚠️ Important Billing Update:
         </p>
         <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.6;">
-          This updated receipt replaces your previous bill <strong>#${params.replacesInvoiceNumber}</strong>, which was cancelled. A clerical correction was made to your treatment items. <strong>You have NOT been charged twice.</strong>
+          This updated receipt replaces your previous bill <strong>${cleanReplaces}</strong>, which was cancelled. A clerical correction was made to your treatment items. <strong>You have NOT been charged twice.</strong>
         </p>
       </div>
       ` : ''}
@@ -636,12 +638,12 @@ export function renderInvoiceDeliveryEmail(params: {
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
         <tr>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Invoice Number</td>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.invoiceNumber}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${cleanInv}</td>
         </tr>
         ${isReplacement ? `
         <tr>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Replaces Bill</td>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #b45309; font-weight: 800;">#${params.replacesInvoiceNumber} (Cancelled)</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #b45309; font-weight: 800;">${cleanReplaces} (Cancelled)</td>
         </tr>
         ` : ''}
         <tr>
@@ -706,6 +708,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
 }): { subject: string; html: string } {
   const portalUrl = `${BASE_URL}/patienthub/records`;
   const reasonText = params.voidReason || "Clerical correction / bill updated";
+  const cleanInv = (params.invoiceNumber || "").replace(/^#+/, "");
 
   const body = `
     <div style="text-align: left;">
@@ -713,17 +716,17 @@ export function renderInvoiceVoidNoticeEmail(params: {
         Billing Update • Invoice Cancelled
       </span>
       <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
-        Invoice #${params.invoiceNumber} Has Been Cancelled
+        Invoice ${cleanInv} Has Been Cancelled
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>#${params.invoiceNumber}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our billing records at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>.
+        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>${cleanInv}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our billing records at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>.
       </p>
 
       <!-- Cancellation Details Box -->
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
         <tr>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Invoice Number</td>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.invoiceNumber}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${cleanInv}</td>
         </tr>
         <tr>
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Status</td>
@@ -753,7 +756,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
           ℹ️ What This Means For You:
         </p>
         <p style="margin: 0; font-size: 12.5px; color: #15803d; line-height: 1.6;">
-          If this invoice was cancelled to correct treatment details or billing amounts, an <strong>updated replacement receipt</strong> will be issued and emailed to you shortly. You do not need to take any action, and you will not be billed twice.
+          If this invoice was cancelled to correct treatment details or billing amounts, an <strong>updated replacement invoice</strong> will be issued and emailed to you shortly. You do not need to take any action, and you will not be billed twice.
         </p>
       </div>
 
@@ -770,7 +773,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
   `;
 
   return {
-    subject: `Notice: Cancellation of Invoice #${params.invoiceNumber} - Gait Physio Clinic`,
+    subject: `Notice: Cancellation of Invoice ${cleanInv} - Gait Physio Clinic`,
     html: wrapEmail("Invoice Cancellation Notice", body),
   };
 }
