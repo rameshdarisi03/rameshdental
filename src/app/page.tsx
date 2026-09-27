@@ -356,10 +356,7 @@ export default function Home() {
     }
   }, []);
 
-  const handleInstallApp = () => {
-    // Direct 1-tap installation route to Patient Hub portal
-    window.location.href = "/patienthub/login?install=1";
-  };
+
 
   // Real Google Reviews from Gait Physio Clinic Profile (4.9 Rating • 117+ Reviews)
   const googleReviews = [
@@ -2063,8 +2060,8 @@ export default function Home() {
                   </a>
 
                   <div className="flex flex-col items-center sm:items-start gap-1.5">
-                    <button
-                      onClick={handleInstallApp}
+                    <a
+                      href="/patienthub/login?install=1"
                       className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
                     >
                       <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
@@ -2075,7 +2072,7 @@ export default function Home() {
                           ? "Install on iPhone"
                           : "Install GaitPhysio App"}
                       </span>
-                    </button>
+                    </a>
                     <p className="text-[11px] text-slate-300/80 font-normal pl-1">
                       {isAppInstalled ? (
                         <span className="text-emerald-300 font-medium">
