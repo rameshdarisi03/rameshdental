@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import InstallManagementAppButton from "@/components/dashboard/InstallManagementAppButton";
+import { auth } from "@/lib/firebase";
 
 interface UserProfile {
   uid: string;
@@ -38,32 +39,40 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isLoginPage = pathname === "/dashboard/login";
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isLoginPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    if (isLoginPage) return;
     // Check if user is logged in
     const userJson = localStorage.getItem("gpc_user");
     if (!userJson) {
-      router.replace("/login");
+      router.replace("/dashboard/login");
     } else {
       setUser(JSON.parse(userJson));
       setLoading(false);
     }
-  }, [router]);
+  }, [router, isLoginPage]);
 
   const handleLogout = async () => {
     try {
       localStorage.removeItem("gpc_user");
       document.cookie = "gpc_session=; Max-Age=-99999999; path=/";
-      await auth.signOut();
-      router.replace("/login");
+      try {
+        await auth.signOut();
+      } catch (e) {}
+      router.replace("/dashboard/login");
     } catch (err) {
       console.error("Staff logout failed:", err);
-      router.replace("/login");
+      router.replace("/dashboard/login");
     }
   };
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (

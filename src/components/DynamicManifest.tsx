@@ -10,18 +10,32 @@ export default function DynamicManifest() {
     if (typeof document === "undefined") return;
 
     const isPatientHub = pathname?.startsWith("/patienthub");
-    const targetManifest = isPatientHub ? "/manifest-patient.json" : "/manifest-staff.json";
+    const isStaffPortal = pathname?.startsWith("/dashboard") || pathname === "/login";
 
-    // Find existing manifest link or create one
-    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "manifest";
-      document.head.appendChild(link);
+    let targetManifest: string | null = null;
+    if (isPatientHub) {
+      targetManifest = "/manifest-patient.json";
+    } else if (isStaffPortal) {
+      targetManifest = "/manifest-staff.json";
     }
 
-    if (link.getAttribute("href") !== targetManifest) {
+    const existingLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+
+    if (!targetManifest) {
+      // On public website pages, remove manifest link so browsers never treat public pages as an app
+      if (existingLink && existingLink.parentNode) {
+        existingLink.parentNode.removeChild(existingLink);
+      }
+      return;
+    }
+
+    if (!existingLink) {
+      const link = document.createElement("link");
+      link.rel = "manifest";
       link.setAttribute("href", targetManifest);
+      document.head.appendChild(link);
+    } else if (existingLink.getAttribute("href") !== targetManifest) {
+      existingLink.setAttribute("href", targetManifest);
     }
   }, [pathname]);
 

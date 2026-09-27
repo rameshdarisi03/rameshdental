@@ -1,6 +1,6 @@
 // Clean Service Worker for Gait Physio Clinic PWA Standalone App
 // All network requests pass through natively to the browser to ensure Next.js chunk loading stability
-const CACHE_NAME = "gpc-pwa-v13";
+const CACHE_NAME = "gpc-pwa-v14";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
