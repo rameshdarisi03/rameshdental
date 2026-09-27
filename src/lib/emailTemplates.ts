@@ -3,6 +3,8 @@
  * Designed for 100% deliverability across Gmail, Apple Mail, Outlook, iOS & Android.
  */
 
+import { CLINIC_BRAND } from "./clinicBranding";
+
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
 const CLINIC_PHONE = "+91 89044 56243";
 const CLINIC_ADDRESS = "Whitefield, Bengaluru, Karnataka 560066";
@@ -32,15 +34,22 @@ function wrapEmail(title: string, contentHtml: string): string {
     <table class="email-container" role="presentation" width="600" style="margin: 0 auto; width: 600px; max-width: 600px;">
       <!-- Brand Header -->
       <tr>
-        <td style="padding: 16px 20px 24px; text-align: center;">
-          <table role="presentation" width="100%">
+        <td style="padding: 20px 20px 24px; text-align: center;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; text-align: center;">
             <tr>
-              <td style="text-align: center;">
-                <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #062e36; display: inline-block;">
-                  GAIT PHYSIO CLINIC
+              <td style="vertical-align: middle; padding-right: 14px; text-align: center;">
+                <img src="${BASE_URL}/images/gait_physio_emblem.png" width="48" height="48" alt="Gait Physio Clinic" style="width: 48px; height: 48px; border-radius: 12px; display: inline-block; vertical-align: middle; border: 0;" />
+              </td>
+              <td style="vertical-align: middle; text-align: left;">
+                <span style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: #062e36; display: inline-block; line-height: 1.1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                  Gait Physio Clinic
                 </span>
-                <span style="display: block; font-size: 11px; font-weight: 700; color: #059669; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px;">
-                  Advanced Physiotherapy & Rehabilitation
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding-top: 8px; text-align: center;">
+                <span style="display: block; font-size: 11.5px; font-weight: 800; color: #0e5366; letter-spacing: 0.8px; text-transform: uppercase;">
+                  Neuro Rehab &nbsp;|&nbsp; Ortho Rehab &nbsp;|&nbsp; Sports Rehab
                 </span>
               </td>
             </tr>
@@ -64,8 +73,8 @@ function wrapEmail(title: string, contentHtml: string): string {
       <!-- Brand Footer -->
       <tr>
         <td style="padding: 28px 20px; text-align: center; font-size: 11px; color: #64748b; line-height: 1.6;">
-          <p style="margin: 0 0 6px; font-weight: 700; color: #334155;">
-            Gait Physio Clinic • Clinical Excellence in Movement
+          <p style="margin: 0 0 6px; font-weight: 800; color: #062e36; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Gait Physio Clinic • Neuro Rehab &nbsp;|&nbsp; Ortho Rehab &nbsp;|&nbsp; Sports Rehab
           </p>
           <p style="margin: 0 0 8px;">
             ${CLINIC_ADDRESS} • Call/WhatsApp: <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; text-decoration: none; font-weight: 700;">${CLINIC_PHONE}</a>
@@ -103,7 +112,7 @@ export function renderPatientOnboardingEmail(params: {
         Welcome to Gait Physio Clinic, ${params.patientName}!
       </h1>
       <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Your clinical profile has been established with our physiotherapy care team. We have prepared your personal <strong>Patient Hub</strong> where you can access your customized rehab routines, consultation history, and manage appointments.
+        Your clinical profile has been established with our physiotherapy care team at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>. We have prepared your personal <strong>Patient Hub</strong> where you can access your customized rehab routines, consultation history, and manage appointments.
       </p>
 
       <!-- Registered Email Notice -->
@@ -177,7 +186,7 @@ export function renderBookingRequestReceivedEmail(params: {
         Appointment Request Received
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, we have received your appointment request. Our clinic desk is reviewing doctor availability and will send your official confirmation shortly.
+        Dear ${params.patientName}, we have received your appointment request at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>. Our clinic desk is reviewing doctor availability and will send your official confirmation shortly.
       </p>
 
       <!-- Details Summary Card -->
@@ -233,7 +242,7 @@ export function renderAdminNewBookingAlertEmail(params: {
         New Online Appointment Request
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        A new appointment request has been submitted online and is waiting in the Appointments Queue.
+        A new appointment request has been submitted online for <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> and is waiting in the Appointments Queue.
       </p>
 
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -296,7 +305,7 @@ export function renderAppointmentApprovalEmail(params: {
         Your Session is Confirmed!
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your physiotherapy appointment at Gait Physio Clinic has been officially approved. Our team is ready to welcome you.
+        Dear ${params.patientName}, your physiotherapy appointment at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> has been officially approved. Our team is ready to welcome you.
       </p>
 
       <!-- Details Summary Card -->
@@ -372,7 +381,7 @@ export function renderWalkinBookingConfirmationEmail(params: {
           Your Clinic Session is Scheduled
         </h1>
         <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          Dear ${params.patientName}, your session at Gait Physio Clinic has been scheduled by our front desk.
+          Dear ${params.patientName}, your session at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> has been scheduled by our front desk.
         </p>
 
         <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -425,7 +434,7 @@ export function renderAppointmentRejectionEmail(params: {
         Unable to Accommodate Requested Slot
       </h1>
       <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, we regret to inform you that we could not confirm your requested slot for <strong>${params.serviceId}</strong> on <strong>${params.date} at ${params.slot}</strong>.
+        Dear ${params.patientName}, we regret to inform you that we could not confirm your requested slot for <strong>${params.serviceId}</strong> at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> on <strong>${params.date} at ${params.slot}</strong>.
       </p>
 
       ${params.reason ? `
@@ -475,7 +484,7 @@ export function renderAppointmentRescheduledEmail(params: {
         Your Appointment Has Been Rescheduled
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your session for <strong>${params.serviceId}</strong> has been updated to a new time.
+        Dear ${params.patientName}, your session for <strong>${params.serviceId}</strong> at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> has been updated to a new time.
       </p>
 
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -535,7 +544,7 @@ export function renderPreSessionReminderEmail(params: {
         See You Tomorrow at ${params.slot}!
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, this is a friendly reminder of your upcoming physiotherapy session at Gait Physio Clinic tomorrow.
+        Dear ${params.patientName}, this is a friendly reminder of your upcoming physiotherapy session at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> tomorrow.
       </p>
 
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -608,7 +617,7 @@ export function renderInvoiceDeliveryEmail(params: {
         ${isReplacement ? `Updated Invoice #${params.invoiceNumber}` : `Invoice #${params.invoiceNumber}`}
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your official treatment invoice and payment receipt is attached to this email as a PDF document.
+        Dear ${params.patientName}, your official treatment invoice and payment receipt from <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> is attached to this email as a PDF document.
       </p>
 
       ${isReplacement ? `
@@ -707,7 +716,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
         Invoice #${params.invoiceNumber} Has Been Cancelled
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>#${params.invoiceNumber}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our clinic billing records.
+        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>#${params.invoiceNumber}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our billing records at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>.
       </p>
 
       <!-- Cancellation Details Box -->
@@ -786,7 +795,7 @@ export function renderConsultationReportEmail(params: {
         Your Rehabilitation & Consultation Report
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, thank you for attending your physiotherapy session at Gait Physio Clinic. Your official clinical case sheet and rehabilitation prescription is attached to this email.
+        Dear ${params.patientName}, thank you for attending your physiotherapy session at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>. Your official clinical case sheet and rehabilitation prescription is attached to this email.
       </p>
 
       <!-- Consultation Meta Box -->

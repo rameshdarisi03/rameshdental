@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { PrescribedExercise } from "./exercisesDb";
+import { CLINIC_BRAND } from "./clinicBranding";
 
 export interface UnifiedPrescriptionParams {
   patientName: string;
@@ -65,31 +66,48 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   const hasExercises = Boolean(params.exercises && params.exercises.length > 0);
 
   // 1. Header Banner
+  const bannerHeight = 78;
   doc.setFillColor(6, 46, 54); // Deep Midnight Teal #062e36
-  doc.roundedRect(30, y, pageWidth - 60, 68, 8, 8, "F");
+  doc.roundedRect(30, y, pageWidth - 60, bannerHeight, 8, 8, "F");
 
+  // Official Clinic Logo Emblem
+  try {
+    doc.addImage(CLINIC_BRAND.logoBase64, "PNG", 42, y + 11, 56, 56);
+  } catch (e) {
+    console.warn("Could not render logo in prescription PDF:", e);
+  }
+
+  // Line 1: Clinic Brand Title
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text("GAIT PHYSIO CLINIC", 45, y + 26);
+  doc.text(CLINIC_BRAND.nameUpper, 108, y + 24);
 
+  // Line 2: Core 3 Services Tagline (Honey Gold)
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(249, 171, 85); // Honey Gold #f9ab55
+  doc.text(CLINIC_BRAND.servicesTagline.toUpperCase(), 108, y + 38);
+
+  // Line 3: Document Type / Clinical Record Subtitle
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(224, 242, 254); // Sky Cyan
   doc.text(
     hasExercises
       ? "CLINICAL CONSULTATION & REHABILITATION PRESCRIPTION"
       : "CLINICAL CONSULTATION & CASE SHEET RECORD",
-    45,
-    y + 43
+    108,
+    y + 51
   );
 
-  doc.setFontSize(8);
+  // Line 4: Clinic Location & Contact Info
+  doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(220, 230, 235);
-  doc.text("Whitefield, Bengaluru • Tel: +91 89044 56243 • www.gaitphysioclinic.com", 45, y + 56);
+  doc.setTextColor(215, 228, 232);
+  doc.text(`${CLINIC_BRAND.addressLine} • Tel: ${CLINIC_BRAND.phone}`, 108, y + 64);
 
-  y += 82;
+  y += bannerHeight + 14;
 
   // 2. Patient & Consultation Metadata Card
   doc.setFillColor(249, 249, 247); // Cream Surface #F9F9F7
@@ -556,31 +574,45 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   const slateMuted = [100, 116, 139]; // #64748b
 
   // 1. Header Banner
+  const bannerHeight = 78;
   doc.setFillColor(brandForest[0], brandForest[1], brandForest[2]);
-  doc.roundedRect(30, y, pageWidth - 60, 70, 8, 8, "F");
+  doc.roundedRect(30, y, pageWidth - 60, bannerHeight, 8, 8, "F");
+
+  // Official Clinic Logo Emblem
+  try {
+    doc.addImage(CLINIC_BRAND.logoBase64, "PNG", 42, y + 11, 56, 56);
+  } catch (e) {
+    console.warn("Could not render logo in invoice PDF:", e);
+  }
 
   // Line 1: Clinic Name
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15.5);
-  doc.text("GAIT PHYSIO CLINIC", 48, y + 23);
+  doc.setFontSize(16);
+  doc.text(CLINIC_BRAND.nameUpper, 108, y + 24);
 
-  // Line 2: Clinic Location & Contact (Directly under clinic name)
-  const addressText = params.clinicAddress || "Shop No. 26 (2nd Flr) & Shop No. 06 (3rd Flr), ITPL Main Rd, Whitefield, Bengaluru - 560066";
-  const phoneText = params.clinicPhone || "+91 89044 56243";
-  doc.setFontSize(7.8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(215, 228, 232);
-  doc.text(`${addressText} • ${phoneText}`, 48, y + 38);
-
-  // Line 3: Receipt Details (Swapped to third line, renamed to INVOICE / PAYMENT RECEIPT)
+  // Line 2: Core 3 Services Tagline (Honey Gold)
   doc.setFontSize(9.5);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(brandGold[0], brandGold[1], brandGold[2]);
-  const invoiceTitle = `INVOICE / PAYMENT RECEIPT #${params.invoiceNumber || "INV-001"}${params.replacesInvoiceNumber ? ` (Replaces #${params.replacesInvoiceNumber})` : ""}`;
-  doc.text(invoiceTitle, 48, y + 55);
+  doc.text(CLINIC_BRAND.servicesTagline.toUpperCase(), 108, y + 38);
 
-  y += 84;
+  // Line 3: Receipt / Invoice Title
+  const invoiceTitle = `INVOICE / PAYMENT RECEIPT #${params.invoiceNumber || "INV-001"}${params.replacesInvoiceNumber ? ` (Replaces #${params.replacesInvoiceNumber})` : ""}`;
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(224, 242, 254);
+  doc.text(invoiceTitle, 108, y + 51);
+
+  // Line 4: Clinic Location & Contact
+  const addressText = params.clinicAddress || CLINIC_BRAND.addressLine;
+  const phoneText = params.clinicPhone || CLINIC_BRAND.phone;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(215, 228, 232);
+  doc.text(`${addressText} • Tel: ${phoneText}`, 108, y + 64);
+
+  y += bannerHeight + 14;
 
   // 2. Invoice Meta & Patient Information Card
   doc.setFillColor(249, 250, 251);

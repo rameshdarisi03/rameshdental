@@ -82,12 +82,23 @@ export default function ViewInvoiceModal({
           
           {/* Top Row: Clinic & Patient */}
           <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-5">
-            <div>
-              <h4 className="font-black text-brand-green text-sm">Gait Physio Clinic</h4>
-              <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-0.5">
-                Shop No. 26 (2nd Floor) & Shop No. 06 (3rd Floor)<br />
-                ITPL Main Road, Whitefield, Bengaluru - 560066 • +91 89044 56243
-              </p>
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-white p-1 shadow-2xs">
+                <img
+                  src="/images/gait_physio_emblem.png"
+                  alt="Gait Physio Clinic"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <h4 className="font-black text-brand-green text-base tracking-tight leading-none">Gait Physio Clinic</h4>
+                <p className="text-[10px] font-black text-teal-700 dark:text-teal-400 tracking-wider uppercase mt-1">
+                  Neuro Rehab &nbsp;|&nbsp; Ortho Rehab &nbsp;|&nbsp; Sports Rehab
+                </p>
+                <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-0.5">
+                  Shop No. 26 (2nd Flr) & Shop No. 06 (3rd Flr), ITPL Main Rd, Whitefield, Bengaluru - 560066 • +91 89044 56243
+                </p>
+              </div>
             </div>
             <div className="text-right">
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
