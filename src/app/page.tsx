@@ -281,7 +281,6 @@ export default function Home() {
   // PWA App Installation Support with Smart Device Detection
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
-  const [showDeviceHelper, setShowDeviceHelper] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const [patientHubHref, setPatientHubHref] = useState("/patienthub/login");
@@ -357,35 +356,9 @@ export default function Home() {
     }
   }, []);
 
-  const handleInstallApp = async () => {
-    // If already installed, open patient portal directly
-    if (isAppInstalled) {
-      window.location.href = patientHubHref;
-      return;
-    }
-
-    // Direct 1-tap installation using native browser prompt (Android, Chrome, Edge, Desktop)
-    const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
-    if (promptToUse) {
-      try {
-        promptToUse.prompt();
-        const { outcome } = await promptToUse.userChoice;
-        if (outcome === "accepted") {
-          setIsAppInstalled(true);
-          setDeferredPrompt(null);
-          if (typeof window !== "undefined") {
-            (window as any).deferredPrompt = null;
-            localStorage.setItem("gpc_pwa_installed", "true");
-          }
-        }
-        return;
-      } catch (err) {
-        console.error("Direct install error:", err);
-      }
-    }
-
-    // Smart device-specific fallback
-    setShowDeviceHelper(true);
+  const handleInstallApp = () => {
+    // Direct 1-tap installation route to Patient Hub portal
+    window.location.href = "/patienthub/login?install=1";
   };
 
   // Real Google Reviews from Gait Physio Clinic Profile (4.9 Rating • 117+ Reviews)
@@ -2154,55 +2127,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Smart Device-Specific Install Notification */}
-          {showDeviceHelper && (
-            <div className="fixed bottom-5 left-4 right-4 z-50 max-w-sm mx-auto bg-slate-900/98 text-white border border-white/20 rounded-2xl p-4 shadow-2xl backdrop-blur-xl animate-fade-in flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous text-lg font-bold">
-                  📲
-                </div>
-                <div className="text-xs">
-                  {deviceType === "ios" ? (
-                    <>
-                      <p className="font-black text-white">Direct iPhone Install:</p>
-                      <p className="text-[11px] text-slate-300">
-                        Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Share ⎋</span> at bottom, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Add to Home Screen ⊞</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                        Already installed? Search for <strong>GaitPhysio</strong> on your home screen.
-                      </p>
-                    </>
-                  ) : deviceType === "android" ? (
-                    <>
-                      <p className="font-black text-white">Direct Android Install:</p>
-                      <p className="text-[11px] text-slate-300">
-                        Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">⋮ menu</span> at top right, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install App</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                        Already installed? Look for <strong>GaitPhysio</strong> in your App Drawer.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-black text-white">Desktop App Ready:</p>
-                      <p className="text-[11px] text-slate-300">
-                        Click the <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install icon ⊞</span> at the right of your address bar.
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                        Already installed? Search for <strong>GaitPhysio</strong> in Windows Start Menu or Mac Applications.
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowDeviceHelper(false)}
-                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-300 hover:text-white shrink-0"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+
 
         </div>
       </section>

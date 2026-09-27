@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePatientAuth } from "@/providers/PatientAuthProvider";
-import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Download, X } from "lucide-react";
+import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Download, X, CheckCircle2, Smartphone, Sparkles } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function LoginPage() {
@@ -36,6 +36,7 @@ function LoginContent() {
   
   const errorParam = searchParams.get("error");
   const emailParam = searchParams.get("email");
+  const installParam = searchParams.get("install");
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -50,7 +51,8 @@ function LoginContent() {
   const [mounted, setMounted] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
-  const [showDeviceHelper, setShowDeviceHelper] = useState(false);
+  const [showAlreadyInstalledModal, setShowAlreadyInstalledModal] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
   const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
 
   useEffect(() => {
@@ -115,10 +117,31 @@ function LoginContent() {
     }
   }, []);
 
+  // Auto-trigger native install if arrived via direct install link (?install=1)
+  useEffect(() => {
+    if (installParam === "1" || installParam === "true") {
+      const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
+      if (promptToUse) {
+        try {
+          promptToUse.prompt();
+        } catch (e) {}
+      } else if (isAppInstalled || isStandalone) {
+        setShowAlreadyInstalledModal(true);
+      } else if (deviceType === "ios") {
+        setShowIOSModal(true);
+      }
+    }
+  }, [installParam, deferredPrompt, isAppInstalled, isStandalone, deviceType]);
+
   const handleInstallClick = async () => {
-    // If already installed, open patient portal directly
+    // If already installed or running in standalone app
     if (isAppInstalled || isStandalone) {
-      window.location.href = "/patienthub/dashboard";
+      setShowAlreadyInstalledModal(true);
+      return;
+    }
+
+    if (deviceType === "ios") {
+      setShowIOSModal(true);
       return;
     }
 
@@ -126,7 +149,7 @@ function LoginContent() {
     const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
     if (promptToUse) {
       try {
-        promptToUse.prompt();
+        await promptToUse.prompt();
         const { outcome } = await promptToUse.userChoice;
         if (outcome === "accepted") {
           setIsAppInstalled(true);
@@ -143,8 +166,8 @@ function LoginContent() {
       }
     }
 
-    // Smart device-specific floating toast fallback (exact same as homepage banner)
-    setShowDeviceHelper(true);
+    // Fallback: If browser didn't supply prompt (e.g., already installed WebAPK or Firefox shortcut)
+    setShowAlreadyInstalledModal(true);
   };
 
   useEffect(() => {
@@ -478,53 +501,91 @@ function LoginContent() {
         </div>
       )}
 
-      {/* Smart Device-Specific Install Notification Toast */}
-      {showDeviceHelper && (
-        <div className="fixed bottom-5 left-4 right-4 z-50 max-w-sm mx-auto bg-slate-900/98 text-white border border-white/20 rounded-2xl p-4 shadow-2xl backdrop-blur-xl animate-fade-in flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-green/30 flex items-center justify-center shrink-0 text-brand-luminous text-lg font-bold">
-              📲
+      {/* MODAL 1: App Already Installed Notice */}
+      {showAlreadyInstalledModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/65 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
+            <button
+              onClick={() => setShowAlreadyInstalledModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner">
+              <CheckCircle2 className="w-7 h-7" />
             </div>
-            <div className="text-xs">
-              {deviceType === "ios" ? (
-                <>
-                  <p className="font-black text-white">Direct iPhone Install:</p>
-                  <p className="text-[11px] text-slate-300">
-                    Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Share ⎋</span> at bottom, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Add to Home Screen ⊞</span>
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                    Already installed? Search for <strong>GaitPhysio</strong> on your home screen.
-                  </p>
-                </>
-              ) : deviceType === "android" ? (
-                <>
-                  <p className="font-black text-white">Direct Android Install:</p>
-                  <p className="text-[11px] text-slate-300">
-                    Tap <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">⋮ menu</span> at top right, then <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install App</span>
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                    Already installed? Look for <strong>GaitPhysio</strong> in your App Drawer.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="font-black text-white">Desktop App Ready:</p>
-                  <p className="text-[11px] text-slate-300">
-                    Click the <span className="inline-block px-1.5 py-0.5 rounded bg-white/20 font-bold">Install icon ⊞</span> at the right of your address bar.
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1 border-t border-white/10 pt-1">
-                    Already installed? Search for <strong>GaitPhysio</strong> in Windows Start Menu or Mac Applications.
-                  </p>
-                </>
-              )}
+
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                App Already Installed!
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                <strong>GaitPhysio Patient Hub</strong> is already installed on your device. You can launch it directly from your home screen, app drawer, or Windows Start Menu anytime!
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAlreadyInstalledModal(false);
+                  if (patient) {
+                    router.push("/patienthub/dashboard");
+                  }
+                }}
+                className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all"
+              >
+                {patient ? "Open Patient Dashboard" : "Got It, Thank You!"}
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => setShowDeviceHelper(false)}
-            className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-300 hover:text-white shrink-0 cursor-pointer"
-          >
-            ✕
-          </button>
+        </div>
+      )}
+
+      {/* MODAL 2: iOS Direct Add to Home Screen Sheet */}
+      {showIOSModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-955/65 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
+            <button
+              onClick={() => setShowIOSModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-brand-green">
+              <Smartphone className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                Install Patient Hub on iPhone
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                To install the Patient Hub app on iOS:
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-300 text-left space-y-2 font-semibold">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0">1</span>
+                <span>Tap the <strong>Share</strong> icon at the bottom of Safari.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0">2</span>
+                <span>Scroll down and tap <strong>Add to Home Screen</strong>.</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowIOSModal(false)}
+              className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black cursor-pointer shadow-md"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 

@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Patient Hub Portal Login",
   description:
     "Securely log in to the Gait Physio Clinic Patient Hub. Access your personalized home exercise routines, recovery plans, and treatment invoices online.",
+  manifest: "/manifest-patient.json",
   alternates: {
     canonical: "https://gaitphysioclinic.com/patienthub/login",
   },
