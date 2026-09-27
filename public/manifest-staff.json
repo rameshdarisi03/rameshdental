@@ -1,7 +1,7 @@
 {
   "id": "gaitphysio-staff-management-portal",
-  "name": "GaitPhysio Staff Management Portal",
-  "short_name": "Staff Portal",
+  "name": "Gait Physio Portal",
+  "short_name": "Gait Physio Portal",
   "description": "Exclusive staff management portal, clinic appointments, patient clinical database, and billing operations for Gait Physio Clinic",
   "start_url": "/dashboard",
   "scope": "/dashboard/",
