@@ -305,24 +305,38 @@ export default function Home() {
         }
       } catch (e) {}
 
-      // Standalone PWA detection
+      // Standalone PWA detection - scoped to patienthub
       const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
-        (document.referrer && document.referrer.indexOf("android-app://") !== -1);
+        (document.referrer && document.referrer.indexOf("android-app://") !== -1)) &&
+        window.location.pathname.startsWith("/patienthub");
 
       if (isStandalone) {
         setIsStandaloneApp(true);
         setIsAppInstalled(true);
       }
 
-      // Check installed related apps dynamically
+      // Check installed related apps specifically for Patient Hub
       if ("getInstalledRelatedApps" in navigator) {
         (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
-          if (relatedApps && relatedApps.length > 0) {
-            setIsAppInstalled(true);
-          } else {
-            setIsAppInstalled(false);
+          if (Array.isArray(relatedApps)) {
+            const isPatientInstalled = relatedApps.some((app: any) => {
+              const id = (app.id || "").toLowerCase();
+              const url = (app.url || "").toLowerCase();
+              return (
+                id.includes("patient") ||
+                url.includes("manifest-patient") ||
+                id === "/patienthub" ||
+                url.includes("/patienthub")
+              );
+            });
+            setIsAppInstalled(isPatientInstalled);
+            if (!isPatientInstalled) {
+              try {
+                localStorage.removeItem("gpc_pwa_installed");
+              } catch (e) {}
+            }
           }
         }).catch(() => {});
       }

@@ -36,5 +36,13 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/manifest-staff.json",
+      "id": "gaitphysio-staff-management-portal"
+    }
   ]
 }
+

@@ -68,20 +68,35 @@ function LoginContent() {
       }
 
       const standalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
-        (document.referrer && document.referrer.indexOf("android-app://") !== -1);
+        (document.referrer && document.referrer.indexOf("android-app://") !== -1)) &&
+        window.location.pathname.startsWith("/patienthub");
       setIsStandalone(standalone);
 
-      if (standalone || localStorage.getItem("gpc_pwa_installed") === "true") {
+      if (standalone) {
         setIsAppInstalled(true);
       }
 
       if ("getInstalledRelatedApps" in navigator) {
         (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
-          if (relatedApps && relatedApps.length > 0) {
-            setIsAppInstalled(true);
-            localStorage.setItem("gpc_pwa_installed", "true");
+          if (Array.isArray(relatedApps)) {
+            const isPatientApp = relatedApps.some((app: any) => {
+              const id = (app.id || "").toLowerCase();
+              const url = (app.url || "").toLowerCase();
+              return (
+                id.includes("patient") ||
+                url.includes("manifest-patient") ||
+                id === "/patienthub" ||
+                url.includes("/patienthub")
+              );
+            });
+            setIsAppInstalled(isPatientApp);
+            if (!isPatientApp) {
+              try {
+                localStorage.removeItem("gpc_pwa_installed");
+              } catch (e) {}
+            }
           }
         }).catch(() => {});
       }
@@ -89,12 +104,17 @@ function LoginContent() {
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
         setIsInstallable(true);
+        setIsAppInstalled(false);
       }
 
       const handleBeforeInstallPrompt = (e: Event) => {
         e.preventDefault();
         setDeferredPrompt(e);
         setIsInstallable(true);
+        setIsAppInstalled(false);
+        try {
+          localStorage.removeItem("gpc_pwa_installed");
+        } catch (err) {}
         (window as any).deferredPrompt = e;
       };
 
@@ -125,11 +145,32 @@ function LoginContent() {
         try {
           promptToUse.prompt();
         } catch (e) {}
-      } else if (isAppInstalled || isStandalone) {
-        setShowAlreadyInstalledModal(true);
-      } else if (deviceType === "ios") {
-        setShowIOSModal(true);
+        return;
       }
+
+      if (isStandalone) {
+        setShowAlreadyInstalledModal(true);
+        return;
+      }
+
+      if (deviceType === "ios") {
+        setShowIOSModal(true);
+        return;
+      }
+
+      // On desktop / android: wait briefly for beforeinstallprompt event if browser is initializing
+      const timer = setTimeout(() => {
+        const latePrompt = (window as any).deferredPrompt;
+        if (latePrompt) {
+          try {
+            latePrompt.prompt();
+          } catch (e) {}
+        } else if (isAppInstalled) {
+          setShowAlreadyInstalledModal(true);
+        }
+      }, 700);
+
+      return () => clearTimeout(timer);
     }
   }, [installParam, deferredPrompt, isAppInstalled, isStandalone, deviceType]);
 

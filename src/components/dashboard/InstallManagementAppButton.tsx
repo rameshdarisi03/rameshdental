@@ -31,25 +31,39 @@ export default function InstallManagementAppButton() {
       setDeviceType("desktop");
     }
 
-    // 2. Standalone PWA detection
+    // 2. Standalone PWA detection - scoped to dashboard
     const isStandaloneMode =
-      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true ||
-      document.referrer.includes("android-app://");
+      document.referrer.includes("android-app://")) &&
+      window.location.pathname.startsWith("/dashboard");
     setIsStandalone(isStandaloneMode);
 
-    // 3. Check if marked installed or related apps
-    if (isStandaloneMode || localStorage.getItem("gpc_staff_pwa_installed") === "true") {
+    if (isStandaloneMode) {
       setIsAlreadyInstalled(true);
     }
 
     if ("getInstalledRelatedApps" in navigator) {
       (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
-        if (relatedApps && relatedApps.length > 0) {
-          setIsAlreadyInstalled(true);
-          try {
-            localStorage.setItem("gpc_staff_pwa_installed", "true");
-          } catch (e) {}
+        if (Array.isArray(relatedApps)) {
+          const isStaffApp = relatedApps.some((app: any) => {
+            const id = (app.id || "").toLowerCase();
+            const url = (app.url || "").toLowerCase();
+            return (
+              id.includes("staff") ||
+              id.includes("portal") ||
+              id.includes("dashboard") ||
+              url.includes("manifest-staff") ||
+              id === "/dashboard" ||
+              url.includes("/dashboard")
+            );
+          });
+          setIsAlreadyInstalled(isStaffApp);
+          if (!isStaffApp) {
+            try {
+              localStorage.removeItem("gpc_staff_pwa_installed");
+            } catch (e) {}
+          }
         }
       }).catch(() => {});
     }
