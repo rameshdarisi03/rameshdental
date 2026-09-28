@@ -18,7 +18,11 @@ import {
   ArrowLeft, 
   Sparkles,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Smartphone,
+  KeyRound,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 
 interface SavedStaffProfile {
@@ -53,6 +57,18 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Forgot Password Modal State (Authenticator TOTP)
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
 
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
@@ -149,6 +165,79 @@ export default function Login() {
     setShowDirectForm(false);
     setError("");
     setPassword("");
+  };
+
+  // Open Forgot Password Modal
+  const handleOpenForgotPassword = (prefillEmail?: string) => {
+    const target = (prefillEmail || (selectedProfile ? selectedProfile.email : email) || "").trim();
+    setForgotEmail(target);
+    setTotpCode("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setForgotError("");
+    setForgotSuccess(false);
+    setNotConfigured(false);
+    setIsForgotModalOpen(true);
+  };
+
+  // Submit Password Reset via Google / Microsoft Authenticator TOTP
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError("");
+    setNotConfigured(false);
+
+    if (!forgotEmail.trim()) {
+      setForgotError("Please enter your registered staff email address.");
+      return;
+    }
+
+    const cleanCode = totpCode.replace(/[\s-]/g, "").trim();
+    if (cleanCode.length !== 6 || !/^\d{6}$/.test(cleanCode)) {
+      setForgotError("Please enter the complete 6-digit code from your Authenticator app.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setForgotError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setForgotError("The new passwords do not match. Please re-enter.");
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          totpCode: cleanCode,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        if (data.notConfigured) {
+          setNotConfigured(true);
+        }
+        setForgotError(data.error || "Failed to reset password. Please check your code.");
+        setForgotLoading(false);
+        return;
+      }
+
+      setForgotSuccess(true);
+      setForgotLoading(false);
+      // Pre-fill login password with the new password
+      setPassword(newPassword);
+    } catch (err: any) {
+      setForgotError(err.message || "Network error. Please try again.");
+      setForgotLoading(false);
+    }
   };
 
   // Submit Login (Handles both Hotstar Profile selection and new staff login)
@@ -374,8 +463,16 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Footer Assistance */}
-          <div className="pt-6">
+          {/* Footer Assistance & Forgot Password */}
+          <div className="pt-6 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={() => handleOpenForgotPassword()}
+              className="text-xs text-slate-400 hover:text-teal-300 transition-colors font-medium flex items-center gap-1.5 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-teal-400" />
+              <span>Forgot Password? Reset via Authenticator</span>
+            </button>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] text-slate-500 font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-teal-500" />
               Protected by Enterprise Clinical Security
@@ -445,9 +542,18 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Enter Password
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Enter Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenForgotPassword(selectedProfile.email)}
+                    className="text-[11px] font-semibold text-teal-400 hover:text-teal-300 transition-colors cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
                   <input
@@ -556,9 +662,18 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenForgotPassword(email)}
+                    className="text-[11px] font-semibold text-teal-400 hover:text-teal-300 transition-colors cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
                   <input
@@ -601,6 +716,192 @@ export default function Login() {
                 MANAGEMENT PORTAL PWA (MULTI-ACCOUNT ENGINE)
               </span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* FORGOT PASSWORD MODAL (GOOGLE/MICROSOFT AUTHENTICATOR TOTP)              */}
+      {/* ========================================================================= */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative space-y-5 text-left">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsForgotModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Reset Password</h3>
+                <p className="text-xs text-slate-400">Via Google/Microsoft Authenticator</p>
+              </div>
+            </div>
+
+            {forgotSuccess ? (
+              <div className="space-y-4 py-2 text-center">
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">Password Reset Successful!</h4>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Your password has been securely updated. You can now unlock your portal session with your new password.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotModalOpen(false)}
+                  className="w-full py-3 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-teal-950/40 transition-all cursor-pointer"
+                >
+                  Done & Back to Login
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotSubmit} className="space-y-4">
+                {/* Account Email */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Staff Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="doctor@gaitphysio.com"
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-11 pr-4 py-2.5 text-xs font-semibold text-white outline-none focus:border-teal-400 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* 6-Digit Authenticator Code */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      6-Digit Authenticator Code
+                    </label>
+                    <span className="text-[10px] text-teal-400 font-medium">From Authenticator App</span>
+                  </div>
+                  <div className="relative">
+                    <Smartphone className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={7}
+                      required
+                      autoFocus
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      placeholder="123 456"
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-11 pr-4 py-2.5 text-sm font-mono font-bold tracking-widest text-teal-300 outline-none focus:border-teal-400 transition-colors"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Open Google Authenticator, Microsoft Authenticator, or Apple Passwords and enter the current code for Gait Physio Clinic.
+                  </p>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    New Password (Min 6 Characters)
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-11 pr-11 py-2.5 text-xs font-semibold text-white outline-none focus:border-teal-400 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-200"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-brand-green" />
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-11 pr-4 py-2.5 text-xs font-semibold text-white outline-none focus:border-teal-400 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Error Banner */}
+                {forgotError && (
+                  <div className={`p-3 rounded-2xl border text-xs font-medium ${
+                    notConfigured 
+                      ? "bg-amber-950/40 border-amber-600/50 text-amber-200" 
+                      : "bg-red-950/40 border-red-800 text-red-300"
+                  }`}>
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        {forgotError}
+                        {notConfigured && (
+                          <div className="mt-2 text-[11px] text-amber-300/90 bg-black/30 p-2 rounded-xl border border-amber-500/20">
+                            <strong>Clinic Safety Net:</strong> Ask your Lead Administrator to go to <em>Dashboard → Staff Management</em>. They can reset your password immediately or provide your Authenticator QR code.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 text-xs font-black shadow-lg shadow-teal-950/50 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {forgotLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Verifying TOTP Code...</span>
+                    </>
+                  ) : (
+                    <span>Verify Code & Reset Password</span>
+                  )}
+                </button>
+
+                {/* Footnote */}
+                <div className="text-center pt-1">
+                  <p className="text-[11px] text-slate-400">
+                    Lost your authenticator device?{" "}
+                    <span className="text-teal-400 font-semibold">Contact Clinic Admin</span> for an instant override.
+                  </p>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
