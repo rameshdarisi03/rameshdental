@@ -361,64 +361,36 @@ export default function DashboardStaff() {
     setQrLoading(true);
 
     try {
-      let serverSucceeded = false;
+      // 1. Secret: reuse existing or generate new Base32 secret
+      const secret = member.totpSecret || generateClientSecret();
+      const otpauthUrl = `otpauth://totp/Gait%20Physio%20Clinic:${encodeURIComponent(member.email)}?secret=${secret}&issuer=Gait%20Physio%20Clinic&algorithm=SHA1&digits=6&period=30`;
+      
+      // 2. Generate high-contrast QR Data URL instantly
+      const qrUrl = await QRCode.toDataURL(otpauthUrl, {
+        width: 280,
+        margin: 2,
+        color: {
+          dark: "#062e36",
+          light: "#ffffff",
+        },
+        errorCorrectionLevel: "M",
+      });
+      const formatted = secret.match(/.{1,4}/g)?.join(" ") || secret;
 
-      // 1. Attempt server-side generation
-      try {
-        const res = await fetch("/api/auth/staff-security", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "GENERATE_QR",
-            uid: member.uid,
-            email: member.email,
-          }),
-        });
-
-        const text = await res.text();
-        const data = JSON.parse(text);
-        if (res.ok && data?.success && data?.qrDataUrl) {
-          setQrDataUrl(data.qrDataUrl);
-          setFormattedKey(data.formattedKey);
-          setStaffList((prev) =>
-            prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: data.secret, totpEnabled: data.totpEnabled } : s))
-          );
-          serverSucceeded = true;
-        }
-      } catch (srvErr) {
-        console.warn("[QR Modal] Server endpoint not available, falling back to direct client generation:", srvErr);
+      // 3. Persist secret in Firestore if newly created
+      if (!member.totpSecret) {
+        await setDoc(doc(db, "users", member.uid), {
+          totpSecret: secret,
+          totpEnabled: false,
+          totpUpdatedAt: Timestamp.now(),
+        }, { merge: true });
       }
 
-      // 2. Resilient Client-Side Generation (Direct Firestore sync + client QRCode)
-      if (!serverSucceeded) {
-        const secret = member.totpSecret || generateClientSecret();
-        const otpauthUrl = `otpauth://totp/Gait%20Physio%20Clinic:${encodeURIComponent(member.email)}?secret=${secret}&issuer=Gait%20Physio%20Clinic&algorithm=SHA1&digits=6&period=30`;
-        const qrUrl = await QRCode.toDataURL(otpauthUrl, {
-          width: 280,
-          margin: 2,
-          color: {
-            dark: "#062e36",
-            light: "#ffffff",
-          },
-          errorCorrectionLevel: "M",
-        });
-        const formatted = secret.match(/.{1,4}/g)?.join(" ") || secret;
-
-        // Persist secret in Firestore if newly created
-        if (!member.totpSecret) {
-          await setDoc(doc(db, "users", member.uid), {
-            totpSecret: secret,
-            totpEnabled: false,
-            totpUpdatedAt: Timestamp.now(),
-          }, { merge: true });
-        }
-
-        setQrDataUrl(qrUrl);
-        setFormattedKey(formatted);
-        setStaffList((prev) =>
-          prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: secret } : s))
-        );
-      }
+      setQrDataUrl(qrUrl);
+      setFormattedKey(formatted);
+      setStaffList((prev) =>
+        prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: secret } : s))
+      );
     } catch (err: any) {
       console.error("[QR Modal] Generation error:", err);
       setQrError(err.message || "Failed to load Authenticator QR code");
