@@ -38,14 +38,17 @@ export async function POST(req: NextRequest) {
     // ACTION 2: CONFIRM / TEST CODE AND ACTIVATE TOTP
     // ------------------------------------------------------------------------
     if (action === "CONFIRM_TOTP") {
-      if (!incomingSecret || !token) {
+      const rawSecret = incomingSecret || body.secret || body.totpSecret;
+      const cleanSecret = (rawSecret || "").replace(/[\s-]/g, "").toUpperCase();
+
+      if (!cleanSecret || !token) {
         return NextResponse.json(
           { success: false, error: "Secret key and 6-digit code are required." },
           { status: 400 }
         );
       }
 
-      const isValid = verifyTOTP(token, incomingSecret, 1);
+      const isValid = verifyTOTP(token, cleanSecret, 1);
       if (!isValid) {
         return NextResponse.json(
           { success: false, error: "Invalid 6-digit code. Please verify the code in your Authenticator app." },

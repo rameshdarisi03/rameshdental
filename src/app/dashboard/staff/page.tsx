@@ -388,6 +388,7 @@ export default function DashboardStaff() {
 
       setQrDataUrl(qrUrl);
       setFormattedKey(formatted);
+      setQrStaff((prev) => (prev ? { ...prev, totpSecret: secret } : null));
       setStaffList((prev) =>
         prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: secret } : s))
       );
@@ -412,43 +413,43 @@ export default function DashboardStaff() {
     e.preventDefault();
     if (!qrStaff || !testCode.trim()) return;
 
+    const secretKey = (qrStaff.totpSecret || formattedKey || "").replace(/[\s-]/g, "").toUpperCase();
+    if (!secretKey) {
+      setTestError("Secret key not found. Please regenerate QR code.");
+      return;
+    }
+
     setTestLoading(true);
     setTestError("");
     setTestSuccess("");
 
     try {
-      // 1. Try server verification first
-      try {
-        const res = await fetch("/api/auth/staff-security", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "CONFIRM_TOTP",
-            uid: qrStaff.uid,
-            token: testCode.trim(),
-          }),
-        });
+      // 1. Verify with server API
+      const res = await fetch("/api/auth/staff-security", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CONFIRM_TOTP",
+          secret: secretKey,
+          token: testCode.trim(),
+        }),
+      });
 
-        const text = await res.text();
-        const data = JSON.parse(text);
-        if (data?.error && !res.ok) {
-          throw new Error(data.error);
-        }
-      } catch (srvErr: any) {
-        if (srvErr.message && !srvErr.message.includes("JSON")) {
-          throw srvErr;
-        }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Invalid 6-digit code. Please verify the code in your Authenticator app.");
       }
 
       // 2. Mark confirmed & enabled in Firestore directly
       await setDoc(doc(db, "users", qrStaff.uid), {
+        totpSecret: secretKey,
         totpEnabled: true,
         totpActivatedAt: Timestamp.now(),
       }, { merge: true });
 
       setTestSuccess("Authenticator successfully verified and active!");
       setStaffList((prev) =>
-        prev.map((s) => (s.uid === qrStaff.uid ? { ...s, totpEnabled: true } : s))
+        prev.map((s) => (s.uid === qrStaff.uid ? { ...s, totpSecret: secretKey, totpEnabled: true } : s))
       );
     } catch (err: any) {
       setTestError(err.message || "Invalid code. Please try again.");
