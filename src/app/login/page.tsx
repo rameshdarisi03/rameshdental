@@ -22,7 +22,9 @@ import {
   Smartphone,
   KeyRound,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  QrCode,
+  Info
 } from "lucide-react";
 
 interface SavedStaffProfile {
@@ -746,6 +748,17 @@ export default function Login() {
               </div>
             </div>
 
+            {/* How it works guidance */}
+            <div className="p-3 bg-teal-950/40 border border-teal-800/40 rounded-2xl text-[11px] text-teal-200/90 leading-relaxed space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-teal-300">
+                <QrCode className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>How to get your 6-digit code:</span>
+              </div>
+              <p className="text-[10.5px] text-slate-300 leading-normal">
+                This code comes from the <strong>Google Authenticator</strong> app on your mobile phone after scanning your staff QR code (generated in <em>Dashboard → Staff Management</em>).
+              </p>
+            </div>
+
             {forgotSuccess ? (
               <div className="space-y-4 py-2 text-center">
                 <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -896,8 +909,8 @@ export default function Login() {
                 {/* Footnote */}
                 <div className="text-center pt-1">
                   <p className="text-[11px] text-slate-400">
-                    Lost your authenticator device?{" "}
-                    <span className="text-teal-400 font-semibold">Contact Clinic Admin</span> for an instant override.
+                    Haven&apos;t set up Authenticator yet or lost your phone?{" "}
+                    <span className="text-teal-400 font-semibold">Contact Clinic Admin</span> for an instant password override.
                   </p>
                 </div>
               </form>
