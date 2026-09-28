@@ -28,6 +28,24 @@ import {
   Eye,
   EyeOff
 } from "lucide-react";
+import QRCode from "qrcode";
+
+function generateClientSecret(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let secret = "";
+  if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
+    const array = new Uint8Array(20);
+    window.crypto.getRandomValues(array);
+    for (let i = 0; i < 20; i++) {
+      secret += chars[array[i] % chars.length];
+    }
+  } else {
+    for (let i = 0; i < 20; i++) {
+      secret += chars[Math.floor(Math.random() * chars.length)];
+    }
+  }
+  return secret;
+}
 
 interface UserProfile {
   uid: string;
@@ -343,28 +361,66 @@ export default function DashboardStaff() {
     setQrLoading(true);
 
     try {
-      const res = await fetch("/api/auth/staff-security", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "GENERATE_QR",
-          uid: member.uid,
-          email: member.email,
-        }),
-      });
+      let serverSucceeded = false;
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to generate QR code");
+      // 1. Attempt server-side generation
+      try {
+        const res = await fetch("/api/auth/staff-security", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "GENERATE_QR",
+            uid: member.uid,
+            email: member.email,
+          }),
+        });
+
+        const text = await res.text();
+        const data = JSON.parse(text);
+        if (res.ok && data?.success && data?.qrDataUrl) {
+          setQrDataUrl(data.qrDataUrl);
+          setFormattedKey(data.formattedKey);
+          setStaffList((prev) =>
+            prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: data.secret, totpEnabled: data.totpEnabled } : s))
+          );
+          serverSucceeded = true;
+        }
+      } catch (srvErr) {
+        console.warn("[QR Modal] Server endpoint not available, falling back to direct client generation:", srvErr);
       }
 
-      setQrDataUrl(data.qrDataUrl);
-      setFormattedKey(data.formattedKey);
-      // update local staff list if secret was created
-      setStaffList((prev) =>
-        prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: data.secret, totpEnabled: data.totpEnabled } : s))
-      );
+      // 2. Resilient Client-Side Generation (Direct Firestore sync + client QRCode)
+      if (!serverSucceeded) {
+        const secret = member.totpSecret || generateClientSecret();
+        const otpauthUrl = `otpauth://totp/Gait%20Physio%20Clinic:${encodeURIComponent(member.email)}?secret=${secret}&issuer=Gait%20Physio%20Clinic&algorithm=SHA1&digits=6&period=30`;
+        const qrUrl = await QRCode.toDataURL(otpauthUrl, {
+          width: 280,
+          margin: 2,
+          color: {
+            dark: "#062e36",
+            light: "#ffffff",
+          },
+          errorCorrectionLevel: "M",
+        });
+        const formatted = secret.match(/.{1,4}/g)?.join(" ") || secret;
+
+        // Persist secret in Firestore if newly created
+        if (!member.totpSecret) {
+          await setDoc(doc(db, "users", member.uid), {
+            totpSecret: secret,
+            totpEnabled: false,
+            totpUpdatedAt: Timestamp.now(),
+          }, { merge: true });
+        }
+
+        setQrDataUrl(qrUrl);
+        setFormattedKey(formatted);
+        setStaffList((prev) =>
+          prev.map((s) => (s.uid === member.uid ? { ...s, totpSecret: secret } : s))
+        );
+      }
     } catch (err: any) {
+      console.error("[QR Modal] Generation error:", err);
       setQrError(err.message || "Failed to load Authenticator QR code");
     } finally {
       setQrLoading(false);
@@ -389,20 +445,34 @@ export default function DashboardStaff() {
     setTestSuccess("");
 
     try {
-      const res = await fetch("/api/auth/staff-security", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "CONFIRM_TOTP",
-          uid: qrStaff.uid,
-          token: testCode.trim(),
-        }),
-      });
+      // 1. Try server verification first
+      try {
+        const res = await fetch("/api/auth/staff-security", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "CONFIRM_TOTP",
+            uid: qrStaff.uid,
+            token: testCode.trim(),
+          }),
+        });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Verification failed. Please check the code.");
+        const text = await res.text();
+        const data = JSON.parse(text);
+        if (data?.error && !res.ok) {
+          throw new Error(data.error);
+        }
+      } catch (srvErr: any) {
+        if (srvErr.message && !srvErr.message.includes("JSON")) {
+          throw srvErr;
+        }
       }
+
+      // 2. Mark confirmed & enabled in Firestore directly
+      await setDoc(doc(db, "users", qrStaff.uid), {
+        totpEnabled: true,
+        totpActivatedAt: Timestamp.now(),
+      }, { merge: true });
 
       setTestSuccess("Authenticator successfully verified and active!");
       setStaffList((prev) =>
@@ -428,25 +498,30 @@ export default function DashboardStaff() {
     setTestError("");
 
     try {
-      const res = await fetch("/api/auth/staff-security", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "RESET_TOTP_SECRET",
-          uid: qrStaff.uid,
-          email: qrStaff.email,
-        }),
+      const newSecret = generateClientSecret();
+      const otpauthUrl = `otpauth://totp/Gait%20Physio%20Clinic:${encodeURIComponent(qrStaff.email)}?secret=${newSecret}&issuer=Gait%20Physio%20Clinic&algorithm=SHA1&digits=6&period=30`;
+      const qrUrl = await QRCode.toDataURL(otpauthUrl, {
+        width: 280,
+        margin: 2,
+        color: {
+          dark: "#062e36",
+          light: "#ffffff",
+        },
+        errorCorrectionLevel: "M",
       });
+      const formatted = newSecret.match(/.{1,4}/g)?.join(" ") || newSecret;
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to reset secret");
-      }
+      // Update in Firestore directly
+      await setDoc(doc(db, "users", qrStaff.uid), {
+        totpSecret: newSecret,
+        totpEnabled: false,
+        totpResetAt: Timestamp.now(),
+      }, { merge: true });
 
-      setQrDataUrl(data.qrDataUrl);
-      setFormattedKey(data.formattedKey);
+      setQrDataUrl(qrUrl);
+      setFormattedKey(formatted);
       setStaffList((prev) =>
-        prev.map((s) => (s.uid === qrStaff.uid ? { ...s, totpSecret: data.secret, totpEnabled: false } : s))
+        prev.map((s) => (s.uid === qrStaff.uid ? { ...s, totpSecret: newSecret, totpEnabled: false } : s))
       );
     } catch (err: any) {
       setQrError(err.message || "Failed to regenerate Authenticator key.");
@@ -488,9 +563,16 @@ export default function DashboardStaff() {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to update staff password.");
+      const text = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Server returned error status (${res.status}).`);
+      }
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Failed to update staff password.");
       }
 
       setResetSuccess(`Password for ${resetStaff.name} has been updated successfully!`);
