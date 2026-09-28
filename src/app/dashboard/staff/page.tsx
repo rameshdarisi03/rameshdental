@@ -532,6 +532,7 @@ export default function DashboardStaff() {
         body: JSON.stringify({
           action: "ADMIN_DIRECT_RESET_PASSWORD",
           uid: resetStaff.uid,
+          email: resetStaff.email,
           newPassword: newStaffPassword,
         }),
       });

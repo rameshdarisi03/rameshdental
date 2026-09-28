@@ -202,7 +202,8 @@ export async function recordPasswordResetAudit(
   uid: string,
   email: string,
   ip: string,
-  userAgent: string
+  userAgent: string,
+  action: string = "STAFF_PASSWORD_RESET_TOTP"
 ): Promise<void> {
   try {
     const token = await getGoogleAccessToken();
@@ -237,7 +238,7 @@ export async function recordPasswordResetAudit(
         },
         body: JSON.stringify({
           fields: {
-            action: { stringValue: "STAFF_PASSWORD_RESET_TOTP" },
+            action: { stringValue: action },
             targetUid: { stringValue: uid },
             targetEmail: { stringValue: email },
             timestamp: { timestampValue: nowIso },

@@ -6,6 +6,10 @@ import {
   formatSecretForDisplay,
   verifyTOTP,
 } from "@/lib/totp";
+import {
+  updateUserPassword,
+  recordPasswordResetAudit,
+} from "@/lib/firebaseRestAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, email, secret: incomingSecret, token } = body;
+    const { action, email, secret: incomingSecret, token, uid, newPassword } = body;
 
     // ------------------------------------------------------------------------
     // ACTION 1: GENERATE / VIEW QR CODE FOR A STAFF MEMBER
@@ -59,6 +63,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "Google Authenticator successfully verified!",
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // ACTION 3: ADMIN DIRECT PASSWORD RESET (OVERRIDE)
+    // ------------------------------------------------------------------------
+    if (action === "ADMIN_DIRECT_RESET_PASSWORD") {
+      const targetUid = uid || body.userId;
+      const targetPassword = newPassword || body.password;
+
+      if (!targetUid || typeof targetUid !== "string") {
+        return NextResponse.json(
+          { success: false, error: "Staff User ID (uid) is required." },
+          { status: 400 }
+        );
+      }
+
+      if (!targetPassword || typeof targetPassword !== "string" || targetPassword.length < 6) {
+        return NextResponse.json(
+          { success: false, error: "New password must be at least 6 characters long." },
+          { status: 400 }
+        );
+      }
+
+      await updateUserPassword(targetUid, targetPassword);
+
+      const ip = req.headers.get("x-forwarded-for") || "unknown";
+      const userAgent = req.headers.get("user-agent") || "unknown";
+      const staffEmail = email || body.targetEmail || "staff-account";
+
+      await recordPasswordResetAudit(
+        targetUid,
+        staffEmail,
+        ip,
+        userAgent,
+        "ADMIN_DIRECT_PASSWORD_RESET"
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "Staff password successfully updated!",
       });
     }
 
