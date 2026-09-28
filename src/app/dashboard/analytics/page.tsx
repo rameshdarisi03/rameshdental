@@ -22,20 +22,9 @@ import {
   ArrowUpRight
 } from "lucide-react";
 import Link from "next/link";
-import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
+const spaceGrotesk = { className: "font-sans tracking-tight" };
+const inter = { className: "font-sans" };
+const ibmPlexMono = { className: "font-mono" };
 
 interface Appointment {
   id: string;
