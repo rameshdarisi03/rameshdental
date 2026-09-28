@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 import { verifyTOTP } from "@/lib/totp";
-import { Timestamp } from "firebase-admin/firestore";
+import {
+  getStaffUserByEmail,
+  updateUserPassword,
+  recordPasswordResetAudit,
+} from "@/lib/firebaseRestAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,16 +36,11 @@ export async function POST(req: NextRequest) {
     }
 
     const emailClean = email.trim().toLowerCase();
-    const { auth: adminAuth, db: adminDb } = getFirebaseAdmin();
 
-    // 1. Locate staff record in Firestore
-    const userQuery = await adminDb
-      .collection("users")
-      .where("email", "==", emailClean)
-      .limit(1)
-      .get();
+    // 1. Locate staff record in Firestore via REST API
+    const user = await getStaffUserByEmail(emailClean);
 
-    if (userQuery.empty) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -52,12 +50,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userDoc = userQuery.docs[0];
-    const userData = userDoc.data();
-    const uid = userDoc.id;
-
     // 2. Verify Authenticator Secret exists
-    if (!userData.totpSecret) {
+    if (!user.totpSecret) {
       return NextResponse.json(
         {
           success: false,
@@ -70,7 +64,10 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Verify TOTP 6-digit code (checks +/- 30s window)
-    const isCodeValid = verifyTOTP(totpCode, userData.totpSecret, 1);
+    const cleanToken = totpCode.trim().replace(/\s+/g, "");
+    const cleanSecret = user.totpSecret.trim().replace(/\s+/g, "");
+
+    const isCodeValid = verifyTOTP(cleanToken, cleanSecret, 1);
     if (!isCodeValid) {
       return NextResponse.json(
         {
@@ -82,25 +79,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Update Password in Firebase Auth
-    await adminAuth.updateUser(uid, {
-      password: newPassword,
-    });
+    // 4. Update Password in Firebase Auth via Identity Toolkit REST
+    await updateUserPassword(user.uid, newPassword);
 
-    // 5. Update Audit Trail in Firestore
-    await adminDb.collection("users").doc(uid).update({
-      lastPasswordResetAt: Timestamp.now(),
-    });
-
-    // Log to audit collection
-    await adminDb.collection("audit_logs").add({
-      action: "STAFF_PASSWORD_RESET_TOTP",
-      targetUid: uid,
-      targetEmail: emailClean,
-      timestamp: Timestamp.now(),
-      ip: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown",
-    });
+    // 5. Update Audit Trail & user document in Firestore asynchronously via REST
+    const ip = req.headers.get("x-forwarded-for") || "unknown";
+    const userAgent = req.headers.get("user-agent") || "unknown";
+    await recordPasswordResetAudit(user.uid, emailClean, ip, userAgent);
 
     return NextResponse.json({
       success: true,
