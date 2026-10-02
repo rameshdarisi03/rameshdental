@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updatePatientRecord } from "@/lib/firebaseRestAdmin";
+import { updatePatientRecord, getFirebaseAuthUserByEmail, updateUserPassword } from "@/lib/firebaseRestAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,13 +7,40 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { patientId, authUid, email, activationCode, linkedEmails } = body;
+    const { patientId, authUid, email, password, activationCode, linkedEmails } = body;
 
     if (!patientId || typeof patientId !== "string") {
       return NextResponse.json(
         { success: false, error: "Patient ID is required." },
         { status: 400 }
       );
+    }
+
+    let finalAuthUid = authUid;
+
+    // If a password was provided, set/update it on the Firebase Auth user
+    if (password && typeof password === "string") {
+      const cleanEmail = (email || "").trim().toLowerCase();
+      if (!cleanEmail) {
+        return NextResponse.json(
+          { success: false, error: "Email is required to set account password." },
+          { status: 400 }
+        );
+      }
+
+      // Look up user by email in Firebase Auth
+      let targetUid = finalAuthUid;
+      if (!targetUid) {
+        const existingUser = await getFirebaseAuthUserByEmail(cleanEmail);
+        if (existingUser) {
+          targetUid = existingUser.uid;
+        }
+      }
+
+      if (targetUid) {
+        await updateUserPassword(targetUid, password);
+        finalAuthUid = targetUid;
+      }
     }
 
     const updates: {
@@ -25,8 +52,8 @@ export async function POST(req: NextRequest) {
       activated: true,
     };
 
-    if (authUid && typeof authUid === "string") {
-      updates.authUid = authUid;
+    if (finalAuthUid && typeof finalAuthUid === "string") {
+      updates.authUid = finalAuthUid;
     }
 
     if (activationCode !== undefined) {
@@ -43,7 +70,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Patient activated successfully.",
+      message: "Patient activated and credentials updated successfully.",
+      authUid: finalAuthUid,
     });
   } catch (err: any) {
     console.error("[API patient activate error]:", err);

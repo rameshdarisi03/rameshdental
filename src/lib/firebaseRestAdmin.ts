@@ -167,6 +167,43 @@ export async function getStaffUserByEmail(
   };
 }
 
+export async function getFirebaseAuthUserByEmail(
+  email: string
+): Promise<{ uid: string; email: string } | null> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const cleanEmail = email.trim().toLowerCase();
+
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts:lookup`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: [cleanEmail],
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    return null;
+  }
+
+  const data = await res.json().catch(() => ({}));
+  const user = data.users?.[0];
+  if (!user || !user.localId) {
+    return null;
+  }
+
+  return {
+    uid: user.localId,
+    email: user.email || cleanEmail,
+  };
+}
+
 export async function updateUserPassword(
   uid: string,
   newPassword: string

@@ -617,8 +617,10 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       console.error("Email login error:", err);
       setLoading(false);
       let msg = "Invalid email or password.";
-      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
-        msg = "Invalid email or password. Please verify and try again.";
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        msg = "Invalid email or password. If you haven't created a password yet, please use 'Continue with Google' or click 'Register with Code' below.";
+      } else if (err.code === "auth/user-not-found") {
+        msg = "Account not found. Please click 'Register with Code' below to activate your account.";
       } else if (err.message) {
         msg = err.message;
       }
@@ -670,8 +672,37 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         return { success: false, error: msg };
       }
 
-      // Create Firebase Auth user
-      const cred = await createUserWithEmailAndPassword(auth, emailStr.trim(), pass);
+      // Create or update Firebase Auth user
+      let authUser: any = null;
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, emailStr.trim(), pass);
+        authUser = cred.user;
+      } catch (authCreateErr: any) {
+        if (authCreateErr.code === "auth/email-already-in-use") {
+          // Account already exists in Firebase Auth (e.g. previously authenticated via Google).
+          // Since the patient has provided the valid clinic Activation Code, attach the password to their existing account!
+          const activateRes = await fetch("/api/patient/activate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              patientId: matchedDoc.id,
+              email: emailStr.trim(),
+              password: pass,
+              activationCode: cleanCode,
+            }),
+          });
+          const activateData = await activateRes.json().catch(() => ({}));
+          if (!activateRes.ok || !activateData.success) {
+            throw new Error(activateData.error || "Failed to link password to your account.");
+          }
+
+          // Sign in with the newly attached password
+          const signInCred = await signInWithEmailAndPassword(auth, emailStr.trim(), pass);
+          authUser = signInCred.user;
+        } else {
+          throw authCreateErr;
+        }
+      }
 
       const existingData = matchedDoc.data() as Patient;
       const emailsSet = new Set<string>();
@@ -684,14 +715,14 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         id: matchedDoc.id,
         email: existingData.email || emailStr.trim().toLowerCase(),
         linkedEmails: Array.from(emailsSet),
-        authUid: cred.user.uid,
+        authUid: authUser.uid,
         activated: true,
         isPrimaryAccount: true,
       } as Patient;
 
       syncPatientActivation({
         patientId: matchedDoc.id,
-        authUid: cred.user.uid,
+        authUid: authUser.uid,
         email: emailStr.trim().toLowerCase(),
         activationCode: cleanCode,
         linkedEmails: Array.from(emailsSet),
@@ -699,7 +730,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
 
       updateDoc(doc(db, "patients", matchedDoc.id), {
         linkedEmails: Array.from(emailsSet),
-        authUid: cred.user.uid,
+        authUid: authUser.uid,
         activated: true,
         activationCode: ""
       }).catch((e) => console.warn("Client updateDoc non-fatal:", e));
