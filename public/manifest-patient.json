@@ -4,7 +4,7 @@
   "short_name": "Patient Hub",
   "description": "Patient recovery dashboard, exercise routines, and appointment manager for Gait Physio Clinic",
   "start_url": "/patienthub/login",
-  "scope": "/patienthub/",
+  "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#062e36",

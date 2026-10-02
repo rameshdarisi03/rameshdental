@@ -37,6 +37,7 @@ import {
   Dumbbell,
   FileText,
   Flame,
+  Monitor,
   X
 } from "lucide-react";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG, TeamDoctorProfile, DEFAULT_TEAM_MEMBERS } from "@/lib/db";
@@ -290,6 +291,7 @@ export default function Home() {
   const [showAlreadyInstalledModal, setShowAlreadyInstalledModal] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [showAndroidModal, setShowAndroidModal] = useState(false);
+  const [showDesktopModal, setShowDesktopModal] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -305,28 +307,18 @@ export default function Home() {
         }
       } catch (e) {}
 
-      // Standalone PWA detection - scoped to patienthub
+      // Standalone PWA detection - checks if user is running inside the installed PWA window
       const isStandalone =
-        (window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: standalone)").matches ||
         (window.navigator as any).standalone === true ||
-        (document.referrer && document.referrer.indexOf("android-app://") !== -1)) &&
-        window.location.pathname.startsWith("/patienthub");
-
-      const storedInstalled =
-        localStorage.getItem("gpc_patienthub_installed") === "true" ||
-        localStorage.getItem("gpc_pwa_installed") === "true";
+        (document.referrer && document.referrer.indexOf("android-app://") !== -1);
 
       if (isStandalone) {
         setIsStandaloneApp(true);
         setIsAppInstalled(true);
-        try {
-          localStorage.setItem("gpc_patienthub_installed", "true");
-        } catch (e) {}
-      } else if (storedInstalled) {
-        setIsAppInstalled(true);
       }
 
-      // Check installed related apps specifically for Patient Hub
+      // Check installed related apps specifically for Patient Hub via OS/browser API
       if ("getInstalledRelatedApps" in navigator) {
         (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
           if (Array.isArray(relatedApps)) {
@@ -336,17 +328,14 @@ export default function Home() {
               return (
                 id.includes("patient") ||
                 url.includes("manifest-patient") ||
+                id === "gaitphysio-patient-hub-portal" ||
                 id === "/patienthub" ||
                 url.includes("/patienthub")
               );
             });
-            if (isPatientInstalled) {
-              setIsAppInstalled(true);
-              try {
-                localStorage.setItem("gpc_patienthub_installed", "true");
-              } catch (e) {}
-            } else if (window.location.pathname.startsWith("/patienthub")) {
-              setIsAppInstalled(false);
+            setIsAppInstalled(isPatientInstalled);
+            // If OS reports app is uninstalled, wipe any stale cache/flags
+            if (!isPatientInstalled) {
               try {
                 localStorage.removeItem("gpc_patienthub_installed");
                 localStorage.removeItem("gpc_pwa_installed");
@@ -368,13 +357,17 @@ export default function Home() {
       if ((window as any).deferredPrompt) {
         setDeferredPrompt((window as any).deferredPrompt);
         setIsAppInstalled(false);
+        try {
+          localStorage.removeItem("gpc_patienthub_installed");
+          localStorage.removeItem("gpc_pwa_installed");
+        } catch (e) {}
       }
 
       const handleBeforePrompt = (e: any) => {
         e.preventDefault();
         setDeferredPrompt(e);
         (window as any).deferredPrompt = e;
-        // If beforeinstallprompt fires, the app is NOT installed
+        // If beforeinstallprompt fires, the app is 100% NOT installed
         setIsAppInstalled(false);
         try {
           localStorage.removeItem("gpc_patienthub_installed");
@@ -383,7 +376,7 @@ export default function Home() {
       };
       window.addEventListener("beforeinstallprompt", handleBeforePrompt);
 
-      window.addEventListener("appinstalled", () => {
+      const handleAppInstalled = () => {
         setIsAppInstalled(true);
         setDeferredPrompt(null);
         if (typeof window !== "undefined") {
@@ -392,9 +385,13 @@ export default function Home() {
             localStorage.setItem("gpc_patienthub_installed", "true");
           } catch (e) {}
         }
-      });
+      };
+      window.addEventListener("appinstalled", handleAppInstalled);
 
-      return () => window.removeEventListener("beforeinstallprompt", handleBeforePrompt);
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handleBeforePrompt);
+        window.removeEventListener("appinstalled", handleAppInstalled);
+      };
     }
   }, []);
 
@@ -430,14 +427,8 @@ export default function Home() {
       }
     }
 
-    // 3. If verified as already installed on this device (memory or persistent storage)
-    const isPersistentInstalled =
-      isAppInstalled ||
-      (typeof window !== "undefined" &&
-        (localStorage.getItem("gpc_patienthub_installed") === "true" ||
-          localStorage.getItem("gpc_pwa_installed") === "true"));
-
-    if (isPersistentInstalled) {
+    // 3. If verified as ALREADY INSTALLED by OS/browser
+    if (isAppInstalled) {
       setShowAlreadyInstalledModal(true);
       return;
     }
@@ -454,12 +445,8 @@ export default function Home() {
       return;
     }
 
-    // 6. Desktop / Fallback:
-    // If on homepage outside the /patienthub/ scope, redirect into the Patient Hub
-    // installation gateway where native install prompt is automatically triggered.
-    if (typeof window !== "undefined") {
-      window.location.href = "/patienthub/login?install=1";
-    }
+    // 6. On Desktop browsers where beforeinstallprompt was not triggered (or was previously dismissed)
+    setShowDesktopModal(true);
   };
 
 
@@ -2173,19 +2160,26 @@ export default function Home() {
                     <ArrowRight className="w-4 h-4" />
                   </a>
 
-                  <div className="flex flex-col items-center sm:items-start gap-1.5">
-                    <button
-                      type="button"
-                      onClick={handleInstallClick}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
-                    >
-                      <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
-                      <span>Install GaitPhysio PatientHub App</span>
-                    </button>
-                    <p className="text-[11px] text-slate-300/80 font-normal pl-1">
-                      Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
-                    </p>
-                  </div>
+                  {!isStandaloneApp ? (
+                    <div className="flex flex-col items-center sm:items-start gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleInstallClick}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
+                      >
+                        <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
+                        <span>Install GaitPhysio PatientHub App</span>
+                      </button>
+                      <p className="text-[11px] text-slate-300/80 font-normal pl-1">
+                        Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold self-center sm:self-auto">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Running in GaitPhysio App Mode
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2267,8 +2261,17 @@ export default function Home() {
                         localStorage.removeItem("gpc_patienthub_installed");
                         localStorage.removeItem("gpc_pwa_installed");
                       } catch (e) {}
-                      if (typeof window !== "undefined") {
-                        window.location.href = "/patienthub/login?install=1";
+                      const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
+                      if (promptToUse) {
+                        try {
+                          promptToUse.prompt();
+                        } catch (e) {}
+                      } else if (deviceType === "ios") {
+                        setShowIOSModal(true);
+                      } else if (deviceType === "android") {
+                        setShowAndroidModal(true);
+                      } else {
+                        setShowDesktopModal(true);
                       }
                     }}
                     className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white underline cursor-pointer"
@@ -2370,6 +2373,61 @@ export default function Home() {
                 >
                   Got It
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL 4: Desktop Browser Instructions */}
+          {showDesktopModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 animate-fade-in">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
+                <button
+                  type="button"
+                  onClick={() => setShowDesktopModal(false)}
+                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="mx-auto w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-brand-green">
+                  <Monitor className="w-7 h-7" />
+                </div>
+
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Install on Your Computer
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
+                    Install the <strong>GaitPhysio Patient Hub</strong> directly to your Windows or Mac desktop for 1-click access:
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-300 text-left space-y-2.5 font-semibold">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>Look for the <strong>Install App icon (💻 or ➕)</strong> in your browser&apos;s address bar at the top right.</span>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>Click <strong>Install</strong> to add GaitPhysio to your Desktop &amp; Start Menu.</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <a
+                    href={patientHubHref}
+                    className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
+                  >
+                    Open Patient Hub in Browser
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setShowDesktopModal(false)}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
             </div>
           )}
