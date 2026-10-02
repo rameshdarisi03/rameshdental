@@ -88,6 +88,24 @@ export const usePatientAuth = () => useContext(PatientAuthContext);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
+async function syncPatientActivation(payload: {
+  patientId: string;
+  authUid?: string;
+  email?: string;
+  activationCode?: string;
+  linkedEmails?: string[];
+}) {
+  try {
+    await fetch("/api/patient/activate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn("Server syncPatientActivation non-fatal:", err);
+  }
+}
+
 export function PatientAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
@@ -103,8 +121,31 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
     try {
       const email = fbUser.email ? fbUser.email.trim().toLowerCase() : "";
       const uid = fbUser.uid;
-      const allPatientsSnap = await getDocs(collection(db, "patients"));
-      const all: Patient[] = allPatientsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Patient));
+      
+      let all: Patient[] = [];
+      try {
+        const allPatientsSnap = await getDocs(collection(db, "patients"));
+        all = allPatientsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Patient));
+      } catch (err) {
+        console.warn("Bulk patients read non-fatal, falling back to targeted queries:", err);
+      }
+
+      if (all.length === 0) {
+        if (email) {
+          try {
+            const emailSnap = await getDocs(query(collection(db, "patients"), where("email", "==", email)));
+            emailSnap.docs.forEach((d) => all.push({ id: d.id, ...d.data() } as Patient));
+          } catch (e) {}
+        }
+        if (uid) {
+          try {
+            const uidSnap = await getDocs(query(collection(db, "patients"), where("authUid", "==", uid)));
+            uidSnap.docs.forEach((d) => {
+              if (!all.some(p => p.id === d.id)) all.push({ id: d.id, ...d.data() } as Patient);
+            });
+          } catch (e) {}
+        }
+      }
 
       // 1. Direct matches for this authenticated user
       const directMatches = all.filter((p) => {
@@ -258,8 +299,13 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
                             profiles[0];
           }
 
-          // If clinic explicitly marked status as revoked or activated === false across all
-          if (chosenProfile.activated === false && !profiles.some((p) => p.activated === true)) {
+          // Check if clinic explicitly revoked or disabled access
+          const isAccessRevoked = 
+            chosenProfile.status === "inactive" || 
+            chosenProfile.status === "revoked" ||
+            chosenProfile.status === "suspended";
+
+          if (isAccessRevoked) {
             setPatient(null);
             setAvailableProfiles([]);
             if (typeof window !== "undefined") {
@@ -269,24 +315,40 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
             }
             await signOut(auth);
             setError("Your Patient Hub access has been disabled by the clinic.");
-          } else {
-            setPatient(chosenProfile);
-            setActiveProfileId(chosenProfile.id || null);
-            if (typeof window !== "undefined") {
-              localStorage.setItem("gpc_patient", JSON.stringify(chosenProfile));
-              if (chosenProfile.id) {
-                localStorage.setItem("gpc_active_patient_id", chosenProfile.id);
-              }
-            }
+            return;
+          }
 
-            // If account has > 1 profile, and this is the very first time entering in this browser session
-            if (profiles.length > 1 && typeof window !== "undefined" && !sessionStorage.getItem("gpc_profile_selected_session")) {
-              setShowProfileSelector(true);
-              sessionStorage.setItem("gpc_profile_selected_session", "true");
+          // Patient is valid! If newly logging in, ensure activated & linked
+          if (chosenProfile.id && (!chosenProfile.activated || chosenProfile.authUid !== currentUser.uid)) {
+            chosenProfile.activated = true;
+            chosenProfile.authUid = currentUser.uid;
+            syncPatientActivation({
+              patientId: chosenProfile.id,
+              authUid: currentUser.uid,
+              email: currentUser.email || undefined,
+            });
+            updateDoc(doc(db, "patients", chosenProfile.id), {
+              authUid: currentUser.uid,
+              activated: true,
+            }).catch(() => {});
+          }
+
+          setPatient(chosenProfile);
+          setActiveProfileId(chosenProfile.id || null);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("gpc_patient", JSON.stringify(chosenProfile));
+            if (chosenProfile.id) {
+              localStorage.setItem("gpc_active_patient_id", chosenProfile.id);
             }
           }
+
+          // If account has > 1 profile, and this is the very first time entering in this browser session
+          if (profiles.length > 1 && typeof window !== "undefined" && !sessionStorage.getItem("gpc_profile_selected_session")) {
+            setShowProfileSelector(true);
+            sessionStorage.setItem("gpc_profile_selected_session", "true");
+          }
         } else {
-          // Patient record was purged/deleted from Firestore: strictly revoke session
+          // No profile found yet for this currentUser
           setPatient(null);
           setAvailableProfiles([]);
           if (typeof window !== "undefined") {
@@ -294,7 +356,10 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
             localStorage.removeItem("gpc_available_profiles");
             localStorage.removeItem("gpc_active_patient_id");
           }
-          await signOut(auth);
+          // Do NOT sign out immediately if user is on login page (they may be in the middle of linking activation code)
+          if (typeof window !== "undefined" && !window.location.pathname.startsWith("/patienthub/login")) {
+            await signOut(auth);
+          }
         }
       } else {
         setPatient(null);
@@ -338,12 +403,19 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       const matchedProfile = profiles.find((p) => p.email?.toLowerCase() === fbUser.email?.toLowerCase()) || profiles[0];
 
       if (matchedProfile.id) {
-        await updateDoc(doc(db, "patients", matchedProfile.id), {
-          authUid: fbUser.uid,
-          activated: true
-        });
         matchedProfile.authUid = fbUser.uid;
         matchedProfile.activated = true;
+
+        syncPatientActivation({
+          patientId: matchedProfile.id,
+          authUid: fbUser.uid,
+          email: fbUser.email || undefined,
+        });
+
+        updateDoc(doc(db, "patients", matchedProfile.id), {
+          authUid: fbUser.uid,
+          activated: true
+        }).catch((e) => console.warn("Client updateDoc non-fatal:", e));
       }
 
       // Update state
@@ -440,12 +512,20 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         isPrimaryAccount: true,
       };
 
-      await updateDoc(doc(db, "patients", matchedDoc.id), {
+      syncPatientActivation({
+        patientId: matchedDoc.id,
+        authUid: pendingGoogle.uid,
+        email: userEmail,
+        activationCode: cleanCode,
+        linkedEmails: Array.from(emailsSet),
+      });
+
+      updateDoc(doc(db, "patients", matchedDoc.id), {
         linkedEmails: Array.from(emailsSet),
         authUid: pendingGoogle.uid,
         activated: true,
         activationCode: ""
-      });
+      }).catch((e) => console.warn("Client updateDoc non-fatal:", e));
 
       // Fetch all family profiles
       const allProfiles = await getFamilyMembers(patientData);
@@ -498,13 +578,20 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
 
       const chosenProfile = profiles.find((p) => p.email?.toLowerCase() === emailStr.toLowerCase().trim()) || profiles[0];
 
-      if (chosenProfile.id && !chosenProfile.authUid) {
-        await updateDoc(doc(db, "patients", chosenProfile.id), {
-          authUid: cred.user.uid,
-          activated: true
-        });
+      if (chosenProfile.id && (!chosenProfile.authUid || !chosenProfile.activated)) {
         chosenProfile.authUid = cred.user.uid;
         chosenProfile.activated = true;
+
+        syncPatientActivation({
+          patientId: chosenProfile.id,
+          authUid: cred.user.uid,
+          email: cred.user.email || undefined,
+        });
+
+        updateDoc(doc(db, "patients", chosenProfile.id), {
+          authUid: cred.user.uid,
+          activated: true
+        }).catch((e) => console.warn("Client updateDoc non-fatal:", e));
       }
 
       setAvailableProfiles(profiles);
@@ -602,12 +689,20 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         isPrimaryAccount: true,
       } as Patient;
 
-      await updateDoc(doc(db, "patients", matchedDoc.id), {
+      syncPatientActivation({
+        patientId: matchedDoc.id,
+        authUid: cred.user.uid,
+        email: emailStr.trim().toLowerCase(),
+        activationCode: cleanCode,
+        linkedEmails: Array.from(emailsSet),
+      });
+
+      updateDoc(doc(db, "patients", matchedDoc.id), {
         linkedEmails: Array.from(emailsSet),
         authUid: cred.user.uid,
         activated: true,
         activationCode: ""
-      });
+      }).catch((e) => console.warn("Client updateDoc non-fatal:", e));
 
       const allProfiles = await getFamilyMembers(patientData);
       setAvailableProfiles(allProfiles);

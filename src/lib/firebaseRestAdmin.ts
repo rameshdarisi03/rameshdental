@@ -252,3 +252,64 @@ export async function recordPasswordResetAudit(
     console.error("[recordPasswordResetAudit non-fatal error]:", err);
   }
 }
+
+export async function updatePatientRecord(
+  patientId: string,
+  fields: {
+    authUid?: string;
+    activated?: boolean;
+    activationCode?: string;
+    linkedEmails?: string[];
+  }
+): Promise<void> {
+  try {
+    const token = await getGoogleAccessToken();
+    const { projectId } = getCredentials();
+    const updateMaskParts: string[] = [];
+    const firestoreFields: Record<string, any> = {};
+
+    if (fields.authUid !== undefined) {
+      updateMaskParts.push("updateMask.fieldPaths=authUid");
+      firestoreFields.authUid = { stringValue: fields.authUid };
+    }
+    if (fields.activated !== undefined) {
+      updateMaskParts.push("updateMask.fieldPaths=activated");
+      firestoreFields.activated = { booleanValue: fields.activated };
+    }
+    if (fields.activationCode !== undefined) {
+      updateMaskParts.push("updateMask.fieldPaths=activationCode");
+      firestoreFields.activationCode = { stringValue: fields.activationCode };
+    }
+    if (fields.linkedEmails !== undefined) {
+      updateMaskParts.push("updateMask.fieldPaths=linkedEmails");
+      firestoreFields.linkedEmails = {
+        arrayValue: {
+          values: fields.linkedEmails.map((e) => ({ stringValue: e })),
+        },
+      };
+    }
+
+    if (updateMaskParts.length === 0) return;
+
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patients/${patientId}?${updateMaskParts.join("&")}`;
+
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fields: firestoreFields,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn(`[updatePatientRecord] Firestore update failed: ${errText}`);
+    }
+  } catch (err) {
+    console.error("[updatePatientRecord error]:", err);
+  }
+}
+
