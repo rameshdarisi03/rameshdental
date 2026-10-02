@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePatientAuth } from "@/providers/PatientAuthProvider";
-import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Sparkles } from "lucide-react";
+import { Activity, ShieldAlert, Loader2, Mail, Lock, KeyRound, ArrowLeft, Sparkles, Eye, EyeOff, UserCheck, UserPlus } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 
 export default function LoginPage() {
@@ -40,6 +40,7 @@ function LoginContent() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [activationCode, setActivationCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -254,7 +255,53 @@ function LoginContent() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-slate-200/80 dark:border-slate-800" />
               </div>
-              <span className="relative bg-white dark:bg-[#121a1d] px-3 text-[10px] font-bold uppercase text-slate-400">OR EMAIL</span>
+              <span className="relative bg-white dark:bg-[#121a1d] px-3 text-[10px] font-bold uppercase text-slate-400">OR EMAIL &amp; PASSWORD</span>
+            </div>
+
+            {/* Side-by-Side Segmented Tabs: Existing vs New Patient */}
+            <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 mb-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setIsSignUp(false);
+                }}
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  !isSignUp
+                    ? "bg-white dark:bg-[#062e36] text-[#062e36] dark:text-[#f9ab55] shadow-xs border border-slate-200/60 dark:border-white/10"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                <UserCheck className="w-4 h-4 text-brand-green dark:text-teal-400" />
+                <span>Existing Patient</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setIsSignUp(true);
+                }}
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  isSignUp
+                    ? "bg-white dark:bg-[#062e36] text-[#062e36] dark:text-[#f9ab55] shadow-xs border border-slate-200/60 dark:border-white/10"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                <UserPlus className="w-4 h-4 text-[#f9ab55]" />
+                <span>New Patient</span>
+              </button>
+            </div>
+
+            {/* Form Context Hint */}
+            <div className="text-center pb-2">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {isSignUp ? (
+                  <>Enter your clinic <strong>Activation Code</strong> to set your password &amp; access records.</>
+                ) : (
+                  <>Sign in with your registered email and password.</>
+                )}
+              </p>
             </div>
 
             {/* Email Password Form */}
@@ -263,7 +310,12 @@ function LoginContent() {
               {/* Activation Code Field (Only shown on signup) */}
               {isSignUp && (
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Activation Code</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">
+                      Activation Code
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">Provided by clinic</span>
+                  </div>
                   <div className="relative">
                     <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                     <input
@@ -271,7 +323,7 @@ function LoginContent() {
                       required
                       value={activationCode}
                       onChange={(e) => setActivationCode(e.target.value)}
-                      placeholder="8-Character Code"
+                      placeholder="e.g. CURYNALQ"
                       className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] transition-colors text-slate-800 dark:text-slate-100 font-bold tracking-widest uppercase"
                     />
                   </div>
@@ -279,7 +331,9 @@ function LoginContent() {
               )}
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Registered Email</label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">
+                  Registered Email
+                </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <input
@@ -294,17 +348,29 @@ function LoginContent() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">Password</label>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">
+                  {isSignUp ? "Create Password" : "Password"}
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] transition-colors text-slate-800 dark:text-slate-100"
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-11 py-3 text-xs outline-none focus:border-[#062e36] dark:focus:border-[#f9ab55] transition-colors text-slate-800 dark:text-slate-100"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3 p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer focus:outline-none transition-colors"
+                    title={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -316,14 +382,14 @@ function LoginContent() {
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : isSignUp ? (
-                  "Create Hub Account"
+                  "Activate & Create Account"
                 ) : (
                   "Sign In to Care Portal"
                 )}
               </button>
             </form>
 
-            {/* Toggle Mode Button */}
+            {/* Quick helper note at bottom */}
             <div className="text-center pt-3">
               <button
                 type="button"
@@ -331,9 +397,13 @@ function LoginContent() {
                   setError("");
                   setIsSignUp(!isSignUp);
                 }}
-                className="text-xs font-bold text-[#8a5100] dark:text-[#f9ab55] hover:underline cursor-pointer"
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
               >
-                {isSignUp ? "Already have an account? Sign In" : "First time visiting? Register with Code"}
+                {isSignUp ? (
+                  <>Already registered? <span className="text-[#8a5100] dark:text-[#f9ab55] underline">Switch to Existing Patient</span></>
+                ) : (
+                  <>First time with an activation code? <span className="text-[#8a5100] dark:text-[#f9ab55] underline">Switch to New Patient</span></>
+                )}
               </button>
             </div>
           </>
