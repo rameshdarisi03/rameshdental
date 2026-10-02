@@ -241,10 +241,22 @@ function LoginContent() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50 mb-5"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                />
                 <path
                   fill="#EA4335"
-                  d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.51 0-6.36-2.85-6.36-6.36s2.85-6.36 6.36-6.36c1.53 0 2.93.55 4.02 1.48l3.1-3.1C18.98 2.19 15.82 1 12.24 1 6.03 1 1 6.03 1 12.24s5.03 11.24 11.24 11.24c5.84 0 10.84-4.22 10.84-11.24 0-.76-.08-1.46-.22-1.96H12.24z"
+                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 />
               </svg>
               <span>Continue with Google</span>
@@ -258,7 +270,7 @@ function LoginContent() {
               <span className="relative bg-white dark:bg-[#121a1d] px-3 text-[10px] font-bold uppercase text-slate-400">OR EMAIL &amp; PASSWORD</span>
             </div>
 
-            {/* Side-by-Side Segmented Tabs: Existing vs New Patient */}
+            {/* Side-by-Side Segmented Tabs: Existing vs New User */}
             <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 mb-4">
               <button
                 type="button"
@@ -266,14 +278,14 @@ function LoginContent() {
                   setError("");
                   setIsSignUp(false);
                 }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   !isSignUp
-                    ? "bg-white dark:bg-[#062e36] text-[#062e36] dark:text-[#f9ab55] shadow-xs border border-slate-200/60 dark:border-white/10"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                    ? "bg-[#062e36] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
-                <UserCheck className="w-4 h-4 text-brand-green dark:text-teal-400" />
-                <span>Existing Patient</span>
+                <UserCheck className={`w-4 h-4 ${!isSignUp ? "text-[#f9ab55]" : "text-slate-400"}`} />
+                <span>Existing User</span>
               </button>
 
               <button
@@ -282,14 +294,14 @@ function LoginContent() {
                   setError("");
                   setIsSignUp(true);
                 }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   isSignUp
-                    ? "bg-white dark:bg-[#062e36] text-[#062e36] dark:text-[#f9ab55] shadow-xs border border-slate-200/60 dark:border-white/10"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                    ? "bg-[#062e36] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
-                <UserPlus className="w-4 h-4 text-[#f9ab55]" />
-                <span>New Patient</span>
+                <UserPlus className={`w-4 h-4 ${isSignUp ? "text-[#f9ab55]" : "text-slate-400"}`} />
+                <span>New User</span>
               </button>
             </div>
 
@@ -297,7 +309,7 @@ function LoginContent() {
             <div className="text-center pb-2">
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 {isSignUp ? (
-                  <>Enter your clinic <strong>Activation Code</strong> to set your password &amp; access records.</>
+                  <>Enter the activation code sent to your WhatsApp or Email to create your account.</>
                 ) : (
                   <>Sign in with your registered email and password.</>
                 )}
@@ -389,23 +401,7 @@ function LoginContent() {
               </button>
             </form>
 
-            {/* Quick helper note at bottom */}
-            <div className="text-center pt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setIsSignUp(!isSignUp);
-                }}
-                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
-              >
-                {isSignUp ? (
-                  <>Already registered? <span className="text-[#8a5100] dark:text-[#f9ab55] underline">Switch to Existing Patient</span></>
-                ) : (
-                  <>First time with an activation code? <span className="text-[#8a5100] dark:text-[#f9ab55] underline">Switch to New Patient</span></>
-                )}
-              </button>
-            </div>
+
           </>
         )}
       </div>
