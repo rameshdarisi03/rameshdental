@@ -169,6 +169,25 @@ export default function ClinicalBillingPage() {
         }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
       }
 
+      // Auto-dispatch cancellation notice to patient WhatsApp
+      if (voidingInvoice.patientPhone) {
+        fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "INVOICE_VOID_NOTICE",
+            payload: {
+              patientName: voidingInvoice.patientName,
+              patientPhone: voidingInvoice.patientPhone,
+              invoiceNumber: voidingInvoice.invoiceNumber,
+              amount: voidingInvoice.totalAmount,
+              serviceDate: voidingInvoice.serviceDate,
+              voidReason: reason,
+            },
+          }),
+        }).catch((err) => console.warn("[Invoice Void WhatsApp] Dispatch warning:", err));
+      }
+
       // Auto-replace PDF in Google Drive with the stamped VOID version
       try {
         const selectedP = patients.find(

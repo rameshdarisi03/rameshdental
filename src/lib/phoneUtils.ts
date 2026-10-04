@@ -6,13 +6,13 @@
  * - 11-digit numbers with leading 0: '08904456243' -> '918904456243'
  * - Fallback default: '918904456243'
  */
-export function getCleanWhatsAppNumber(rawPhone?: string | null): string {
-  if (!rawPhone) return "918904456243";
+export function getCleanWhatsAppNumber(rawPhone?: string | null, fallbackToClinic: boolean = true): string {
+  if (!rawPhone) return fallbackToClinic ? "918904456243" : "";
   
   const digits = rawPhone.replace(/\D/g, "");
   
   // If empty after stripping non-digits
-  if (!digits) return "918904456243";
+  if (!digits) return fallbackToClinic ? "918904456243" : "";
 
   // If already starts with 91 and has 12 digits, return it directly
   if (digits.startsWith("91") && digits.length === 12) {

@@ -401,11 +401,31 @@ export async function sendWhatsAppInvoiceDelivery(params: {
   date: string;
   amount: number | string;
   serviceName?: string;
+  replacesInvoiceNumber?: string;
   pdfBase64?: string;
   pdfUrl?: string;
 }): Promise<SendWhatsAppResult> {
-  const caption = 
-`🏥 *GAIT PHYSIO CLINIC*
+  const isReplacement = Boolean(params.replacesInvoiceNumber);
+  const caption = isReplacement
+    ? `🏥 *GAIT PHYSIO CLINIC*
+*Updated Payment Receipt & Invoice*
+
+Hello ${params.patientName},
+
+⚠️ *Important Billing Notice:*
+This updated invoice replaces your previous bill *${params.replacesInvoiceNumber}*, which was cancelled due to a clerical correction. You have NOT been charged twice.
+
+🧾 *New Invoice Number:* ${params.invoiceNumber}
+🔄 *Replaces Cancelled Bill:* ${params.replacesInvoiceNumber}
+📅 *Date of Issue:* ${params.date}
+💰 *Total Amount:* ₹${params.amount}
+🩺 *Service Rendered:* ${params.serviceName || "Physiotherapy Treatment"}
+💳 *Payment Status:* PAID (Complete)
+
+📎 *Your fresh, corrected Invoice PDF is attached above.*
+
+_Thank you for choosing Gait Physio Clinic!_`
+    : `🏥 *GAIT PHYSIO CLINIC*
 *Payment Receipt & Invoice*
 
 Hello ${params.patientName},
@@ -437,6 +457,34 @@ _Thank you for choosing Gait Physio Clinic for your recovery journey!_`;
 
   // Fallback to text message if no PDF is attached
   return sendWhatsAppTextMessage(params.patientPhone, caption);
+}
+
+/**
+ * 7b. Invoice Cancellation / Void Notice
+ */
+export async function sendWhatsAppInvoiceVoidNotice(params: {
+  patientName: string;
+  patientPhone: string;
+  invoiceNumber: string;
+  amount: number | string;
+  serviceDate: string;
+  voidReason?: string;
+}): Promise<SendWhatsAppResult> {
+  const text = 
+`🏥 *GAIT PHYSIO CLINIC*
+*Billing Notice — Invoice Cancelled*
+
+Hello ${params.patientName},
+
+This is an official notification to inform you that invoice *${params.invoiceNumber}* for ₹${params.amount} has been marked as *CANCELLED / VOIDED* in our clinic records.
+
+📋 *Reason:* ${params.voidReason || "Clerical correction / bill updated"}
+
+If a replacement bill is required, our billing desk will issue a fresh receipt to you shortly.
+
+For any queries, please reply to this chat or call ${CLINIC_PHONE}.`;
+
+  return sendWhatsAppTextMessage(params.patientPhone, text);
 }
 
 /**

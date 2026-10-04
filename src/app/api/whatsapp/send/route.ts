@@ -7,6 +7,7 @@ import {
   sendWhatsAppAppointmentRescheduled,
   sendWhatsAppAppointmentReminder,
   sendWhatsAppInvoiceDelivery,
+  sendWhatsAppInvoiceVoidNotice,
   sendWhatsAppConsultationReport,
   sendWhatsAppTextMessage,
   sendWhatsAppDocumentMessage,
@@ -65,6 +66,10 @@ export async function POST(req: NextRequest) {
 
       case "INVOICE_DELIVERY":
         result = await sendWhatsAppInvoiceDelivery(payload);
+        break;
+
+      case "INVOICE_VOID_NOTICE":
+        result = await sendWhatsAppInvoiceVoidNotice(payload);
         break;
 
       case "CONSULTATION_REPORT":
