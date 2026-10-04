@@ -382,6 +382,36 @@ export default function CreateEditInvoiceModal({
         }
       }
 
+      // Auto-send Tax Invoice PDF to Patient WhatsApp
+      if (patientPhone) {
+        try {
+          const pdf = buildInvoicePdf({ ...invoicePayload, replacesInvoiceNumber: replacesInvoiceNumber || undefined, id: "temp" });
+          const dataUri = pdf.output("datauristring");
+          const pdfBase64 = dataUri.split(",")[1];
+
+          fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "INVOICE_DELIVERY",
+              payload: {
+                patientName: sanitizeName(patientName),
+                patientPhone,
+                invoiceNumber: currentInvNumber,
+                amount: totalAmount,
+                date: serviceDate,
+                serviceName: items.map((i) => i.description).join(", "),
+                pdfBase64,
+              },
+            }),
+          }).catch((waErr) => {
+            console.warn("[Invoice WhatsApp] Background dispatch error:", waErr);
+          });
+        } catch (waGenErr) {
+          console.warn("[Invoice WhatsApp] PDF generation for WhatsApp error:", waGenErr);
+        }
+      }
+
       onSuccess(`Invoice ${currentInvNumber} generated & synced to Patient Hub!`);
     } catch (err: any) {
       console.error("Error saving invoice:", err);

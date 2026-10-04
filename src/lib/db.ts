@@ -557,6 +557,31 @@ export async function submitBookingRequest(
       console.warn("[Booking Email] Error triggering email:", e);
     }
 
+    // 5. Trigger Automated WhatsApp Notification to Patient
+    if (sanitizedBooking.patientPhone) {
+      try {
+        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+        fetch(`${baseUrl}/api/whatsapp/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "BOOKING_RECEIVED",
+            payload: {
+              patientName: sanitizedBooking.patientName,
+              patientPhone: sanitizedBooking.patientPhone,
+              serviceName: sanitizedBooking.serviceId,
+              date: sanitizedBooking.date,
+              slot: sanitizedBooking.slot,
+            },
+          }),
+        }).catch((err) => {
+          console.warn("[Booking WhatsApp] Failed to dispatch booking WhatsApp notification:", err);
+        });
+      } catch (e) {
+        console.warn("[Booking WhatsApp] Error triggering WhatsApp:", e);
+      }
+    }
+
     return { success: true };
   } catch (error: unknown) {
     console.error("Error submitting appointment: ", error);

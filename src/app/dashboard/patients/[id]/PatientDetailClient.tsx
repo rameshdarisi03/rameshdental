@@ -1276,8 +1276,31 @@ PLAN:
             }).catch((emailErr) => {
               console.warn("[Consultation Email] Background dispatch error:", emailErr);
             });
+
+            // Also Auto-Dispatch Consultation & Prescription PDF via WhatsApp
+            if (patient.phone) {
+              fetch("/api/whatsapp/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  type: "CONSULTATION_REPORT",
+                  payload: {
+                    patientName: patient.name,
+                    patientPhone: patient.phone,
+                    date: formattedDate,
+                    therapistName: loggingTherapist,
+                    diagnosis: patient.treatmentPlan,
+                    summary: notes,
+                    exercisesCount: hasExercises ? activePrescription?.exercises?.length : 0,
+                    pdfBase64,
+                  },
+                }),
+              }).catch((waErr) => {
+                console.warn("[Consultation WhatsApp] Background dispatch error:", waErr);
+              });
+            }
           } catch (pdfEmailErr) {
-            console.warn("[Consultation Email] Failed to generate PDF for email:", pdfEmailErr);
+            console.warn("[Consultation Email/WA] Failed to generate PDF for dispatch:", pdfEmailErr);
           }
         }
       }
@@ -1454,6 +1477,62 @@ PLAN:
     } catch (err: any) {
       console.error("Consultation email failed:", err);
       setFormError(err.message || "Failed to dispatch consultation email.");
+      setTimeout(() => setFormError(""), 4000);
+    }
+  };
+
+  const handleWhatsAppConsultationPdf = async (consult: Consultation) => {
+    if (!patient?.phone) {
+      setFormError(`Patient ${patient?.name || "Patient"} does not have a registered phone number.`);
+      setTimeout(() => setFormError(""), 4000);
+      return;
+    }
+
+    try {
+      const hasExercises = Boolean(activePrescription?.exercises && activePrescription.exercises.length > 0);
+      const doc = buildUnifiedPrescriptionPdf({
+        patientName: patient?.name || "Patient",
+        pid: patient?.id || "PID-1001",
+        dateStr: consult.date,
+        therapistName: consult.therapistName || patient?.therapistName || defaultTherapist,
+        durationDays: activePrescription?.durationDays || 14,
+        consultationSummary: consult.summary,
+        diagnosis: patient?.treatmentPlan,
+        providerAlerts: patient?.reminders || [],
+        exercises: hasExercises ? activePrescription?.exercises : [],
+      });
+      const dataUri = doc.output("datauristring");
+      const pdfBase64 = dataUri.split(",")[1];
+
+      setFormSuccess("Sending consultation report PDF to patient WhatsApp...");
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "CONSULTATION_REPORT",
+          payload: {
+            patientName: patient.name,
+            patientPhone: patient.phone,
+            date: consult.date,
+            therapistName: consult.therapistName || patient?.therapistName || defaultTherapist,
+            diagnosis: patient?.treatmentPlan,
+            summary: consult.summary,
+            exercisesCount: hasExercises ? activePrescription?.exercises?.length : 0,
+            pdfBase64,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch WhatsApp message");
+      }
+
+      setFormSuccess(`📱 Consultation report PDF sent to WhatsApp (${patient.phone})!`);
+      setTimeout(() => setFormSuccess(""), 4000);
+    } catch (err: any) {
+      console.error("Consultation WhatsApp failed:", err);
+      setFormError(err.message || "Failed to dispatch consultation WhatsApp.");
       setTimeout(() => setFormError(""), 4000);
     }
   };
@@ -2883,6 +2962,17 @@ Warm regards,
                                   >
                                     <Mail className="w-3.5 h-3.5" />
                                     <span>Email PDF</span>
+                                  </button>
+                                )}
+                                {patient?.phone && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleWhatsAppConsultationPdf(consult)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all cursor-pointer"
+                                    title={`Send consultation report PDF to WhatsApp (${patient.phone})`}
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span>WhatsApp PDF</span>
                                   </button>
                                 )}
                               </div>

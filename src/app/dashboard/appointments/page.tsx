@@ -249,7 +249,26 @@ export default function DashboardAppointments() {
         }
       }
 
-      // Trigger WhatsApp if approved and requested
+      // Trigger Automated WhatsApp if approved
+      if (newStatus === "approved" && updatedApp && updatedApp.patientPhone) {
+        fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "APPOINTMENT_APPROVED",
+            payload: {
+              patientName: updatedApp.patientName,
+              patientPhone: updatedApp.patientPhone,
+              serviceName: updatedApp.serviceId,
+              date: updatedApp.date,
+              slot: updatedApp.slot,
+              therapistName: updatedApp.assignedTherapist || "Clinical Team",
+            },
+          }),
+        }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch approval WhatsApp:", err));
+      }
+
+      // Trigger manual wa.me popup if approved and requested
       if (newStatus === "approved" && shouldNotify) {
         const approvedApp = appointments.find((a) => a.id === appId);
         if (approvedApp) {
@@ -398,7 +417,25 @@ export default function DashboardAppointments() {
         }).catch((err) => console.warn("[Email Engine] Failed to dispatch manual booking email:", err));
       }
       
-      // Directly trigger WhatsApp without modal if checked
+      // Automated WhatsApp notification
+      if (manualForm.patientPhone) {
+        fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "WALKIN_CONFIRMED",
+            payload: {
+              patientName: manualForm.patientName,
+              patientPhone: manualForm.patientPhone,
+              serviceName: manualForm.serviceId,
+              date: manualForm.date,
+              slot: manualForm.slot,
+            },
+          }),
+        }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch manual booking WhatsApp:", err));
+      }
+      
+      // Directly trigger WhatsApp popup without modal if checked
       if (manualNotifyWhatsApp) {
         triggerWhatsAppConfirmation(newBooking as Appointment);
       }

@@ -60,6 +60,7 @@ export default function ClinicalBillingPage() {
   const [voidReason, setVoidReason] = useState("");
   const [mobileActionInvoice, setMobileActionInvoice] = useState<Invoice | null>(null);
   const [emailingInvoiceId, setEmailingInvoiceId] = useState<string | null>(null);
+  const [whatsAppingInvoiceId, setWhatsAppingInvoiceId] = useState<string | null>(null);
 
   // Global Action Feedback
   const [actionSuccess, setActionSuccess] = useState("");
@@ -334,6 +335,57 @@ export default function ClinicalBillingPage() {
       setTimeout(() => setActionError(""), 4000);
     } finally {
       setEmailingInvoiceId(null);
+    }
+  };
+
+  // Automated WhatsApp Dispatch with PDF
+  const handleWhatsAppInvoice = async (inv: Invoice) => {
+    if (!inv.patientPhone) {
+      setActionError(`Patient ${inv.patientName} does not have a valid phone number.`);
+      setTimeout(() => setActionError(""), 4000);
+      return;
+    }
+
+    setWhatsAppingInvoiceId(inv.id);
+    setActionSuccess("");
+    setActionError("");
+
+    try {
+      const pdf = buildInvoicePdf(inv);
+      const dataUri = pdf.output("datauristring");
+      const pdfBase64 = dataUri.split(",")[1];
+
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "INVOICE_DELIVERY",
+          payload: {
+            patientName: inv.patientName,
+            patientPhone: inv.patientPhone,
+            invoiceNumber: inv.invoiceNumber,
+            date: inv.serviceDate,
+            amount: inv.totalAmount,
+            serviceName: "Physiotherapy Treatment",
+            pdfBase64,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch WhatsApp message");
+      }
+
+      setActionSuccess(`📱 Invoice ${inv.invoiceNumber} PDF sent to WhatsApp (${inv.patientPhone})!`);
+      setTimeout(() => setActionSuccess(""), 4000);
+    } catch (err: any) {
+      console.error("Failed to send WhatsApp invoice PDF:", err);
+      window.open(getWhatsAppShareUrl(inv), "_blank");
+      setActionError(err.message || "Could not auto-dispatch via WhatsApp Cloud API. Opened web share.");
+      setTimeout(() => setActionError(""), 5000);
+    } finally {
+      setWhatsAppingInvoiceId(null);
     }
   };
 
@@ -807,6 +859,8 @@ Warm regards,
           onDownload={() => handleDownloadPdf(viewingInvoice)}
           onEmail={() => handleEmailInvoicePdf(viewingInvoice)}
           isEmailing={emailingInvoiceId === viewingInvoice.id}
+          onWhatsApp={() => handleWhatsAppInvoice(viewingInvoice)}
+          isWhatsApping={whatsAppingInvoiceId === viewingInvoice.id}
           whatsappUrl={getWhatsAppShareUrl(viewingInvoice)}
         />
       )}

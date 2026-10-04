@@ -11,6 +11,8 @@ export interface ViewInvoiceModalProps {
   onDownload: () => void;
   onEmail?: () => void;
   isEmailing?: boolean;
+  onWhatsApp?: () => void;
+  isWhatsApping?: boolean;
   whatsappUrl: string;
 }
 
@@ -20,6 +22,8 @@ export default function ViewInvoiceModal({
   onDownload,
   onEmail,
   isEmailing,
+  onWhatsApp,
+  isWhatsApping,
   whatsappUrl
 }: ViewInvoiceModalProps) {
   const [mounted, setMounted] = useState(false);
@@ -230,15 +234,28 @@ export default function ViewInvoiceModal({
         {/* Actions Footer */}
         <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5 shrink-0">
           {invoice.patientPhone && !isVoided && (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>WhatsApp</span>
-            </a>
+            onWhatsApp ? (
+              <button
+                type="button"
+                onClick={onWhatsApp}
+                disabled={isWhatsApping}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                title={`Send invoice PDF to WhatsApp (${invoice.patientPhone})`}
+              >
+                {isWhatsApping ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                <span>{isWhatsApping ? "Sending..." : "WhatsApp PDF"}</span>
+              </button>
+            ) : (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>WhatsApp</span>
+              </a>
+            )
           )}
           {invoice.patientEmail && !isVoided && onEmail && (
             <button

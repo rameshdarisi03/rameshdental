@@ -567,7 +567,25 @@ function WalkInBookingContent() {
         }).catch((err) => console.warn("[Email Engine] Failed to dispatch walk-in email:", err));
       }
 
-      // Directly trigger WhatsApp alert if checked
+      // Trigger Automated WhatsApp alert
+      if (fullPhone) {
+        fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "WALKIN_CONFIRMED",
+            payload: {
+              patientName: formData.patientName,
+              patientPhone: fullPhone,
+              serviceName: formData.serviceId,
+              date: formData.date,
+              slot: formData.slot,
+            },
+          }),
+        }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch walk-in WhatsApp:", err));
+      }
+
+      // Directly trigger WhatsApp popup redirect if checked
       if (manualNotifyWhatsApp) {
         triggerWhatsAppRedirect({
           patientName: formData.patientName,

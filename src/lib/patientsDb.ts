@@ -461,6 +461,29 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
       }
     }
 
+    // Auto-trigger WhatsApp Onboarding & Portal Activation
+    if (newPatient.phone && newPatient.activationCode) {
+      try {
+        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+        fetch(`${baseUrl}/api/whatsapp/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "PATIENT_ONBOARDING",
+            payload: {
+              patientName: newPatient.name,
+              patientPhone: newPatient.phone,
+              activationCode: newPatient.activationCode,
+            },
+          }),
+        }).catch((err) => {
+          console.warn("[Onboarding WhatsApp] Failed to dispatch onboarding WhatsApp:", err);
+        });
+      } catch (waErr) {
+        console.warn("[Onboarding WhatsApp] Error:", waErr);
+      }
+    }
+
     return newPatient;
   } catch (error) {
     console.error("Error creating patient in Firestore:", error);
