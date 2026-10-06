@@ -122,7 +122,18 @@ export default function DaySnapshot() {
   const [activePatientApp, setActivePatientApp] = useState<Appointment | null>(null);
   const [customWhatsAppMessage, setCustomWhatsAppMessage] = useState("");
   const [delayMinutes, setDelayMinutes] = useState(15);
+  const [isCustomDelay, setIsCustomDelay] = useState(false);
+  const [customDelayInput, setCustomDelayInput] = useState("");
+  const [earlyMinutes, setEarlyMinutes] = useState(10);
+  const [rejectionReason, setRejectionReason] = useState("Doctor unavailable or schedule conflict.");
   const [showCustomMsgInput, setShowCustomMsgInput] = useState(false);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+  const [sendingActionType, setSendingActionType] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setActionToast(msg);
+    setTimeout(() => setActionToast(null), 4000);
+  };
 
   // Book for Patient modal drawer states
   const [isBookForPatientOpen, setIsBookForPatientOpen] = useState(false);
@@ -435,12 +446,15 @@ export default function DaySnapshot() {
   const handleSingleAppointmentStatus = async (
     appointmentId: string, 
     newStatus: "approved" | "rejected",
-    sendWhatsApp: boolean = false
+    sendWhatsApp: boolean = false,
+    customReason?: string
   ) => {
     try {
+      const effectiveReason = customReason || rejectionReason || "Schedule conflict or clinic slot capacity limits.";
       const docRef = doc(db, "appointments", appointmentId);
       const auditData = {
         status: newStatus,
+        rejectionReason: newStatus === "rejected" ? effectiveReason : deleteField(),
         actionedByUid: currentUser?.uid || "system",
         actionedByName: currentUser?.name || "Clinic Staff",
         actionedByRole: currentUser?.role || "receptionist",
@@ -488,7 +502,7 @@ export default function DaySnapshot() {
                 serviceId: updatedApp.serviceId,
                 date: updatedApp.date,
                 slot: updatedApp.slot,
-                reason: "Schedule conflict or clinic slot capacity limits.",
+                reason: effectiveReason,
               },
             }),
           }).catch((err) => console.warn("[Email Engine] Failed to dispatch rejection email:", err));
@@ -525,7 +539,7 @@ export default function DaySnapshot() {
                 serviceName: updatedApp.serviceId,
                 date: updatedApp.date,
                 slot: updatedApp.slot,
-                reason: "Schedule conflict or clinic slot capacity limits.",
+                reason: effectiveReason,
               },
             }),
           }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch rejection WhatsApp:", err));
@@ -564,39 +578,23 @@ export default function DaySnapshot() {
     setLoading(true);
     setRejectionConfirmOpen(false);
     try {
+      const effectiveReason = rejectionReason.trim() || "Doctor unavailable or schedule conflict.";
       if (pendingActionApp && pendingActionApp.id) {
         // Isolated single-patient rejection
-        await handleSingleAppointmentStatus(pendingActionApp.id, "rejected", false);
-        setPendingActionType("reject");
-        setNotificationModalOpen(true);
+        await handleSingleAppointmentStatus(pendingActionApp.id, "rejected", false, effectiveReason);
+        showToast(`Appointment rejected. WhatsApp & Email cancellation sent to ${pendingActionApp.patientName}!`);
+        setPendingActionApp(null);
       } else if (pendingRejectionSlots.length > 0) {
         const targetApps = appointments.filter((app) => pendingRejectionSlots.includes(app.slot));
-        const batch = writeBatch(db);
-        
-        const auditData = {
-          status: "rejected" as const,
-          actionedByUid: currentUser?.uid || "system",
-          actionedByName: currentUser?.name || "Clinic Staff",
-          actionedByRole: currentUser?.role || "receptionist",
-          actionedAt: Timestamp.now()
-        };
-
-        targetApps.forEach((app) => {
+        for (const app of targetApps) {
           if (app.id) {
-            const docRef = doc(db, "appointments", app.id);
-            batch.update(docRef, auditData);
+            await handleSingleAppointmentStatus(app.id, "rejected", false, effectiveReason);
           }
-        });
-        await batch.commit();
-
-        if (targetApps.length > 0) {
-          setPendingActionApp({ ...targetApps[0], ...auditData });
-          setPendingActionType("reject");
-          setNotificationModalOpen(true);
         }
+        showToast(`${targetApps.length} appointment(s) rejected & notified!`);
+        setPendingRejectionSlots([]);
       }
 
-      setPendingRejectionSlots([]);
       await fetchDayData();
     } catch (error) {
       console.error("Rejection error: ", error);
@@ -897,11 +895,12 @@ export default function DaySnapshot() {
     }
   };
 
-  // Launch WhatsApp with Rich Pre-Made Templates & Delay Notifications (Popup-blocker proof)
-  const sendWhatsAppWithTemplate = (
+  // Automated WhatsApp Dispatch with Rich Templates, Delay Notes & Cloud API (with wa.me redirect fallback)
+  const sendWhatsAppWithTemplate = async (
     app: Appointment,
     templateType: "confirm" | "delay" | "early" | "custom",
-    customMsg?: string
+    customMsg?: string,
+    mode: "api" | "redirect" = "api"
   ) => {
     let cleanPhone = app.patientPhone.replace(/\D/g, "");
     if (cleanPhone.startsWith("0")) {
@@ -914,6 +913,7 @@ export default function DaySnapshot() {
       cleanPhone = "918904456243";
     }
 
+    const effectiveDelay = isCustomDelay && customDelayInput ? parseInt(customDelayInput, 10) || delayMinutes : delayMinutes;
     const therapistText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : "";
     let message = "";
 
@@ -922,20 +922,93 @@ export default function DaySnapshot() {
       const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
       message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${therapistText} on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
     } else if (templateType === "delay") {
-      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${delayMinutes} minutes later* (around ${app.slot}). Thank you for your kind understanding!`;
+      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes later* (around ${app.slot}). Thank you for your kind understanding! - Gait Physio Clinic`;
     } else if (templateType === "early") {
-      message = `Hi *${app.patientName}*, kindly arrive *10 minutes before* your appointment at *${app.slot}* today for initial biometric preparation. See you soon!`;
+      message = `Hi *${app.patientName}*, kindly arrive *${earlyMinutes} minutes before* your appointment at *${app.slot}* today for initial biometric preparation. See you soon! - Gait Physio Clinic`;
     } else if (templateType === "custom") {
       message = customMsg || `Hi *${app.patientName}*, regarding your appointment on *${app.date}* at *${app.slot}* at Gait Physio Clinic...`;
     }
 
-    const encodedMessage = encodeURIComponent(message);
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-    
-    // Popup-blocker proof dispatch
-    const win = window.open(waUrl, "_blank");
-    if (!win || win.closed || typeof win.closed === "undefined") {
-      window.location.href = waUrl;
+    if (mode === "redirect") {
+      const encodedMessage = encodeURIComponent(message);
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+      const win = window.open(waUrl, "_blank");
+      if (!win || win.closed || typeof win.closed === "undefined") {
+        window.location.href = waUrl;
+      }
+      return;
+    }
+
+    setSendingActionType(templateType);
+    try {
+      if (templateType === "confirm") {
+        await fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "APPOINTMENT_APPROVED",
+            payload: {
+              patientName: app.patientName,
+              patientPhone: app.patientPhone,
+              serviceName: app.serviceId,
+              date: app.date,
+              slot: app.slot,
+              therapistName: app.assignedTherapist || "Clinical Team",
+            },
+          }),
+        });
+
+        if (app.patientEmail) {
+          const calUrl = generateGoogleCalendarUrl(app);
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_APPROVED",
+              payload: {
+                patientName: app.patientName,
+                patientEmail: app.patientEmail,
+                serviceId: app.serviceId,
+                date: app.date,
+                slot: app.slot,
+                assignedTherapist: app.assignedTherapist || "Clinical Team",
+                googleCalendarUrl: calUrl,
+              },
+            }),
+          }).catch((err) => console.warn(err));
+        }
+
+        showToast(`Booking confirmation re-sent to ${app.patientName}'s WhatsApp & Email!`);
+      } else {
+        await fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "CUSTOM_TEXT",
+            payload: {
+              patientPhone: app.patientPhone,
+              text: message,
+            },
+          }),
+        });
+
+        if (templateType === "delay") {
+          showToast(`Delay note (+${effectiveDelay}m) dispatched to ${app.patientName}!`);
+        } else if (templateType === "early") {
+          showToast(`Early arrival reminder (${earlyMinutes}m) dispatched to ${app.patientName}!`);
+        } else {
+          showToast(`Custom WhatsApp note dispatched to ${app.patientName}!`);
+          setCustomWhatsAppMessage("");
+          setShowCustomMsgInput(false);
+        }
+      }
+    } catch (err) {
+      console.error("WhatsApp dispatch exception:", err);
+      // Fallback to manual window open if network error
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, "_blank");
+    } finally {
+      setSendingActionType(null);
     }
   };
 
@@ -1788,18 +1861,60 @@ export default function DaySnapshot() {
             <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-sm">
               <ShieldAlert className="h-6 w-6" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Confirm Rejection</h3>
+            <div className="space-y-1 text-center">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Cancel & Reject Appointment</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Are you sure you want to reject the selected appointment booking(s)? This will cancel their slots, make them available for other patients, and launch a WhatsApp notification template.
+                This will release the slot and automatically dispatch an official cancellation notice via WhatsApp and Email.
               </p>
             </div>
+
+            {/* Quick Reason Preset Chips */}
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                Select Reason (or type custom below)
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Doctor Unavailable",
+                  "Emergency Clinical Case",
+                  "Slot Capacity Exceeded",
+                  "Patient Requested Cancellation",
+                  "Clinic Closed / Maintenance"
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setRejectionReason(chip)}
+                    className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                      rejectionReason === chip
+                        ? "bg-red-50 dark:bg-red-950/50 border-red-300 text-red-700 dark:text-red-300 shadow-xs"
+                        : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50"
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Reason Textarea */}
+              <div className="pt-1">
+                <textarea
+                  rows={2}
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter specific cancellation reason for patient..."
+                  className="w-full text-xs font-semibold p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 outline-none focus:border-red-500 transition-colors"
+                />
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setRejectionConfirmOpen(false);
                   setPendingRejectionSlots([]);
+                  setPendingActionApp(null);
                 }}
                 className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
@@ -1810,7 +1925,7 @@ export default function DaySnapshot() {
                 onClick={handleRejectionConfirmed}
                 className="flex-grow bg-red-600 hover:bg-red-500 text-white rounded-full py-2.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                Reject Appointment(s)
+                Confirm & Send Rejection
               </button>
             </div>
           </div>
@@ -2094,23 +2209,31 @@ export default function DaySnapshot() {
 
                 <div className="grid grid-cols-1 gap-2.5">
                   
-                  {/* Template A: Confirmation */}
-                  <button
-                    type="button"
-                    onClick={() => sendWhatsAppWithTemplate(activePatientApp, "confirm")}
-                    className="w-full text-left p-3.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/50 transition-all cursor-pointer flex items-center justify-between gap-3 group"
-                  >
+                  {/* Template A: Re-send Confirmation */}
+                  <div className="p-3.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/30 flex items-center justify-between gap-3">
                     <div className="space-y-0.5 min-w-0">
                       <p className="text-xs font-black text-brand-green flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5" />
-                        Send Booking Confirmation
+                        Re-send Booking Confirmation
                       </p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold truncate">
-                        Confirms slot with therapist name and Google Calendar link
+                        Re-dispatches WhatsApp & Email confirmation with calendar link
                       </p>
                     </div>
-                    <Send className="w-4 h-4 text-brand-green shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
+                    <button
+                      type="button"
+                      disabled={sendingActionType === "confirm"}
+                      onClick={() => sendWhatsAppWithTemplate(activePatientApp, "confirm")}
+                      className="px-3 py-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      {sendingActionType === "confirm" ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>{sendingActionType === "confirm" ? "Sending..." : "Send"}</span>
+                    </button>
+                  </div>
 
                   {/* Template B: Running Late / Session Delay */}
                   <div className="p-3.5 rounded-2xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/30 space-y-2.5">
@@ -2125,15 +2248,18 @@ export default function DaySnapshot() {
                         </p>
                       </div>
 
-                      {/* Minutes Selector Pills */}
+                      {/* Minutes Selector Pills & Custom Option */}
                       <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-amber-200/80 dark:border-amber-800">
                         {[10, 15, 20, 30].map((mins) => (
                           <button
                             key={mins}
                             type="button"
-                            onClick={() => setDelayMinutes(mins)}
+                            onClick={() => {
+                              setIsCustomDelay(false);
+                              setDelayMinutes(mins);
+                            }}
                             className={`px-2 py-0.5 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
-                              delayMinutes === mins
+                              !isCustomDelay && delayMinutes === mins
                                 ? "bg-amber-500 text-white shadow-xs"
                                 : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                             }`}
@@ -2141,69 +2267,176 @@ export default function DaySnapshot() {
                             +{mins}m
                           </button>
                         ))}
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomDelay(!isCustomDelay)}
+                          className={`px-2 py-0.5 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
+                            isCustomDelay
+                              ? "bg-amber-500 text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                    </div>
+
+                    {isCustomDelay && (
+                      <div className="flex items-center gap-2 pt-1 animate-fade-in">
+                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Delay minutes:</span>
+                        <input
+                          type="number"
+                          min="5"
+                          max="120"
+                          value={customDelayInput}
+                          onChange={(e) => setCustomDelayInput(e.target.value)}
+                          placeholder="e.g. 25"
+                          className="w-20 px-2 py-1 text-xs font-bold rounded-lg border border-amber-300 bg-white dark:bg-slate-900 outline-none"
+                        />
+                        <span className="text-[11px] font-bold text-slate-500">mins later</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={sendingActionType === "delay"}
+                      onClick={() => sendWhatsAppWithTemplate(activePatientApp, "delay")}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                    >
+                      {sendingActionType === "delay" ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {sendingActionType === "delay"
+                          ? "Sending Delay Alert..."
+                          : `Send "+${isCustomDelay && customDelayInput ? customDelayInput : delayMinutes} Mins Late" Delay Note`}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Template C: Arrive Early Preparation Alert */}
+                  <div className="p-3.5 rounded-2xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-950/30 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-black text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-blue-600" />
+                          Please Arrive Early
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-semibold">
+                          Pre-session clinical & posture biometric preparation
+                        </p>
+                      </div>
+
+                      {/* Early Minutes Selector Pills */}
+                      <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-blue-200 dark:border-blue-800">
+                        {[10, 15, 20].map((mins) => (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => setEarlyMinutes(mins)}
+                            className={`px-2.5 py-0.5 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
+                              earlyMinutes === mins
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                          >
+                            {mins}m
+                          </button>
+                        ))}
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => sendWhatsAppWithTemplate(activePatientApp, "delay")}
-                      className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                      disabled={sendingActionType === "early"}
+                      onClick={() => sendWhatsAppWithTemplate(activePatientApp, "early")}
+                      className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Send "+{delayMinutes} Mins Late" Delay Note</span>
+                      {sendingActionType === "early" ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {sendingActionType === "early"
+                          ? "Sending Early Reminder..."
+                          : `Send "Please Arrive ${earlyMinutes} Mins Early" Note`}
+                      </span>
                     </button>
                   </div>
 
-                  {/* Template C: Arrive 10m Early */}
-                  <button
-                    type="button"
-                    onClick={() => sendWhatsAppWithTemplate(activePatientApp, "early")}
-                    className="w-full text-left p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 hover:bg-slate-100 transition-all cursor-pointer flex items-center justify-between gap-3 group"
-                  >
-                    <div className="space-y-0.5 min-w-0">
-                      <p className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-blue-500" />
-                        Please Arrive 10 Mins Early
-                      </p>
-                      <p className="text-[11px] text-slate-500 font-semibold truncate">
-                        Pre-session preparation reminder
-                      </p>
-                    </div>
-                    <Send className="w-4 h-4 text-slate-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-
-                  {/* Template D: Custom Message Input */}
-                  <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 space-y-2">
+                  {/* Template D: Doctor Smart Custom Message */}
+                  <div className="p-3.5 rounded-2xl border border-purple-200 dark:border-purple-900/40 bg-purple-50/60 dark:bg-purple-950/30 space-y-2">
                     <button
                       type="button"
                       onClick={() => setShowCustomMsgInput(!showCustomMsgInput)}
-                      className="w-full flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300 cursor-pointer"
+                      className="w-full flex items-center justify-between text-xs font-black text-purple-900 dark:text-purple-300 cursor-pointer"
                     >
                       <span className="flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-purple-500" />
-                        Type Custom WhatsApp Message
+                        <FileText className="w-3.5 h-3.5 text-purple-600" />
+                        Type Custom Message (Doctor Context Only)
                       </span>
-                      <span className="text-[10px] text-slate-400">{showCustomMsgInput ? "Hide" : "Expand"}</span>
+                      <span className="text-[10px] text-purple-600 font-bold">{showCustomMsgInput ? "Hide" : "Expand"}</span>
                     </button>
 
                     {showCustomMsgInput && (
-                      <div className="space-y-2 pt-1 animate-fade-in">
-                        <textarea
-                          rows={3}
-                          value={customWhatsAppMessage}
-                          onChange={(e) => setCustomWhatsAppMessage(e.target.value)}
-                          placeholder="Type custom note for patient..."
-                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green"
-                        />
-                        <button
-                          type="button"
-                          disabled={!customWhatsAppMessage.trim()}
-                          onClick={() => sendWhatsAppWithTemplate(activePatientApp, "custom", customWhatsAppMessage)}
-                          className="w-full py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>Send Custom Message</span>
-                        </button>
+                      <div className="space-y-2.5 pt-1 animate-fade-in text-left">
+                        {/* Auto-prefill context badge */}
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-900/60 text-[11px] text-slate-500 font-semibold space-y-1">
+                          <p className="text-[10px] uppercase font-black text-purple-600">Auto-Prefilled Greeting:</p>
+                          <p className="italic text-slate-700 dark:text-slate-300">
+                            Hi <strong>{activePatientApp.patientName}</strong>, regarding your appointment at Gait Physio Clinic:
+                          </p>
+                        </div>
+
+                        {/* Doctor Context Input */}
+                        <div>
+                          <label className="text-[10px] font-black uppercase text-slate-400 block mb-1">
+                            Doctor Context Note:
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={customWhatsAppMessage}
+                            onChange={(e) => setCustomWhatsAppMessage(e.target.value)}
+                            placeholder="Enter context only (e.g. Please bring previous MRI scans and wear comfortable clothing)..."
+                            className="w-full text-xs font-semibold p-2.5 rounded-xl border border-purple-200 dark:border-purple-900 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 outline-none focus:border-purple-500"
+                          />
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={!customWhatsAppMessage.trim() || sendingActionType === "custom"}
+                            onClick={() => {
+                              const fullText = `Hi ${activePatientApp.patientName}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
+                              sendWhatsAppWithTemplate(activePatientApp, "custom", fullText, "api");
+                            }}
+                            className="flex-1 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                          >
+                            {sendingActionType === "custom" ? (
+                              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Send className="w-3.5 h-3.5" />
+                            )}
+                            <span>⚡ Send via Clinic Bot</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={!customWhatsAppMessage.trim()}
+                            onClick={() => {
+                              const fullText = `Hi ${activePatientApp.patientName}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
+                              sendWhatsAppWithTemplate(activePatientApp, "custom", fullText, "redirect");
+                            }}
+                            className="py-2 px-3 rounded-xl border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            title="Open in WhatsApp Web"
+                          >
+                            <span>Open Web</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2250,6 +2483,18 @@ export default function DaySnapshot() {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Floating Action Toast Notification */}
+      {actionToast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300 pointer-events-none">
+          <div className="bg-brand-charcoal/95 dark:bg-slate-900/95 text-white backdrop-blur-md px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500/30 flex items-center gap-3 max-w-md pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4" />
+            </div>
+            <p className="text-xs font-semibold leading-snug">{actionToast}</p>
+          </div>
+        </div>
       )}
 
     </div>

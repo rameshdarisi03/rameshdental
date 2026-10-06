@@ -101,7 +101,6 @@ function WalkInBookingContent() {
   });
 
   const [dialCode, setDialCode] = useState("+91");
-  const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
 
   // Patient lookup state & Advanced Search
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -585,16 +584,6 @@ function WalkInBookingContent() {
         }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch walk-in WhatsApp:", err));
       }
 
-      // Directly trigger WhatsApp popup redirect if checked
-      if (manualNotifyWhatsApp) {
-        triggerWhatsAppRedirect({
-          patientName: formData.patientName,
-          patientPhone: fullPhone,
-          serviceId: formData.serviceId,
-          date: formData.date,
-          slot: formData.slot,
-        });
-      }
 
       const bookingDate = formData.date;
       const bookingService = formData.serviceId;
@@ -1119,18 +1108,10 @@ function WalkInBookingContent() {
               </div>
             </div>
 
-            {/* Notification Checkbox */}
-            <div className="flex items-center gap-2.5 pt-2 select-none border-t border-slate-100 dark:border-slate-800">
-              <input
-                type="checkbox"
-                id="manualNotifyWhatsApp"
-                checked={manualNotifyWhatsApp}
-                onChange={(e) => setManualNotifyWhatsApp(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
-              />
-              <label htmlFor="manualNotifyWhatsApp" className="text-xs font-black text-brand-charcoal dark:text-white cursor-pointer">
-                Notify patient via WhatsApp
-              </label>
+            {/* Automated Dispatch Notice */}
+            <div className="flex items-center gap-2 pt-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border-t border-slate-100 dark:border-slate-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Automated WhatsApp & Email notifications are dispatched instantly on booking.
             </div>
 
             {/* Submit Button */}

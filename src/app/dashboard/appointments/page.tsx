@@ -91,6 +91,7 @@ export default function DashboardAppointments() {
   // Rejection Confirmation states
   const [rejectionConfirmOpen, setRejectionConfirmOpen] = useState(false);
   const [pendingRejectionId, setPendingRejectionId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("Doctor unavailable or schedule conflict.");
 
   // WhatsApp popup modal states
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
@@ -189,17 +190,21 @@ export default function DashboardAppointments() {
   }, [manualForm.date]);
 
   // Update appointment status in Firestore with staff auditing
-  const handleStatusChange = async (appId: string, newStatus: "approved" | "rejected", shouldNotify = false) => {
+  const handleStatusChange = async (appId: string, newStatus: "approved" | "rejected", shouldNotify = false, customReason?: string) => {
     setActionLoadingId(appId);
     try {
       const appRef = doc(db, "appointments", appId);
-      const auditData = {
+      const effectiveReason = customReason?.trim() || "Doctor unavailable or schedule conflict.";
+      const auditData: any = {
         status: newStatus,
         actionedByUid: currentUser?.uid || "system",
         actionedByName: currentUser?.name || "Clinic Staff",
         actionedByRole: currentUser?.role || "receptionist",
         actionedAt: Timestamp.now(),
       };
+      if (newStatus === "rejected") {
+        auditData.rejectionReason = effectiveReason;
+      }
       await updateDoc(appRef, auditData);
       
       // Update local state
@@ -242,7 +247,7 @@ export default function DashboardAppointments() {
                 serviceId: updatedApp.serviceId,
                 date: updatedApp.date,
                 slot: updatedApp.slot,
-                reason: "Schedule conflict or clinic slot capacity limits.",
+                reason: effectiveReason,
               },
             }),
           }).catch((err) => console.warn("[Email Engine] Failed to dispatch rejection email:", err));
@@ -279,7 +284,7 @@ export default function DashboardAppointments() {
                 serviceName: updatedApp.serviceId,
                 date: updatedApp.date,
                 slot: updatedApp.slot,
-                reason: "Schedule conflict or clinic slot capacity limits.",
+                reason: effectiveReason,
               },
             }),
           }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch rejection WhatsApp:", err));
@@ -309,7 +314,7 @@ export default function DashboardAppointments() {
 
   const handleRejectionConfirmed = () => {
     if (pendingRejectionId) {
-      handleStatusChange(pendingRejectionId, "rejected");
+      handleStatusChange(pendingRejectionId, "rejected", false, rejectionReason);
     }
     setRejectionConfirmOpen(false);
     setPendingRejectionId(null);
@@ -738,19 +743,68 @@ export default function DashboardAppointments() {
         </div>
       )}
 
-      {/* Rejection Accidental Safeguard Warning Modal */}
+      {/* Rejection Modal with Reason Selection & Automated Dispatch */}
       {mounted && rejectionConfirmOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
             <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto shadow-sm">
               <ShieldAlert className="h-6 w-6" />
             </div>
-            <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Confirm Rejection</h3>
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Decline & Cancel Appointment</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Are you sure you want to decline this appointment request? This will release the slot and inform the patient.
+                Please select or enter the cancellation reason. This will be automatically sent to the patient via WhatsApp & Email.
               </p>
             </div>
+
+            {/* Quick Reason Chips */}
+            <div className="space-y-2 text-left">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Quick Preset Reasons:
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Doctor Unavailable",
+                  "Emergency Clinical Case",
+                  "Slot Capacity Exceeded",
+                  "Patient Requested Cancellation",
+                  "Clinic Closed / Maintenance",
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setRejectionReason(preset)}
+                    className={`text-[11px] font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                      rejectionReason === preset
+                        ? "bg-red-500 text-white border-red-500 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-red-300"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Reason Textarea */}
+              <div className="pt-2">
+                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                  Reason communicated to patient:
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason for rejection or cancellation..."
+                  rows={2}
+                  className="w-full text-xs p-3 rounded-2xl border border-slate-200 dark:border-slate-850 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold"
+                />
+              </div>
+
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/40 p-2.5 rounded-xl flex items-center gap-2 text-[11px] text-red-700 dark:text-red-300 font-medium">
+                <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <span>Patient will immediately receive an automated rejection alert via Meta Cloud API & Email.</span>
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -760,14 +814,14 @@ export default function DashboardAppointments() {
                 }}
                 className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                Cancel
+                Go Back
               </button>
               <button
                 type="button"
                 onClick={handleRejectionConfirmed}
                 className="flex-grow bg-red-600 hover:bg-red-500 text-white rounded-full py-2.5 text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                Reject Appointment
+                Confirm & Dispatch Alert
               </button>
             </div>
           </div>
@@ -775,7 +829,7 @@ export default function DashboardAppointments() {
         document.body
       )}
 
-      {/* Custom WhatsApp Notification Modal */}
+      {/* Confirmation & Automated Approval Modal */}
       {mounted && notificationModalOpen && pendingNotificationApp && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 text-center animate-scale-in max-h-[90vh] overflow-y-auto overscroll-contain">
@@ -784,38 +838,32 @@ export default function DashboardAppointments() {
                 <Check className="h-6 w-6" />
               </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Confirm Appointment Approval</h3>
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Approve Appointment Request</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Are you sure you want to approve this appointment for <strong>{pendingNotificationApp.patientName}</strong>?
+                Confirm slot for <strong>{pendingNotificationApp.patientName}</strong> on <strong>{pendingNotificationApp.date}</strong> at <strong>{pendingNotificationApp.slot}</strong>?
               </p>
             </div>
 
-            {/* Checkbox toggle */}
-            <div className="flex items-center justify-center gap-2 py-1 select-none">
-              <input
-                type="checkbox"
-                id="notifyWhatsApp"
-                checked={notifyWhatsApp}
-                onChange={(e) => setNotifyWhatsApp(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
-              />
-              <label htmlFor="notifyWhatsApp" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-                Notify patient via WhatsApp
-              </label>
+            {/* Automated Dispatch Indicator */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 p-3.5 rounded-2xl text-left space-y-1.5">
+              <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                ⚡ Automated Meta WhatsApp & Email Dispatch
+              </div>
+              <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/80 font-medium leading-relaxed">
+                Official booking confirmation with Google Calendar 1-tap addition will be dispatched instantly via Clinic Bot.
+              </p>
             </div>
 
-            {/* Preview box - shows only if checked */}
-            {notifyWhatsApp && (
-              <div className="bg-slate-50 dark:bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 animate-fade-in max-h-48 overflow-y-auto overscroll-contain">
-                <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
-                  Hi {pendingNotificationApp.patientName}, your appointment request for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
-                  Add to Google Calendar: {generateGoogleCalendarUrl(pendingNotificationApp)}{"\n\n"}
-                  Looking forward to seeing you.
-                </p>
-              </div>
-            )}
+            {/* Preview box */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 max-h-40 overflow-y-auto overscroll-contain">
+              <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px]">
+                Hi {pendingNotificationApp.patientName}, your appointment for *{pendingNotificationApp.serviceId}* on *{pendingNotificationApp.date}* at *{pendingNotificationApp.slot}* is APPROVED!{"\n\n"}
+                Calendar link: {generateGoogleCalendarUrl(pendingNotificationApp)}
+              </p>
+            </div>
 
             <div className="flex gap-3 pt-2">
               <button
@@ -826,20 +874,20 @@ export default function DashboardAppointments() {
                 }}
                 className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                No, Cancel
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={async () => {
                   const appId = pendingNotificationApp.id!;
                   setNotificationModalOpen(false);
-                  await handleStatusChange(appId, "approved", notifyWhatsApp);
+                  await handleStatusChange(appId, "approved", false);
                   setPendingNotificationApp(null);
                 }}
                 className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
                 <Check className="h-4 w-4" />
-                Yes, Approve
+                Confirm & Auto-Notify
               </button>
             </div>
           </div>
