@@ -1608,8 +1608,47 @@ PLAN:
       setFormSuccess(`⚡ Invoice ${invToVoid.invoiceNumber} marked as VOIDED.`);
       setTimeout(() => setFormSuccess(""), 4500);
 
-      // 3. Auto-replace PDF in Google Drive in the background (non-blocking)
+      // 3. Dispatch automated notices & replace PDF in Google Drive in the background (non-blocking)
       (async () => {
+        // Auto-dispatch cancellation notice to patient email
+        const targetEmail = invToVoid.patientEmail || patient?.email;
+        if (targetEmail && targetEmail.includes("@")) {
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "INVOICE_VOID_NOTICE",
+              payload: {
+                patientName: invToVoid.patientName || patient?.name || "Patient",
+                patientEmail: targetEmail,
+                invoiceNumber: invToVoid.invoiceNumber,
+                amount: invToVoid.totalAmount,
+                serviceDate: invToVoid.serviceDate,
+                voidReason: reason,
+              },
+            }),
+          }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
+        }
+
+        // Auto-dispatch cancellation notice to patient WhatsApp
+        const targetPhone = invToVoid.patientPhone || patient?.phone;
+        if (targetPhone) {
+          fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "INVOICE_VOID_NOTICE",
+              payload: {
+                patientName: invToVoid.patientName || patient?.name || "Patient",
+                patientPhone: targetPhone,
+                invoiceNumber: invToVoid.invoiceNumber,
+                amount: invToVoid.totalAmount,
+                serviceDate: invToVoid.serviceDate,
+                voidReason: reason,
+              },
+            }),
+          }).catch((err) => console.warn("[Invoice Void WhatsApp] Dispatch warning:", err));
+        }
         try {
           const driveFolderId = patient?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
           if (driveFolderId) {

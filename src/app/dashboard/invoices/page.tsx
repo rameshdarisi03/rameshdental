@@ -166,8 +166,45 @@ export default function ClinicalBillingPage() {
       setActionSuccess(`⚡ Invoice ${invToVoid.invoiceNumber} marked as VOIDED.`);
       setTimeout(() => setActionSuccess(""), 4500);
 
-      // 3. Auto-replace PDF in Google Drive in the background (non-blocking)
+      // 3. Dispatch automated notices & replace PDF in Google Drive in the background (non-blocking)
       (async () => {
+        // Auto-dispatch cancellation notice to patient email
+        if (invToVoid.patientEmail && invToVoid.patientEmail.includes("@")) {
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "INVOICE_VOID_NOTICE",
+              payload: {
+                patientName: invToVoid.patientName,
+                patientEmail: invToVoid.patientEmail,
+                invoiceNumber: invToVoid.invoiceNumber,
+                amount: invToVoid.totalAmount,
+                serviceDate: invToVoid.serviceDate,
+                voidReason: reason,
+              },
+            }),
+          }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
+        }
+
+        // Auto-dispatch cancellation notice to patient WhatsApp
+        if (invToVoid.patientPhone) {
+          fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "INVOICE_VOID_NOTICE",
+              payload: {
+                patientName: invToVoid.patientName,
+                patientPhone: invToVoid.patientPhone,
+                invoiceNumber: invToVoid.invoiceNumber,
+                amount: invToVoid.totalAmount,
+                serviceDate: invToVoid.serviceDate,
+                voidReason: reason,
+              },
+            }),
+          }).catch((err) => console.warn("[Invoice Void WhatsApp] Dispatch warning:", err));
+        }
         try {
           const selectedP = patients.find(
             (p) =>
