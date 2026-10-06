@@ -310,8 +310,7 @@ export default function Home() {
       // Standalone PWA detection - checks if user is running inside the installed PWA window
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true ||
-        (document.referrer && document.referrer.indexOf("android-app://") !== -1);
+        (window.navigator as any).standalone === true;
 
       if (isStandalone) {
         setIsStandaloneApp(true);
@@ -707,28 +706,7 @@ export default function Home() {
 
 
 
-  if (isStandaloneApp) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-[#062e36] text-white">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <img
-            src="/images/gait_physio_logo.png"
-            alt="GaitPhysio"
-            className="h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(249,171,85,0.3)]"
-          />
-          <div className="text-center">
-            <h1 className="text-xl font-black tracking-tight text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
-              <span>Gait</span> <span className="text-emerald-400">Physio</span>
-            </h1>
-            <p className="text-[10px] text-[#f9ab55] font-black tracking-[0.25em] uppercase mt-1">
-              Patient Hub
-            </p>
-          </div>
-          <p className="text-xs text-slate-300 font-medium pt-2">Opening Patient Hub...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="flex flex-col w-full overflow-x-hidden bg-brand-bg text-brand-charcoal">
