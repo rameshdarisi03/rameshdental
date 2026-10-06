@@ -8,6 +8,7 @@ import {
   getDocs,
   doc,
   updateDoc,
+  deleteField,
   addDoc,
   Timestamp,
   orderBy
@@ -204,12 +205,23 @@ export default function DashboardAppointments() {
       };
       if (newStatus === "rejected") {
         auditData.rejectionReason = effectiveReason;
+      } else {
+        auditData.rejectionReason = deleteField();
       }
       await updateDoc(appRef, auditData);
       
       // Update local state
       setAppointments((prev) =>
-        prev.map((app) => (app.id === appId ? { ...app, ...auditData } : app))
+        prev.map((app) => {
+          if (app.id === appId) {
+            const next = { ...app, ...auditData };
+            if (newStatus === "approved") {
+              delete next.rejectionReason;
+            }
+            return next;
+          }
+          return app;
+        })
       );
 
       // Trigger Automated Email if patient has an email

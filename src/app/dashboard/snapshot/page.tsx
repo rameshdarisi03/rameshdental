@@ -10,6 +10,7 @@ import {
   updateDoc,
   addDoc,
   deleteDoc,
+  deleteField,
   Timestamp,
   where,
   writeBatch
@@ -609,20 +610,21 @@ export default function DaySnapshot() {
     if (targetApp) {
       setPendingActionApp(targetApp);
       setPendingActionType("approve");
-      setNotifyWhatsApp(true);
       setNotificationModalOpen(true);
       return;
     }
 
-    const targetApps = appointments.filter((app) => selectedSlots.includes(app.slot));
-    if (targetApps.length === 0) {
-      alert("No patient appointments selected to approve.");
+    const allSlotApps = appointments.filter((app) => selectedSlots.includes(app.slot));
+    if (allSlotApps.length === 0) {
+      alert("No patient appointments found in the selected slot(s). Use 'Book Patient' to book a new appointment.");
       return;
     }
 
-    setPendingActionApp(targetApps[0]);
+    const unapprovedApps = allSlotApps.filter((app) => app.status !== "approved");
+    const appToActOn = unapprovedApps.length > 0 ? unapprovedApps[0] : allSlotApps[0];
+
+    setPendingActionApp(appToActOn);
     setPendingActionType("approve");
-    setNotifyWhatsApp(true);
     setNotificationModalOpen(true);
   };
 
@@ -1953,50 +1955,33 @@ export default function DaySnapshot() {
             
             <div className="space-y-2">
               <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                {pendingActionType === "approve" ? "Confirm Appointment Approval" : "Appointment Rejected"}
+                Confirm Appointment Approval
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                {pendingActionType === "approve" ? (
-                  <>Are you sure you want to approve this appointment for <strong>{pendingActionApp.patientName}</strong>?</>
-                ) : (
-                  <>Status updated successfully in the system database. Would you like to notify <strong>{pendingActionApp.patientName}</strong> via WhatsApp?</>
-                )}
+                Are you sure you want to approve this appointment for <strong>{pendingActionApp.patientName || "the selected patient"}</strong>?
               </p>
             </div>
 
-            {/* Checkbox toggle (only for approval confirmation) */}
-            {pendingActionType === "approve" && (
-              <div className="flex items-center justify-center gap-2 py-1 select-none">
-                <input
-                  type="checkbox"
-                  id="notifyWhatsApp"
-                  checked={notifyWhatsApp}
-                  onChange={(e) => setNotifyWhatsApp(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-green focus:ring-brand-green accent-brand-green cursor-pointer"
-                />
-                <label htmlFor="notifyWhatsApp" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-                  Notify patient via WhatsApp
-                </label>
+            {/* Automated Dispatch Indicator */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 p-3.5 rounded-2xl text-left space-y-1.5">
+              <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                ⚡ Automated Meta WhatsApp & Email Dispatch
               </div>
-            )}
+              <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/80 font-medium leading-relaxed">
+                Official booking confirmation with Google Calendar 1-tap addition will be dispatched instantly via Clinic Bot.
+              </p>
+            </div>
 
-            {/* Preview Box */}
-            {(pendingActionType === "reject" || (pendingActionType === "approve" && notifyWhatsApp)) && (
-              <div className="bg-slate-50 dark:bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 animate-fade-in break-all max-h-48 overflow-y-auto overscroll-contain">
-                <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
-                  {pendingActionType === "approve" ? (
-                    <>
-                      Hi {pendingActionApp.patientName}, your appointment request for *{pendingActionApp.serviceId}* on *{pendingActionApp.date}* at *{pendingActionApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
-                      Add to Google Calendar: {generateGoogleCalendarUrl(pendingActionApp)}{"\n\n"}
-                      Looking forward to seeing you.
-                    </>
-                  ) : (
-                    `"Hi ${pendingActionApp.patientName}, we regret to inform you that we had to reschedule/decline your appointment request on *${pendingActionApp.date}* at *${pendingActionApp.slot}* due to schedule overrides. Please visit our website to select another slot."`
-                  )}
-                </p>
-              </div>
-            )}
+            {/* Message Preview Box */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 animate-fade-in break-all max-h-48 overflow-y-auto overscroll-contain">
+              <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
+                Hi {pendingActionApp.patientName || "there"}, your appointment request for *{pendingActionApp.serviceId || "Physiotherapy Consultation"}* on *{pendingActionApp.date || selectedDate}* at *{pendingActionApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
+                Add to Google Calendar: {generateGoogleCalendarUrl(pendingActionApp)}{"\n\n"}
+                Looking forward to seeing you.
+              </p>
+            </div>
 
             <div className="flex gap-3 pt-2">
               <button
@@ -2008,39 +1993,25 @@ export default function DaySnapshot() {
                 }}
                 className="flex-1 rounded-full border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 py-2.5 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                {pendingActionType === "approve" ? "No, Cancel" : "No"}
+                No, Cancel
               </button>
-              {pendingActionType === "approve" ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const appId = pendingActionApp.id!;
-                    setNotificationModalOpen(false);
-                    await handleStatusChange(appId, "approved", notifyWhatsApp);
-                    setPendingActionApp(null);
-                    setPendingActionType(null);
-                  }}
-                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  <Check className="h-4 w-4" />
-                  Yes, Approve
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const appId = pendingActionApp.id!;
-                    setNotificationModalOpen(false);
-                    await handleStatusChange(appId, "rejected", true);
-                    setPendingActionApp(null);
-                    setPendingActionType(null);
-                  }}
-                  className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Yes, Send WhatsApp
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={async () => {
+                  const appId = pendingActionApp.id!;
+                  setNotificationModalOpen(false);
+                  await handleSingleAppointmentStatus(appId, "approved", false);
+                  showToast(`Appointment approved! Automated WhatsApp & Email sent to ${pendingActionApp.patientName || "patient"}.`);
+                  setPendingActionApp(null);
+                  setPendingActionType(null);
+                  setSelectedSlots([]);
+                  await fetchDayData();
+                }}
+                className="flex-grow flex items-center justify-center gap-1.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-black shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              >
+                <Check className="h-4 w-4" />
+                Confirm & Auto-Notify
+              </button>
             </div>
           </div>
         </div>,
@@ -2125,49 +2096,62 @@ export default function DaySnapshot() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {activePatientApp.status !== "approved" && (
+                  {activePatientApp.status === "rejected" ? (
                     <button
                       type="button"
                       onClick={async () => {
                         if (activePatientApp.id) {
                           await handleSingleAppointmentStatus(activePatientApp.id, "approved", false);
                           setActivePatientApp((prev) => prev ? { ...prev, status: "approved" } : null);
+                          showToast(`Appointment restored to Approved! Patient notified.`);
+                          await fetchDayData();
                         }
                       }}
-                      className="flex-1 py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                      className="w-full py-2.5 px-4 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-95"
                     >
-                      <Check className="w-4 h-4" />
-                      <span>Approve Booking</span>
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Restore Appointment to Approved</span>
                     </button>
-                  )}
-
-                  {activePatientApp.status !== "rejected" ? (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (activePatientApp.id) {
+                  ) : activePatientApp.status === "pending" ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (activePatientApp.id) {
+                            await handleSingleAppointmentStatus(activePatientApp.id, "approved", false);
+                            setActivePatientApp((prev) => prev ? { ...prev, status: "approved" } : null);
+                            showToast(`Appointment approved! Patient notified.`);
+                            await fetchDayData();
+                          }
+                        }}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Approve Booking</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
                           setPatientActionModalOpen(false);
                           triggerRejectionGuard(activePatientApp);
-                        }
-                      }}
-                      className="flex-1 py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Cancel / Reject</span>
-                    </button>
+                        }}
+                        className="flex-1 py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Reject</span>
+                      </button>
+                    </>
                   ) : (
                     <button
                       type="button"
-                      onClick={async () => {
-                        if (activePatientApp.id) {
-                          await handleSingleAppointmentStatus(activePatientApp.id, "approved", false);
-                          setActivePatientApp((prev) => prev ? { ...prev, status: "approved" } : null);
-                        }
+                      onClick={() => {
+                        setPatientActionModalOpen(false);
+                        triggerRejectionGuard(activePatientApp);
                       }}
-                      className="flex-1 py-2.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-brand-green hover:bg-emerald-50 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="w-full py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                     >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>Restore to Approved</span>
+                      <X className="w-4 h-4" />
+                      <span>Cancel / Reject Slot</span>
                     </button>
                   )}
                 </div>
