@@ -629,37 +629,9 @@ function WalkInBookingContent() {
       
       const formattedBookingDate = formatToDDMMYYYY(bookingDate);
 
-      // Automate Patient Profile Integration
-      if (patientType === "new") {
-        try {
-          const newPatientPayload: any = {
-            name: patientName,
-            email: patientEmail,
-            phone: fullPhone,
-            address: patientAddress,
-            treatmentPlan: bookingService,
-            status: "active",
-            lastVisit: isFuture ? "N/A" : formattedBookingDate,
-            upcoming: isFuture ? formattedBookingDate : "Pending Schedule"
-          };
-
-          if (isFamilyMemberRegistration && linkedFamilyHead) {
-            newPatientPayload.relationship = familyRelationship;
-            newPatientPayload.primaryPatientId = linkedFamilyHead.id;
-            newPatientPayload.familyHeadName = linkedFamilyHead.name;
-            newPatientPayload.familyGroupId = linkedFamilyHead.familyGroupId || `FAM-${linkedFamilyHead.id}`;
-            const linkedEmailsSet = new Set<string>();
-            if (linkedFamilyHead.email) linkedEmailsSet.add(linkedFamilyHead.email.toLowerCase().trim());
-            (linkedFamilyHead.linkedEmails || []).forEach(e => linkedEmailsSet.add(e.toLowerCase().trim()));
-            if (patientEmail) linkedEmailsSet.add(patientEmail.toLowerCase().trim());
-            newPatientPayload.linkedEmails = Array.from(linkedEmailsSet);
-          }
-
-          await createPatient(newPatientPayload);
-        } catch (patientErr) {
-          console.error("Failed to register new patient profile: ", patientErr);
-        }
-      } else if (selectedPatient && selectedPatient.id) {
+      // Patient profile is NOT created on booking to prevent junk records for potential no-shows.
+      // Permanent patient profiles and portal activation codes are only issued when explicitly registered in the Patient Database.
+      if (patientType === "existing" && selectedPatient && selectedPatient.id) {
         try {
           const updateData: any = {
             status: "active",
