@@ -9,29 +9,44 @@ export default function DynamicManifest() {
   const isStaffPortal = pathname?.startsWith("/dashboard") || pathname === "/login";
   const isPatientHub = pathname?.startsWith("/patienthub");
 
-  // Scoped manifests:
-  // - /dashboard -> manifest-staff.json (scope: /dashboard/)
-  // - /patienthub -> manifest-patient.json (scope: /patienthub/)
-  // - Public clinic website -> manifest.json (scope: /, start_url: /)
-  const targetManifest = isStaffPortal
-    ? "/manifest-staff.json"
-    : isPatientHub
-    ? "/manifest-patient.json"
-    : "/manifest.json";
-
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "manifest";
-      link.setAttribute("href", targetManifest);
-      document.head.appendChild(link);
-    } else if (link.getAttribute("href") !== targetManifest) {
-      link.setAttribute("href", targetManifest);
-    }
-  }, [targetManifest]);
+    const existingLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
 
-  return <link rel="manifest" href={targetManifest} />;
+    if (isPatientHub) {
+      if (!existingLink) {
+        const link = document.createElement("link");
+        link.rel = "manifest";
+        link.setAttribute("href", "/manifest-patient.json");
+        document.head.appendChild(link);
+      } else {
+        existingLink.setAttribute("href", "/manifest-patient.json");
+      }
+    } else if (isStaffPortal) {
+      if (!existingLink) {
+        const link = document.createElement("link");
+        link.rel = "manifest";
+        link.setAttribute("href", "/manifest-staff.json");
+        document.head.appendChild(link);
+      } else {
+        existingLink.setAttribute("href", "/manifest-staff.json");
+      }
+    } else {
+      // PUBLIC WEBSITE GUARDRAIL: Zero PWA Manifest. Remove any manifest link.
+      if (existingLink) {
+        existingLink.remove();
+      }
+    }
+  }, [pathname, isPatientHub, isStaffPortal]);
+
+  if (isPatientHub) {
+    return <link rel="manifest" href="/manifest-patient.json" />;
+  }
+  if (isStaffPortal) {
+    return <link rel="manifest" href="/manifest-staff.json" />;
+  }
+
+  // Pure public website: zero manifest, zero PWA
+  return null;
 }

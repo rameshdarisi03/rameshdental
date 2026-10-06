@@ -279,23 +279,12 @@ export default function Home() {
     setDoctorTouchEndX(null);
   };
 
-  // PWA App Installation Support with Smart Device Detection
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [deviceType, setDeviceType] = useState<"ios" | "android" | "desktop">("desktop");
-  const [isAppInstalled, setIsAppInstalled] = useState(false);
-  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  // Patient Hub Quick Action Links
   const [patientHubHref, setPatientHubHref] = useState("/patienthub/login");
   const [isPatientActive, setIsPatientActive] = useState(false);
 
-  // Dedicated direct install modals
-  const [showAlreadyInstalledModal, setShowAlreadyInstalledModal] = useState(false);
-  const [showIOSModal, setShowIOSModal] = useState(false);
-  const [showAndroidModal, setShowAndroidModal] = useState(false);
-  const [showDesktopModal, setShowDesktopModal] = useState(false);
-
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Check if user is already logged in as a patient
       try {
         const storedPatient = localStorage.getItem("gpc_patient");
         if (storedPatient) {
@@ -306,147 +295,8 @@ export default function Home() {
           }
         }
       } catch (e) {}
-
-      // Standalone PWA detection - checks if user is running inside the installed PWA window
-      const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true;
-
-      if (isStandalone) {
-        setIsStandaloneApp(true);
-        setIsAppInstalled(true);
-      }
-
-      // Check installed related apps specifically for Patient Hub via OS/browser API
-      if ("getInstalledRelatedApps" in navigator) {
-        (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
-          if (Array.isArray(relatedApps)) {
-            const isPatientInstalled = relatedApps.some((app: any) => {
-              const id = (app.id || "").toLowerCase();
-              const url = (app.url || "").toLowerCase();
-              return (
-                id.includes("patient") ||
-                url.includes("manifest-patient") ||
-                id === "gaitphysio-patient-hub-portal" ||
-                id === "/patienthub" ||
-                url.includes("/patienthub")
-              );
-            });
-            setIsAppInstalled(isPatientInstalled);
-            // If OS reports app is uninstalled, wipe any stale cache/flags
-            if (!isPatientInstalled) {
-              try {
-                localStorage.removeItem("gpc_patienthub_installed");
-                localStorage.removeItem("gpc_pwa_installed");
-              } catch (e) {}
-            }
-          }
-        }).catch(() => {});
-      }
-
-      const ua = navigator.userAgent || "";
-      if (/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream) {
-        setDeviceType("ios");
-      } else if (/android/i.test(ua)) {
-        setDeviceType("android");
-      } else {
-        setDeviceType("desktop");
-      }
-
-      if ((window as any).deferredPrompt) {
-        setDeferredPrompt((window as any).deferredPrompt);
-        setIsAppInstalled(false);
-        try {
-          localStorage.removeItem("gpc_patienthub_installed");
-          localStorage.removeItem("gpc_pwa_installed");
-        } catch (e) {}
-      }
-
-      const handleBeforePrompt = (e: any) => {
-        e.preventDefault();
-        setDeferredPrompt(e);
-        (window as any).deferredPrompt = e;
-        // If beforeinstallprompt fires, the app is 100% NOT installed
-        setIsAppInstalled(false);
-        try {
-          localStorage.removeItem("gpc_patienthub_installed");
-          localStorage.removeItem("gpc_pwa_installed");
-        } catch (err) {}
-      };
-      window.addEventListener("beforeinstallprompt", handleBeforePrompt);
-
-      const handleAppInstalled = () => {
-        setIsAppInstalled(true);
-        setDeferredPrompt(null);
-        if (typeof window !== "undefined") {
-          (window as any).deferredPrompt = null;
-          try {
-            localStorage.setItem("gpc_patienthub_installed", "true");
-          } catch (e) {}
-        }
-      };
-      window.addEventListener("appinstalled", handleAppInstalled);
-
-      return () => {
-        window.removeEventListener("beforeinstallprompt", handleBeforePrompt);
-        window.removeEventListener("appinstalled", handleAppInstalled);
-      };
     }
   }, []);
-
-  const handleInstallClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-
-    // 1. If currently running in standalone PWA app mode
-    if (isStandaloneApp) {
-      setShowAlreadyInstalledModal(true);
-      return;
-    }
-
-    // 2. Native install prompt (Android Chrome, Edge, Samsung Internet, Desktop Chrome)
-    // If deferredPrompt is available, the app is NOT installed and can be installed immediately!
-    const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
-    if (promptToUse) {
-      try {
-        await promptToUse.prompt();
-        const { outcome } = await promptToUse.userChoice;
-        if (outcome === "accepted") {
-          setIsAppInstalled(true);
-          setDeferredPrompt(null);
-          if (typeof window !== "undefined") {
-            (window as any).deferredPrompt = null;
-            try {
-              localStorage.setItem("gpc_patienthub_installed", "true");
-            } catch (e) {}
-          }
-        }
-        return;
-      } catch (err) {
-        console.warn("Direct install error:", err);
-      }
-    }
-
-    // 3. If verified as ALREADY INSTALLED by OS/browser
-    if (isAppInstalled) {
-      setShowAlreadyInstalledModal(true);
-      return;
-    }
-
-    // 4. On iOS (Safari)
-    if (deviceType === "ios") {
-      setShowIOSModal(true);
-      return;
-    }
-
-    // 5. If Firefox / Android where beforeinstallprompt was not available
-    if (deviceType === "android") {
-      setShowAndroidModal(true);
-      return;
-    }
-
-    // 6. On Desktop browsers where beforeinstallprompt was not triggered (or was previously dismissed)
-    setShowDesktopModal(true);
-  };
 
 
 
@@ -2138,26 +1988,13 @@ export default function Home() {
                     <ArrowRight className="w-4 h-4" />
                   </a>
 
-                  {!isStandaloneApp ? (
-                    <div className="flex flex-col items-center sm:items-start gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleInstallClick}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
-                      >
-                        <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
-                        <span>Install GaitPhysio PatientHub App</span>
-                      </button>
-                      <p className="text-[11px] text-slate-300/80 font-normal pl-1">
-                        Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold self-center sm:self-auto">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                      Running in GaitPhysio App Mode
-                    </div>
-                  )}
+                  <a
+                    href="/patienthub"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
+                  >
+                    <Smartphone className="w-4 h-4 text-brand-luminous" />
+                    <span>Access Mobile Patient Hub</span>
+                  </a>
                 </div>
               </div>
 
@@ -2196,219 +2033,6 @@ export default function Home() {
 
             </div>
           </div>
-
-          {/* MODAL 1: App Already Installed Notice */}
-          {showAlreadyInstalledModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
-                <button
-                  type="button"
-                  onClick={() => setShowAlreadyInstalledModal(false)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner">
-                  <CheckCircle2 className="w-7 h-7" />
-                </div>
-
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    App Already Installed!
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                    <strong>GaitPhysio Patient Hub</strong> is already installed on your device. You can launch it directly from your home screen, app drawer, or Windows Start Menu anytime!
-                  </p>
-                </div>
-
-                <div className="pt-2 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowAlreadyInstalledModal(false)}
-                    className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
-                  >
-                    Got It
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAlreadyInstalledModal(false);
-                      setIsAppInstalled(false);
-                      try {
-                        localStorage.removeItem("gpc_patienthub_installed");
-                        localStorage.removeItem("gpc_pwa_installed");
-                      } catch (e) {}
-                      const promptToUse = deferredPrompt || (typeof window !== "undefined" && (window as any).deferredPrompt);
-                      if (promptToUse) {
-                        try {
-                          promptToUse.prompt();
-                        } catch (e) {}
-                      } else if (deviceType === "ios") {
-                        setShowIOSModal(true);
-                      } else if (deviceType === "android") {
-                        setShowAndroidModal(true);
-                      } else {
-                        setShowDesktopModal(true);
-                      }
-                    }}
-                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white underline cursor-pointer"
-                  >
-                    Uninstalled? Click here to reinstall
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* MODAL 2: iOS Direct Add to Home Screen Sheet */}
-          {showIOSModal && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
-                <button
-                  type="button"
-                  onClick={() => setShowIOSModal(false)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="mx-auto w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-brand-green">
-                  <Smartphone className="w-6 h-6" />
-                </div>
-
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Install Patient Hub on iPhone
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                    To install the Patient Hub app on iOS:
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-300 text-left space-y-2 font-semibold">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0">1</span>
-                    <span>Tap the <strong>Share</strong> icon at the bottom of Safari.</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0">2</span>
-                    <span>Scroll down and tap <strong>Add to Home Screen</strong>.</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowIOSModal(false)}
-                  className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black cursor-pointer shadow-md"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* MODAL 3: Android / Firefox / Other Browser Instructions */}
-          {showAndroidModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
-                <button
-                  type="button"
-                  onClick={() => setShowAndroidModal(false)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-brand-green">
-                  <Smartphone className="w-7 h-7" />
-                </div>
-
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Install on Your Device
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                    To install the Patient Hub app directly on your browser:
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-300 text-left space-y-2 font-semibold">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0">1</span>
-                    <span>Tap the <strong>three dots (⋮ menu)</strong> at the top right of your browser.</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0">2</span>
-                    <span>Tap <strong>Install App</strong> or <strong>Add to Home screen</strong>.</span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowAndroidModal(false)}
-                  className="w-full py-2.5 rounded-full bg-brand-green text-white text-xs font-black cursor-pointer shadow-md"
-                >
-                  Got It
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* MODAL 4: Desktop Browser Instructions */}
-          {showDesktopModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm p-4 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl text-center space-y-4 relative">
-                <button
-                  type="button"
-                  onClick={() => setShowDesktopModal(false)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="mx-auto w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-950/50 flex items-center justify-center text-brand-green">
-                  <Monitor className="w-7 h-7" />
-                </div>
-
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Install on Your Computer
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                    Install the <strong>GaitPhysio Patient Hub</strong> directly to your Windows or Mac desktop for 1-click access:
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl text-xs text-slate-700 dark:text-slate-300 text-left space-y-2.5 font-semibold">
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">1</span>
-                    <span>Look for the <strong>Install App icon (💻 or ➕)</strong> in your browser&apos;s address bar at the top right.</span>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
-                    <span>Click <strong>Install</strong> to add GaitPhysio to your Desktop &amp; Start Menu.</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex flex-col gap-2">
-                  <a
-                    href={patientHubHref}
-                    className="w-full py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md cursor-pointer transition-all text-center"
-                  >
-                    Open Patient Hub in Browser
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => setShowDesktopModal(false)}
-                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
         </div>
       </section>

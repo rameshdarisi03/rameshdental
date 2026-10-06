@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/public/Navbar";
 import Footer from "@/components/public/Footer";
 import FloatingSocials from "@/components/public/FloatingSocials";
-import PWARegistry from "@/components/PWARegistry";
+import PWAGuardrail from "@/components/PWAGuardrail";
 import DynamicManifest from "@/components/DynamicManifest";
 
 const geistSans = Geist({
@@ -252,10 +252,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${signatureFont.variable} ${serifFont.variable} h-full antialiased`}
     >
       <head>
-        <link rel="manifest" href="/manifest-patient.json" />
         <meta name="theme-color" id="meta-theme-color" content="#0e5e6f" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -298,19 +295,13 @@ export default function RootLayout({
                   meta.setAttribute('content', isDark ? palette.dark : palette.primary);
                 }
               } catch (e) {}
-              
-              // Capture early PWA install prompts globally
-              window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                window.deferredPrompt = e;
-              });
             `,
           }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         <DynamicManifest />
-        <PWARegistry />
+        <PWAGuardrail />
         <Navbar />
         <main className="flex-grow flex flex-col">{children}</main>
         <FloatingSocials />
