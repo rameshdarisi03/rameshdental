@@ -543,7 +543,7 @@ Your clinical consultation assessment and personalized rehabilitation plan for *
 👨‍⚕️ *Attending Therapist:* Dr. ${params.therapistName || "Lead Physiotherapist"}
 📋 *Diagnosis / Focus:* ${params.diagnosis || "Physiotherapy Rehabilitation"}
 🏋️ *Prescribed Exercises:* ${params.exercisesCount || 0} Exercises
-${params.summary ? `📄 *Clinical Notes:* ${params.summary.slice(0, 160)}${params.summary.length > 160 ? "..." : ""}\n` : ""}
+
 📎 *Your official Consultation & Prescription PDF is attached above for your records.*
 
 📲 *You can view step-by-step video demonstrations of your prescribed exercises in your Patient Hub:*

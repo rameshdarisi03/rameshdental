@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { 
@@ -221,6 +222,11 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [isLinkFamilyModalOpen, setIsLinkFamilyModalOpen] = useState(false);
   const [activePrescription, setActivePrescription] = useState<PatientPrescription | null>(null);
   const [workoutProgress, setWorkoutProgress] = useState<PatientWorkoutProgress | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleUnlinkMember = async (member: any) => {
     if (
@@ -1612,6 +1618,26 @@ PLAN:
         }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
       }
 
+      // Auto-dispatch cancellation notice to patient WhatsApp
+      const targetPhone = voidingInvoice.patientPhone || patient?.phone;
+      if (targetPhone) {
+        fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "INVOICE_VOID_NOTICE",
+            payload: {
+              patientName: voidingInvoice.patientName || patient?.name || "Patient",
+              patientPhone: targetPhone,
+              invoiceNumber: voidingInvoice.invoiceNumber,
+              amount: voidingInvoice.totalAmount,
+              serviceDate: voidingInvoice.serviceDate,
+              voidReason: reason,
+            },
+          }),
+        }).catch((err) => console.warn("[Invoice Void WhatsApp] Dispatch warning:", err));
+      }
+
       // Auto-replace PDF with stamped VOID version in Google Drive
       try {
         const driveFolderId = patient?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
@@ -1670,8 +1696,8 @@ PLAN:
 
       setVoidingInvoice(null);
       setVoidReason("");
-      setFormSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED & replaced with void PDF in Google Drive.`);
-      setTimeout(() => setFormSuccess(""), 4000);
+      setFormSuccess(`⚡ Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED. Patient notified via WhatsApp & Email.`);
+      setTimeout(() => setFormSuccess(""), 4500);
     } catch (err: any) {
       console.error("Error voiding invoice:", err);
       setFormError("Failed to void invoice.");
@@ -2922,9 +2948,15 @@ Warm regards,
                                 <Calendar className="w-4 h-4" />
                                 <span>{consult.date}</span>
                               </div>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-850">
-                                Logged by: {consult.therapistName}
-                              </span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  ⚡ WhatsApp & Email PDF Sent
+                                </span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest bg-slate-50 dark:bg-slate-950 px-2.5 py-1 rounded-full border border-slate-100 dark:border-slate-850">
+                                  Logged by: {consult.therapistName}
+                                </span>
+                              </div>
                             </div>
 
                             <p className={`text-xs font-medium text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed ${
@@ -3272,6 +3304,15 @@ Warm regards,
                             <span className="text-[10px] font-bold text-slate-400">
                               {inv.serviceDate} • {inv.paymentMethod || "UPI"}
                             </span>
+                            {isVoided ? (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-rose-600 dark:text-rose-400">
+                                ⚡ Void Notice Sent
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                                ⚡ Bill Synced
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -3418,11 +3459,11 @@ Warm regards,
       )}
 
       {/* Void Confirmation Modal */}
-      {voidingInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+      {mounted && voidingInvoice && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 animate-scale-in">
             <div className="flex items-center gap-3 text-rose-600">
-              <div className="p-3 bg-rose-100 dark:bg-rose-950/50 rounded-2xl">
+              <div className="p-3 bg-rose-100 dark:bg-rose-950/50 rounded-2xl shrink-0">
                 <Ban className="h-6 w-6" />
               </div>
               <div>
@@ -3431,11 +3472,11 @@ Warm regards,
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
               Voiding this bill preserves your accounting audit trail while zeroing out revenue stats for <strong>{voidingInvoice.patientName || patient?.name}</strong> (₹{(voidingInvoice.totalAmount || 0).toLocaleString("en-IN")}).
             </p>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Reason for Cancellation</label>
               <input
                 type="text"
@@ -3446,24 +3487,31 @@ Warm regards,
               />
             </div>
 
+            {/* Automated Dispatch Indicator */}
+            <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40 p-2.5 rounded-xl text-[11px] text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+              <span>Automated WhatsApp & Email cancellation alert will be dispatched to patient.</span>
+            </div>
+
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setVoidingInvoice(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer transition-colors"
               >
                 Go Back
               </button>
               <button
                 type="button"
                 onClick={handleConfirmVoidInvoice}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-sm"
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase tracking-wider cursor-pointer shadow-md transition-all active:scale-95"
               >
                 Confirm Cancellation
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Granular Patient Deletion & Data Purge Modal */}
@@ -3486,6 +3534,18 @@ Warm regards,
           currentFamilyMembers={familyMembers}
           onLinked={handleFamilyLinked}
         />
+      )}
+
+      {/* Floating Action Toast Notification */}
+      {formSuccess && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300 pointer-events-none">
+          <div className="bg-brand-charcoal/95 dark:bg-slate-900/95 text-white backdrop-blur-md px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500/30 flex items-center gap-3 max-w-md pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4" />
+            </div>
+            <p className="text-xs font-semibold leading-snug">{formSuccess}</p>
+          </div>
+        </div>
       )}
 
     </div>

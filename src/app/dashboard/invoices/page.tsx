@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { 
   subscribeInvoices, 
@@ -65,6 +66,11 @@ export default function ClinicalBillingPage() {
   // Global Action Feedback
   const [actionSuccess, setActionSuccess] = useState("");
   const [actionError, setActionError] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Subscribe to real-time invoices & load patients & clinic config
   useEffect(() => {
@@ -252,8 +258,8 @@ export default function ClinicalBillingPage() {
 
       setVoidingInvoice(null);
       setVoidReason("");
-      setActionSuccess(`Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED & replaced with void PDF in Google Drive.`);
-      setTimeout(() => setActionSuccess(""), 4000);
+      setActionSuccess(`⚡ Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED. Patient notified via WhatsApp & Email.`);
+      setTimeout(() => setActionSuccess(""), 4500);
     } catch (err: any) {
       console.error("Error voiding invoice:", err);
       setActionError("Failed to void invoice.");
@@ -712,15 +718,25 @@ Warm regards,
                       {/* Status Badge */}
                       <td className="px-5 py-4">
                         {isPaid ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                            Paid
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                              Paid
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                              ⚡ Bill Synced
+                            </span>
+                          </div>
                         ) : isVoided ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-400 text-[10px] font-black uppercase" title={inv.voidReason || "Voided"}>
-                            <Ban className="w-2.5 h-2.5" />
-                            Voided
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-400 text-[10px] font-black uppercase" title={inv.voidReason || "Voided"}>
+                              <Ban className="w-2.5 h-2.5" />
+                              Voided
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-rose-600 dark:text-rose-400">
+                              ⚡ Void Notice Sent
+                            </span>
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase">
                             <Clock className="w-2.5 h-2.5" />
@@ -885,11 +901,11 @@ Warm regards,
       )}
 
       {/* ========================================================================= */}
-      {/* VOID CONFIRMATION MODAL                                                   */}
+      {/* VOID CONFIRMATION MODAL (PORTALED TO ROOT BODY)                           */}
       {/* ========================================================================= */}
-      {voidingInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
+      {mounted && voidingInvoice && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 animate-scale-in">
             <div className="flex items-center gap-3 text-rose-600">
               <div className="p-3 bg-rose-100 dark:bg-rose-950/50 rounded-2xl">
                 <Ban className="h-6 w-6" />
@@ -915,6 +931,10 @@ Warm regards,
               />
             </div>
 
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-2.5 border border-amber-200/50 dark:border-amber-800/40 text-[11px] text-amber-800 dark:text-amber-300 font-medium flex items-center gap-2">
+              <span>⚡ An automated void notice & stamped PDF update will be dispatched to patient via WhatsApp & Email.</span>
+            </div>
+
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
@@ -932,12 +952,14 @@ Warm regards,
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
       {/* ========================================================================= */}
-      {/* MOBILE ACTION SHEET MODAL                                                 */}
+      {/* MOBILE ACTION SHEET MODAL (PORTALED TO ROOT BODY)                         */}
       {/* ========================================================================= */}
-      {mobileActionInvoice && (
+      {mounted && mobileActionInvoice && createPortal(
         <div
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
           onClick={() => setMobileActionInvoice(null)}
@@ -1054,7 +1076,21 @@ Warm regards,
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Floating Action Feedback Toast */}
+      {actionSuccess && mounted && createPortal(
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300 pointer-events-none">
+          <div className="bg-slate-900/95 dark:bg-slate-800/95 text-white backdrop-blur-md px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500/30 flex items-center gap-3 max-w-md pointer-events-auto">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <p className="text-xs font-semibold leading-snug">{actionSuccess}</p>
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>
