@@ -1594,110 +1594,75 @@ PLAN:
 
   const handleConfirmVoidInvoice = async () => {
     if (!voidingInvoice) return;
+    const invToVoid = voidingInvoice;
+    const reason = voidReason.trim() || "Clerical correction / bill updated";
+
+    // 1. Instantly quit the modal window so therapist is never stuck
+    setVoidingInvoice(null);
+    setVoidReason("");
+    setFormSuccess(`⚡ Marking invoice ${invToVoid.invoiceNumber} as VOIDED...`);
+
     try {
-      const reason = voidReason || "Clerical correction / bill updated";
-      await voidInvoice(voidingInvoice.id, reason);
-
-      // Auto-dispatch cancellation notice to patient email
-      const targetEmail = voidingInvoice.patientEmail || patient?.email;
-      if (targetEmail && targetEmail.includes("@")) {
-        fetch("/api/email/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "INVOICE_VOID_NOTICE",
-            payload: {
-              patientName: voidingInvoice.patientName || patient?.name || "Patient",
-              patientEmail: targetEmail,
-              invoiceNumber: voidingInvoice.invoiceNumber,
-              amount: voidingInvoice.totalAmount,
-              serviceDate: voidingInvoice.serviceDate,
-              voidReason: reason,
-            },
-          }),
-        }).catch((err) => console.warn("[Invoice Void Email] Dispatch warning:", err));
-      }
-
-      // Auto-dispatch cancellation notice to patient WhatsApp
-      const targetPhone = voidingInvoice.patientPhone || patient?.phone;
-      if (targetPhone) {
-        fetch("/api/whatsapp/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "INVOICE_VOID_NOTICE",
-            payload: {
-              patientName: voidingInvoice.patientName || patient?.name || "Patient",
-              patientPhone: targetPhone,
-              invoiceNumber: voidingInvoice.invoiceNumber,
-              amount: voidingInvoice.totalAmount,
-              serviceDate: voidingInvoice.serviceDate,
-              voidReason: reason,
-            },
-          }),
-        }).catch((err) => console.warn("[Invoice Void WhatsApp] Dispatch warning:", err));
-      }
-
-      // Auto-replace PDF with stamped VOID version in Google Drive
-      try {
-        const driveFolderId = patient?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
-        if (driveFolderId) {
-          const voidedInvPayload: Invoice = {
-            ...voidingInvoice,
-            status: "voided",
-            voidReason: reason,
-          };
-          const voidPdf = buildInvoicePdf(voidedInvPayload);
-          const pdfBlob = voidPdf.output("blob");
-
-          let formattedServiceDate = voidingInvoice.serviceDate || "";
-          if (formattedServiceDate && formattedServiceDate.includes("-")) {
-            const parts = formattedServiceDate.split("-");
-            if (parts.length === 3 && parts[0].length === 4) {
-              formattedServiceDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-          }
-
-          // 1. Upload stamped void PDF replacing the original file name
-          const driveFormData = new FormData();
-          const pdfFile = new File([pdfBlob], `${voidingInvoice.invoiceNumber}_Invoice.pdf`, {
-            type: "application/pdf",
-          });
-          driveFormData.append("file", pdfFile);
-          driveFormData.append("parentFolderId", driveFolderId);
-          driveFormData.append("date", formattedServiceDate);
-          driveFormData.append("category", "Invoices");
-          driveFormData.append("replaceExisting", "true");
-
-          await fetch("/api/drive/upload", {
-            method: "POST",
-            body: driveFormData,
-          });
-
-          // 2. Also save with clear _VOIDED suffix so it is immediately noticeable in Drive list
-          const voidSuffixFormData = new FormData();
-          const voidSuffixFile = new File([pdfBlob], `${voidingInvoice.invoiceNumber}_VOIDED_Invoice.pdf`, {
-            type: "application/pdf",
-          });
-          voidSuffixFormData.append("file", voidSuffixFile);
-          voidSuffixFormData.append("parentFolderId", driveFolderId);
-          voidSuffixFormData.append("date", formattedServiceDate);
-          voidSuffixFormData.append("category", "Invoices");
-          voidSuffixFormData.append("replaceExisting", "true");
-
-          await fetch("/api/drive/upload", {
-            method: "POST",
-            body: voidSuffixFormData,
-          });
-        }
-      } catch (driveErr) {
-        console.warn("Failed to replace voided invoice in Google Drive:", driveErr);
-      }
-
-      setVoidingInvoice(null);
-      setVoidReason("");
-      setFormSuccess(`⚡ Invoice ${voidingInvoice.invoiceNumber} marked as VOIDED. Patient notified via WhatsApp & Email.`);
+      // 2. Update Firestore SSOT
+      await voidInvoice(invToVoid.id, reason);
+      setFormSuccess(`⚡ Invoice ${invToVoid.invoiceNumber} marked as VOIDED.`);
       setTimeout(() => setFormSuccess(""), 4500);
+
+      // 3. Auto-replace PDF in Google Drive in the background (non-blocking)
+      (async () => {
+        try {
+          const driveFolderId = patient?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
+          if (driveFolderId) {
+            const voidedInvPayload: Invoice = {
+              ...invToVoid,
+              status: "voided",
+              voidReason: reason,
+            };
+            const voidPdf = buildInvoicePdf(voidedInvPayload);
+            const pdfBlob = voidPdf.output("blob");
+
+            let formattedServiceDate = invToVoid.serviceDate || "";
+            if (formattedServiceDate && formattedServiceDate.includes("-")) {
+              const parts = formattedServiceDate.split("-");
+              if (parts.length === 3 && parts[0].length === 4) {
+                formattedServiceDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+              }
+            }
+
+            const driveFormData = new FormData();
+            const pdfFile = new File([pdfBlob], `${invToVoid.invoiceNumber}_Invoice.pdf`, {
+              type: "application/pdf",
+            });
+            driveFormData.append("file", pdfFile);
+            driveFormData.append("parentFolderId", driveFolderId);
+            driveFormData.append("date", formattedServiceDate);
+            driveFormData.append("category", "Invoices");
+            driveFormData.append("replaceExisting", "true");
+
+            await fetch("/api/drive/upload", {
+              method: "POST",
+              body: driveFormData,
+            });
+
+            const voidSuffixFormData = new FormData();
+            const voidSuffixFile = new File([pdfBlob], `${invToVoid.invoiceNumber}_VOIDED_Invoice.pdf`, {
+              type: "application/pdf",
+            });
+            voidSuffixFormData.append("file", voidSuffixFile);
+            voidSuffixFormData.append("parentFolderId", driveFolderId);
+            voidSuffixFormData.append("date", formattedServiceDate);
+            voidSuffixFormData.append("category", "Invoices");
+            voidSuffixFormData.append("replaceExisting", "true");
+
+            await fetch("/api/drive/upload", {
+              method: "POST",
+              body: voidSuffixFormData,
+            });
+          }
+        } catch (driveErr) {
+          console.warn("Failed to replace voided invoice in Google Drive:", driveErr);
+        }
+      })();
     } catch (err: any) {
       console.error("Error voiding invoice:", err);
       setFormError("Failed to void invoice.");
@@ -3306,7 +3271,7 @@ Warm regards,
                             </span>
                             {isVoided ? (
                               <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-rose-600 dark:text-rose-400">
-                                ⚡ Void Notice Sent
+                                🔒 Voided & Audited
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400">
@@ -3487,10 +3452,9 @@ Warm regards,
               />
             </div>
 
-            {/* Automated Dispatch Indicator */}
-            <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40 p-2.5 rounded-xl text-[11px] text-rose-700 dark:text-rose-300 font-semibold flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              <span>Automated WhatsApp & Email cancellation alert will be dispatched to patient.</span>
+            {/* Internal Audit Record Indicator */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 p-2.5 rounded-xl text-[11px] text-slate-600 dark:text-slate-400 font-medium flex items-center gap-2">
+              <span>🔒 Internal accounting audit: Zeros out clinic revenue stats & stamps invoice as VOID.</span>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
