@@ -3,6 +3,7 @@ import {
   sendWhatsAppPatientOnboarding,
   sendWhatsAppBookingReceived,
   sendWhatsAppAppointmentConfirmed,
+  sendWhatsAppAppointmentRejected,
   sendWhatsAppWalkinConfirmed,
   sendWhatsAppAppointmentRescheduled,
   sendWhatsAppAppointmentReminder,
@@ -50,6 +51,11 @@ export async function POST(req: NextRequest) {
       case "APPOINTMENT_APPROVED":
       case "APPOINTMENT_CONFIRMED":
         result = await sendWhatsAppAppointmentConfirmed(payload);
+        break;
+
+      case "APPOINTMENT_REJECTED":
+      case "APPOINTMENT_CANCELLED":
+        result = await sendWhatsAppAppointmentRejected(payload);
         break;
 
       case "WALKIN_CONFIRMED":

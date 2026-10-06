@@ -363,6 +363,37 @@ We look forward to seeing you at your updated slot. If you need any further adju
 }
 
 /**
+ * 5b. Appointment Rejected / Cancelled Notice
+ */
+export async function sendWhatsAppAppointmentRejected(params: {
+  patientName: string;
+  patientPhone: string;
+  date: string;
+  slot: string;
+  serviceName?: string;
+  reason?: string;
+}): Promise<SendWhatsAppResult> {
+  const text = 
+`🏥 *GAIT PHYSIO CLINIC*
+*Appointment Cancellation Notice*
+
+Hello ${params.patientName},
+
+We regret to inform you that your appointment request at Gait Physio Clinic for *${params.date} at ${params.slot}* has been cancelled.
+
+📋 *Reason:* ${params.reason || "Schedule conflict or clinic slot capacity limits."}
+
+We sincerely apologize for any inconvenience. If you would like to reschedule for an alternative date or time slot, our desk is happy to help:
+
+📞 *Call or WhatsApp:* ${CLINIC_PHONE}
+🌐 *Book Online:* ${BASE_URL}/book
+
+_Thank you for choosing Gait Physio Clinic!_`;
+
+  return sendWhatsAppTextMessage(params.patientPhone, text);
+}
+
+/**
  * 6. Pre-Session Appointment Reminder
  */
 export async function sendWhatsAppAppointmentReminder(params: {

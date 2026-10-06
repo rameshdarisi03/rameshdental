@@ -495,6 +495,43 @@ export default function DaySnapshot() {
         }
       }
 
+      // Trigger Automated WhatsApp Notification if patient has a phone number
+      if (updatedApp && updatedApp.patientPhone) {
+        if (newStatus === "approved") {
+          fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_APPROVED",
+              payload: {
+                patientName: updatedApp.patientName,
+                patientPhone: updatedApp.patientPhone,
+                serviceName: updatedApp.serviceId,
+                date: updatedApp.date,
+                slot: updatedApp.slot,
+                therapistName: updatedApp.assignedTherapist || "Clinical Team",
+              },
+            }),
+          }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch approval WhatsApp:", err));
+        } else if (newStatus === "rejected") {
+          fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "APPOINTMENT_REJECTED",
+              payload: {
+                patientName: updatedApp.patientName,
+                patientPhone: updatedApp.patientPhone,
+                serviceName: updatedApp.serviceId,
+                date: updatedApp.date,
+                slot: updatedApp.slot,
+                reason: "Schedule conflict or clinic slot capacity limits.",
+              },
+            }),
+          }).catch((err) => console.warn("[WhatsApp Engine] Failed to dispatch rejection WhatsApp:", err));
+        }
+      }
+
       if (sendWhatsApp && targetApp) {
         triggerWhatsAppRedirect({ ...targetApp, ...auditData }, newStatus === "approved");
       }
