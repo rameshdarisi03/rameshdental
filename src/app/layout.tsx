@@ -252,7 +252,20 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${signatureFont.variable} ${serifFont.variable} h-full antialiased`}
     >
       <head>
+        <link rel="manifest" href="/manifest-patient.json" />
         <meta name="theme-color" id="meta-theme-color" content="#0e5e6f" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                window.addEventListener('beforeinstallprompt', function(e) {
+                  e.preventDefault();
+                  window.deferredPrompt = e;
+                });
+              }
+            `,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

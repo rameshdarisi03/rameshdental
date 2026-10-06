@@ -1,0 +1,47 @@
+{
+  "id": "gaitphysio-patient-hub-portal",
+  "name": "GaitPhysio Patient Hub",
+  "short_name": "Patient Hub",
+  "description": "Patient recovery dashboard, exercise routines, and appointment manager for Gait Physio Clinic",
+  "start_url": "/patienthub",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#062e36",
+  "theme_color": "#062e36",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/gait_physio_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/gait_physio_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/gait_physio_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/gait_physio_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/manifest-patient.json",
+      "id": "gaitphysio-patient-hub-portal"
+    }
+  ]
+}
+
