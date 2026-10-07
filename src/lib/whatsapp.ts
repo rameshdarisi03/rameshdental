@@ -203,6 +203,29 @@ export async function sendWhatsAppDocumentMessage(params: {
   });
 }
 
+/**
+ * Helper to dispatch an approved Meta WhatsApp Template
+ */
+export async function sendWhatsAppTemplateMessage(params: {
+  rawPhone: string;
+  templateName: string;
+  languageCode?: string;
+  components?: any[];
+}): Promise<SendWhatsAppResult> {
+  const cleanPhone = getCleanWhatsAppNumber(params.rawPhone);
+  return sendRawWhatsAppPayload({
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: cleanPhone,
+    type: "template",
+    template: {
+      name: params.templateName,
+      language: { code: params.languageCode || "en_US" },
+      ...(params.components && params.components.length > 0 ? { components: params.components } : {}),
+    },
+  });
+}
+
 // ============================================================================
 // CLINICAL TRANSACTIONAL NOTIFICATION DISPATCHERS
 // ============================================================================
@@ -215,6 +238,24 @@ export async function sendWhatsAppPatientOnboarding(params: {
   patientPhone: string;
   activationCode: string;
 }): Promise<SendWhatsAppResult> {
+  // Primary: Use Meta-Approved Template (patient_welcome_gpc)
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "patient_welcome_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.activationCode || "GPC-PATIENT" },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Onboarding Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Welcome to Your Care Portal*
@@ -246,6 +287,26 @@ export async function sendWhatsAppBookingReceived(params: {
   slot: string;
   serviceName?: string;
 }): Promise<SendWhatsAppResult> {
+  // Primary: Use Meta-Approved Template (booking_request_received_gpc)
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "booking_request_received_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.date },
+          { type: "text", text: params.slot },
+          { type: "text", text: params.serviceName || "General Consultation" },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Booking Received Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Appointment Request Received*
@@ -278,6 +339,28 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
   therapistName?: string;
   serviceName?: string;
 }): Promise<SendWhatsAppResult> {
+  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+
+  // Primary: Use Meta-Approved Template (appointment_confirmation_gpc)
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "appointment_confirmation_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.date },
+          { type: "text", text: params.slot },
+          { type: "text", text: cleanTherapist },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Appointment Confirmed Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Appointment Confirmed*
@@ -289,7 +372,7 @@ Great news! Your physiotherapy appointment has been officially confirmed.
 📋 *Appointment Details:*
 • 📅 *Date:* ${params.date}
 • ⏰ *Time Slot:* ${params.slot}
-• 👨‍⚕️ *Therapist:* Dr. ${params.therapistName || "Lead Physiotherapist"}
+• 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
 • 🩺 *Session:* ${params.serviceName || "Clinical Physiotherapy"}
 • 📍 *Clinic Address:* ${CLINIC_ADDRESS}
 
@@ -314,6 +397,26 @@ export async function sendWhatsAppWalkinConfirmed(params: {
   slot: string;
   serviceName?: string;
 }): Promise<SendWhatsAppResult> {
+  // Primary: Use Meta-Approved Template (walkin_confirmation_gpc)
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "walkin_confirmation_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.date },
+          { type: "text", text: params.slot },
+          { type: "text", text: params.serviceName || "Physiotherapy Session" },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Walkin Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Walk-in Registration Confirmed*
@@ -343,6 +446,28 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   newSlot: string;
   therapistName?: string;
 }): Promise<SendWhatsAppResult> {
+  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+
+  // Primary: Use Meta-Approved Template (appointment_confirmation_gpc) with new details
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "appointment_confirmation_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.newDate },
+          { type: "text", text: params.newSlot },
+          { type: "text", text: cleanTherapist },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Reschedule Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Appointment Schedule Update*
@@ -354,7 +479,7 @@ Your appointment with Gait Physio Clinic has been rescheduled as requested.
 📋 *Updated Schedule:*
 • 📅 *New Date:* ${params.newDate}
 • ⏰ *New Time Slot:* ${params.newSlot}
-• 👨‍⚕️ *Therapist:* Dr. ${params.therapistName || "Lead Physiotherapist"}
+• 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
 • 📍 *Location:* ${CLINIC_ADDRESS}
 
 We look forward to seeing you at your updated slot. If you need any further adjustments, please contact us at ${CLINIC_PHONE}.`;
@@ -373,6 +498,26 @@ export async function sendWhatsAppAppointmentRejected(params: {
   serviceName?: string;
   reason?: string;
 }): Promise<SendWhatsAppResult> {
+  // Primary: Use Meta-Approved Template (appointment_cancellation_gpc)
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "appointment_cancellation_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.date },
+          { type: "text", text: params.slot },
+          { type: "text", text: params.reason || "schedule adjustment" },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Cancellation Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Appointment Cancellation Notice*
@@ -402,6 +547,27 @@ export async function sendWhatsAppAppointmentReminder(params: {
   slot: string;
   therapistName?: string;
 }): Promise<SendWhatsAppResult> {
+  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+
+  // Primary: Use Meta-Approved Template (session_reminder_gpc)
+  const templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "session_reminder_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.slot },
+          { type: "text", text: cleanTherapist },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Reminder Template Failed, attempting text fallback]", templateRes.error);
+
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Upcoming Session Reminder*
@@ -412,7 +578,7 @@ This is a gentle reminder that your physiotherapy session is scheduled for *toda
 
 📋 *Session Summary:*
 • ⏰ *Time:* ${params.slot}
-• 👨‍⚕️ *Therapist:* Dr. ${params.therapistName || "Lead Physiotherapist"}
+• 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
 • 📍 *Clinic:* Gait Physio Clinic, Whitefield
 
 Please bring any recent MRI/X-ray reports or comfortable exercise clothing if needed.
@@ -423,7 +589,7 @@ Need directions? Tap here: ${MAPS_URL}`;
 }
 
 /**
- * 7. Invoice & Payment Receipt (With PDF Attachment)
+ * 7. Invoice & Payment Receipt (With PDF Attachment via Meta Template)
  */
 export async function sendWhatsAppInvoiceDelivery(params: {
   patientName: string;
@@ -436,6 +602,55 @@ export async function sendWhatsAppInvoiceDelivery(params: {
   pdfBase64?: string;
   pdfUrl?: string;
 }): Promise<SendWhatsAppResult> {
+  const cleanDate = params.date ? params.date.replace(/[^a-zA-Z0-9]/g, "_") : "Bill";
+  const filename = `Invoice_${params.invoiceNumber || cleanDate}.pdf`;
+
+  let mediaId: string | null = null;
+  if (params.pdfBase64) {
+    try {
+      const buffer = Buffer.from(params.pdfBase64, "base64");
+      mediaId = await uploadWhatsAppMedia(buffer, filename, "application/pdf");
+    } catch (e) {
+      console.warn("[WhatsApp PDF] Base64 upload failed:", e);
+    }
+  }
+
+  // Primary: Use Meta-Approved Template (invoice_receipt_pdf) with document header
+  if (mediaId || params.pdfUrl) {
+    const docParam = mediaId
+      ? { id: mediaId, filename }
+      : { link: params.pdfUrl, filename };
+
+    const templateRes = await sendWhatsAppTemplateMessage({
+      rawPhone: params.patientPhone,
+      templateName: "invoice_receipt_pdf",
+      components: [
+        {
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: docParam,
+            },
+          ],
+        },
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: params.invoiceNumber },
+            { type: "text", text: params.date },
+            { type: "text", text: String(params.amount) },
+          ],
+        },
+      ],
+    });
+
+    if (templateRes.success) return templateRes;
+    console.warn("[WhatsApp Invoice Template Failed, falling back to direct document]", templateRes.error);
+  }
+
+  // Fallback: direct document message or plain text
   const isReplacement = Boolean(params.replacesInvoiceNumber);
   const caption = isReplacement
     ? `🏥 *GAIT PHYSIO CLINIC*
@@ -473,9 +688,6 @@ Thank you for your payment. Here is the summary of your clinic bill:
 
 _Thank you for choosing Gait Physio Clinic for your recovery journey!_`;
 
-  const cleanDate = params.date ? params.date.replace(/[^a-zA-Z0-9]/g, "_") : "Bill";
-  const filename = `Invoice_${params.invoiceNumber || cleanDate}.pdf`;
-
   if (params.pdfBase64 || params.pdfUrl) {
     return sendWhatsAppDocumentMessage({
       rawPhone: params.patientPhone,
@@ -486,7 +698,6 @@ _Thank you for choosing Gait Physio Clinic for your recovery journey!_`;
     });
   }
 
-  // Fallback to text message if no PDF is attached
   return sendWhatsAppTextMessage(params.patientPhone, caption);
 }
 
@@ -519,7 +730,7 @@ For any queries, please reply to this chat or call ${CLINIC_PHONE}.`;
 }
 
 /**
- * 8. Clinical Consultation & Prescription (With PDF Attachment)
+ * 8. Clinical Consultation & Prescription (With PDF Attachment via Meta Template)
  */
 export async function sendWhatsAppConsultationReport(params: {
   patientName: string;
@@ -532,6 +743,55 @@ export async function sendWhatsAppConsultationReport(params: {
   pdfBase64?: string;
   pdfUrl?: string;
 }): Promise<SendWhatsAppResult> {
+  const cleanDate = params.date ? params.date.replace(/[^a-zA-Z0-9]/g, "_") : "Report";
+  const filename = `Prescription_${cleanDate}.pdf`;
+  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+
+  let mediaId: string | null = null;
+  if (params.pdfBase64) {
+    try {
+      const buffer = Buffer.from(params.pdfBase64, "base64");
+      mediaId = await uploadWhatsAppMedia(buffer, filename, "application/pdf");
+    } catch (e) {
+      console.warn("[WhatsApp PDF] Base64 upload failed:", e);
+    }
+  }
+
+  // Primary: Use Meta-Approved Template (consultation_report_pdf) with document header
+  if (mediaId || params.pdfUrl) {
+    const docParam = mediaId
+      ? { id: mediaId, filename }
+      : { link: params.pdfUrl, filename };
+
+    const templateRes = await sendWhatsAppTemplateMessage({
+      rawPhone: params.patientPhone,
+      templateName: "consultation_report_pdf",
+      components: [
+        {
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: docParam,
+            },
+          ],
+        },
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: params.date },
+            { type: "text", text: cleanTherapist },
+          ],
+        },
+      ],
+    });
+
+    if (templateRes.success) return templateRes;
+    console.warn("[WhatsApp Consultation Template Failed, falling back to direct document]", templateRes.error);
+  }
+
+  // Fallback: direct document message or plain text
   const caption = 
 `🏥 *GAIT PHYSIO CLINIC*
 *Clinical Consultation & Exercise Routine*
@@ -540,7 +800,7 @@ Hello ${params.patientName},
 
 Your clinical consultation assessment and personalized rehabilitation plan for *${params.date}* has been finalized.
 
-👨‍⚕️ *Attending Therapist:* Dr. ${params.therapistName || "Lead Physiotherapist"}
+👨‍⚕️ *Attending Therapist:* Dr. ${cleanTherapist}
 📋 *Diagnosis / Focus:* ${params.diagnosis || "Physiotherapy Rehabilitation"}
 🏋️ *Prescribed Exercises:* ${params.exercisesCount || 0} Exercises
 
@@ -550,9 +810,6 @@ Your clinical consultation assessment and personalized rehabilitation plan for *
 👉 ${BASE_URL}/patienthub/exercises
 
 Need to ask a follow-up question? Simply reply to this chat or call our clinic desk at ${CLINIC_PHONE}.`;
-
-  const cleanDate = params.date ? params.date.replace(/[^a-zA-Z0-9]/g, "_") : "Report";
-  const filename = `Prescription_${cleanDate}.pdf`;
 
   if (params.pdfBase64 || params.pdfUrl) {
     return sendWhatsAppDocumentMessage({
