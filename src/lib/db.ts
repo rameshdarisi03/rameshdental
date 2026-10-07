@@ -442,6 +442,40 @@ export async function getAppointmentsByDate(dateStr: string): Promise<Appointmen
   }
 }
 
+// Fetch recent appointments (walk-ins & online bookings) for quick registration linking
+export async function getRecentAppointments(limitCount: number = 60): Promise<Appointment[]> {
+  try {
+    const q = query(
+      collection(db, "appointments"),
+      orderBy("createdAt", "desc"),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    const appointments: Appointment[] = [];
+    snapshot.forEach((doc) => {
+      appointments.push({ id: doc.id, ...doc.data() } as Appointment);
+    });
+    return appointments;
+  } catch (error) {
+    console.warn("Fallback fetching recent appointments without index:", error);
+    try {
+      const snap = await getDocs(collection(db, "appointments"));
+      const appointments: Appointment[] = [];
+      snap.forEach((doc) => {
+        appointments.push({ id: doc.id, ...doc.data() } as Appointment);
+      });
+      appointments.sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      });
+      return appointments.slice(0, limitCount);
+    } catch {
+      return [];
+    }
+  }
+}
+
 // Fetch active blocks for a given date
 export async function getBlocksByDate(dateStr: string): Promise<DayBlock[]> {
   try {
