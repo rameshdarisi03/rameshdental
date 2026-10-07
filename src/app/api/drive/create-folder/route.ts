@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPatientFolder, createDateSubfolder } from "@/lib/drive";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
@@ -14,12 +15,13 @@ export async function POST(request: Request) {
     console.log(`[API Drive] Creating folder for ${patientId}_${patientName}...`);
     const folderId = await createPatientFolder(patientId, patientName);
 
-    // Auto-save folder ID to patient document in Firestore with Admin privileges
+    // Auto-save folder ID to patient document in Firestore with Admin privileges if available
     try {
+      const { getFirebaseAdmin } = await import("@/lib/firebaseAdmin");
       const { db } = getFirebaseAdmin();
-      await db.collection("patients").doc(patientId).update({
+      await db.collection("patients").doc(patientId).set({
         googleDriveFolderId: folderId,
-      });
+      }, { merge: true });
       console.log(`[API Drive] Auto-linked googleDriveFolderId (${folderId}) to patient ${patientId} in Firestore.`);
     } catch (dbErr) {
       console.warn(`[API Drive] Warning updating Firestore patient doc with folderId:`, dbErr);

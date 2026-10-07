@@ -854,6 +854,17 @@ PLAN:
     }
   };
 
+  // Auto-heal on profile view: If patient is loaded and missing Drive folder, automatically create & link it
+  const autoCreatedDriveRef = useRef(false);
+  useEffect(() => {
+    if (!patient || !patient.id || patient.googleDriveFolderId || autoCreatedDriveRef.current || creatingDriveFolder) {
+      return;
+    }
+    autoCreatedDriveRef.current = true;
+    console.log(`[Auto-heal] Patient ${patient.id} is missing Drive folder. Auto-provisioning now...`);
+    handleCreateDriveFolder();
+  }, [patient?.id, patient?.googleDriveFolderId]);
+
   // Dedicated direct file upload / photo capture for Doctor Reference (Hidden from Patient Hub)
   const handleUploadDoctorScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0] || !patient) return;

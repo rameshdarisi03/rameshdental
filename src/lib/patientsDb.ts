@@ -436,7 +436,10 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
       }
     }
 
-    // Auto-create & Link Google Drive Folder for the new patient
+    // 1. First, immediately save the new patient profile into Firestore
+    await setDoc(docRef, newPatient);
+
+    // 2. Auto-create & Link Google Drive Folder for the new patient
     try {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
       const driveRes = await fetch(`${baseUrl}/api/drive/create-folder`, {
@@ -447,15 +450,19 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
           patientName: newPatient.name,
         }),
       });
-      const driveData = await driveRes.json();
-      if (driveData.success && driveData.folderId) {
-        newPatient.googleDriveFolderId = driveData.folderId;
+      if (driveRes.ok) {
+        const driveData = await driveRes.json();
+        if (driveData.success && driveData.folderId) {
+          newPatient.googleDriveFolderId = driveData.folderId;
+          await updateDoc(docRef, {
+            googleDriveFolderId: driveData.folderId,
+          });
+          console.log(`[createPatient] Successfully linked Google Drive folder ${driveData.folderId} to patient ${newPatient.id}`);
+        }
       }
     } catch (driveErr) {
       console.warn("[createPatient] Google Drive folder auto-creation warning (Non-blocking):", driveErr);
     }
-
-    await setDoc(docRef, newPatient);
 
     // Auto-trigger Patient Onboarding & Portal Activation Email
     if (newPatient.email && newPatient.activationCode) {

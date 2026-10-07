@@ -33,7 +33,7 @@ import {
 import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions, FAMILY_RELATIONSHIPS, FamilyRelationship } from "@/lib/patientsDb";
 import { getClinicConfig, ClinicConfig, generateSlotsFromHours, generateSlotsForDay, isSlotInPast, getRecentAppointments, Appointment } from "@/lib/db";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, doc, updateDoc } from "firebase/firestore";
 import { sanitizePhone, sanitizeName, isValidIndianPhone, isValidEmail } from "@/lib/sanitizer";
 import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
 import PatientDeleteModal from "@/components/dashboard/PatientDeleteModal";
@@ -587,9 +587,17 @@ export default function PatientsPage() {
               patientName: newPatient.name
             }),
           });
-          const driveResult = await driveResponse.json();
-          if (driveResult.success && driveResult.folderId) {
-            newPatient.googleDriveFolderId = driveResult.folderId;
+          if (driveResponse.ok) {
+            const driveResult = await driveResponse.json();
+            if (driveResult.success && driveResult.folderId) {
+              newPatient.googleDriveFolderId = driveResult.folderId;
+              try {
+                const pRef = doc(db, "patients", newPatient.id);
+                await updateDoc(pRef, { googleDriveFolderId: driveResult.folderId });
+              } catch (uErr) {
+                console.warn("Could not write folderId to patient doc in fallback:", uErr);
+              }
+            }
           }
         } catch (driveErr) {
           console.error("[Client Page] Google Drive folder creation fallback warning:", driveErr);
