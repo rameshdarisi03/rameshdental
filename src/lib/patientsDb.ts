@@ -436,6 +436,25 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
       }
     }
 
+    // Auto-create & Link Google Drive Folder for the new patient
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      const driveRes = await fetch(`${baseUrl}/api/drive/create-folder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: newPatient.id,
+          patientName: newPatient.name,
+        }),
+      });
+      const driveData = await driveRes.json();
+      if (driveData.success && driveData.folderId) {
+        newPatient.googleDriveFolderId = driveData.folderId;
+      }
+    } catch (driveErr) {
+      console.warn("[createPatient] Google Drive folder auto-creation warning (Non-blocking):", driveErr);
+    }
+
     await setDoc(docRef, newPatient);
 
     // Auto-trigger Patient Onboarding & Portal Activation Email

@@ -414,30 +414,24 @@ export default function PatientsPage() {
         }
       }
 
-      // 2. Call secure API route to create folder on Google Drive
-      try {
-        console.log("[Client Page] Requesting Google Drive folder creation...");
-        const driveResponse = await fetch("/api/drive/create-folder", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            patientId: newPatient.id,
-            patientName: newPatient.name
-          }),
-        });
-
-        const driveResult = await driveResponse.json();
-        if (driveResult.success && driveResult.folderId) {
-          console.log("[Client Page] Google Drive Folder created:", driveResult.folderId);
-          
-          // 3. Update Patient Doc with Drive Folder ID (client-side)
-          await updatePatient(newPatient.id!, { googleDriveFolderId: driveResult.folderId });
-          console.log("[Client Page] Saved Drive Folder ID to patient profile!");
-        } else {
-          console.warn("[Client Page] Drive Folder ID was not returned by API:", driveResult.error);
+      // Fallback: In case Drive folder wasn't provisioned during createPatient
+      if (!newPatient.googleDriveFolderId) {
+        try {
+          const driveResponse = await fetch("/api/drive/create-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              patientId: newPatient.id,
+              patientName: newPatient.name
+            }),
+          });
+          const driveResult = await driveResponse.json();
+          if (driveResult.success && driveResult.folderId) {
+            newPatient.googleDriveFolderId = driveResult.folderId;
+          }
+        } catch (driveErr) {
+          console.error("[Client Page] Google Drive folder creation fallback warning:", driveErr);
         }
-      } catch (driveErr) {
-        console.error("[Client Page] Google Drive folder creation error (Non-blocking):", driveErr);
       }
 
       setModalOpen(false);
