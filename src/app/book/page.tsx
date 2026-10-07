@@ -157,7 +157,14 @@ function BookingFormContent() {
   }, [formData.date, loadingConfig]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Real-time phone sanitization: strictly digits only, max 10 for India (+91), max 15 for international
+    if (name === "patientPhone") {
+      const isIndia = dialCode.trim() === "+91" || dialCode.trim() === "91";
+      value = value.replace(/\D/g, "").slice(0, isIndia ? 10 : 15);
+    }
+
     setFormData((prev) => {
       const next = { ...prev, [name]: value };
       if (name === "date") {
@@ -196,10 +203,24 @@ function BookingFormContent() {
       setErrorMessage("Please enter your full name.");
       return false;
     }
-    if (!formData.patientPhone.trim() || formData.patientPhone.length < 10) {
-      setErrorMessage("Please enter a valid mobile number (10 digits minimum).");
-      return false;
+
+    const isIndia = dialCode.trim() === "+91" || dialCode.trim() === "91";
+    if (isIndia) {
+      if (!formData.patientPhone.trim() || formData.patientPhone.length !== 10) {
+        setErrorMessage("Please enter a valid 10-digit Indian mobile number.");
+        return false;
+      }
+      if (!/^[6-9]/.test(formData.patientPhone)) {
+        setErrorMessage("Indian mobile numbers must begin with 6, 7, 8, or 9.");
+        return false;
+      }
+    } else {
+      if (!formData.patientPhone.trim() || formData.patientPhone.length < 7 || formData.patientPhone.length > 15) {
+        setErrorMessage("Please enter a valid international mobile number (7–15 digits).");
+        return false;
+      }
     }
+
     if (!formData.date) {
       setErrorMessage("Please select a preferred date.");
       return false;
@@ -431,10 +452,28 @@ function BookingFormContent() {
                       name="patientPhone"
                       value={formData.patientPhone}
                       onChange={handleInputChange}
-                      placeholder="92066 51295"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={dialCode.trim() === "+91" || dialCode.trim() === "91" ? 10 : 15}
+                      placeholder={dialCode.trim() === "+91" ? "92066 51295 (10 digits)" : "Mobile number"}
                       required
                       className="flex-grow rounded-r-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-3 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
+                  </div>
+                  {/* Clean live character counter badge */}
+                  <div className="flex items-center justify-between mt-1 px-1">
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {dialCode.trim() === "+91" ? "Indian mobile (10 digits)" : "Mobile number"}
+                    </span>
+                    <span className={`text-[10px] font-bold ${
+                      formData.patientPhone.length === (dialCode.trim() === "+91" ? 10 : 15)
+                        ? "text-emerald-500 font-extrabold"
+                        : formData.patientPhone.length > 0
+                        ? "text-amber-500"
+                        : "text-slate-400"
+                    }`}>
+                      {formData.patientPhone.length}/{dialCode.trim() === "+91" ? 10 : 15} digits
+                    </span>
                   </div>
                 </div>
 

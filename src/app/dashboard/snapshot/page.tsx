@@ -794,7 +794,10 @@ export default function DaySnapshot() {
   };
 
   const handlePatientInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === "patientPhone") {
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
     setPatientForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -1633,11 +1636,26 @@ export default function DaySnapshot() {
                         type="tel"
                         required
                         name="patientPhone"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
                         value={patientForm.patientPhone}
                         onChange={handlePatientInputChange}
-                        placeholder="e.g. 9206651295"
+                        placeholder="e.g. 9206651295 (10 digits)"
                         className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                       />
+                      <div className="flex items-center justify-between mt-1 px-1">
+                        <span className="text-[10px] text-slate-400 font-medium">Indian mobile (10 digits)</span>
+                        <span className={`text-[10px] font-bold ${
+                          patientForm.patientPhone.length === 10
+                            ? "text-emerald-500 font-extrabold"
+                            : patientForm.patientPhone.length > 0
+                            ? "text-amber-500"
+                            : "text-slate-400"
+                        }`}>
+                          {patientForm.patientPhone.length}/10 digits
+                        </span>
+                      </div>
                     </div>
 
                     <div>

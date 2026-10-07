@@ -285,7 +285,14 @@ export default function PatientsPage() {
   const [linkedFamilyHead, setLinkedFamilyHead] = useState<any | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    
+    // Real-time phone sanitization: strictly digits only, max 10 for India (+91), max 15 for international
+    if (name === "phone") {
+      const isIndia = dialCode.trim() === "+91" || dialCode.trim() === "91";
+      value = value.replace(/\D/g, "").slice(0, isIndia ? 10 : 15);
+    }
+
     setFormData((prev) => {
       const next = { ...prev, [name]: value };
       
@@ -1066,11 +1073,29 @@ export default function PatientsPage() {
                       type="tel"
                       name="phone"
                       required
-                      placeholder="98765 43210"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={dialCode.trim() === "+91" || dialCode.trim() === "91" ? 10 : 15}
+                      placeholder={dialCode.trim() === "+91" ? "98765 43210 (10 digits)" : "Phone number"}
                       value={formData.phone}
                       onChange={handleInputChange}
                       className="flex-grow rounded-r-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold outline-none focus:border-brand-green transition-colors text-slate-900 dark:text-white"
                     />
+                  </div>
+                  {/* Clean live character counter badge */}
+                  <div className="flex items-center justify-between mt-1 px-1">
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {dialCode.trim() === "+91" ? "Indian mobile (10 digits)" : "Mobile number"}
+                    </span>
+                    <span className={`text-[10px] font-bold ${
+                      formData.phone.length === (dialCode.trim() === "+91" ? 10 : 15)
+                        ? "text-emerald-500 font-extrabold"
+                        : formData.phone.length > 0
+                        ? "text-amber-500"
+                        : "text-slate-400"
+                    }`}>
+                      {formData.phone.length}/{dialCode.trim() === "+91" ? 10 : 15} digits
+                    </span>
                   </div>
                 </div>
 
