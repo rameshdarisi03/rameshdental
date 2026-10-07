@@ -29,7 +29,6 @@ import {
 } from "@/lib/db";
 import {
   getPatients,
-  createPatient,
   updatePatient,
   Patient
 } from "@/lib/patientsDb";
@@ -726,23 +725,9 @@ export default function DaySnapshot() {
       
       const formattedBookingDate = formatToDDMMYYYY(bookingDate);
 
-      // Automate Patient Profile Integration
-      if (patientType === "new") {
-        try {
-          await createPatient({
-            name: patientName,
-            email: patientEmail,
-            phone: patientPhone,
-            address: patientAddress,
-            treatmentPlan: bookingService,
-            status: "active",
-            lastVisit: isFuture ? "N/A" : formattedBookingDate,
-            upcoming: isFuture ? formattedBookingDate : "Pending Schedule"
-          });
-        } catch (patientErr) {
-          console.error("Failed to automatically register new patient profile: ", patientErr);
-        }
-      } else if (selectedPatient && selectedPatient.id) {
+      // Patient profile is NOT created on booking to prevent junk records for potential no-shows.
+      // Permanent patient IDs and Google Drive folders are ONLY generated when explicitly registered in the Patient Database.
+      if (patientType === "existing" && selectedPatient && selectedPatient.id) {
         try {
           const updateData: any = {
             status: "active",

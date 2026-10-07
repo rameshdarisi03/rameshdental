@@ -18,7 +18,6 @@ import {
 } from "@/lib/db";
 import {
   getPatients,
-  createPatient,
   updatePatient,
   checkDuplicatePatient,
   DuplicateCheckResult,
