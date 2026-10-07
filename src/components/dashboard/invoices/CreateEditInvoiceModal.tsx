@@ -308,14 +308,40 @@ export default function CreateEditInvoiceModal({
         await createInvoice(invoicePayload);
       }
 
-      // Auto-archive PDF to Patient Google Drive if folder exists
+      // Auto-archive PDF to Patient Google Drive
       const selectedP = patients.find(
         (p) => 
           (selectedPatientId && p.id === selectedPatientId) || 
           (cleanFinalPid && p.id === cleanFinalPid) || 
           (patientName && p.name && p.name.toLowerCase() === patientName.toLowerCase())
       );
-      const driveFolderId = selectedP?.googleDriveFolderId || process.env.NEXT_PUBLIC_GOOGLE_DRIVE_ROOT_FOLDER_ID;
+      let driveFolderId = selectedP?.googleDriveFolderId || (initialPatient as any)?.googleDriveFolderId;
+
+      // If patient doesn't have a linked Drive folder yet, auto-provision and link it now!
+      if (!driveFolderId) {
+        const targetPid = selectedPatientId || cleanFinalPid || (initialPatient as any)?.id;
+        const targetPname = sanitizeName(patientName || selectedP?.name || (initialPatient as any)?.name);
+        if (targetPid && targetPname) {
+          try {
+            const createRes = await fetch("/api/drive/create-folder", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                patientId: targetPid,
+                patientName: targetPname,
+              }),
+            });
+            const createData = await createRes.json();
+            if (createData.success && createData.folderId) {
+              driveFolderId = createData.folderId;
+              if (selectedP) selectedP.googleDriveFolderId = driveFolderId;
+              if (initialPatient) (initialPatient as any).googleDriveFolderId = driveFolderId;
+            }
+          } catch (autoErr) {
+            console.warn("[Invoice Modal] Auto-provision Google Drive folder warning:", autoErr);
+          }
+        }
+      }
 
       if (driveFolderId) {
         try {

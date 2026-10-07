@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPatientFolder, createDateSubfolder } from "@/lib/drive";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +13,17 @@ export async function POST(request: Request) {
 
     console.log(`[API Drive] Creating folder for ${patientId}_${patientName}...`);
     const folderId = await createPatientFolder(patientId, patientName);
+
+    // Auto-save folder ID to patient document in Firestore with Admin privileges
+    try {
+      const { db } = getFirebaseAdmin();
+      await db.collection("patients").doc(patientId).update({
+        googleDriveFolderId: folderId,
+      });
+      console.log(`[API Drive] Auto-linked googleDriveFolderId (${folderId}) to patient ${patientId} in Firestore.`);
+    } catch (dbErr) {
+      console.warn(`[API Drive] Warning updating Firestore patient doc with folderId:`, dbErr);
+    }
 
     // If an initial date is specified, create the date subfolder too
     let dateFolderId = "";
