@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { 
   getClinicConfig, 
@@ -12,7 +12,8 @@ import {
   DaySchedule, 
   WeekdayKey,
   TeamDoctorProfile,
-  DEFAULT_TEAM_MEMBERS
+  DEFAULT_TEAM_MEMBERS,
+  HeroPresetOption
 } from "@/lib/db";
 import { 
   Loader2, 
@@ -57,7 +58,9 @@ import {
   Smartphone,
   Image as ImageIcon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FolderPlus,
+  Library
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -275,19 +278,19 @@ function computeConfigDiff(
     });
   }
 
+  // 11. Presets Library Changes
+  if ((initial.customHeroPresets?.length || 0) !== (current.customHeroPresets?.length || 0)) {
+    const diff = (current.customHeroPresets?.length || 0) - (initial.customHeroPresets?.length || 0);
+    diffs.push({
+      category: "Presets Library",
+      detail: diff > 0 ? `Added ${diff} custom photo(s) to library` : `Removed ${Math.abs(diff)} photo(s) from library`,
+    });
+  }
+
   return diffs;
 }
 
-export interface HeroPresetOption {
-  id: string;
-  title: string;
-  subtitle: string;
-  url: string;
-  recommendedBadge?: string;
-  tag: string;
-}
-
-export const HERO_PRESETS: HeroPresetOption[] = [
+export const BUILTIN_HERO_PRESETS: HeroPresetOption[] = [
   {
     id: "mobile_teal_2",
     title: "Medical Teal Studio (Wooden Flooring)",
@@ -440,6 +443,7 @@ export default function DashboardSettings() {
     googleMapsEmbed: "",
     heroDesktopImage: "/images/hero_cover_teal_wooden_floor.webp",
     heroMobileImage: "/images/mobile_cover_teal_option_2.webp",
+    customHeroPresets: [],
   });
 
   const [newTherapistName, setNewTherapistName] = useState("");
@@ -512,15 +516,68 @@ export default function DashboardSettings() {
   const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
   const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
 
+  // Toggle in Cropper Modal to automatically append newly cropped image into Preset Library
+  const [addToLibraryOnCrop, setAddToLibraryOnCrop] = useState(true);
+
+  // Unified Curated Built-in Presets + Custom Uploaded Library Presets
+  const allHeroPresets: HeroPresetOption[] = useMemo(() => [
+    ...BUILTIN_HERO_PRESETS,
+    ...(config.customHeroPresets || []),
+  ], [config.customHeroPresets]);
+
   // Hero Presets Carousel State
   const [presetCarouselIndex, setPresetCarouselIndex] = useState(0);
 
   const handlePrevPreset = () => {
-    setPresetCarouselIndex((prev) => (prev > 0 ? prev - 1 : HERO_PRESETS.length - 1));
+    setPresetCarouselIndex((prev) => (prev > 0 ? prev - 1 : allHeroPresets.length - 1));
   };
 
   const handleNextPreset = () => {
-    setPresetCarouselIndex((prev) => (prev < HERO_PRESETS.length - 1 ? prev + 1 : 0));
+    setPresetCarouselIndex((prev) => (prev < allHeroPresets.length - 1 ? prev + 1 : 0));
+  };
+
+  // Helper: Manually or automatically add an image into Presets Library
+  const handleAddImageToLibrary = (imageUrl: string, type: "desktop" | "mobile" | "custom", customTitle?: string) => {
+    if (!imageUrl) return;
+    const exists = allHeroPresets.some((p) => p.url === imageUrl);
+    if (exists) {
+      alert("This image is already in your Presets Library.");
+      return;
+    }
+
+    const newPreset: HeroPresetOption = {
+      id: `custom_${Date.now()}`,
+      title: customTitle || (type === "desktop" ? "Custom Desktop Panoramic" : type === "mobile" ? "Custom Mobile Cover" : "Clinic Custom Photo"),
+      subtitle: `Added to library on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+      url: imageUrl,
+      tag: type === "desktop" ? "Custom Desktop" : type === "mobile" ? "Custom Mobile" : "Clinic Upload",
+      isCustom: true,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    const updatedCustom = [...(config.customHeroPresets || []), newPreset];
+    setConfig((prev) => ({
+      ...prev,
+      customHeroPresets: updatedCustom,
+    }));
+    setIsDirty(true);
+    setSavedSuccess(false);
+
+    // Immediately navigate carousel to the newly added item
+    setPresetCarouselIndex(BUILTIN_HERO_PRESETS.length + updatedCustom.length - 1);
+  };
+
+  // Helper: Remove a custom uploaded image from Presets Library
+  const handleRemoveCustomPreset = (presetId: string) => {
+    if (!confirm("Are you sure you want to remove this custom photo from your Presets Library?")) return;
+    const updated = (config.customHeroPresets || []).filter((p) => p.id !== presetId);
+    setConfig((prev) => ({
+      ...prev,
+      customHeroPresets: updated,
+    }));
+    setIsDirty(true);
+    setSavedSuccess(false);
+    setPresetCarouselIndex((prev) => Math.max(0, Math.min(prev, BUILTIN_HERO_PRESETS.length + updated.length - 1)));
   };
 
   const openCropperWithImage = (url: string, target: CropTarget = "doctor") => {
@@ -680,11 +737,53 @@ export default function DashboardSettings() {
         try {
           const resultBase64 = canvas.toDataURL("image/jpeg", 0.90);
           if (cropTarget === "hero_desktop") {
-            setConfig((prev) => ({ ...prev, heroDesktopImage: resultBase64 }));
+            let nextIndex = -1;
+            setConfig((prev) => {
+              const next = { ...prev, heroDesktopImage: resultBase64 };
+              if (addToLibraryOnCrop) {
+                const newPreset: HeroPresetOption = {
+                  id: `custom_${Date.now()}`,
+                  title: "Custom Desktop Panoramic",
+                  subtitle: `Uploaded on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+                  url: resultBase64,
+                  tag: "Custom Desktop",
+                  isCustom: true,
+                  uploadedAt: new Date().toISOString(),
+                };
+                const updatedList = [...(prev.customHeroPresets || []), newPreset];
+                next.customHeroPresets = updatedList;
+                nextIndex = BUILTIN_HERO_PRESETS.length + updatedList.length - 1;
+              }
+              return next;
+            });
+            if (nextIndex >= 0) {
+              setPresetCarouselIndex(nextIndex);
+            }
             setIsDirty(true);
             setSavedSuccess(false);
           } else if (cropTarget === "hero_mobile") {
-            setConfig((prev) => ({ ...prev, heroMobileImage: resultBase64 }));
+            let nextIndex = -1;
+            setConfig((prev) => {
+              const next = { ...prev, heroMobileImage: resultBase64 };
+              if (addToLibraryOnCrop) {
+                const newPreset: HeroPresetOption = {
+                  id: `custom_${Date.now()}`,
+                  title: "Custom Mobile Cover",
+                  subtitle: `Uploaded on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+                  url: resultBase64,
+                  tag: "Custom Mobile",
+                  isCustom: true,
+                  uploadedAt: new Date().toISOString(),
+                };
+                const updatedList = [...(prev.customHeroPresets || []), newPreset];
+                next.customHeroPresets = updatedList;
+                nextIndex = BUILTIN_HERO_PRESETS.length + updatedList.length - 1;
+              }
+              return next;
+            });
+            if (nextIndex >= 0) {
+              setPresetCarouselIndex(nextIndex);
+            }
             setIsDirty(true);
             setSavedSuccess(false);
           } else {
@@ -862,6 +961,9 @@ export default function DashboardSettings() {
         }
         if (!fetched.heroMobileImage) {
           fetched.heroMobileImage = "/images/mobile_cover_teal_option_2.webp";
+        }
+        if (!fetched.customHeroPresets) {
+          fetched.customHeroPresets = [];
         }
         setConfig(fetched);
         setInitialConfig(JSON.parse(JSON.stringify(fetched)));
@@ -2230,7 +2332,7 @@ export default function DashboardSettings() {
                   {/* Arrow Navigation & Counter */}
                   <div className="flex items-center gap-2 self-start sm:self-auto ml-auto sm:ml-0">
                     <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-800 shadow-2xs">
-                      {presetCarouselIndex + 1} / {HERO_PRESETS.length}
+                      {presetCarouselIndex + 1} / {allHeroPresets.length}
                     </span>
 
                     <div className="flex items-center gap-1">
@@ -2256,7 +2358,7 @@ export default function DashboardSettings() {
 
                 {/* Single Active Preset Showcase Frame */}
                 {(() => {
-                  const currentPreset = HERO_PRESETS[presetCarouselIndex];
+                  const currentPreset = allHeroPresets[presetCarouselIndex] || allHeroPresets[0];
                   const isDeskActive = (config.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp") === currentPreset.url;
                   const isMobActive = (config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp") === currentPreset.url;
 
@@ -2292,12 +2394,17 @@ export default function DashboardSettings() {
                           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
 
-                        {/* Recommended Badge (Top-Left) */}
-                        {currentPreset.recommendedBadge && (
+                        {/* Recommended Badge or Custom Library Badge (Top-Left) */}
+                        {currentPreset.isCustom ? (
+                          <span className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-1 rounded-full text-[9.5px] sm:text-[10px] font-black bg-teal-600 text-white shadow-md tracking-tight z-10 flex items-center gap-1">
+                            <FolderPlus className="w-3 h-3" />
+                            <span>Clinic Library Upload</span>
+                          </span>
+                        ) : currentPreset.recommendedBadge ? (
                           <span className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-1 rounded-full text-[9.5px] sm:text-[10px] font-black bg-brand-green text-white shadow-md tracking-tight z-10">
                             {currentPreset.recommendedBadge}
                           </span>
-                        )}
+                        ) : null}
 
                         {/* Live Active Badges (Bottom-Right) */}
                         <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex items-center gap-1.5 z-10">
@@ -2323,7 +2430,11 @@ export default function DashboardSettings() {
                             <h5 className="text-xs sm:text-sm font-black text-brand-charcoal dark:text-white truncate">
                               {currentPreset.title}
                             </h5>
-                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                              currentPreset.isCustom 
+                                ? "text-teal-700 bg-teal-100 dark:bg-teal-950/80 dark:text-teal-300"
+                                : "text-slate-400 bg-slate-100 dark:bg-slate-800"
+                            }`}>
                               {currentPreset.tag}
                             </span>
                           </div>
@@ -2332,7 +2443,7 @@ export default function DashboardSettings() {
                           </p>
                         </div>
 
-                        {/* Action Buttons: Set Desktop, Set Mobile, Both (Preserved Exactly!) */}
+                        {/* Action Buttons: Set Desktop, Set Mobile, Both & Delete (if custom) */}
                         <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                           <button
                             type="button"
@@ -2387,13 +2498,26 @@ export default function DashboardSettings() {
                             <Sparkles className="w-3.5 h-3.5" />
                             <span>Both</span>
                           </button>
+
+                          {/* Delete custom preset button */}
+                          {currentPreset.isCustom && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCustomPreset(currentPreset.id)}
+                              className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/50 transition-colors cursor-pointer flex items-center gap-1"
+                              title="Delete this custom photo from Presets Library"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Delete</span>
+                            </button>
+                          )}
                         </div>
                       </div>
 
                       {/* Mini Thumbnail Navigation Rail */}
                       <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                          {HERO_PRESETS.map((p, idx) => {
+                          {allHeroPresets.map((p, idx) => {
                             const isSelected = idx === presetCarouselIndex;
                             return (
                               <button
@@ -2412,6 +2536,9 @@ export default function DashboardSettings() {
                                   alt={p.title}
                                   className="w-full h-full object-cover object-center"
                                 />
+                                {p.isCustom && (
+                                  <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-teal-500 border border-white shadow-xs" title="Custom Upload" />
+                                )}
                               </button>
                             );
                           })}
@@ -2461,26 +2588,36 @@ export default function DashboardSettings() {
 
                   {/* Dedicated Action Buttons (Fully visible on all screens!) */}
                   <div className="space-y-2.5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => heroDesktopFileInputRef.current?.click()}
                         disabled={uploadingHeroDesktop}
-                        className="w-full py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 px-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-1.5"
                         title="Browse photo from your computer or phone storage"
                       >
-                        <Upload className="w-4 h-4" />
-                        <span>{uploadingHeroDesktop ? "Reading file..." : "Browse & Upload from Device"}</span>
+                        <Upload className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{uploadingHeroDesktop ? "Reading..." : "Browse & Upload"}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => openCropperWithImage(config.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp", "hero_desktop")}
-                        className="w-full py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs flex items-center justify-center gap-2"
+                        className="w-full py-2.5 px-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs flex items-center justify-center gap-1.5"
                         title="Reposition and pan image framing"
                       >
-                        <Crop className="w-4 h-4 text-brand-green" />
-                        <span>Move & Adjust Framing</span>
+                        <Crop className="w-3.5 h-3.5 text-brand-green shrink-0" />
+                        <span className="truncate">Move & Adjust</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddImageToLibrary(config.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp", "desktop")}
+                        className="w-full py-2.5 px-2 rounded-xl bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-teal-200/80 dark:border-teal-800 shadow-2xs flex items-center justify-center gap-1.5"
+                        title="Save current desktop banner into the Presets Library"
+                      >
+                        <FolderPlus className="w-3.5 h-3.5 text-brand-green shrink-0" />
+                        <span className="truncate">Add to Library</span>
                       </button>
                     </div>
 
@@ -2553,26 +2690,36 @@ export default function DashboardSettings() {
 
                   {/* Dedicated Action Buttons (Fully visible on all screens!) */}
                   <div className="space-y-2.5 pt-2">
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
                         type="button"
                         onClick={() => heroMobileFileInputRef.current?.click()}
                         disabled={uploadingHeroMobile}
-                        className="w-full py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 px-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-1.5"
                         title="Browse photo from your phone or device storage"
                       >
-                        <Upload className="w-4 h-4" />
-                        <span>{uploadingHeroMobile ? "Reading file..." : "Browse & Upload from Device"}</span>
+                        <Upload className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{uploadingHeroMobile ? "Reading..." : "Browse & Upload"}</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => openCropperWithImage(config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp", "hero_mobile")}
-                        className="w-full py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs flex items-center justify-center gap-2"
+                        className="w-full py-2.5 px-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs flex items-center justify-center gap-1.5"
                         title="Reposition and pan mobile image framing"
                       >
-                        <Crop className="w-4 h-4 text-brand-green" />
-                        <span>Move & Adjust Framing</span>
+                        <Crop className="w-3.5 h-3.5 text-brand-green shrink-0" />
+                        <span className="truncate">Move & Adjust</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddImageToLibrary(config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp", "mobile")}
+                        className="w-full py-2.5 px-2 rounded-xl bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-teal-200/80 dark:border-teal-800 shadow-2xs flex items-center justify-center gap-1.5"
+                        title="Save current mobile banner into the Presets Library"
+                      >
+                        <FolderPlus className="w-3.5 h-3.5 text-brand-green shrink-0" />
+                        <span className="truncate">Add to Library</span>
                       </button>
                     </div>
 
@@ -3387,6 +3534,31 @@ export default function DashboardSettings() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Add to Presets Library option (for hero cover banners) */}
+                    {cropTarget !== "doctor" && (
+                      <div className="w-full max-w-[340px] mt-2 p-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-800/50 flex items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FolderPlus className="w-4 h-4 text-brand-green shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block truncate">
+                              Add to Presets Library
+                            </span>
+                            <span className="text-[9.5px] text-slate-500 dark:text-slate-400 block truncate">
+                              Permanently save into curated carousel
+                            </span>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={addToLibraryOnCrop}
+                            onChange={(e) => setAddToLibraryOnCrop(e.target.checked)}
+                            className="h-4 w-4 rounded text-brand-green focus:ring-brand-green cursor-pointer accent-brand-green"
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
                 </>
               );
