@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
 import { getClinicConfig } from "@/lib/db";
-import { getInvoices, Invoice } from "@/lib/invoicesDb";
+import { getInvoices, subscribeInvoices, Invoice } from "@/lib/invoicesDb";
 import { 
   TrendingUp, 
   Users, 
@@ -145,11 +145,17 @@ export default function DashboardAnalytics() {
 
   // Helper to check if a date is within past N days
   const isWithinPastDays = (dateStr: string, startDay: number, endDay: number) => {
-    const appDate = new Date(dateStr + "T00:00:00");
+    if (!dateStr) return false;
+    const parts = dateStr.split("T")[0].split("-");
+    if (parts.length !== 3) return false;
+    const appDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diffTime = today.getTime() - appDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    if (startDay === 0) {
+      return diffDays >= -1 && diffDays < endDay;
+    }
     return diffDays >= startDay && diffDays < endDay;
   };
 
@@ -481,6 +487,19 @@ export default function DashboardAnalytics() {
   useEffect(() => {
     checkRole();
     loadData();
+
+    // Subscribe to real-time invoice updates so the latest bills reflect instantly
+    const unsubscribe = subscribeInvoices((liveInvoices) => {
+      setInvoices(liveInvoices);
+      setAppointments((latestApps) => {
+        calculateStats(latestApps, liveInvoices, timeRange, selectedTherapist, selectedService);
+        return latestApps;
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Update SVG charts metrics dynamically when bookings/revenue toggle updates
