@@ -148,6 +148,8 @@ export interface ClinicConfig {
   email?: string;
   googleMapsLink?: string;
   googleMapsEmbed?: string;
+  heroDesktopImage?: string; // Custom panoramic desktop cover image (or preset)
+  heroMobileImage?: string;  // Custom vertical mobile cover image (or preset)
 }
 
 // Default Configuration fallback
@@ -181,6 +183,8 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   email: "info@gaitphysioclinic.com",
   googleMapsLink: "https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bangalore",
   googleMapsEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.8967814402685!2d77.75011131482205!3d12.984700090847253!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae0fb5b6574f2b%3A0xbcf2a8ee0322b75f!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1691234567890!5m2!1sen!2sin",
+  heroDesktopImage: "/images/hero_cover_option_1_spine.webp",
+  heroMobileImage: "/images/mobile_cover_teal_option_2.webp",
 };
 
 // Helper: Calculate max patient capacity for a given time slot

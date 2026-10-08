@@ -52,7 +52,10 @@ import {
   Crop,
   Move,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Monitor,
+  Smartphone,
+  Image as ImageIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -246,7 +249,21 @@ function computeConfigDiff(
     });
   }
 
-  // 9. Website Color Theme
+  // 9. Website Cover Banners
+  if ((initial.heroDesktopImage || "") !== (current.heroDesktopImage || "")) {
+    diffs.push({
+      category: "Desktop Hero Banner",
+      detail: current.heroDesktopImage ? "Updated desktop cover image" : "Reset to default",
+    });
+  }
+  if ((initial.heroMobileImage || "") !== (current.heroMobileImage || "")) {
+    diffs.push({
+      category: "Mobile Hero Banner",
+      detail: current.heroMobileImage ? "Updated mobile cover image" : "Reset to default",
+    });
+  }
+
+  // 10. Website Color Theme
   if (themeDiff && themeDiff.initialTheme !== themeDiff.currentTheme) {
     const initThemeObj = THEME_OPTIONS.find((t) => t.id === themeDiff.initialTheme);
     const currThemeObj = THEME_OPTIONS.find((t) => t.id === themeDiff.currentTheme);
@@ -258,6 +275,107 @@ function computeConfigDiff(
 
   return diffs;
 }
+
+export interface HeroPresetOption {
+  id: string;
+  title: string;
+  subtitle: string;
+  url: string;
+  recommendedBadge?: string;
+  tag: string;
+}
+
+export const HERO_PRESETS: HeroPresetOption[] = [
+  {
+    id: "mobile_teal_2",
+    title: "Medical Teal Interior (Option 2)",
+    subtitle: "Modern mint/teal physiotherapy suite with treatment bed & exercise balls",
+    url: "/images/mobile_cover_teal_option_2.webp",
+    recommendedBadge: "⭐ Therapists' Pick",
+    tag: "Therapists' Favorite",
+  },
+  {
+    id: "spine_decompression",
+    title: "Spine Decompression Treatment",
+    subtitle: "Patient undergoing lumbar decompression therapy on specialized traction unit",
+    url: "/images/hero_cover_option_1_spine.webp",
+    recommendedBadge: "Default Desktop",
+    tag: "Clinical Decompression",
+  },
+  {
+    id: "mobile_teal_1",
+    title: "Medical Teal Treatment Suite",
+    subtitle: "Contemporary consultation suite with advanced rehabilitation gear",
+    url: "/images/mobile_cover_teal_option_1.webp",
+    tag: "Consultation Suite",
+  },
+  {
+    id: "knee_rehab",
+    title: "Knee Rehabilitation Session",
+    subtitle: "Guided lower-limb strengthening and active mobility training",
+    url: "/images/hero_cover_option_2_knee.webp",
+    tag: "Active Rehabilitation",
+  },
+  {
+    id: "panoramic_cover",
+    title: "Panoramic Clinical Cover",
+    subtitle: "Cinematic wide overview of modern physiotherapy facility",
+    url: "/images/hero_panoramic_cover.webp",
+    tag: "Wide Studio",
+  },
+  {
+    id: "rehab_gym",
+    title: "Rehabilitation Gym Suite",
+    subtitle: "Spacious training hall with parallel walking bars and exercise benches",
+    url: "/images/gallery/rehab_gym_wide.webp",
+    tag: "Gym & Ambience",
+  },
+  {
+    id: "clinic_ambience",
+    title: "Clinic Ambience & Gym Balls",
+    subtitle: "Clean natural light studio ambience with therapy accessories",
+    url: "/images/hero_mobile_balls_ambience.webp",
+    tag: "Studio Ambience",
+  },
+];
+
+type CropTarget = "doctor" | "hero_desktop" | "hero_mobile";
+
+const getCropperConfig = (target: CropTarget) => {
+  switch (target) {
+    case "hero_desktop":
+      return {
+        viewfinderW: 460,
+        viewfinderH: 215, // ~16:7 panoramic
+        outW: 1600,
+        outH: 750,
+        title: "Frame & Position Desktop Hero Banner",
+        subtitle: "Panoramic aspect ratio (~16:7) for desktop & widescreen displays",
+        ratioLabel: "16:7 PANORAMIC DESKTOP RATIO",
+      };
+    case "hero_mobile":
+      return {
+        viewfinderW: 240,
+        viewfinderH: 360, // 2:3 portrait
+        outW: 720,
+        outH: 1080,
+        title: "Frame & Position Mobile Hero Banner",
+        subtitle: "Vertical aspect ratio (2:3 / 9:16) for smartphone screens",
+        ratioLabel: "2:3 PORTRAIT MOBILE RATIO",
+      };
+    case "doctor":
+    default:
+      return {
+        viewfinderW: 300,
+        viewfinderH: 375, // 4:5 portrait
+        outW: 600,
+        outH: 750,
+        title: "Frame & Position Portrait",
+        subtitle: "Drag & zoom to ensure head & face aren't chopped off",
+        ratioLabel: "4:5 PORTRAIT RATIO",
+      };
+  }
+};
 
 export default function DashboardSettings() {
   const router = useRouter();
@@ -310,6 +428,8 @@ export default function DashboardSettings() {
     adminWalkInGraceType: "end_of_slot",
     publicBookingCutoffMinutes: 0,
     googleMapsEmbed: "",
+    heroDesktopImage: "/images/hero_cover_option_1_spine.webp",
+    heroMobileImage: "/images/mobile_cover_teal_option_2.webp",
   });
 
   const [newTherapistName, setNewTherapistName] = useState("");
@@ -365,6 +485,7 @@ export default function DashboardSettings() {
 
   // Interactive Photo Framing & Positioner Cropper Modal State
   const [showCropperModal, setShowCropperModal] = useState(false);
+  const [cropTarget, setCropTarget] = useState<CropTarget>("doctor");
   const [cropperRawSrc, setCropperRawSrc] = useState<string>("");
   const [cropZoom, setCropZoom] = useState(1);
   const [cropPanX, setCropPanX] = useState(0);
@@ -375,11 +496,15 @@ export default function DashboardSettings() {
   const [dragStartPos, setDragStartPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dragStartPan, setDragStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const VIEWFINDER_W = 300;
-  const VIEWFINDER_H = 375; // 4:5 Portrait aspect ratio
+  // Hero Cover Banners Upload Refs & States
+  const heroDesktopFileInputRef = useRef<HTMLInputElement>(null);
+  const heroMobileFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
+  const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
 
-  const openCropperWithImage = (url: string) => {
+  const openCropperWithImage = (url: string, target: CropTarget = "doctor") => {
     if (!url) return;
+    setCropTarget(target);
     setUploadingPhoto(true);
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -391,10 +516,10 @@ export default function DashboardSettings() {
       setCropperRawSrc(url);
       setCropZoom(1);
 
-      // Smart default: if image is tall, shift down slightly to give head breathing room
-      const baseScale = Math.max(VIEWFINDER_W / nw, VIEWFINDER_H / nh) || 1;
+      const cfg = getCropperConfig(target);
+      const baseScale = Math.max(cfg.viewfinderW / nw, cfg.viewfinderH / nh) || 1;
       const dispH = nh * baseScale;
-      const defaultShiftY = dispH > VIEWFINDER_H ? Math.round((dispH - VIEWFINDER_H) * 0.2) : 0;
+      const defaultShiftY = dispH > cfg.viewfinderH ? Math.round((dispH - cfg.viewfinderH) * 0.2) : 0;
       setCropPanX(0);
       setCropPanY(defaultShiftY);
 
@@ -421,10 +546,58 @@ export default function DashboardSettings() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const rawDataUrl = event.target?.result as string;
-      openCropperWithImage(rawDataUrl);
+      openCropperWithImage(rawDataUrl, "doctor");
     };
     reader.onerror = () => {
       setUploadingPhoto(false);
+      alert("Failed to read file.");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleHeroDesktopFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file (JPG, PNG, WebP).");
+      return;
+    }
+
+    setUploadingHeroDesktop(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result as string;
+      openCropperWithImage(rawDataUrl, "hero_desktop");
+      setUploadingHeroDesktop(false);
+    };
+    reader.onerror = () => {
+      setUploadingHeroDesktop(false);
+      alert("Failed to read file.");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleHeroMobileFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file (JPG, PNG, WebP).");
+      return;
+    }
+
+    setUploadingHeroMobile(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result as string;
+      openCropperWithImage(rawDataUrl, "hero_mobile");
+      setUploadingHeroMobile(false);
+    };
+    reader.onerror = () => {
+      setUploadingHeroMobile(false);
       alert("Failed to read file.");
     };
     reader.readAsDataURL(file);
@@ -459,34 +632,43 @@ export default function DashboardSettings() {
     if (!cropperRawSrc || cropNaturalWidth === 0 || cropNaturalHeight === 0) return;
 
     try {
+      const cfg = getCropperConfig(cropTarget);
       const canvas = document.createElement("canvas");
-      const OUT_W = 600;
-      const OUT_H = 750; // High-res 4:5 portrait
-      canvas.width = OUT_W;
-      canvas.height = OUT_H;
+      canvas.width = cfg.outW;
+      canvas.height = cfg.outH;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       const renderOntoCanvas = (loadedImg: HTMLImageElement) => {
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, OUT_W, OUT_H);
+        ctx.fillRect(0, 0, cfg.outW, cfg.outH);
 
-        const baseScale = Math.max(VIEWFINDER_W / cropNaturalWidth, VIEWFINDER_H / cropNaturalHeight) || 1;
+        const baseScale = Math.max(cfg.viewfinderW / cropNaturalWidth, cfg.viewfinderH / cropNaturalHeight) || 1;
         const currentScale = baseScale * cropZoom;
         const displayedW = cropNaturalWidth * currentScale;
         const displayedH = cropNaturalHeight * currentScale;
 
-        const R = OUT_W / VIEWFINDER_W;
+        const R = cfg.outW / cfg.viewfinderW;
 
-        const drawX = ((VIEWFINDER_W - displayedW) / 2 + cropPanX) * R;
-        const drawY = ((VIEWFINDER_H - displayedH) / 2 + cropPanY) * R;
+        const drawX = ((cfg.viewfinderW - displayedW) / 2 + cropPanX) * R;
+        const drawY = ((cfg.viewfinderH - displayedH) / 2 + cropPanY) * R;
         const drawW = displayedW * R;
         const drawH = displayedH * R;
 
         ctx.drawImage(loadedImg, drawX, drawY, drawW, drawH);
         try {
-          const resultBase64 = canvas.toDataURL("image/jpeg", 0.88);
-          setFormDocImage(resultBase64);
+          const resultBase64 = canvas.toDataURL("image/jpeg", 0.90);
+          if (cropTarget === "hero_desktop") {
+            setConfig((prev) => ({ ...prev, heroDesktopImage: resultBase64 }));
+            setIsDirty(true);
+            setSavedSuccess(false);
+          } else if (cropTarget === "hero_mobile") {
+            setConfig((prev) => ({ ...prev, heroMobileImage: resultBase64 }));
+            setIsDirty(true);
+            setSavedSuccess(false);
+          } else {
+            setFormDocImage(resultBase64);
+          }
           setShowCropperModal(false);
         } catch (exportErr) {
           console.error("Export canvas error:", exportErr);
@@ -513,6 +695,7 @@ export default function DashboardSettings() {
       alert("Failed to position and save image.");
     }
   };
+
 
   const handleSaveDoctorModal = () => {
     const trimmedName = formDocName.trim();
@@ -652,6 +835,12 @@ export default function DashboardSettings() {
         const fetched = await getClinicConfig();
         if (!fetched.teamMembers || fetched.teamMembers.length === 0) {
           fetched.teamMembers = DEFAULT_TEAM_MEMBERS;
+        }
+        if (!fetched.heroDesktopImage) {
+          fetched.heroDesktopImage = "/images/hero_cover_option_1_spine.webp";
+        }
+        if (!fetched.heroMobileImage) {
+          fetched.heroMobileImage = "/images/mobile_cover_teal_option_2.webp";
         }
         setConfig(fetched);
         setInitialConfig(JSON.parse(JSON.stringify(fetched)));
@@ -1963,6 +2152,337 @@ export default function DashboardSettings() {
 
             </div>
 
+            {/* Homepage Hero Cover Banners (Desktop & Mobile) Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-6">
+              {/* Hidden file inputs for cover banner uploads */}
+              <input
+                type="file"
+                ref={heroDesktopFileInputRef}
+                onChange={handleHeroDesktopFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={heroMobileFileInputRef}
+                onChange={handleHeroMobileFileUpload}
+                accept="image/*"
+                className="hidden"
+              />
+
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-teal-500/10 text-brand-green flex items-center justify-center shrink-0">
+                    <ImageIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Homepage Hero Cover Banners (Desktop & Mobile)
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Customize the showcase hero banners displayed to patients on large screens and mobile phones
+                    </p>
+                  </div>
+                </div>
+
+                <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 text-brand-green text-[10px] font-black uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3" />
+                  Live on Homepage
+                </span>
+              </div>
+
+              {/* Curated Presets Collection */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h4 className="text-xs font-black text-brand-charcoal dark:text-white flex items-center gap-2">
+                      <span>Curated Clinical Presets</span>
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        (Select from clinic photo gallery)
+                      </span>
+                    </h4>
+                    <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Therapists love the Medical Teal Interior! 1-click apply to desktop, mobile, or both.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Presets Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                  {HERO_PRESETS.map((preset) => {
+                    const isDesktopActive = (config.heroDesktopImage || "/images/hero_cover_option_1_spine.webp") === preset.url;
+                    const isMobileActive = (config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp") === preset.url;
+
+                    return (
+                      <div
+                        key={preset.id}
+                        className={`group relative rounded-xl border p-2.5 transition-all flex flex-col justify-between ${
+                          isDesktopActive || isMobileActive
+                            ? "bg-brand-green/5 border-brand-green/40 shadow-xs ring-1 ring-brand-green/20"
+                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                        }`}
+                      >
+                        {/* Top thumbnail & info */}
+                        <div>
+                          <div className="relative aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 mb-2">
+                            <img
+                              src={preset.url}
+                              alt={preset.title}
+                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                            />
+                            {preset.recommendedBadge && (
+                              <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-brand-green text-white shadow-xs tracking-tight">
+                                {preset.recommendedBadge}
+                              </span>
+                            )}
+                            <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+                              {isDesktopActive && (
+                                <span className="px-1.5 py-0.5 rounded-md text-[8.5px] font-black bg-blue-600 text-white shadow-xs">
+                                  Desk Active
+                                </span>
+                              )}
+                              {isMobileActive && (
+                                <span className="px-1.5 py-0.5 rounded-md text-[8.5px] font-black bg-emerald-600 text-white shadow-xs">
+                                  Mob Active
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="px-0.5">
+                            <h5 className="text-[11.5px] font-black text-brand-charcoal dark:text-white truncate">
+                              {preset.title}
+                            </h5>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 line-clamp-2 mt-0.5 leading-tight">
+                              {preset.subtitle}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Apply Action Buttons */}
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfig((prev) => ({ ...prev, heroDesktopImage: preset.url }));
+                              setIsDirty(true);
+                              setSavedSuccess(false);
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer border ${
+                              isDesktopActive
+                                ? "bg-blue-600 text-white border-blue-600"
+                                : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                            }`}
+                            title="Apply as Desktop Hero Banner"
+                          >
+                            Set Desktop
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfig((prev) => ({ ...prev, heroMobileImage: preset.url }));
+                              setIsDirty(true);
+                              setSavedSuccess(false);
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer border ${
+                              isMobileActive
+                                ? "bg-emerald-600 text-white border-emerald-600"
+                                : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                            }`}
+                            title="Apply as Mobile Hero Banner"
+                          >
+                            Set Mobile
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfig((prev) => ({
+                                ...prev,
+                                heroDesktopImage: preset.url,
+                                heroMobileImage: preset.url,
+                              }));
+                              setIsDirty(true);
+                              setSavedSuccess(false);
+                            }}
+                            className="px-2 py-1 rounded-lg text-[9.5px] font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-all cursor-pointer"
+                            title="Apply to both Desktop and Mobile"
+                          >
+                            Both
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Individual Desktop & Mobile Banner Managers */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-1">
+                
+                {/* Desktop Cover Image Box (7 cols) */}
+                <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="w-4 h-4 text-brand-green" />
+                      <label className="text-xs font-black text-slate-900 dark:text-white">
+                        Desktop Hero Cover (16:7 Panoramic)
+                      </label>
+                    </div>
+                    <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-800">
+                      Widescreen View
+                    </span>
+                  </div>
+
+                  {/* Panoramic Live Preview */}
+                  <div className="relative aspect-[16/7] w-full rounded-xl overflow-hidden border border-slate-300/80 dark:border-slate-700 shadow-inner bg-slate-900 group">
+                    <img
+                      src={config.heroDesktopImage || "/images/hero_cover_option_1_spine.webp"}
+                      alt="Desktop Hero Preview"
+                      className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300"
+                    />
+                    
+                    {/* Quick action buttons on hover */}
+                    <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5 p-3">
+                      <button
+                        type="button"
+                        onClick={() => heroDesktopFileInputRef.current?.click()}
+                        className="px-3 py-1.5 rounded-xl bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                        title="Upload image from computer"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-brand-green" />
+                        <span>Upload New</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openCropperWithImage(config.heroDesktopImage || "/images/hero_cover_option_1_spine.webp", "hero_desktop")}
+                        className="px-3 py-1.5 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-hover transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                        title="Reposition and pan image"
+                      >
+                        <Crop className="w-3.5 h-3.5" />
+                        <span>Move / Zoom</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Controls & URL Input */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={config.heroDesktopImage || ""}
+                        onChange={(e) => {
+                          setConfig((prev) => ({ ...prev, heroDesktopImage: e.target.value }));
+                          setIsDirty(true);
+                          setSavedSuccess(false);
+                        }}
+                        placeholder="/images/... or https://..."
+                        className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold outline-none focus:border-brand-green text-slate-700 dark:text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfig((prev) => ({ ...prev, heroDesktopImage: "/images/hero_cover_option_1_spine.webp" }));
+                          setIsDirty(true);
+                          setSavedSuccess(false);
+                        }}
+                        className="px-2.5 py-2 rounded-xl text-[10.5px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shrink-0"
+                        title="Reset to default spine decompression cover"
+                      >
+                        Reset Default
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Target resolution ~1600×750px. Renders with smooth dark gradient overlay on desktop.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mobile Cover Image Box (5 cols) */}
+                <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-brand-green" />
+                        <label className="text-xs font-black text-slate-900 dark:text-white">
+                          Mobile Hero Cover (2:3 Portrait)
+                        </label>
+                      </div>
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20">
+                        Smartphone View
+                      </span>
+                    </div>
+
+                    {/* Mobile Mockup Preview */}
+                    <div className="relative mx-auto w-36 aspect-[9/15] rounded-2xl overflow-hidden border-2 border-slate-400/80 dark:border-slate-600 shadow-md bg-slate-900 group">
+                      <img
+                        src={config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp"}
+                        alt="Mobile Hero Preview"
+                        className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300"
+                      />
+
+                      {/* Quick action overlay */}
+                      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                        <button
+                          type="button"
+                          onClick={() => heroMobileFileInputRef.current?.click()}
+                          className="w-full px-2 py-1.5 rounded-lg bg-white text-slate-900 text-[10.5px] font-bold hover:bg-slate-100 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                          title="Upload image from device"
+                        >
+                          <Upload className="w-3 h-3 text-brand-green" />
+                          <span>Upload</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openCropperWithImage(config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp", "hero_mobile")}
+                          className="w-full px-2 py-1.5 rounded-lg bg-brand-green text-white text-[10.5px] font-bold hover:bg-brand-green-hover transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                          title="Reposition and pan mobile image"
+                        >
+                          <Crop className="w-3 h-3" />
+                          <span>Position</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Controls & URL Input */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={config.heroMobileImage || ""}
+                        onChange={(e) => {
+                          setConfig((prev) => ({ ...prev, heroMobileImage: e.target.value }));
+                          setIsDirty(true);
+                          setSavedSuccess(false);
+                        }}
+                        placeholder="/images/... or https://..."
+                        className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold outline-none focus:border-brand-green text-slate-700 dark:text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfig((prev) => ({ ...prev, heroMobileImage: "/images/mobile_cover_teal_option_2.webp" }));
+                          setIsDirty(true);
+                          setSavedSuccess(false);
+                        }}
+                        className="px-2 py-2 rounded-xl text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shrink-0"
+                        title="Reset to default Medical Teal Option 2"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Optimized for phone screens (720×1080px). Displays behind hero banner on mobile.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
 
           {/* Right Column (Span 4) */}
@@ -2546,179 +3066,202 @@ export default function DashboardSettings() {
       {/* Interactive Photo Framing & Positioner Cropper Modal */}
       {showCropperModal && mounted && createPortal(
         <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl overflow-hidden animate-fade-in-up my-auto flex flex-col">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm sm:max-w-xl w-full shadow-2xl overflow-hidden animate-fade-in-up my-auto flex flex-col">
             
-            {/* Modal Header */}
-            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-900/70">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
-                  <Crop className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
-                    Frame & Position Portrait
-                  </h3>
-                  <p className="text-[10px] text-slate-400 font-semibold">
-                    Drag & zoom to ensure head & face aren't chopped off
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCropperModal(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Viewfinder Canvas Area */}
-            <div className="p-4 sm:p-5 flex flex-col items-center select-none bg-slate-50/40 dark:bg-slate-950/40">
-              <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/10 border border-brand-green/20">
-                <Move className="w-3.5 h-3.5 text-brand-green animate-pulse" />
-                <span>Click & drag inside frame to move image</span>
-              </div>
-
-              {/* Viewfinder Frame (300px x 375px = 4:5 ratio) */}
-              <div 
-                className="relative overflow-hidden rounded-2xl border-2 border-brand-green shadow-xl bg-slate-950 cursor-grab active:cursor-grabbing touch-none select-none ring-4 ring-brand-green/15"
-                style={{ width: `${VIEWFINDER_W}px`, height: `${VIEWFINDER_H}px` }}
-                onPointerDown={handleViewfinderPointerDown}
-                onPointerMove={handleViewfinderPointerMove}
-                onPointerUp={handleViewfinderPointerUp}
-                onPointerCancel={handleViewfinderPointerUp}
-              >
-                {/* Scaled & Positioned Image */}
-                {cropperRawSrc && (
-                  (() => {
-                    const baseScale = Math.max(VIEWFINDER_W / (cropNaturalWidth || 1), VIEWFINDER_H / (cropNaturalHeight || 1)) || 1;
-                    const currentScale = baseScale * cropZoom;
-                    const displayedW = (cropNaturalWidth || 300) * currentScale;
-                    const displayedH = (cropNaturalHeight || 375) * currentScale;
-                    const left = (VIEWFINDER_W - displayedW) / 2 + cropPanX;
-                    const top = (VIEWFINDER_H - displayedH) / 2 + cropPanY;
-
-                    return (
-                      <img
-                        src={cropperRawSrc}
-                        alt="Crop target"
-                        draggable={false}
-                        className="absolute max-w-none pointer-events-none select-none transition-transform duration-75 ease-out"
-                        style={{
-                          width: `${displayedW}px`,
-                          height: `${displayedH}px`,
-                          left: `${left}px`,
-                          top: `${top}px`,
-                        }}
-                      />
-                    );
-                  })()
-                )}
-
-                {/* Viewfinder Grid Guidelines (Rule of thirds) */}
-                <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 border border-white/20">
-                  <div className="border-r border-b border-white/15" />
-                  <div className="border-r border-b border-white/15" />
-                  <div className="border-b border-white/15" />
-                  <div className="border-r border-b border-white/15" />
-                  <div className="border-r border-b border-white/15" />
-                  <div className="border-b border-white/15" />
-                  <div className="border-r border-b border-white/15" />
-                  <div className="border-r border-b border-white/15" />
-                  <div />
-                </div>
-
-                {/* Corner Viewfinder Indicators */}
-                <div className="absolute top-2.5 left-2.5 w-3.5 h-3.5 border-t-2 border-l-2 border-brand-green pointer-events-none" />
-                <div className="absolute top-2.5 right-2.5 w-3.5 h-3.5 border-t-2 border-r-2 border-brand-green pointer-events-none" />
-                <div className="absolute bottom-2.5 left-2.5 w-3.5 h-3.5 border-b-2 border-l-2 border-brand-green pointer-events-none" />
-                <div className="absolute bottom-2.5 right-2.5 w-3.5 h-3.5 border-b-2 border-r-2 border-brand-green pointer-events-none" />
-                
-                {/* 4:5 Portrait Badge */}
-                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white/80 px-2 py-0.5 rounded-full text-[9px] font-bold pointer-events-none tracking-wider">
-                  4:5 PORTRAIT RATIO
-                </div>
-              </div>
-
-              {/* Zoom & Positioning Controls */}
-              <div className="w-full max-w-[300px] mt-4 space-y-3">
-                {/* Zoom Slider */}
-                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={() => setCropZoom((prev) => Math.max(1, Number((prev - 0.1).toFixed(2))))}
-                    className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 cursor-pointer"
-                    title="Zoom Out"
-                  >
-                    <ZoomOut className="w-4 h-4" />
-                  </button>
-                  <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 min-w-[32px] text-center">
-                    {cropZoom.toFixed(1)}x
-                  </span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="3"
-                    step="0.05"
-                    value={cropZoom}
-                    onChange={(e) => setCropZoom(parseFloat(e.target.value))}
-                    className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCropZoom((prev) => Math.min(3, Number((prev + 0.1).toFixed(2))))}
-                    className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 cursor-pointer"
-                    title="Zoom In"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Quick Alignment Presets */}
-                <div className="flex items-center justify-between gap-1.5 pt-0.5">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                    Presets:
-                  </span>
-                  <div className="flex items-center gap-1.5">
+            {/* Modal Header & Content */}
+            {(() => {
+              const cropperCfg = getCropperConfig(cropTarget);
+              return (
+                <>
+                  <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-900/70">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-xl bg-brand-green/10 text-brand-green flex items-center justify-center shrink-0">
+                        <Crop className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-brand-charcoal dark:text-white leading-tight">
+                          {cropperCfg.title}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-semibold">
+                          {cropperCfg.subtitle}
+                        </p>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        const baseScale = Math.max(VIEWFINDER_W / (cropNaturalWidth || 1), VIEWFINDER_H / (cropNaturalHeight || 1)) || 1;
-                        const dispH = (cropNaturalHeight || 375) * baseScale * cropZoom;
-                        const maxShiftDown = Math.max(0, Math.round((dispH - VIEWFINDER_H) / 2));
-                        setCropPanX(0);
-                        setCropPanY(maxShiftDown);
-                      }}
-                      className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-colors cursor-pointer"
-                      title="Align to show top of head completely"
+                      onClick={() => setShowCropperModal(false)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer border-0"
                     >
-                      Head / Face Focus
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCropPanX(0);
-                        setCropPanY(0);
-                      }}
-                      className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-                    >
-                      Center
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCropZoom(1);
-                        setCropPanX(0);
-                        setCropPanY(0);
-                      }}
-                      className="px-2 py-1 rounded-lg text-[10.5px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer border-0 bg-transparent"
-                    >
-                      Reset
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              </div>
-            </div>
+
+                  {/* Viewfinder Canvas Area */}
+                  <div className="p-4 sm:p-5 flex flex-col items-center select-none bg-slate-50/40 dark:bg-slate-950/40">
+                    <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/10 border border-brand-green/20">
+                      <Move className="w-3.5 h-3.5 text-brand-green animate-pulse" />
+                      <span>Click & drag inside frame to reposition image</span>
+                    </div>
+
+                    {/* Viewfinder Frame */}
+                    <div 
+                      className="relative overflow-hidden rounded-2xl border-2 border-brand-green shadow-xl bg-slate-950 cursor-grab active:cursor-grabbing touch-none select-none ring-4 ring-brand-green/15 max-w-full"
+                      style={{ width: `${cropperCfg.viewfinderW}px`, height: `${cropperCfg.viewfinderH}px` }}
+                      onPointerDown={handleViewfinderPointerDown}
+                      onPointerMove={handleViewfinderPointerMove}
+                      onPointerUp={handleViewfinderPointerUp}
+                      onPointerCancel={handleViewfinderPointerUp}
+                    >
+                      {/* Scaled & Positioned Image */}
+                      {cropperRawSrc && (
+                        (() => {
+                          const baseScale = Math.max(cropperCfg.viewfinderW / (cropNaturalWidth || 1), cropperCfg.viewfinderH / (cropNaturalHeight || 1)) || 1;
+                          const currentScale = baseScale * cropZoom;
+                          const displayedW = (cropNaturalWidth || cropperCfg.viewfinderW) * currentScale;
+                          const displayedH = (cropNaturalHeight || cropperCfg.viewfinderH) * currentScale;
+                          const left = (cropperCfg.viewfinderW - displayedW) / 2 + cropPanX;
+                          const top = (cropperCfg.viewfinderH - displayedH) / 2 + cropPanY;
+
+                          return (
+                            <img
+                              src={cropperRawSrc}
+                              alt="Crop target"
+                              draggable={false}
+                              className="absolute max-w-none pointer-events-none select-none transition-transform duration-75 ease-out"
+                              style={{
+                                width: `${displayedW}px`,
+                                height: `${displayedH}px`,
+                                left: `${left}px`,
+                                top: `${top}px`,
+                              }}
+                            />
+                          );
+                        })()
+                      )}
+
+                      {/* Viewfinder Grid Guidelines (Rule of thirds) */}
+                      <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 border border-white/20">
+                        <div className="border-r border-b border-white/15" />
+                        <div className="border-r border-b border-white/15" />
+                        <div className="border-b border-white/15" />
+                        <div className="border-r border-b border-white/15" />
+                        <div className="border-r border-b border-white/15" />
+                        <div className="border-b border-white/15" />
+                        <div className="border-r border-b border-white/15" />
+                        <div className="border-r border-b border-white/15" />
+                        <div />
+                      </div>
+
+                      {/* Corner Viewfinder Indicators */}
+                      <div className="absolute top-2.5 left-2.5 w-3.5 h-3.5 border-t-2 border-l-2 border-brand-green pointer-events-none" />
+                      <div className="absolute top-2.5 right-2.5 w-3.5 h-3.5 border-t-2 border-r-2 border-brand-green pointer-events-none" />
+                      <div className="absolute bottom-2.5 left-2.5 w-3.5 h-3.5 border-b-2 border-l-2 border-brand-green pointer-events-none" />
+                      <div className="absolute bottom-2.5 right-2.5 w-3.5 h-3.5 border-b-2 border-r-2 border-brand-green pointer-events-none" />
+                      
+                      {/* Dynamic Aspect Ratio Badge */}
+                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white/80 px-2 py-0.5 rounded-full text-[9px] font-bold pointer-events-none tracking-wider whitespace-nowrap">
+                        {cropperCfg.ratioLabel}
+                      </div>
+                    </div>
+
+                    {/* Zoom & Positioning Controls */}
+                    <div className="w-full max-w-[340px] mt-4 space-y-3">
+                      {/* Zoom Slider */}
+                      <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                        <button
+                          type="button"
+                          onClick={() => setCropZoom((prev) => Math.max(1, Number((prev - 0.1).toFixed(2))))}
+                          className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 cursor-pointer"
+                          title="Zoom Out"
+                        >
+                          <ZoomOut className="w-4 h-4" />
+                        </button>
+                        <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 min-w-[32px] text-center">
+                          {cropZoom.toFixed(1)}x
+                        </span>
+                        <input
+                          type="range"
+                          min="1"
+                          max="3"
+                          step="0.05"
+                          value={cropZoom}
+                          onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                          className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCropZoom((prev) => Math.min(3, Number((prev + 0.1).toFixed(2))))}
+                          className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-0 cursor-pointer"
+                          title="Zoom In"
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Quick Alignment Presets */}
+                      <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                          Presets:
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          {cropTarget === "doctor" ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const baseScale = Math.max(cropperCfg.viewfinderW / (cropNaturalWidth || 1), cropperCfg.viewfinderH / (cropNaturalHeight || 1)) || 1;
+                                const dispH = (cropNaturalHeight || 375) * baseScale * cropZoom;
+                                const maxShiftDown = Math.max(0, Math.round((dispH - cropperCfg.viewfinderH) / 2));
+                                setCropPanX(0);
+                                setCropPanY(maxShiftDown);
+                              }}
+                              className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-colors cursor-pointer"
+                              title="Align to show top of head completely"
+                            >
+                              Head / Face Focus
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const baseScale = Math.max(cropperCfg.viewfinderW / (cropNaturalWidth || 1), cropperCfg.viewfinderH / (cropNaturalHeight || 1)) || 1;
+                                const dispH = (cropNaturalHeight || 375) * baseScale * cropZoom;
+                                const shiftDown = Math.max(0, Math.round((dispH - cropperCfg.viewfinderH) * 0.25));
+                                setCropPanX(0);
+                                setCropPanY(shiftDown);
+                              }}
+                              className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-colors cursor-pointer"
+                            >
+                              Top Horizon
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCropPanX(0);
+                              setCropPanY(0);
+                            }}
+                            className="px-2 py-1 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                          >
+                            Center
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCropZoom(1);
+                              setCropPanX(0);
+                              setCropPanY(0);
+                            }}
+                            className="px-2 py-1 rounded-lg text-[10.5px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer border-0 bg-transparent"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Modal Footer */}
             <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 flex items-center justify-end gap-2.5 shrink-0">

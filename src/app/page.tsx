@@ -781,22 +781,22 @@ export default function Home() {
 
       {/* Hero Section: Full-Bleed Panoramic Clinical Cover Canvas */}
       <section id="home" className="relative overflow-hidden min-h-[500px] lg:min-h-[660px] flex items-center py-14 sm:py-28 text-brand-charcoal bg-slate-950">
-        {/* Mobile Background: Option 2 Medical Teal Clinic Interior */}
+        {/* Mobile Background: Portrait Oriented Cover Canvas */}
         <div 
           className="sm:hidden absolute inset-0 bg-cover bg-no-repeat bg-center opacity-75 transition-all duration-700" 
-          style={{ backgroundImage: "url('/images/mobile_cover_teal_option_2.webp')" }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroMobileImage || "/images/mobile_cover_teal_option_2.webp"}')` }} 
         />
 
-        {/* Desktop Background: Full Panoramic Treatment Cover (Dr. Kinnera on Right) */}
+        {/* Desktop Background: Full Panoramic Treatment Cover */}
         <div 
           className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700" 
-          style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_option_1_spine.webp"}')` }} 
         />
 
         {/* Desktop Layer 2: Selective Blurred Image Overlay for Depth */}
         <div 
           className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
-          style={{ backgroundImage: "url('/images/hero_cover_option_1_spine.webp')" }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_option_1_spine.webp"}')` }} 
         />
         
         {/* Layer 3: Sophisticated Gradient Scrim (Mobile: Gentle vertical fade / Desktop: Horizontal gradient) */}
