@@ -288,11 +288,19 @@ export interface HeroPresetOption {
 export const HERO_PRESETS: HeroPresetOption[] = [
   {
     id: "mobile_teal_2",
-    title: "Medical Teal Interior (Option 2)",
-    subtitle: "Modern mint/teal physiotherapy suite with treatment bed & exercise balls",
+    title: "Medical Teal Studio (Wooden Flooring)",
+    subtitle: "Therapists' favorite — warm wood plank flooring, gym balls & zero clinic logos",
     url: "/images/mobile_cover_teal_option_2.webp",
-    recommendedBadge: "⭐ Therapists' Pick",
+    recommendedBadge: "⭐ Therapists' Pick (Mobile)",
     tag: "Therapists' Favorite",
+  },
+  {
+    id: "desktop_teal_wooden",
+    title: "Teal Studio Panoramic (Wooden Flooring)",
+    subtitle: "Widescreen 16:9 panoramic view with matching wood flooring & zero clinic logos",
+    url: "/images/hero_cover_teal_wooden_floor.webp",
+    recommendedBadge: "⭐ Therapists' Pick (Desktop)",
+    tag: "Widescreen Studio",
   },
   {
     id: "spine_decompression",
