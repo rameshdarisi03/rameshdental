@@ -1070,13 +1070,25 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Desktop: 3-Doctor Showcase Grid in 1 shot */}
-          <div className="hidden lg:grid lg:grid-cols-3 gap-8 items-stretch">
+          {/* Desktop & Tablet: Auto-Adaptive Showcase Grid (3x1, 2x2, 3+2, 3x2, 4+3, 4x2) */}
+          <div className="hidden md:flex flex-wrap justify-center gap-6 lg:gap-8 items-stretch">
             {activeDoctors.map((doctor) => {
+              // Dynamic width classes based on active doctor count:
+              // 4 doctors -> 2x2 grid (50% on desktop)
+              // 7 or 8 doctors -> 4 per row (25% on desktop: 4+3 or 4x2)
+              // 3, 5, 6 doctors -> 3 per row (33.333% on desktop: 3x1, 3+2 centered, 3x2)
+              // Tablet (md) -> clean 2-column centered layout (50%)
+              const cardWidthClass =
+                activeDoctors.length === 4
+                  ? "w-full md:w-[calc(50%-1rem)] lg:w-[calc(50%-1.5rem)] md:max-w-md lg:max-w-md"
+                  : activeDoctors.length >= 7
+                  ? "w-full md:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] md:max-w-md lg:max-w-xs xl:max-w-sm"
+                  : "w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] md:max-w-md lg:max-w-sm";
+
               return (
                 <div
                   key={doctor.id || doctor.name}
-                  className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-xl hover:border-brand-green/40 transition-all duration-300 flex flex-col justify-between"
+                  className={`group bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-xl hover:border-brand-green/40 transition-all duration-300 flex flex-col justify-between ${cardWidthClass}`}
                 >
                   {/* Photo with Experience Badge */}
                   <div>
@@ -1098,7 +1110,7 @@ export default function Home() {
                     </div>
 
                     {/* Doctor Info */}
-                    <div className="p-6 space-y-3">
+                    <div className="p-5 xl:p-6 space-y-3">
                       <div>
                         <h3 className="text-lg sm:text-xl font-black text-brand-charcoal dark:text-white leading-snug group-hover:text-brand-green transition-colors">
                           {doctor.name}
@@ -1131,10 +1143,10 @@ export default function Home() {
 
                   {/* Action Buttons: Only rendered when online booking is enabled */}
                   {clinicConfig.enablePublicBooking !== false && (
-                    <div className="p-6 pt-0 space-y-2">
+                    <div className="p-5 xl:p-6 pt-0 space-y-2">
                       <Link
                         href={`/book?therapist=${encodeURIComponent(doctor.name)}`}
-                        className="w-full inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-xs transition-transform active:scale-95"
+                        className="w-full inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black py-2.5 px-3 xl:px-4 rounded-xl shadow-xs transition-transform active:scale-95"
                       >
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Book Consultation</span>
@@ -1142,7 +1154,7 @@ export default function Home() {
 
                       <Link
                         href={`/team#${doctor.id}`}
-                        className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
+                        className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold py-2.5 px-3 xl:px-4 rounded-xl transition-colors bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
                       >
                         <span>View Full Profile</span>
                         <span className="text-sm leading-none">→</span>
@@ -1155,7 +1167,7 @@ export default function Home() {
           </div>
 
           {/* Smartphone / Mobile: Sliding Carousel with arrows & touch swipe every 2s */}
-          <div className="lg:hidden relative max-w-md mx-auto">
+          <div className="md:hidden relative max-w-md mx-auto">
             {/* Carousel Frame */}
             <div
               className="overflow-hidden rounded-3xl"
