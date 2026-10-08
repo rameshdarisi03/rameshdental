@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
 import { getClinicConfig } from "@/lib/db";
+import { getInvoices, Invoice } from "@/lib/invoicesDb";
 import { 
   TrendingUp, 
   Users, 
@@ -51,6 +52,7 @@ export default function DashboardAnalytics() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [therapistsList, setTherapistsList] = useState<string[]>(["Dr. Rohan", "Dr. Kinnera"]);
 
   // Toolbar Filters
@@ -67,13 +69,15 @@ export default function DashboardAnalytics() {
     pending: 0,
     rejected: 0,
     revenue: 0,
+    paidRevenue: 0,
+    invoicesCount: 0,
     avgRevPerSession: 0,
-    noShowRate: 0,
+    cancellationRate: 0,
     prevTotal: 0,
     prevRevenue: 0,
     prevAvgRevPerSession: 0,
     prevRejected: 0,
-    prevNoShowRate: 0,
+    prevCancellationRate: 0,
   });
 
   // Dynamic Insight Cards Strip
@@ -81,7 +85,6 @@ export default function DashboardAnalytics() {
     growingService: "Musculoskeletal Rehab bookings are steady this week.",
     cancellationDetails: "Cancellation rate is steady at 3%, comfortably under your 8% threshold.",
     busiestSlot: "Mondays 09:30 AM carry your heaviest load — consider an extra slot there.",
-    noShowAlert: "No-show rate ticked up to 7% this period — 2 patients missed booked visits."
   });
 
   // Dynamic Lists and Charts data
@@ -108,14 +111,22 @@ export default function DashboardAnalytics() {
   const loadData = async () => {
     setRefreshing(true);
     try {
-      // 1. Fetch appointments
+      // 1. Fetch appointments & invoices in parallel
       const q = query(collection(db, "appointments"));
-      const snapshot = await getDocs(q);
+      const [snapshot, invs] = await Promise.all([
+        getDocs(q),
+        getInvoices().catch((err) => {
+          console.error("Failed to fetch invoices for analytics: ", err);
+          return [] as Invoice[];
+        })
+      ]);
+
       const apps: Appointment[] = [];
       snapshot.forEach((docSnap) => {
         apps.push({ id: docSnap.id, ...docSnap.data() } as Appointment);
       });
       setAppointments(apps);
+      setInvoices(invs);
 
       // 2. Fetch enrolled therapists from config settings
       const config = await getClinicConfig();
@@ -123,9 +134,9 @@ export default function DashboardAnalytics() {
         setTherapistsList(config.therapists);
       }
 
-      calculateStats(apps, timeRange, selectedTherapist, selectedService);
+      calculateStats(apps, invs, timeRange, selectedTherapist, selectedService);
     } catch (err) {
-      console.error("Failed to fetch appointments for analytics: ", err);
+      console.error("Failed to fetch data for analytics: ", err);
     } finally {
       setRefreshing(false);
       setLoading(false);
@@ -142,20 +153,33 @@ export default function DashboardAnalytics() {
     return diffDays >= startDay && diffDays < endDay;
   };
 
-  // Estimate revenue based on standard price matrix
-  const getAppRevenue = (app: Appointment) => {
-    if (app.status !== "approved") return 0;
-    const s = app.serviceId.toLowerCase();
-    if (s.includes("gait") || s.includes("biomechanical")) return 1500;
-    if (s.includes("sports") || s.includes("injury")) return 1200;
-    if (s.includes("post-surgical") || s.includes("surgical")) return 1000;
-    if (s.includes("neurological") || s.includes("neuro")) return 1500;
-    if (s.includes("pelvic")) return 1000;
-    return 800; // General Consultation
+  // Helper to check if an invoice is void or cancelled or replaced
+  const isInvoiceVoid = (inv: Invoice): boolean => {
+    return inv.status === "voided" || inv.status === "cancelled" || Boolean(inv.replacedByInvoiceNumber);
+  };
+
+  // Helper to extract YYYY-MM-DD from an invoice safely
+  const getInvoiceDateStr = (inv: Invoice): string => {
+    if (inv.serviceDate && inv.serviceDate.trim()) {
+      return inv.serviceDate.trim().split("T")[0];
+    }
+    if (inv.createdAt) {
+      if (typeof inv.createdAt.toDate === "function") {
+        return inv.createdAt.toDate().toISOString().split("T")[0];
+      }
+      if (typeof inv.createdAt === "string") {
+        return inv.createdAt.split("T")[0];
+      }
+      if (inv.createdAt instanceof Date) {
+        return inv.createdAt.toISOString().split("T")[0];
+      }
+    }
+    return "";
   };
 
   const calculateStats = (
     apps: Appointment[], 
+    allInvoices: Invoice[],
     range: "week" | "month" | "all",
     therapist: string,
     service: string
@@ -169,19 +193,61 @@ export default function DashboardAnalytics() {
       baseApps = baseApps.filter(a => a.serviceId.toLowerCase().includes(service.toLowerCase()) || service.toLowerCase().includes(a.serviceId.toLowerCase()));
     }
 
+    // Filter valid, non-void invoices
+    const activeInvoices = allInvoices.filter(inv => !isInvoiceVoid(inv));
+
+    // Filter invoices by therapist & service selection
+    let baseInvoices = activeInvoices;
+    if (therapist !== "All Therapists") {
+      const cleanFilter = therapist.toLowerCase().replace("dr.", "").replace("dr ", "").trim();
+      baseInvoices = baseInvoices.filter(inv => {
+        if (!inv.therapistName) return false;
+        const cleanInv = inv.therapistName.toLowerCase().replace("dr.", "").replace("dr ", "").trim();
+        return cleanInv.includes(cleanFilter) || cleanFilter.includes(cleanInv);
+      });
+    }
+    if (service !== "All Services") {
+      const target = service.toLowerCase().trim();
+      baseInvoices = baseInvoices.filter(inv => 
+        (inv.items || []).some(item => 
+          item.description.toLowerCase().includes(target) || target.includes(item.description.toLowerCase())
+        )
+      );
+    }
+
     // 2. Partition into current period and previous period
     let currentApps: Appointment[] = [];
     let prevApps: Appointment[] = [];
+    let currentInvoices: Invoice[] = [];
+    let prevInvoices: Invoice[] = [];
 
     if (range === "week") {
       currentApps = baseApps.filter(a => isWithinPastDays(a.date, 0, 7));
       prevApps = baseApps.filter(a => isWithinPastDays(a.date, 7, 14));
+      currentInvoices = baseInvoices.filter(inv => {
+        const d = getInvoiceDateStr(inv);
+        return d ? isWithinPastDays(d, 0, 7) : false;
+      });
+      prevInvoices = baseInvoices.filter(inv => {
+        const d = getInvoiceDateStr(inv);
+        return d ? isWithinPastDays(d, 7, 14) : false;
+      });
     } else if (range === "month") {
       currentApps = baseApps.filter(a => isWithinPastDays(a.date, 0, 30));
       prevApps = baseApps.filter(a => isWithinPastDays(a.date, 30, 60));
+      currentInvoices = baseInvoices.filter(inv => {
+        const d = getInvoiceDateStr(inv);
+        return d ? isWithinPastDays(d, 0, 30) : false;
+      });
+      prevInvoices = baseInvoices.filter(inv => {
+        const d = getInvoiceDateStr(inv);
+        return d ? isWithinPastDays(d, 30, 60) : false;
+      });
     } else {
       currentApps = baseApps;
-      prevApps = baseApps; // Delts remain neutral
+      prevApps = baseApps;
+      currentInvoices = baseInvoices;
+      prevInvoices = baseInvoices;
     }
 
     // --- Current Stats ---
@@ -190,22 +256,29 @@ export default function DashboardAnalytics() {
     const pending = currentApps.filter(a => a.status === "pending").length;
     const rejected = currentApps.filter(a => a.status === "rejected").length;
 
-    let revenue = 0;
-    currentApps.forEach(a => { revenue += getAppRevenue(a); });
+    // Actual sum of billed invoices (excludes void)
+    const revenue = currentInvoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+    const paidRevenue = currentInvoices
+      .filter(inv => inv.status === "paid")
+      .reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+    const invoicesCount = currentInvoices.length;
 
-    const avgRevPerSession = approved > 0 ? Math.round(revenue / approved) : 0;
-    const noShowRate = total > 0 ? Math.round((rejected / total) * 100) : 0;
+    const avgRevPerSession = approved > 0 
+      ? Math.round(revenue / approved) 
+      : (invoicesCount > 0 ? Math.round(revenue / invoicesCount) : 0);
+
+    const cancellationRate = total > 0 ? Math.round((rejected / total) * 100) : 0;
 
     // --- Previous Stats ---
     const prevTotal = prevApps.length;
     const prevApproved = prevApps.filter(a => a.status === "approved").length;
     const prevRejected = prevApps.filter(a => a.status === "rejected").length;
 
-    let prevRevenue = 0;
-    prevApps.forEach(a => { prevRevenue += getAppRevenue(a); });
-
-    const prevAvgRevPerSession = prevApproved > 0 ? Math.round(prevRevenue / prevApproved) : 0;
-    const prevNoShowRate = prevTotal > 0 ? Math.round((prevRejected / prevTotal) * 100) : 0;
+    const prevRevenue = prevInvoices.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+    const prevAvgRevPerSession = prevApproved > 0 
+      ? Math.round(prevRevenue / prevApproved) 
+      : (prevInvoices.length > 0 ? Math.round(prevRevenue / prevInvoices.length) : 0);
+    const prevCancellationRate = prevTotal > 0 ? Math.round((prevRejected / prevTotal) * 100) : 0;
 
     setStats({
       total,
@@ -213,13 +286,15 @@ export default function DashboardAnalytics() {
       pending,
       rejected,
       revenue,
+      paidRevenue,
+      invoicesCount,
       avgRevPerSession,
-      noShowRate,
+      cancellationRate,
       prevTotal,
       prevRevenue,
       prevAvgRevPerSession,
       prevRejected,
-      prevNoShowRate
+      prevCancellationRate
     });
 
     // 3. Traffic Trends (last 7 calendar days or relative slots)
@@ -251,10 +326,11 @@ export default function DashboardAnalytics() {
           previous: prevSet.length
         };
       } else {
-        let currRev = 0;
-        currSet.forEach(a => { currRev += getAppRevenue(a); });
-        let prevRev = 0;
-        prevSet.forEach(a => { prevRev += getAppRevenue(a); });
+        // Real invoice revenue for that calendar date
+        const currDayInvs = currentInvoices.filter(inv => getInvoiceDateStr(inv) === dateStr);
+        const prevDayInvs = prevInvoices.filter(inv => getInvoiceDateStr(inv) === prevDateStr);
+        const currRev = currDayInvs.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+        const prevRev = prevDayInvs.reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
         return {
           day: daysOfWeek[dateObj.getDay()],
           current: currRev,
@@ -361,9 +437,8 @@ export default function DashboardAnalytics() {
     const topSvcCount = serviceList[0]?.count || 0;
     setInsights({
       growingService: `${topSvc} bookings are at ${topSvcCount} this week — your fastest-growing service line.`,
-      cancellationDetails: `Cancellation rate is steady at ${noShowRate}%, comfortably under your 8% threshold.`,
+      cancellationDetails: `Cancellation rate is steady at ${cancellationRate}%, comfortably under your 8% threshold.`,
       busiestSlot: `Peak hours carry your heaviest load — consider allocating resources in top slots.`,
-      noShowAlert: `No-show rate is at ${noShowRate}% this period — ${rejected} bookings were cancelled.`
     });
 
     setAnimationKey(prev => prev + 1);
@@ -385,7 +460,7 @@ export default function DashboardAnalytics() {
       setTimeRange(value as "week" | "month" | "all");
     }
 
-    calculateStats(appointments, r, t, s);
+    calculateStats(appointments, invoices, r, t, s);
   };
 
   // Export dataset as CSV file
@@ -410,7 +485,9 @@ export default function DashboardAnalytics() {
 
   // Update SVG charts metrics dynamically when bookings/revenue toggle updates
   useEffect(() => {
-    calculateStats(appointments, timeRange, selectedTherapist, selectedService);
+    if (appointments.length > 0 || invoices.length > 0) {
+      calculateStats(appointments, invoices, timeRange, selectedTherapist, selectedService);
+    }
   }, [activeMetric, compareOn]);
 
   if (loading) {
@@ -648,7 +725,7 @@ export default function DashboardAnalytics() {
       </div>
 
       {/* DYNAMIC INSIGHT STRIP */}
-      <div key={`insights-${animationKey}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+      <div key={`insights-${animationKey}`} className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
         
         {/* Insight 1 */}
         <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 border-l-4 border-l-[#D9A441] p-4 rounded-xl flex gap-3 items-start shadow-sm animate-scale-up">
@@ -674,18 +751,10 @@ export default function DashboardAnalytics() {
           </span>
         </div>
 
-        {/* Insight 4 */}
-        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 border-l-4 border-l-[#D9A441] p-4 rounded-xl flex gap-3 items-start shadow-sm animate-scale-up [animation-delay:300ms]">
-          <span className="text-base mt-0.5 select-none">⚠️</span>
-          <span className="text-xs text-[#182625] dark:text-slate-300 leading-relaxed font-semibold">
-            {insights.noShowAlert}
-          </span>
-        </div>
-
       </div>
 
       {/* KPI GRID */}
-      <div key={`kpi-${animationKey}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div key={`kpi-${animationKey}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         
         {/* KPI 1 */}
         <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up flex flex-col justify-between">
@@ -711,16 +780,15 @@ export default function DashboardAnalytics() {
         {/* KPI 2 */}
         <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:50ms] flex flex-col justify-between">
           <div className="flex justify-between items-start">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Est. Revenue</span>
-            <a
-              href="#revenue-history"
-              onClick={(e) => e.preventDefault()}
-              title="View Revenue History (Coming Soon)"
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">Billed Revenue</span>
+            <Link
+              href="/dashboard/invoices"
+              title="View Invoices & Billing"
               className="h-6 w-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-brand-green flex items-center justify-center hover:bg-brand-green hover:text-white transition-all cursor-pointer shadow-2xs group/btn"
-              aria-label="View Revenue History"
+              aria-label="View Invoices & Billing"
             >
               <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
-            </a>
+            </Link>
           </div>
           
           <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
@@ -733,7 +801,7 @@ export default function DashboardAnalytics() {
           </div>
           
           <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
-            Calculated from approved visits
+            {stats.invoicesCount} active bills (excludes void)
           </p>
         </div>
 
@@ -754,7 +822,7 @@ export default function DashboardAnalytics() {
           </div>
           
           <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
-            Across all approved bookings
+            Across all approved visits
           </p>
         </div>
 
@@ -785,35 +853,16 @@ export default function DashboardAnalytics() {
           </div>
           
           <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
-            {stats.noShowRate}%
+            {stats.cancellationRate}%
             {timeRange !== "all" && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.noShowRate <= stats.prevNoShowRate ? "bg-[#E4F3EB] text-[#3B9E6F]" : "bg-[#FBEAE7] text-[#C65D4B]"}`}>
-                {stats.noShowRate <= stats.prevNoShowRate ? "▼" : "▲"} {Math.abs(stats.noShowRate - stats.prevNoShowRate)}pt
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stats.cancellationRate <= stats.prevCancellationRate ? "bg-[#E4F3EB] text-[#3B9E6F]" : "bg-[#FBEAE7] text-[#C65D4B]"}`}>
+                {stats.cancellationRate <= stats.prevCancellationRate ? "▼" : "▲"} {Math.abs(stats.cancellationRate - stats.prevCancellationRate)}pt
               </span>
             )}
           </div>
           
           <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
             {stats.rejected} rejected this period
-          </p>
-        </div>
-
-        {/* KPI 6 */}
-        <div className="bg-white dark:bg-slate-900 border border-[#DCE3DC] dark:border-slate-800 p-5 rounded-2xl animate-scale-up [animation-delay:250ms] flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#4B5E59]">No-Show Rate</span>
-            <span className="text-xs shrink-0 select-none">🚫</span>
-          </div>
-          
-          <div className={`text-2xl font-black text-[#182625] dark:text-white mt-4 flex items-baseline gap-2 ${ibmPlexMono.className}`}>
-            {Math.max(stats.noShowRate - 2, 0)}%
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0F0EC] dark:bg-slate-950 text-[#4B5E59] select-none">
-              — active
-            </span>
-          </div>
-          
-          <p className="text-[10px] text-[#4B5E59] border-t border-[#DCE3DC] dark:border-slate-850 mt-3 pt-3 font-semibold">
-            Based on active slots rejected
           </p>
         </div>
 
