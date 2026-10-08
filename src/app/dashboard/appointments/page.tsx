@@ -26,6 +26,7 @@ import {
   getBlocksByDate,
   isSlotInPast
 } from "@/lib/db";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import {
   Calendar,
   Clock,
@@ -372,16 +373,7 @@ export default function DashboardAppointments() {
 
   // Pre-fill WhatsApp confirmation message
   const triggerWhatsAppConfirmation = (app: Appointment) => {
-    let cleanPhone = app.patientPhone.replace(/\D/g, "");
-    if (cleanPhone.startsWith("0")) {
-      cleanPhone = cleanPhone.replace(/^0+/, "");
-    }
-    if (cleanPhone.length === 10) {
-      cleanPhone = "91" + cleanPhone;
-    }
-    if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "918904456243";
-    }
+    const cleanPhone = getCleanWhatsAppNumber(app.patientPhone);
 
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";

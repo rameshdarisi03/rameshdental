@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
-import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
+import { getCleanWhatsAppNumber, getPrimaryDialNumber } from "@/lib/phoneUtils";
 
 import { usePatientAuth } from "@/providers/PatientAuthProvider";
 
@@ -448,7 +448,7 @@ export default function DashboardPage() {
         </div>
 
         <a
-          href={`tel:${(clinicConfig?.phone || "+918904456243").replace(/\s+/g, "")}`}
+          href={`tel:${getPrimaryDialNumber(clinicConfig?.phone)}`}
           className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-5 py-2.5 rounded-full border border-white/20 transition-all shrink-0"
         >
           <span>Call Clinic Desk</span>

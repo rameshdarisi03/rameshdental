@@ -17,7 +17,7 @@ import {
   WeekdayKey
 } from "@/lib/db";
 import { Calendar as CalendarIcon, Clock, User, Phone, Mail, FileText, Loader2, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
-import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
+import { getCleanWhatsAppNumber, getPrimaryDialNumber } from "@/lib/phoneUtils";
 
 // Get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -334,7 +334,7 @@ function BookingFormContent() {
                 WhatsApp Us
               </a>
               <a
-                href={`tel:${clinicConfig.phone || "+918904456243"}`}
+                href={`tel:${getPrimaryDialNumber(clinicConfig.phone)}`}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 py-3.5 px-4 text-xs font-black transition-all active:scale-95 cursor-pointer"
               >
                 <Phone className="h-4 w-4 text-brand-green" />

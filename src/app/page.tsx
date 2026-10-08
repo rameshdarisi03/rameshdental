@@ -41,7 +41,7 @@ import {
   X
 } from "lucide-react";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG, TeamDoctorProfile, DEFAULT_TEAM_MEMBERS } from "@/lib/db";
-import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
+import { getCleanWhatsAppNumber, getPrimaryDialNumber } from "@/lib/phoneUtils";
 import { articles } from "@/data/articles";
 
 // Viewport-Triggered rolling number counter for trust stats
@@ -2516,7 +2516,7 @@ export default function Home() {
                   <div>
                     <h4 className="font-black text-brand-charcoal dark:text-white text-sm">Phone Number</h4>
                     <a
-                      href={`tel:${(clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone)?.replace(/\s+/g, "")}`}
+                      href={`tel:${getPrimaryDialNumber(clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone)}`}
                       className="text-xs text-slate-500 hover:text-brand-green dark:text-slate-400 dark:hover:text-brand-green transition-colors mt-1 block font-semibold"
                     >
                       {clinicConfig.phone || DEFAULT_CLINIC_CONFIG.phone}

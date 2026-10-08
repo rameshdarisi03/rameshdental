@@ -32,6 +32,7 @@ import {
   updatePatient,
   Patient
 } from "@/lib/patientsDb";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import {
   Calendar,
   Clock,
@@ -892,16 +893,7 @@ export default function DaySnapshot() {
     customMsg?: string,
     mode: "api" | "redirect" = "api"
   ) => {
-    let cleanPhone = app.patientPhone.replace(/\D/g, "");
-    if (cleanPhone.startsWith("0")) {
-      cleanPhone = cleanPhone.replace(/^0+/, "");
-    }
-    if (cleanPhone.length === 10) {
-      cleanPhone = "91" + cleanPhone;
-    }
-    if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "918904456243";
-    }
+    const cleanPhone = getCleanWhatsAppNumber(app.patientPhone);
 
     const effectiveDelay = isCustomDelay && customDelayInput ? parseInt(customDelayInput, 10) || delayMinutes : delayMinutes;
     const therapistText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : "";

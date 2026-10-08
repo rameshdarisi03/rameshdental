@@ -33,6 +33,7 @@ import {
   isValidIndianPhone, 
   isValidEmail 
 } from "@/lib/sanitizer";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import Link from "next/link";
 import { 
   Calendar as CalendarIcon, 
@@ -455,16 +456,7 @@ function WalkInBookingContent() {
 
   // Trigger manual WhatsApp alert redirect
   const triggerWhatsAppRedirect = (app: { patientName: string; patientPhone: string; serviceId: string; date: string; slot: string }) => {
-    let cleanPhone = app.patientPhone.replace(/\D/g, "");
-    if (cleanPhone.startsWith("0")) {
-      cleanPhone = cleanPhone.replace(/^0+/, "");
-    }
-    if (cleanPhone.length === 10) {
-      cleanPhone = "91" + cleanPhone;
-    }
-    if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "918904456243";
-    }
+    const cleanPhone = getCleanWhatsAppNumber(app.patientPhone);
 
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";

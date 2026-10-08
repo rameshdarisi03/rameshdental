@@ -495,16 +495,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
 
   const handleSendPortalInvite = () => {
     if (!patient || !patient.activationCode) return;
-    let cleanPhone = patient.phone.replace(/\D/g, "");
-    if (cleanPhone.startsWith("0")) {
-      cleanPhone = cleanPhone.replace(/^0+/, "");
-    }
-    if (cleanPhone.length === 10) {
-      cleanPhone = "91" + cleanPhone;
-    }
-    if (!cleanPhone || cleanPhone.length < 10) {
-      cleanPhone = "918904456243";
-    }
+    const cleanPhone = getCleanWhatsAppNumber(patient.phone);
 
     const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login` : "https://gaitphysioclinic.com/patienthub/login";
     const message = `Hello ${patient.name}, your Gait Physio Clinic Patient Hub is ready! 🎉\n\nAccess your personalized home exercises, clinical recovery progress, and appointment details online:\n🔗 ${portalUrl}\n\n🔑 Your Portal Activation Code: *${patient.activationCode}*\n\nPlease log in and activate your account.`;
@@ -1723,12 +1714,8 @@ PLAN:
   const getWhatsAppInvoiceUrl = (inv: Invoice) => {
     const phone = inv.patientPhone || patient?.phone;
     if (!phone) return "#";
-    const cleanDigits = phone.replace(/\D/g, "");
-    const formattedPhone = cleanDigits.startsWith("91") && cleanDigits.length === 12
-      ? cleanDigits
-      : cleanDigits.length === 10
-      ? `91${cleanDigits}`
-      : cleanDigits;
+    const formattedPhone = getCleanWhatsAppNumber(phone, false);
+    if (!formattedPhone) return "#";
 
     const message = `Hello ${inv.patientName || patient?.name || "Valued Patient"},
 
@@ -2012,16 +1999,7 @@ Warm regards,
                   <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
                   <button
                     onClick={() => {
-                      let cleanPhone = patient.phone.replace(/\D/g, "");
-                      if (cleanPhone.startsWith("0")) {
-                        cleanPhone = cleanPhone.replace(/^0+/, "");
-                      }
-                      if (cleanPhone.length === 10) {
-                        cleanPhone = "91" + cleanPhone;
-                      }
-                      if (!cleanPhone || cleanPhone.length < 10) {
-                        cleanPhone = "918904456243";
-                      }
+                      const cleanPhone = getCleanWhatsAppNumber(patient.phone);
                       const waUrl = `https://wa.me/${cleanPhone}`;
                       window.open(waUrl, "_blank");
                     }}

@@ -10,6 +10,7 @@ import {
 } from "@/lib/invoicesDb";
 import { getPatients, Patient } from "@/lib/patientsDb";
 import { getClinicConfig, ClinicConfig } from "@/lib/db";
+import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import { FEATURES } from "@/lib/features";
 import jsPDF from "jspdf";
 import { buildUnifiedInvoicePdf } from "@/lib/prescriptionPdf";
@@ -423,12 +424,8 @@ export default function ClinicalBillingPage() {
   // WhatsApp Pre-filled URL Generator
   const getWhatsAppShareUrl = (inv: Invoice) => {
     if (!inv.patientPhone) return "#";
-    const cleanDigits = inv.patientPhone.replace(/\D/g, "");
-    const formattedPhone = cleanDigits.startsWith("91") && cleanDigits.length === 12
-      ? cleanDigits
-      : cleanDigits.length === 10
-      ? `91${cleanDigits}`
-      : cleanDigits;
+    const formattedPhone = getCleanWhatsAppNumber(inv.patientPhone, false);
+    if (!formattedPhone) return "#";
 
     const message = `Hello ${inv.patientName || "Valued Patient"},
 
