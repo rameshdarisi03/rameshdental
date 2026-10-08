@@ -85,9 +85,23 @@ export default function ArticlesPage() {
                     </h3>
 
                     {/* Excerpt */}
-                    <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed font-semibold line-clamp-3">
+                    <p className="text-xs text-slate-500 dark:text-slate-455 leading-relaxed font-semibold line-clamp-3">
                       {article.excerpt}
                     </p>
+
+                    {/* SEO Tags preview */}
+                    {article.tags && article.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {article.tags.slice(0, 3).map((tag, tIdx) => (
+                          <span
+                            key={tIdx}
+                            className="text-[9.5px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Read More Link */}

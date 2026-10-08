@@ -89,7 +89,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
               <span className="text-slate-355 dark:text-slate-700">•</span>
               <span className="flex items-center gap-1.5 text-brand-green dark:text-teal-400 font-black">
                 <UserCheck className="w-4 h-4" />
-                Reviewed by Physiotherapist
+                <span>{article.author ? `By ${article.author}` : "Reviewed by Physiotherapist"}</span>
               </span>
             </div>
           </div>
@@ -225,6 +225,25 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
                   return null;
               }
             })}
+
+            {/* Article Clinical Topic Tags */}
+            {article.tags && article.tags.length > 0 && (
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-850 space-y-2.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                  Related Clinical Topics & SEO Tags:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {article.tags.map((tag, tIdx) => (
+                    <span
+                      key={tIdx}
+                      className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 hover:border-brand-green transition-colors cursor-default"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Call to Action Card */}
             <div className="pt-8 border-t border-slate-100 dark:border-slate-850">
