@@ -216,6 +216,18 @@ export default function Home() {
   const [clinicLoading, setClinicLoading] = useState(true);
 
   useEffect(() => {
+    // 1. Instant synchronous check from localStorage cache (eliminates any 1-second network flash)
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("gpc_clinic_config_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setClinicConfig((prev) => ({ ...prev, ...parsed }));
+        }
+      } catch (e) {}
+    }
+
+    // 2. Live sync from Firestore in background
     async function loadConfig() {
       try {
         const fetched = await getClinicConfig();
@@ -790,13 +802,13 @@ export default function Home() {
         {/* Desktop Background: Full Panoramic Treatment Cover */}
         <div 
           className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700" 
-          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_option_1_spine.webp"}')` }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp"}')` }} 
         />
 
         {/* Desktop Layer 2: Selective Blurred Image Overlay for Depth */}
         <div 
           className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
-          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_option_1_spine.webp"}')` }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp"}')` }} 
         />
         
         {/* Layer 3: Sophisticated Gradient Scrim (Mobile: Gentle vertical fade / Desktop: Horizontal gradient) */}

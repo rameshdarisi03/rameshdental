@@ -183,7 +183,7 @@ export const DEFAULT_CLINIC_CONFIG: ClinicConfig = {
   email: "info@gaitphysioclinic.com",
   googleMapsLink: "https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bangalore",
   googleMapsEmbed: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.8967814402685!2d77.75011131482205!3d12.984700090847253!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae0fb5b6574f2b%3A0xbcf2a8ee0322b75f!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1691234567890!5m2!1sen!2sin",
-  heroDesktopImage: "/images/hero_cover_option_1_spine.webp",
+  heroDesktopImage: "/images/hero_cover_teal_wooden_floor.webp",
   heroMobileImage: "/images/mobile_cover_teal_option_2.webp",
 };
 
@@ -202,7 +202,7 @@ export async function getClinicConfig(): Promise<ClinicConfig> {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      return {
+      const merged = {
         ...DEFAULT_CLINIC_CONFIG,
         ...data,
         daySchedules: {
@@ -210,10 +210,22 @@ export async function getClinicConfig(): Promise<ClinicConfig> {
           ...(data?.daySchedules || {}),
         },
       } as ClinicConfig;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(merged));
+        } catch (e) {}
+      }
+      return merged;
     }
     return DEFAULT_CLINIC_CONFIG;
   } catch (error) {
     console.error("Error fetching clinic config: ", error);
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("gpc_clinic_config_cache");
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
     return DEFAULT_CLINIC_CONFIG;
   }
 }
@@ -223,6 +235,11 @@ export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
   try {
     const docRef = doc(db, "settings", "clinic_config");
     await setDoc(docRef, config);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(config));
+      } catch (e) {}
+    }
     return true;
   } catch (error) {
     console.error("Error saving clinic config: ", error);

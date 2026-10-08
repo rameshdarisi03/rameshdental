@@ -438,7 +438,7 @@ export default function DashboardSettings() {
     adminWalkInGraceType: "end_of_slot",
     publicBookingCutoffMinutes: 0,
     googleMapsEmbed: "",
-    heroDesktopImage: "/images/hero_cover_option_1_spine.webp",
+    heroDesktopImage: "/images/hero_cover_teal_wooden_floor.webp",
     heroMobileImage: "/images/mobile_cover_teal_option_2.webp",
   });
 
@@ -858,7 +858,7 @@ export default function DashboardSettings() {
           fetched.teamMembers = DEFAULT_TEAM_MEMBERS;
         }
         if (!fetched.heroDesktopImage) {
-          fetched.heroDesktopImage = "/images/hero_cover_option_1_spine.webp";
+          fetched.heroDesktopImage = "/images/hero_cover_teal_wooden_floor.webp";
         }
         if (!fetched.heroMobileImage) {
           fetched.heroMobileImage = "/images/mobile_cover_teal_option_2.webp";
