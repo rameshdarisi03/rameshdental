@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { 
@@ -652,6 +652,139 @@ export default function Home() {
 
   const handleNextPractoDesktop = () => {
     setDesktopPractoPage((prev) => (prev + 1) % totalDesktopPractoPages);
+  };
+
+  // --- Articles Section Carousel State & Timers (2-Second Auto-Slide) ---
+  const [mobileArticleIndex, setMobileArticleIndex] = useState(0);
+  const [isMobileArticleTransitioning, setIsMobileArticleTransitioning] = useState(true);
+  const [isMobileArticlePaused, setIsMobileArticlePaused] = useState(false);
+  const [articleTouchStartX, setArticleTouchStartX] = useState<number | null>(null);
+  const [articleTouchEndX, setArticleTouchEndX] = useState<number | null>(null);
+
+  const [desktopArticleIndex, setDesktopArticleIndex] = useState(0);
+  const [isDesktopArticleTransitioning, setIsDesktopArticleTransitioning] = useState(true);
+  const [isDesktopArticleHovered, setIsDesktopArticleHovered] = useState(false);
+
+  // Extended lists for seamless infinite loop sliding without backward rewinds
+  const extendedMobileArticles = useMemo(() => {
+    return articles.length > 0 ? [...articles, articles[0]] : [];
+  }, []);
+
+  const extendedDesktopArticles = useMemo(() => {
+    return articles.length > 0 ? [...articles, ...articles.slice(0, 3)] : [];
+  }, []);
+
+  // Desktop Next & Prev Handlers
+  const handleNextArticleDesktop = useCallback(() => {
+    setIsDesktopArticleTransitioning(true);
+    setDesktopArticleIndex((prev) => prev + 1);
+  }, []);
+
+  const handlePrevArticleDesktop = useCallback(() => {
+    if (desktopArticleIndex === 0) {
+      setIsDesktopArticleTransitioning(false);
+      setDesktopArticleIndex(articles.length);
+      setTimeout(() => {
+        setIsDesktopArticleTransitioning(true);
+        setDesktopArticleIndex(articles.length - 1);
+      }, 40);
+    } else {
+      setIsDesktopArticleTransitioning(true);
+      setDesktopArticleIndex((prev) => prev - 1);
+    }
+  }, [desktopArticleIndex]);
+
+  const handleDesktopArticleTransitionEnd = () => {
+    if (desktopArticleIndex >= articles.length) {
+      setIsDesktopArticleTransitioning(false);
+      setDesktopArticleIndex(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDesktopArticleTransitioning) {
+      const timer = setTimeout(() => {
+        setIsDesktopArticleTransitioning(true);
+      }, 40);
+      return () => clearTimeout(timer);
+    }
+  }, [isDesktopArticleTransitioning]);
+
+  // Desktop auto-slide every 2 seconds
+  useEffect(() => {
+    if (isDesktopArticleHovered || articles.length <= 3) return;
+    const timer = setInterval(() => {
+      handleNextArticleDesktop();
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [isDesktopArticleHovered, handleNextArticleDesktop]);
+
+  // Mobile Next & Prev Handlers
+  const handleNextArticleMobile = useCallback(() => {
+    setIsMobileArticleTransitioning(true);
+    setMobileArticleIndex((prev) => prev + 1);
+  }, []);
+
+  const handlePrevArticleMobile = useCallback(() => {
+    if (mobileArticleIndex === 0) {
+      setIsMobileArticleTransitioning(false);
+      setMobileArticleIndex(articles.length);
+      setTimeout(() => {
+        setIsMobileArticleTransitioning(true);
+        setMobileArticleIndex(articles.length - 1);
+      }, 40);
+    } else {
+      setIsMobileArticleTransitioning(true);
+      setMobileArticleIndex((prev) => prev - 1);
+    }
+  }, [mobileArticleIndex]);
+
+  const handleMobileArticleTransitionEnd = () => {
+    if (mobileArticleIndex >= articles.length) {
+      setIsMobileArticleTransitioning(false);
+      setMobileArticleIndex(0);
+    }
+  };
+
+  useEffect(() => {
+    if (!isMobileArticleTransitioning) {
+      const timer = setTimeout(() => {
+        setIsMobileArticleTransitioning(true);
+      }, 40);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobileArticleTransitioning]);
+
+  // Mobile auto-slide every 2 seconds
+  useEffect(() => {
+    if (isMobileArticlePaused || articles.length <= 1) return;
+    const timer = setInterval(() => {
+      handleNextArticleMobile();
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [isMobileArticlePaused, handleNextArticleMobile]);
+
+  // Mobile Touch Swipe Handlers
+  const handleArticleTouchStart = (e: React.TouchEvent) => {
+    setIsMobileArticlePaused(true);
+    setArticleTouchStartX(e.targetTouches[0].clientX);
+    setArticleTouchEndX(null);
+  };
+
+  const handleArticleTouchMove = (e: React.TouchEvent) => {
+    setArticleTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleArticleTouchEnd = () => {
+    setIsMobileArticlePaused(false);
+    if (!articleTouchStartX || !articleTouchEndX) return;
+    const distance = articleTouchStartX - articleTouchEndX;
+    const minSwipeDistance = 45;
+    if (distance > minSwipeDistance) {
+      handleNextArticleMobile();
+    } else if (distance < -minSwipeDistance) {
+      handlePrevArticleMobile();
+    }
   };
 
   // Viewport Scroll Entrance Reveal hook
@@ -1966,60 +2099,262 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {articles.slice(0, 2).map((article) => (
-              <article
-                key={article.slug}
-                className="bg-brand-bg/60 dark:bg-slate-950 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-[0_8px_30px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_40px_-6px_var(--brand-shadow-hover)] transition-all duration-300 flex flex-col group"
+          {/* --- DESKTOP VIEW (md and up): 3 Articles in a Row Sliding Carousel with Auto-Slide (2s) --- */}
+          <div
+            className="hidden md:block relative px-4 lg:px-12"
+            onMouseEnter={() => setIsDesktopArticleHovered(true)}
+            onMouseLeave={() => setIsDesktopArticleHovered(false)}
+          >
+            {/* Left Nav Arrow Button */}
+            <button
+              type="button"
+              onClick={handlePrevArticleDesktop}
+              className="absolute -left-2 lg:left-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
+              aria-label="Previous articles"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            {/* Right Nav Arrow Button */}
+            <button
+              type="button"
+              onClick={handleNextArticleDesktop}
+              className="absolute -right-2 lg:right-0 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 lg:h-12 lg:w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-750 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white hover:border-brand-green dark:hover:bg-teal-500 dark:hover:text-slate-950 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.08)] active:scale-90 cursor-pointer"
+              aria-label="Next articles"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+
+            {/* 3 Articles in a Row Sliding Track */}
+            <div className="overflow-hidden py-4 -my-4">
+              <div
+                className={`flex ${isDesktopArticleTransitioning ? "transition-transform duration-700 ease-out" : ""}`}
+                style={{
+                  transform: `translateX(-${desktopArticleIndex * (100 / 3)}%)`,
+                }}
+                onTransitionEnd={handleDesktopArticleTransitionEnd}
               >
-                {/* Thumbnail Image */}
-                <Link href={`/articles/${article.slug}`} className="block relative h-60 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
-                  <Image
-                    src={article.thumbnail}
-                    alt={article.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4 bg-brand-green/90 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-sm">
-                    {article.category}
-                  </div>
-                </Link>
-
-                {/* Card Body */}
-                <div className="p-7 flex flex-col flex-1 justify-between space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{article.readTime}</span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{article.date}</span>
-                    </div>
-
-                    <h3 className="text-lg font-black text-brand-charcoal dark:text-white leading-snug group-hover:text-brand-green transition-colors">
-                      <Link href={`/articles/${article.slug}`} className="hover:underline">
-                        {article.title}
+                {extendedDesktopArticles.map((article, idx) => (
+                  <div key={`desktop-${article.slug}-${idx}`} className="w-1/3 shrink-0 px-3.5">
+                    <article className="bg-brand-bg/60 dark:bg-slate-950 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-[0_8px_30px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_40px_-6px_var(--brand-shadow-hover)] transition-all duration-300 flex flex-col justify-between h-full group">
+                      {/* Thumbnail Image */}
+                      <Link
+                        href={`/articles/${article.slug}`}
+                        className="block relative h-52 sm:h-56 w-full overflow-hidden bg-slate-100 dark:bg-slate-900"
+                      >
+                        <Image
+                          src={article.thumbnail}
+                          alt={article.title}
+                          fill
+                          sizes="(max-width: 1200px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-4 left-4 bg-brand-green/95 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-sm">
+                          {article.category}
+                        </div>
                       </Link>
-                    </h3>
 
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold line-clamp-3">
-                      {article.excerpt}
-                    </p>
-                  </div>
+                      {/* Card Body */}
+                      <div className="p-6 sm:p-7 flex flex-col flex-1 justify-between space-y-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            <Clock className="w-3.5 h-3.5 text-brand-green" />
+                            <span>{article.readTime}</span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <Calendar className="w-3.5 h-3.5 text-brand-green" />
+                            <span>{article.date}</span>
+                          </div>
 
-                  <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800">
-                    <Link
-                      href={`/articles/${article.slug}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-black text-brand-green hover:text-brand-green-hover transition-colors"
-                    >
-                      <span>Read Full Guide</span>
-                      <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                          <h3 className="text-base sm:text-lg font-black text-brand-charcoal dark:text-white leading-snug group-hover:text-brand-green transition-colors line-clamp-2">
+                            <Link href={`/articles/${article.slug}`} className="hover:underline">
+                              {article.title}
+                            </Link>
+                          </h3>
+
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold line-clamp-3">
+                            {article.excerpt}
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800">
+                          <Link
+                            href={`/articles/${article.slug}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-black text-brand-green hover:text-brand-green-hover transition-colors"
+                          >
+                            <span>Read Full Guide</span>
+                            <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
                   </div>
-                </div>
-              </article>
-            ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Pagination Dots */}
+            {articles.length > 3 && (
+              <div className="flex items-center justify-center gap-2 pt-6">
+                {articles.map((_, idx) => {
+                  const isActive = desktopArticleIndex % articles.length === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setIsDesktopArticleTransitioning(true);
+                        setDesktopArticleIndex(idx);
+                      }}
+                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                        isActive
+                          ? "bg-brand-green w-7"
+                          : "bg-slate-300 dark:bg-slate-700 w-2 hover:bg-slate-400"
+                      }`}
+                      aria-label={`Slide to article ${idx + 1}`}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* --- MOBILE VIEW (< md): 1 Card at a Time Sliding Carousel with Arrows & Touch Swipe --- */}
+          <div className="block md:hidden relative max-w-md mx-auto px-2">
+            {/* Left Floating Overlay Arrow */}
+            <button
+              type="button"
+              onClick={handlePrevArticleMobile}
+              className="absolute top-[38%] -translate-y-1/2 -left-2.5 z-20 h-10 w-10 rounded-full bg-white/95 dark:bg-slate-900/95 text-brand-charcoal dark:text-white flex items-center justify-center shadow-xl border border-slate-200/80 dark:border-slate-700/80 hover:bg-brand-green hover:text-white transition-all active:scale-90 cursor-pointer"
+              aria-label="Previous article"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Right Floating Overlay Arrow */}
+            <button
+              type="button"
+              onClick={handleNextArticleMobile}
+              className="absolute top-[38%] -translate-y-1/2 -right-2.5 z-20 h-10 w-10 rounded-full bg-white/95 dark:bg-slate-900/95 text-brand-charcoal dark:text-white flex items-center justify-center shadow-xl border border-slate-200/80 dark:border-slate-700/80 hover:bg-brand-green hover:text-white transition-all active:scale-90 cursor-pointer"
+              aria-label="Next article"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* 1-Card Sliding Frame with Touch Gestures */}
+            <div
+              className="overflow-hidden rounded-[2.5rem] py-1"
+              onTouchStart={handleArticleTouchStart}
+              onTouchMove={handleArticleTouchMove}
+              onTouchEnd={handleArticleTouchEnd}
+            >
+              <div
+                className={`flex ${isMobileArticleTransitioning ? "transition-transform duration-500 ease-out" : ""}`}
+                style={{
+                  transform: `translateX(-${mobileArticleIndex * 100}%)`,
+                }}
+                onTransitionEnd={handleMobileArticleTransitionEnd}
+              >
+                {extendedMobileArticles.map((article, idx) => (
+                  <div key={`mobile-${article.slug}-${idx}`} className="w-full shrink-0 px-1">
+                    <article className="bg-brand-bg/60 dark:bg-slate-950 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-[0_8px_30px_-6px_var(--brand-shadow)] transition-all duration-300 flex flex-col justify-between h-full group">
+                      {/* Thumbnail Image */}
+                      <Link
+                        href={`/articles/${article.slug}`}
+                        className="block relative h-52 w-full overflow-hidden bg-slate-100 dark:bg-slate-900"
+                      >
+                        <Image
+                          src={article.thumbnail}
+                          alt={article.title}
+                          fill
+                          sizes="100vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-4 left-4 bg-brand-green/95 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-sm">
+                          {article.category}
+                        </div>
+                      </Link>
+
+                      {/* Card Body */}
+                      <div className="p-6 flex flex-col flex-1 justify-between space-y-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            <Clock className="w-3.5 h-3.5 text-brand-green" />
+                            <span>{article.readTime}</span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <Calendar className="w-3.5 h-3.5 text-brand-green" />
+                            <span>{article.date}</span>
+                          </div>
+
+                          <h3 className="text-base font-black text-brand-charcoal dark:text-white leading-snug group-hover:text-brand-green transition-colors line-clamp-2">
+                            <Link href={`/articles/${article.slug}`} className="hover:underline">
+                              {article.title}
+                            </Link>
+                          </h3>
+
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold line-clamp-3">
+                            {article.excerpt}
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-200/70 dark:border-slate-800">
+                          <Link
+                            href={`/articles/${article.slug}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-black text-brand-green hover:text-brand-green-hover transition-colors"
+                          >
+                            <span>Read Full Guide</span>
+                            <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile Bottom Thumb Navigation Bar with Arrows & Dots */}
+            <div className="flex items-center justify-between pt-5 px-3">
+              <button
+                type="button"
+                onClick={handlePrevArticleMobile}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm active:scale-90 cursor-pointer"
+                aria-label="Previous article"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {/* Dots */}
+              <div className="flex items-center gap-1.5">
+                {articles.map((_, idx) => {
+                  const isActive = mobileArticleIndex % articles.length === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setIsMobileArticleTransitioning(true);
+                        setMobileArticleIndex(idx);
+                      }}
+                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                        isActive
+                          ? "bg-brand-green w-6"
+                          : "bg-slate-300 dark:bg-slate-700 w-2"
+                      }`}
+                      aria-label={`Go to article ${idx + 1}`}
+                    />
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleNextArticleMobile}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-brand-green hover:text-white transition-all shadow-sm active:scale-90 cursor-pointer"
+                aria-label="Next article"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div className="flex justify-center pt-4">
