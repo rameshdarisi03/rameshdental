@@ -55,7 +55,9 @@ import {
   ZoomOut,
   Monitor,
   Smartphone,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -509,6 +511,17 @@ export default function DashboardSettings() {
   const heroMobileFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingHeroDesktop, setUploadingHeroDesktop] = useState(false);
   const [uploadingHeroMobile, setUploadingHeroMobile] = useState(false);
+
+  // Hero Presets Carousel State
+  const [presetCarouselIndex, setPresetCarouselIndex] = useState(0);
+
+  const handlePrevPreset = () => {
+    setPresetCarouselIndex((prev) => (prev > 0 ? prev - 1 : HERO_PRESETS.length - 1));
+  };
+
+  const handleNextPreset = () => {
+    setPresetCarouselIndex((prev) => (prev < HERO_PRESETS.length - 1 ? prev + 1 : 0));
+  };
 
   const openCropperWithImage = (url: string, target: CropTarget = "doctor") => {
     if (!url) return;
@@ -2200,129 +2213,214 @@ export default function DashboardSettings() {
                 </span>
               </div>
 
-              {/* Curated Presets Collection */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
-                <div className="flex items-center justify-between flex-wrap gap-2">
+              {/* Curated Presets Carousel Showcase Card */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-4 shadow-xs">
+                {/* Carousel Header with Counter & Navigation Arrows */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
-                    <h4 className="text-xs font-black text-brand-charcoal dark:text-white flex items-center gap-2">
-                      <span>Curated Clinical Presets</span>
-                      <span className="text-[10px] font-semibold text-slate-400">
-                        (Select from clinic photo gallery)
-                      </span>
+                    <h4 className="text-xs sm:text-sm font-black text-brand-charcoal dark:text-white flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-brand-green" />
+                      <span>Curated Clinical Presets Library</span>
                     </h4>
-                    <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Therapists love the Medical Teal Interior! 1-click apply to desktop, mobile, or both.
+                    <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                      Slide through the curated clinic photo gallery and 1-click apply to desktop, mobile, or both.
                     </p>
+                  </div>
+
+                  {/* Arrow Navigation & Counter */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto ml-auto sm:ml-0">
+                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-800 shadow-2xs">
+                      {presetCarouselIndex + 1} / {HERO_PRESETS.length}
+                    </span>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handlePrevPreset}
+                        className="p-1.5 sm:p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        title="Previous preset photo"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNextPreset}
+                        className="p-1.5 sm:p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        title="Next preset photo"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Presets Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
-                  {HERO_PRESETS.map((preset) => {
-                    const isDesktopActive = (config.heroDesktopImage || "/images/hero_cover_option_1_spine.webp") === preset.url;
-                    const isMobileActive = (config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp") === preset.url;
+                {/* Single Active Preset Showcase Frame */}
+                {(() => {
+                  const currentPreset = HERO_PRESETS[presetCarouselIndex];
+                  const isDeskActive = (config.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp") === currentPreset.url;
+                  const isMobActive = (config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp") === currentPreset.url;
 
-                    return (
-                      <div
-                        key={preset.id}
-                        className={`group relative rounded-xl border p-2.5 transition-all flex flex-col justify-between ${
-                          isDesktopActive || isMobileActive
-                            ? "bg-brand-green/5 border-brand-green/40 shadow-xs ring-1 ring-brand-green/20"
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-                        }`}
-                      >
-                        {/* Top thumbnail & info */}
-                        <div>
-                          <div className="relative aspect-[16/9] w-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 mb-2">
-                            <img
-                              src={preset.url}
-                              alt={preset.title}
-                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                            />
-                            {preset.recommendedBadge && (
-                              <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-brand-green text-white shadow-xs tracking-tight">
-                                {preset.recommendedBadge}
-                              </span>
-                            )}
-                            <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
-                              {isDesktopActive && (
-                                <span className="px-1.5 py-0.5 rounded-md text-[8.5px] font-black bg-blue-600 text-white shadow-xs">
-                                  Desk Active
-                                </span>
-                              )}
-                              {isMobileActive && (
-                                <span className="px-1.5 py-0.5 rounded-md text-[8.5px] font-black bg-emerald-600 text-white shadow-xs">
-                                  Mob Active
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                  return (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm space-y-3.5 transition-all">
+                      
+                      {/* Image Viewer with Floating Navigation Arrows & Badges */}
+                      <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-inner group select-none">
+                        <img
+                          key={currentPreset.id}
+                          src={currentPreset.url}
+                          alt={currentPreset.title}
+                          className="w-full h-full object-cover object-center transition-all duration-300"
+                        />
 
-                          <div className="px-0.5">
-                            <h5 className="text-[11.5px] font-black text-brand-charcoal dark:text-white truncate">
-                              {preset.title}
+                        {/* Floating Left Arrow on Image */}
+                        <button
+                          type="button"
+                          onClick={handlePrevPreset}
+                          className="absolute left-2.5 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer z-10 border border-white/20"
+                          title="Previous image"
+                        >
+                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+
+                        {/* Floating Right Arrow on Image */}
+                        <button
+                          type="button"
+                          onClick={handleNextPreset}
+                          className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 cursor-pointer z-10 border border-white/20"
+                          title="Next image"
+                        >
+                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+
+                        {/* Recommended Badge (Top-Left) */}
+                        {currentPreset.recommendedBadge && (
+                          <span className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-1 rounded-full text-[9.5px] sm:text-[10px] font-black bg-brand-green text-white shadow-md tracking-tight z-10">
+                            {currentPreset.recommendedBadge}
+                          </span>
+                        )}
+
+                        {/* Live Active Badges (Bottom-Right) */}
+                        <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex items-center gap-1.5 z-10">
+                          {isDeskActive && (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-blue-600 text-white shadow-md flex items-center gap-1">
+                              <Check className="w-2.5 h-2.5" />
+                              <span>Desk Active</span>
+                            </span>
+                          )}
+                          {isMobActive && (
+                            <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-emerald-600 text-white shadow-md flex items-center gap-1">
+                              <Check className="w-2.5 h-2.5" />
+                              <span>Mob Active</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Title, Description & Action Buttons */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-0.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h5 className="text-xs sm:text-sm font-black text-brand-charcoal dark:text-white truncate">
+                              {currentPreset.title}
                             </h5>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 line-clamp-2 mt-0.5 leading-tight">
-                              {preset.subtitle}
-                            </p>
+                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              {currentPreset.tag}
+                            </span>
                           </div>
+                          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 sm:line-clamp-none">
+                            {currentPreset.subtitle}
+                          </p>
                         </div>
 
-                        {/* Apply Action Buttons */}
-                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5 justify-end">
+                        {/* Action Buttons: Set Desktop, Set Mobile, Both (Preserved Exactly!) */}
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                           <button
                             type="button"
                             onClick={() => {
-                              setConfig((prev) => ({ ...prev, heroDesktopImage: preset.url }));
+                              setConfig((prev) => ({ ...prev, heroDesktopImage: currentPreset.url }));
                               setIsDirty(true);
                               setSavedSuccess(false);
                             }}
-                            className={`px-2 py-1 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer border ${
-                              isDesktopActive
-                                ? "bg-blue-600 text-white border-blue-600"
-                                : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                              isDeskActive
+                                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                                : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
                             }`}
                             title="Apply as Desktop Hero Banner"
                           >
-                            Set Desktop
+                            <Monitor className="w-3.5 h-3.5" />
+                            <span>{isDeskActive ? "Desktop Set ✓" : "Set Desktop"}</span>
                           </button>
+
                           <button
                             type="button"
                             onClick={() => {
-                              setConfig((prev) => ({ ...prev, heroMobileImage: preset.url }));
+                              setConfig((prev) => ({ ...prev, heroMobileImage: currentPreset.url }));
                               setIsDirty(true);
                               setSavedSuccess(false);
                             }}
-                            className={`px-2 py-1 rounded-lg text-[9.5px] font-bold transition-all cursor-pointer border ${
-                              isMobileActive
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                              isMobActive
+                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
                             }`}
                             title="Apply as Mobile Hero Banner"
                           >
-                            Set Mobile
+                            <Smartphone className="w-3.5 h-3.5" />
+                            <span>{isMobActive ? "Mobile Set ✓" : "Set Mobile"}</span>
                           </button>
+
                           <button
                             type="button"
                             onClick={() => {
                               setConfig((prev) => ({
                                 ...prev,
-                                heroDesktopImage: preset.url,
-                                heroMobileImage: preset.url,
+                                heroDesktopImage: currentPreset.url,
+                                heroMobileImage: currentPreset.url,
                               }));
                               setIsDirty(true);
                               setSavedSuccess(false);
                             }}
-                            className="px-2 py-1 rounded-lg text-[9.5px] font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-all cursor-pointer"
-                            title="Apply to both Desktop and Mobile"
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-green/10 text-brand-green hover:bg-brand-green/20 border border-brand-green/30 transition-all cursor-pointer flex items-center gap-1"
+                            title="Apply to both Desktop and Mobile simultaneously"
                           >
-                            Both
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Both</span>
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Mini Thumbnail Navigation Rail */}
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                          {HERO_PRESETS.map((p, idx) => {
+                            const isSelected = idx === presetCarouselIndex;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setPresetCarouselIndex(idx)}
+                                className={`relative shrink-0 w-14 sm:w-16 aspect-[16/10] rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                                  isSelected
+                                    ? "border-brand-green ring-2 ring-brand-green/30 scale-105 shadow-xs"
+                                    : "border-slate-200 dark:border-slate-700 opacity-60 hover:opacity-100"
+                                }`}
+                                title={p.title}
+                              >
+                                <img
+                                  src={p.url}
+                                  alt={p.title}
+                                  className="w-full h-full object-cover object-center"
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Individual Desktop & Mobile Banner Managers */}
