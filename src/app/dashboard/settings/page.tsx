@@ -2167,14 +2167,14 @@ export default function DashboardSettings() {
                 type="file"
                 ref={heroDesktopFileInputRef}
                 onChange={handleHeroDesktopFileUpload}
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/*"
                 className="hidden"
               />
               <input
                 type="file"
                 ref={heroMobileFileInputRef}
                 onChange={handleHeroMobileFileUpload}
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/*"
                 className="hidden"
               />
 
@@ -2329,7 +2329,7 @@ export default function DashboardSettings() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-1">
                 
                 {/* Desktop Cover Image Box (7 cols) */}
-                <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5">
+                <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Monitor className="w-4 h-4 text-brand-green" />
@@ -2337,45 +2337,57 @@ export default function DashboardSettings() {
                         Desktop Hero Cover (16:7 Panoramic)
                       </label>
                     </div>
-                    <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-800">
+                    <span className="text-[9.5px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-800">
                       Widescreen View
                     </span>
                   </div>
 
                   {/* Panoramic Live Preview */}
-                  <div className="relative aspect-[16/7] w-full rounded-xl overflow-hidden border border-slate-300/80 dark:border-slate-700 shadow-inner bg-slate-900 group">
+                  <div 
+                    onClick={() => heroDesktopFileInputRef.current?.click()}
+                    className="relative aspect-[16/7] w-full rounded-2xl overflow-hidden border-2 border-slate-300 dark:border-slate-700 shadow-inner bg-slate-900 cursor-pointer group"
+                    title="Click to browse and upload a new image from your device"
+                  >
                     <img
-                      src={config.heroDesktopImage || "/images/hero_cover_option_1_spine.webp"}
+                      src={config.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp"}
                       alt="Desktop Hero Preview"
                       className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300"
                     />
                     
-                    {/* Quick action buttons on hover */}
-                    <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5 p-3">
-                      <button
-                        type="button"
-                        onClick={() => heroDesktopFileInputRef.current?.click()}
-                        className="px-3 py-1.5 rounded-xl bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-                        title="Upload image from computer"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-brand-green" />
-                        <span>Upload New</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openCropperWithImage(config.heroDesktopImage || "/images/hero_cover_option_1_spine.webp", "hero_desktop")}
-                        className="px-3 py-1.5 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-hover transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-                        title="Reposition and pan image"
-                      >
-                        <Crop className="w-3.5 h-3.5" />
-                        <span>Move / Zoom</span>
-                      </button>
+                    {/* Always visible tap badge */}
+                    <div className="absolute bottom-2.5 right-2.5 bg-black/70 backdrop-blur-xs text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-md pointer-events-none">
+                      <Camera className="w-3.5 h-3.5 text-brand-green" />
+                      <span>Tap / Click to Change</span>
                     </div>
                   </div>
 
-                  {/* Controls & URL Input */}
-                  <div className="space-y-2 pt-1">
-                    <div className="flex items-center gap-2">
+                  {/* Dedicated Action Buttons (Fully visible on all screens!) */}
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => heroDesktopFileInputRef.current?.click()}
+                        disabled={uploadingHeroDesktop}
+                        className="w-full py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2"
+                        title="Browse photo from your computer or phone storage"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{uploadingHeroDesktop ? "Reading file..." : "Browse & Upload from Device"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openCropperWithImage(config.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp", "hero_desktop")}
+                        className="w-full py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs flex items-center justify-center gap-2"
+                        title="Reposition and pan image framing"
+                      >
+                        <Crop className="w-4 h-4 text-brand-green" />
+                        <span>Move & Adjust Framing</span>
+                      </button>
+                    </div>
+
+                    {/* URL fallback & Reset button */}
+                    <div className="flex items-center gap-2 pt-1">
                       <input
                         type="text"
                         value={config.heroDesktopImage || ""}
@@ -2384,30 +2396,30 @@ export default function DashboardSettings() {
                           setIsDirty(true);
                           setSavedSuccess(false);
                         }}
-                        placeholder="/images/... or https://..."
+                        placeholder="Or paste direct image URL (/images/... or https://...)"
                         className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold outline-none focus:border-brand-green text-slate-700 dark:text-slate-200"
                       />
                       <button
                         type="button"
                         onClick={() => {
-                          setConfig((prev) => ({ ...prev, heroDesktopImage: "/images/hero_cover_option_1_spine.webp" }));
+                          setConfig((prev) => ({ ...prev, heroDesktopImage: "/images/hero_cover_teal_wooden_floor.webp" }));
                           setIsDirty(true);
                           setSavedSuccess(false);
                         }}
-                        className="px-2.5 py-2 rounded-xl text-[10.5px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shrink-0"
-                        title="Reset to default spine decompression cover"
+                        className="px-3 py-2 rounded-xl text-[10.5px] font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shrink-0"
+                        title="Reset to default wooden floor studio cover"
                       >
                         Reset Default
                       </button>
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Target resolution ~1600×750px. Renders with smooth dark gradient overlay on desktop.
+                      Supports JPG, PNG, WebP files from device storage. Recommended: widescreen ~1600×750px.
                     </p>
                   </div>
                 </div>
 
                 {/* Mobile Cover Image Box (5 cols) */}
-                <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-3.5 flex flex-col justify-between">
+                <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 space-y-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -2416,45 +2428,57 @@ export default function DashboardSettings() {
                           Mobile Hero Cover (2:3 Portrait)
                         </label>
                       </div>
-                      <span className="text-[9.5px] font-black uppercase tracking-wider text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20">
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-brand-green bg-brand-green/10 px-2.5 py-0.5 rounded-full border border-brand-green/20">
                         Smartphone View
                       </span>
                     </div>
 
-                    {/* Mobile Mockup Preview */}
-                    <div className="relative mx-auto w-36 aspect-[9/15] rounded-2xl overflow-hidden border-2 border-slate-400/80 dark:border-slate-600 shadow-md bg-slate-900 group">
+                    {/* Mobile Phone Mockup Preview */}
+                    <div 
+                      onClick={() => heroMobileFileInputRef.current?.click()}
+                      className="relative mx-auto w-40 aspect-[9/15] rounded-3xl overflow-hidden border-4 border-slate-700 dark:border-slate-600 shadow-xl bg-slate-900 cursor-pointer group"
+                      title="Click to browse and upload a mobile cover from your device"
+                    >
                       <img
                         src={config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp"}
                         alt="Mobile Hero Preview"
                         className="w-full h-full object-cover object-center group-hover:scale-102 transition-transform duration-300"
                       />
 
-                      {/* Quick action overlay */}
-                      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                        <button
-                          type="button"
-                          onClick={() => heroMobileFileInputRef.current?.click()}
-                          className="w-full px-2 py-1.5 rounded-lg bg-white text-slate-900 text-[10.5px] font-bold hover:bg-slate-100 transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
-                          title="Upload image from device"
-                        >
-                          <Upload className="w-3 h-3 text-brand-green" />
-                          <span>Upload</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openCropperWithImage(config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp", "hero_mobile")}
-                          className="w-full px-2 py-1.5 rounded-lg bg-brand-green text-white text-[10.5px] font-bold hover:bg-brand-green-hover transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
-                          title="Reposition and pan mobile image"
-                        >
-                          <Crop className="w-3 h-3" />
-                          <span>Position</span>
-                        </button>
+                      {/* Subtle click badge */}
+                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-xs text-white px-2.5 py-1 rounded-full text-[9px] font-bold flex items-center gap-1 shadow-md pointer-events-none whitespace-nowrap">
+                        <Camera className="w-3 h-3 text-brand-green" />
+                        <span>Tap to Change</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Controls & URL Input */}
-                  <div className="space-y-2 pt-2">
+                  {/* Dedicated Action Buttons (Fully visible on all screens!) */}
+                  <div className="space-y-2.5 pt-2">
+                    <div className="grid grid-cols-1 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => heroMobileFileInputRef.current?.click()}
+                        disabled={uploadingHeroMobile}
+                        className="w-full py-2.5 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-sm transition-all active:scale-95 cursor-pointer border-0 flex items-center justify-center gap-2"
+                        title="Browse photo from your phone or device storage"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{uploadingHeroMobile ? "Reading file..." : "Browse & Upload from Device"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openCropperWithImage(config.heroMobileImage || "/images/mobile_cover_teal_option_2.webp", "hero_mobile")}
+                        className="w-full py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs flex items-center justify-center gap-2"
+                        title="Reposition and pan mobile image framing"
+                      >
+                        <Crop className="w-4 h-4 text-brand-green" />
+                        <span>Move & Adjust Framing</span>
+                      </button>
+                    </div>
+
+                    {/* URL fallback & Reset button */}
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -2464,7 +2488,7 @@ export default function DashboardSettings() {
                           setIsDirty(true);
                           setSavedSuccess(false);
                         }}
-                        placeholder="/images/... or https://..."
+                        placeholder="Or paste direct image URL (/images/... or https://...)"
                         className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold outline-none focus:border-brand-green text-slate-700 dark:text-slate-200"
                       />
                       <button
@@ -2474,17 +2498,16 @@ export default function DashboardSettings() {
                           setIsDirty(true);
                           setSavedSuccess(false);
                         }}
-                        className="px-2 py-2 rounded-xl text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shrink-0"
+                        className="px-2.5 py-2 rounded-xl text-[10px] font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer shrink-0"
                         title="Reset to default Medical Teal Option 2"
                       >
-                        Reset
+                        Reset Default
                       </button>
                     </div>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Optimized for phone screens (720×1080px). Displays behind hero banner on mobile.
+                      Supports portrait photos from phone gallery/storage (~720×1080px).
                     </p>
                   </div>
-
                 </div>
 
               </div>
