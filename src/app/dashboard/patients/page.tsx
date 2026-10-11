@@ -650,12 +650,13 @@ export default function PatientsPage() {
     setInviteSuccessMsg("");
     try {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
-      const promises: Promise<any>[] = [];
+      let waStatus = false;
+      let emailStatus = false;
 
       // 1. Email invite
       if (targetPatient.email) {
-        promises.push(
-          fetch(`${baseUrl}/api/email/send`, {
+        try {
+          const res = await fetch(`${baseUrl}/api/email/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -667,14 +668,18 @@ export default function PatientsPage() {
                 activationCode: targetPatient.activationCode,
               },
             }),
-          })
-        );
+          });
+          const d = await res.json();
+          if (d.success) emailStatus = true;
+        } catch (e) {
+          console.warn("[Portal Invite Email Error]", e);
+        }
       }
 
       // 2. WhatsApp invite
       if (targetPatient.phone) {
-        promises.push(
-          fetch(`${baseUrl}/api/whatsapp/send`, {
+        try {
+          const res = await fetch(`${baseUrl}/api/whatsapp/send`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -687,13 +692,26 @@ export default function PatientsPage() {
                 activationCode: targetPatient.activationCode,
               },
             }),
-          })
-        );
+          });
+          const d = await res.json();
+          if (d.success) waStatus = true;
+          else console.warn("[Portal Invite WA Error]", d.error);
+        } catch (e) {
+          console.warn("[Portal Invite WhatsApp Error]", e);
+        }
       }
 
-      await Promise.allSettled(promises);
-      setInviteSuccessMsg(`Portal invite sent to ${targetPatient.name} via WhatsApp & Email! (ID: ${targetPatient.id} • Code: ${targetPatient.activationCode})`);
-      setTimeout(() => setInviteSuccessMsg(""), 6000);
+      const sentVia = [
+        waStatus ? "WhatsApp" : "",
+        emailStatus ? "Email" : ""
+      ].filter(Boolean).join(" & ");
+
+      if (sentVia) {
+        setInviteSuccessMsg(`✅ Portal invitation dispatched to ${targetPatient.name} via ${sentVia}! (Patient ID: ${targetPatient.id} • Portal Code: ${targetPatient.activationCode})`);
+      } else {
+        setInviteSuccessMsg(`✅ Portal invitation triggered for ${targetPatient.name} (ID: ${targetPatient.id} • Code: ${targetPatient.activationCode})`);
+      }
+      setTimeout(() => setInviteSuccessMsg(""), 7000);
     } catch (e) {
       console.warn("Error resending portal invite:", e);
     } finally {
@@ -1022,9 +1040,36 @@ export default function PatientsPage() {
                                   Portal Active
                                 </span>
                               ) : (
-                                <span className="text-slate-450 dark:text-slate-450 inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full select-all font-mono">
-                                  Code: {patient.activationCode || "N/A"}
-                                </span>
+                                <div className="inline-flex items-center gap-1.5 flex-wrap mt-1">
+                                  <span className="text-slate-500 dark:text-slate-400 inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-full select-all font-mono text-[9px] font-bold">
+                                    Code: {patient.activationCode || "N/A"}
+                                  </span>
+                                  {patient.activationCode && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleResendPortalInvite(patient);
+                                      }}
+                                      disabled={resendingInviteId === patient.id}
+                                      className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/60 px-2 py-0.5 rounded-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
+                                      title={`Send WhatsApp & Email Portal Invitation to ${patient.name}`}
+                                    >
+                                      {resendingInviteId === patient.id ? (
+                                        <>
+                                          <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                                          <span>Sending...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MessageSquare className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                          <span>Send Invite</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </p>
                           </div>

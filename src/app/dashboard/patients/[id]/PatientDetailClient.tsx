@@ -515,42 +515,68 @@ export default function PatientDetailClient({ id }: { id: string }) {
 
     setFormSuccess("Dispatching portal invitation to patient via WhatsApp & Email...");
     try {
+      let waStatus = false;
+      let emailStatus = false;
+
       // 1. Dispatch through automated WhatsApp Cloud API
       if (cleanPhone) {
-        fetch("/api/whatsapp/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "PATIENT_ONBOARDING",
-            payload: {
-              patientId: patient.id,
-              patientName: patient.name,
-              patientPhone: cleanPhone,
-              patientEmail: patient.email,
-              activationCode: patient.activationCode,
-            },
-          }),
-        }).catch((err) => console.warn("[Portal Invite WA] Dispatch error:", err));
+        try {
+          const res = await fetch("/api/whatsapp/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "PATIENT_ONBOARDING",
+              payload: {
+                patientId: patient.id,
+                patientName: patient.name,
+                patientPhone: cleanPhone,
+                patientEmail: patient.email,
+                activationCode: patient.activationCode,
+              },
+            }),
+          });
+          const d = await res.json();
+          if (d.success) waStatus = true;
+          else console.warn("[Portal Invite WA Error]", d.error);
+        } catch (err) {
+          console.warn("[Portal Invite WA] Dispatch error:", err);
+        }
       }
 
       // 2. Dispatch through Brevo Email API if email exists
       if (patient.email) {
-        fetch("/api/email/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "PATIENT_ONBOARDING",
-            payload: {
-              patientName: patient.name,
-              patientEmail: patient.email,
-              activationCode: patient.activationCode,
-            },
-          }),
-        }).catch((err) => console.warn("[Portal Invite Email] Dispatch error:", err));
+        try {
+          const res = await fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "PATIENT_ONBOARDING",
+              payload: {
+                patientId: patient.id,
+                patientName: patient.name,
+                patientEmail: patient.email,
+                activationCode: patient.activationCode,
+              },
+            }),
+          });
+          const d = await res.json();
+          if (d.success) emailStatus = true;
+        } catch (err) {
+          console.warn("[Portal Invite Email] Dispatch error:", err);
+        }
       }
 
-      setFormSuccess(`Portal invitation sent to ${patient.name}! (ID: ${patient.id} • Code: ${patient.activationCode})`);
-      setTimeout(() => setFormSuccess(""), 6000);
+      const channels = [
+        waStatus ? "WhatsApp" : "",
+        emailStatus ? "Email" : ""
+      ].filter(Boolean).join(" & ");
+
+      if (channels) {
+        setFormSuccess(`✅ Portal invitation sent to ${patient.name} via ${channels}! (ID: ${patient.id} • Code: ${patient.activationCode})`);
+      } else {
+        setFormSuccess(`✅ Portal invitation triggered for ${patient.name} (ID: ${patient.id} • Code: ${patient.activationCode})`);
+      }
+      setTimeout(() => setFormSuccess(""), 7000);
     } catch (e) {
       console.warn("Failed to dispatch portal invite:", e);
     }
