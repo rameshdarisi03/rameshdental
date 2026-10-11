@@ -317,9 +317,34 @@ export async function linkPatientsInFamilyCircle(
   memberPatient: Patient,
   relationship: Patient["relationship"]
 ): Promise<void> {
+  if (!primaryPatient.id || !memberPatient.id) return;
+
+  // Tier 1: Infallible Server-side API endpoint (Runs with Firebase Admin SDK privileges)
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/patients/link-family", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          primaryPatientId: primaryPatient.id,
+          memberPatientId: memberPatient.id,
+          relationship,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) return;
+        if (data.error) {
+          console.warn("[linkPatientsInFamilyCircle] Server API returned error, falling back to client SDK:", data.error);
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[linkPatientsInFamilyCircle] Server API call failed, falling back to client SDK:", apiErr);
+    }
+  }
+
+  // Tier 2: Client-side Firestore SDK fallback
   try {
-    if (!primaryPatient.id || !memberPatient.id) return;
-    
     // Determine the actual head of the circle if primaryPatient is already a member
     const familyHeadId = primaryPatient.primaryPatientId || primaryPatient.id;
     const familyHeadName = primaryPatient.primaryPatientId 
@@ -364,8 +389,25 @@ export async function linkPatientsInFamilyCircle(
 export async function unlinkPatientFromFamilyCircle(
   patientToUnlink: Patient
 ): Promise<void> {
+  if (!patientToUnlink.id) return;
+
+  // Tier 1: Infallible Server-side API endpoint
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(`/api/patients/link-family?patientId=${encodeURIComponent(patientToUnlink.id)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) return;
+      }
+    } catch (apiErr) {
+      console.warn("[unlinkPatientFromFamilyCircle] Server API call failed, falling back to client SDK:", apiErr);
+    }
+  }
+
+  // Tier 2: Client-side Firestore SDK fallback
   try {
-    if (!patientToUnlink.id) return;
     const docRef = doc(db, "patients", patientToUnlink.id);
     await updateDoc(docRef, {
       primaryPatientId: deleteField(),
