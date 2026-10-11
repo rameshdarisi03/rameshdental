@@ -216,6 +216,21 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [error, setError] = useState("");
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
 
+  // Invoice Dispatch States (Meta WhatsApp Cloud API & Brevo Email)
+  const [emailingInvoiceId, setEmailingInvoiceId] = useState<string | null>(null);
+  const [whatsAppingInvoiceId, setWhatsAppingInvoiceId] = useState<string | null>(null);
+  const [invoiceDispatchModal, setInvoiceDispatchModal] = useState<{
+    isOpen: boolean;
+    channel: "whatsapp" | "email";
+    status: "success" | "error";
+    invoiceNumber: string;
+    patientName: string;
+    recipient: string;
+    amount: number;
+    message?: string;
+    whatsappUrl?: string;
+  } | null>(null);
+
   const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -1733,6 +1748,160 @@ Warm regards,
 📞 +91 89044 56243`;
 
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+  };
+
+  const handleEmailInvoicePdf = async (inv: Invoice) => {
+    const targetEmail = inv.patientEmail || patient?.email;
+    if (!targetEmail || !targetEmail.includes("@")) {
+      setInvoiceDispatchModal({
+        isOpen: true,
+        channel: "email",
+        status: "error",
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        recipient: targetEmail || "No email on file",
+        amount: inv.totalAmount || 0,
+        message: `Patient ${inv.patientName || patient?.name || ""} does not have a valid email address on file.`,
+      });
+      return;
+    }
+
+    setEmailingInvoiceId(inv.id);
+    setFormSuccess("");
+    try {
+      const pdf = buildInvoicePdf(inv);
+      const dataUri = pdf.output("datauristring");
+      const pdfBase64 = dataUri.split(",")[1];
+
+      const res = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "INVOICE_DELIVERY",
+          payload: {
+            patientName: inv.patientName || patient?.name || "Patient",
+            patientEmail: targetEmail,
+            invoiceNumber: inv.invoiceNumber,
+            amount: inv.totalAmount,
+            serviceDate: inv.serviceDate,
+            dueDate: inv.dueDate,
+            paymentMethod: inv.paymentMethod,
+            status: inv.status,
+            replacesInvoiceNumber: inv.replacesInvoiceNumber,
+            pdfBase64,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch email via Brevo");
+      }
+
+      setFormSuccess(`✉️ Invoice ${inv.invoiceNumber} PDF emailed to ${targetEmail}!`);
+      setTimeout(() => setFormSuccess(""), 4000);
+
+      setInvoiceDispatchModal({
+        isOpen: true,
+        channel: "email",
+        status: "success",
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        recipient: targetEmail,
+        amount: inv.totalAmount || 0,
+        message: `Official A4 Tax Invoice PDF has been delivered to ${targetEmail} via Brevo Fast SMTP.`,
+      });
+    } catch (err: any) {
+      console.error("Failed to email invoice PDF:", err);
+      setInvoiceDispatchModal({
+        isOpen: true,
+        channel: "email",
+        status: "error",
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        recipient: targetEmail,
+        amount: inv.totalAmount || 0,
+        message: err.message || "Failed to dispatch invoice email.",
+      });
+    } finally {
+      setEmailingInvoiceId(null);
+    }
+  };
+
+  const handleWhatsAppInvoice = async (inv: Invoice) => {
+    const targetPhone = inv.patientPhone || patient?.phone;
+    if (!targetPhone) {
+      setInvoiceDispatchModal({
+        isOpen: true,
+        channel: "whatsapp",
+        status: "error",
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        recipient: "No phone number",
+        amount: inv.totalAmount || 0,
+        message: `Patient ${inv.patientName || patient?.name || ""} does not have a phone number on file.`,
+      });
+      return;
+    }
+
+    setWhatsAppingInvoiceId(inv.id);
+    setFormSuccess("");
+    try {
+      const pdf = buildInvoicePdf(inv);
+      const dataUri = pdf.output("datauristring");
+      const pdfBase64 = dataUri.split(",")[1];
+
+      const res = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "INVOICE_DELIVERY",
+          payload: {
+            patientName: inv.patientName || patient?.name || "Patient",
+            patientPhone: targetPhone,
+            invoiceNumber: inv.invoiceNumber,
+            date: inv.serviceDate,
+            amount: inv.totalAmount,
+            serviceName: inv.items?.map((i) => i.description).join(", ") || "Physiotherapy Treatment",
+            pdfBase64,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to dispatch WhatsApp message via Meta Cloud API");
+      }
+
+      setFormSuccess(`📱 Invoice ${inv.invoiceNumber} PDF sent to WhatsApp (${targetPhone})!`);
+      setTimeout(() => setFormSuccess(""), 4000);
+
+      setInvoiceDispatchModal({
+        isOpen: true,
+        channel: "whatsapp",
+        status: "success",
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        recipient: targetPhone,
+        amount: inv.totalAmount || 0,
+        message: `Official Tax Invoice PDF delivered directly to ${inv.patientName || patient?.name}'s WhatsApp via Meta Cloud API.`,
+      });
+    } catch (err: any) {
+      console.error("Failed to send WhatsApp invoice via Meta Cloud API:", err);
+      setInvoiceDispatchModal({
+        isOpen: true,
+        channel: "whatsapp",
+        status: "error",
+        invoiceNumber: inv.invoiceNumber,
+        patientName: inv.patientName || patient?.name || "Patient",
+        recipient: targetPhone,
+        amount: inv.totalAmount || 0,
+        message: err.message || "Meta WhatsApp Cloud API could not complete dispatch. You can still deliver it instantly via WhatsApp Web.",
+        whatsappUrl: getWhatsAppInvoiceUrl(inv),
+      });
+    } finally {
+      setWhatsAppingInvoiceId(null);
+    }
   };
 
   // Build unified items for Medical Scans & Files safely inside useMemo
@@ -3346,20 +3515,44 @@ Warm regards,
                               </button>
                             )}
 
-                            {/* 2. WhatsApp Button */}
+                            {/* 2. WhatsApp Button via Meta Cloud API */}
                             {(inv.patientPhone || patient.phone) && !isVoided && (
-                              <a
-                                href={getWhatsAppInvoiceUrl(inv)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative"
-                                title="Send WhatsApp bill to patient"
+                              <button
+                                type="button"
+                                disabled={whatsAppingInvoiceId === inv.id}
+                                onClick={() => handleWhatsAppInvoice(inv)}
+                                className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative disabled:opacity-50"
+                                title="Send WhatsApp bill to patient via Meta Cloud API"
                               >
-                                <MessageSquare className="h-4 w-4" />
-                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center">
-                                  Send WhatsApp bill directly to patient
+                                {whatsAppingInvoiceId === inv.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+                                ) : (
+                                  <MessageSquare className="h-4 w-4" />
+                                )}
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-44 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center pointer-events-none">
+                                  Send WhatsApp PDF bill via Meta Cloud API
                                 </span>
-                              </a>
+                              </button>
+                            )}
+
+                            {/* 2b. Email PDF Button via Brevo */}
+                            {(inv.patientEmail || patient.email) && !isVoided && (
+                              <button
+                                type="button"
+                                disabled={emailingInvoiceId === inv.id}
+                                onClick={() => handleEmailInvoicePdf(inv)}
+                                className="p-2 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 transition-colors cursor-pointer shadow-2xs group relative disabled:opacity-50"
+                                title="Email PDF invoice to patient"
+                              >
+                                {emailingInvoiceId === inv.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
+                                ) : (
+                                  <Mail className="h-4 w-4" />
+                                )}
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center pointer-events-none">
+                                  Email PDF invoice to patient
+                                </span>
+                              </button>
                             )}
 
                             {/* 3. Download PDF */}
@@ -3526,6 +3719,141 @@ Warm regards,
           currentFamilyMembers={familyMembers}
           onLinked={handleFamilyLinked}
         />
+      )}
+
+      {/* Visual Confirmation Popup Modal for Invoice WhatsApp & Email Dispatch */}
+      {mounted && invoiceDispatchModal?.isOpen && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setInvoiceDispatchModal(null)}
+        >
+          <div 
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with status badge */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-2xl shrink-0 ${
+                  invoiceDispatchModal.status === "success"
+                    ? invoiceDispatchModal.channel === "whatsapp"
+                      ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
+                      : "bg-teal-100 text-teal-600 dark:bg-teal-950/60 dark:text-teal-400"
+                    : "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                }`}>
+                  {invoiceDispatchModal.status === "success" ? (
+                    invoiceDispatchModal.channel === "whatsapp" ? (
+                      <MessageSquare className="h-6 w-6" />
+                    ) : (
+                      <Mail className="h-6 w-6" />
+                    )
+                  ) : (
+                    <AlertCircle className="h-6 w-6" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {invoiceDispatchModal.status === "success"
+                      ? invoiceDispatchModal.channel === "whatsapp"
+                        ? "WhatsApp Invoice Delivered!"
+                        : "Invoice Emailed Successfully!"
+                      : "Dispatch Notification"}
+                  </h3>
+                  <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                    invoiceDispatchModal.status === "success"
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                      : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"
+                  }`}>
+                    {invoiceDispatchModal.status === "success"
+                      ? invoiceDispatchModal.channel === "whatsapp"
+                        ? "Delivered via Meta Cloud API with PDF"
+                        : "Delivered via Brevo Fast SMTP with PDF"
+                      : "Action Required"}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInvoiceDispatchModal(null)}
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Invoice & Recipient Details Card */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-semibold">Invoice Number</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                  #{invoiceDispatchModal.invoiceNumber}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-semibold">Patient Name</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {invoiceDispatchModal.patientName}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-semibold">
+                  {invoiceDispatchModal.channel === "whatsapp" ? "WhatsApp Number" : "Recipient Email"}
+                </span>
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                  {invoiceDispatchModal.recipient}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-slate-400 font-semibold">Billed Amount</span>
+                <span className="text-sm font-black text-brand-green dark:text-emerald-400">
+                  ₹{invoiceDispatchModal.amount.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
+            {/* Context Message */}
+            {invoiceDispatchModal.message && (
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50/60 dark:bg-slate-800/40 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                {invoiceDispatchModal.message}
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-1">
+              {invoiceDispatchModal.status === "error" && invoiceDispatchModal.whatsappUrl ? (
+                <>
+                  <a
+                    href={invoiceDispatchModal.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setInvoiceDispatchModal(null)}
+                    className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Open WhatsApp Web</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setInvoiceDispatchModal(null)}
+                    className="py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setInvoiceDispatchModal(null)}
+                  className="w-full py-3 px-4 rounded-xl bg-brand-charcoal hover:bg-slate-800 dark:bg-brand-green dark:hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Done</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Floating Action Toast Notification */}
