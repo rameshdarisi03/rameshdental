@@ -488,7 +488,7 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     }
 
     // Auto-trigger WhatsApp Onboarding & Portal Activation
-    if (newPatient.phone && newPatient.activationCode) {
+    if (newPatient.phone && (newPatient.activationCode || newPatient.id)) {
       try {
         const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
         fetch(`${baseUrl}/api/whatsapp/send`, {
@@ -497,8 +497,10 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
           body: JSON.stringify({
             type: "PATIENT_ONBOARDING",
             payload: {
+              patientId: newPatient.id,
               patientName: newPatient.name,
               patientPhone: newPatient.phone,
+              patientEmail: newPatient.email,
               activationCode: newPatient.activationCode,
             },
           }),

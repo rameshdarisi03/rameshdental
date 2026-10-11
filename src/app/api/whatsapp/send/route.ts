@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
 
     switch (type) {
       case "PATIENT_ONBOARDING":
-        result = await sendWhatsAppPatientOnboarding(payload);
+        result = await sendWhatsAppPatientOnboarding({
+          ...payload,
+          patientId: payload.patientId || payload.id,
+        });
         break;
 
       case "BOOKING_RECEIVED":

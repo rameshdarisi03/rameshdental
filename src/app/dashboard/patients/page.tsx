@@ -28,7 +28,8 @@ import {
   Users,
   MapPin,
   X,
-  RotateCcw
+  RotateCcw,
+  Send
 } from "lucide-react";
 import { getPatients, createPatient, updatePatient, checkDuplicatePatient, DuplicateCheckResult, PatientDeleteOptions, FAMILY_RELATIONSHIPS, FamilyRelationship } from "@/lib/patientsDb";
 import { getClinicConfig, ClinicConfig, generateSlotsFromHours, generateSlotsForDay, isSlotInPast, getRecentAppointments, Appointment } from "@/lib/db";
@@ -640,6 +641,66 @@ export default function PatientsPage() {
     }
   };
 
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
+  const [inviteSuccessMsg, setInviteSuccessMsg] = useState("");
+
+  const handleResendPortalInvite = async (targetPatient: Patient) => {
+    if (!targetPatient.activationCode) return;
+    setResendingInviteId(targetPatient.id);
+    setInviteSuccessMsg("");
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      const promises: Promise<any>[] = [];
+
+      // 1. Email invite
+      if (targetPatient.email) {
+        promises.push(
+          fetch(`${baseUrl}/api/email/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "PATIENT_ONBOARDING",
+              payload: {
+                patientId: targetPatient.id,
+                patientName: targetPatient.name,
+                patientEmail: targetPatient.email,
+                activationCode: targetPatient.activationCode,
+              },
+            }),
+          })
+        );
+      }
+
+      // 2. WhatsApp invite
+      if (targetPatient.phone) {
+        promises.push(
+          fetch(`${baseUrl}/api/whatsapp/send`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "PATIENT_ONBOARDING",
+              payload: {
+                patientId: targetPatient.id,
+                patientName: targetPatient.name,
+                patientPhone: targetPatient.phone,
+                patientEmail: targetPatient.email,
+                activationCode: targetPatient.activationCode,
+              },
+            }),
+          })
+        );
+      }
+
+      await Promise.allSettled(promises);
+      setInviteSuccessMsg(`Portal invite sent to ${targetPatient.name} via WhatsApp & Email! (ID: ${targetPatient.id} • Code: ${targetPatient.activationCode})`);
+      setTimeout(() => setInviteSuccessMsg(""), 6000);
+    } catch (e) {
+      console.warn("Error resending portal invite:", e);
+    } finally {
+      setResendingInviteId(null);
+    }
+  };
+
   // Close dropdown menu when clicking elsewhere
   useEffect(() => {
     const handleOutsideClick = () => setActiveMenuId(null);
@@ -692,6 +753,22 @@ export default function PatientsPage() {
           </button>
         </div>
       </div>
+
+      {/* Portal Invite Success Banner */}
+      {inviteSuccessMsg && (
+        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <span>{inviteSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setInviteSuccessMsg("")}
+            className="text-emerald-700 hover:text-emerald-900 dark:hover:text-emerald-100 p-1"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Top Clinical Metrics Summary Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1077,6 +1154,24 @@ export default function PatientsPage() {
                                 <Folder className="w-4 h-4" />
                                 Google Drive
                               </a>
+                            )}
+                            {!patient.activated && patient.activationCode && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(null);
+                                  await handleResendPortalInvite(patient);
+                                }}
+                                disabled={resendingInviteId === patient.id}
+                                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-brand-green hover:bg-brand-bg/50 dark:hover:bg-slate-800 text-left disabled:opacity-50"
+                              >
+                                {resendingInviteId === patient.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-brand-green" />
+                                ) : (
+                                  <Send className="w-4 h-4 text-brand-green" />
+                                )}
+                                <span>{resendingInviteId === patient.id ? "Sending Invite..." : "Send Portal Invite"}</span>
+                              </button>
                             )}
                             <button
                               onClick={() => {

@@ -236,18 +236,34 @@ export async function sendWhatsAppTemplateMessage(params: {
 export async function sendWhatsAppPatientOnboarding(params: {
   patientName: string;
   patientPhone: string;
+  patientId?: string;
   activationCode: string;
+  patientEmail?: string;
 }): Promise<SendWhatsAppResult> {
+  const cleanPhone = getCleanWhatsAppNumber(params.patientPhone);
+  const portalUrl = `${BASE_URL}/patienthub/login?code=${params.activationCode}`;
+  const patientId = params.patientId || "GPC-PATIENT";
+
+  // In the Meta-Approved Template (patient_welcome_gpc):
+  // Header: Welcome to Gait Physio Clinic
+  // Body: Hello {{1}}, Welcome to Gait Physio Clinic. Your clinical patient record has been registered with ID {{2}}.
+  //
+  // Format {{2}} so it clearly gives the actual Clinical Patient ID (e.g. GPC-82352),
+  // followed by the distinct Portal Activation Code (e.g. TB32TBG5) and 1-tap activation URL:
+  const idAndPortalInfo = params.activationCode
+    ? `${patientId}.\n\n🔑 *Portal Activation Code:* *${params.activationCode}*${params.patientEmail ? `\n📧 *Registered Email:* ${params.patientEmail}` : ""}\n📲 *Activate Patient Hub (Exercises & Care Plan):*\n👉 ${portalUrl} `
+    : `${patientId}`;
+
   // Primary: Use Meta-Approved Template (patient_welcome_gpc)
   const templateRes = await sendWhatsAppTemplateMessage({
-    rawPhone: params.patientPhone,
+    rawPhone: cleanPhone,
     templateName: "patient_welcome_gpc",
     components: [
       {
         type: "body",
         parameters: [
           { type: "text", text: params.patientName },
-          { type: "text", text: params.activationCode || "GPC-PATIENT" },
+          { type: "text", text: idAndPortalInfo },
         ],
       },
     ],
@@ -262,19 +278,17 @@ export async function sendWhatsAppPatientOnboarding(params: {
 
 Hello ${params.patientName},
 
-Welcome to Gait Physio Clinic! Your patient profile has been created.
+Welcome to Gait Physio Clinic! Your clinical patient record has been created.
 
-Use your unique activation code below to set up your password and access your home exercises, recovery milestones, and bills:
+🆔 *Patient ID:* ${patientId}
+${params.patientEmail ? `📧 *Registered Email:* ${params.patientEmail}\n` : ""}🔑 *Portal Activation Code:* *${params.activationCode}*
 
-🔑 *YOUR ACTIVATION CODE:*
-*${params.activationCode}*
-
-📲 *Activate your account in 30 seconds:*
-👉 ${BASE_URL}/patienthub/login
+📲 *Activate your account in 30 seconds to access your prescribed home exercises, consultation history, and appointments:*
+👉 ${portalUrl}
 
 _Please keep this code secure. If you did not request this, please contact our clinic at ${CLINIC_PHONE}._`;
 
-  return sendWhatsAppTextMessage(params.patientPhone, text);
+  return sendWhatsAppTextMessage(cleanPhone, text);
 }
 
 /**

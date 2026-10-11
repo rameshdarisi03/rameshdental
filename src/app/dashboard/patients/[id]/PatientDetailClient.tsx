@@ -508,14 +508,52 @@ export default function PatientDetailClient({ id }: { id: string }) {
     }
   };
 
-  const handleSendPortalInvite = () => {
+  const handleSendPortalInvite = async () => {
     if (!patient || !patient.activationCode) return;
     const cleanPhone = getCleanWhatsAppNumber(patient.phone);
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login?code=${patient.activationCode}` : `https://www.gaitphysioclinic.com/patienthub/login?code=${patient.activationCode}`;
 
-    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login` : "https://gaitphysioclinic.com/patienthub/login";
-    const message = `Hello ${patient.name}, your Gait Physio Clinic Patient Hub is ready! 🎉\n\nAccess your personalized home exercises, clinical recovery progress, and appointment details online:\n🔗 ${portalUrl}\n\n🔑 Your Portal Activation Code: *${patient.activationCode}*\n\nPlease log in and activate your account.`;
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, "_blank");
+    setFormSuccess("Dispatching portal invitation to patient via WhatsApp & Email...");
+    try {
+      // 1. Dispatch through automated WhatsApp Cloud API
+      if (cleanPhone) {
+        fetch("/api/whatsapp/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "PATIENT_ONBOARDING",
+            payload: {
+              patientId: patient.id,
+              patientName: patient.name,
+              patientPhone: cleanPhone,
+              patientEmail: patient.email,
+              activationCode: patient.activationCode,
+            },
+          }),
+        }).catch((err) => console.warn("[Portal Invite WA] Dispatch error:", err));
+      }
+
+      // 2. Dispatch through Brevo Email API if email exists
+      if (patient.email) {
+        fetch("/api/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "PATIENT_ONBOARDING",
+            payload: {
+              patientName: patient.name,
+              patientEmail: patient.email,
+              activationCode: patient.activationCode,
+            },
+          }),
+        }).catch((err) => console.warn("[Portal Invite Email] Dispatch error:", err));
+      }
+
+      setFormSuccess(`Portal invitation sent to ${patient.name}! (ID: ${patient.id} • Code: ${patient.activationCode})`);
+      setTimeout(() => setFormSuccess(""), 6000);
+    } catch (e) {
+      console.warn("Failed to dispatch portal invite:", e);
+    }
   };
 
   const setQuickDate = (type: "today" | "yesterday") => {
@@ -2030,9 +2068,32 @@ Warm regards,
                 {patient.status}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-bold mt-1">
-              Patient ID: <span className="text-brand-charcoal dark:text-white uppercase font-black">{patient.id}</span>
-            </p>
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs">
+              <p className="text-slate-400 font-bold">
+                Patient ID: <span className="text-brand-charcoal dark:text-white uppercase font-black">{patient.id}</span>
+              </p>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              {patient.activated ? (
+                <span className="text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Portal Active
+                </span>
+              ) : patient.activationCode ? (
+                <div className="inline-flex items-center gap-2">
+                  <span className="text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">
+                    Portal Code: <strong className="text-brand-charcoal dark:text-white">{patient.activationCode}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSendPortalInvite}
+                    className="text-[10px] font-black text-brand-green hover:underline inline-flex items-center gap-1 cursor-pointer bg-brand-green/10 px-2 py-0.5 rounded-md hover:bg-brand-green/20 transition-colors"
+                    title="Send WhatsApp & Email invite with correct ID & Activation Code"
+                  >
+                    <span>Resend Portal Invite</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
