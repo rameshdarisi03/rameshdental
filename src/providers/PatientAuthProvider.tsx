@@ -10,6 +10,7 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithCustomToken,
   setPersistence,
   browserLocalPersistence,
   inMemoryPersistence
@@ -47,6 +48,7 @@ interface PatientAuthContextType {
   linkGoogleWithActivationCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithCode: (email: string, pass: string, code: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithPhoneOtp: (customToken: string, phoneDigits: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   addFamilyMemberProfile: (data: {
@@ -77,6 +79,7 @@ const PatientAuthContext = createContext<PatientAuthContextType>({
   linkGoogleWithActivationCode: async () => ({ success: false }),
   loginWithEmail: async () => ({ success: false }),
   signUpWithCode: async () => ({ success: false }),
+  loginWithPhoneOtp: async () => ({ success: false }),
   logout: async () => {},
   refreshProfile: async () => {},
   addFamilyMemberProfile: async () => ({ success: false }),
@@ -148,14 +151,21 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       }
 
       // 1. Direct matches for this authenticated user
+      const storedPhone = typeof window !== "undefined" 
+        ? (sessionStorage.getItem("gpc_auth_phone") || localStorage.getItem("gpc_auth_phone") || "") 
+        : "";
+      const cleanPhoneDigits = storedPhone.replace(/\D/g, "").slice(-10);
+
       const directMatches = all.filter((p) => {
         const pEmail = (p.email || "").trim().toLowerCase();
         const pLinked = (p.linkedEmails || []).map((e) => e.trim().toLowerCase());
         const pUid = p.authUid;
+        const pPhoneDigits = (p.phone || "").replace(/\D/g, "").slice(-10);
 
-        if (uid && pUid === uid) return true;
+        if (uid && (pUid === uid || p.id === uid)) return true;
         if (email && pEmail === email) return true;
         if (email && pLinked.includes(email)) return true;
+        if (cleanPhoneDigits && pPhoneDigits && pPhoneDigits === cleanPhoneDigits) return true;
         return false;
       });
 
@@ -769,6 +779,82 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
     }
   };
 
+  // Action: Authenticate with verified Phone OTP custom token
+  const loginWithPhoneOtp = async (
+    customToken: string, 
+    phoneDigits: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    setError(null);
+    setLoading(true);
+    await ensureLocalPersistence();
+
+    try {
+      const cleanPhone = phoneDigits.replace(/\D/g, "").slice(-10);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("gpc_auth_phone", cleanPhone);
+        localStorage.setItem("gpc_auth_phone", cleanPhone);
+      }
+
+      const cred = await signInWithCustomToken(auth, customToken);
+      const profiles = await lookupAllPatientProfiles(cred.user);
+
+      if (profiles.length === 0) {
+        await signOut(auth);
+        setLoading(false);
+        const msg = "No registered patient record matched this mobile number.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
+      const chosenProfile = profiles.find((p) => {
+        const pPhone = (p.phone || "").replace(/\D/g, "").slice(-10);
+        return pPhone === cleanPhone;
+      }) || profiles[0];
+
+      if (chosenProfile.id && (!chosenProfile.authUid || !chosenProfile.activated)) {
+        chosenProfile.authUid = cred.user.uid;
+        chosenProfile.activated = true;
+
+        syncPatientActivation({
+          patientId: chosenProfile.id,
+          authUid: cred.user.uid,
+          phone: cleanPhone,
+        });
+
+        updateDoc(doc(db, "patients", chosenProfile.id), {
+          authUid: cred.user.uid,
+          activated: true,
+        }).catch((e) => console.warn("Client updateDoc non-fatal:", e));
+      }
+
+      setAvailableProfiles(profiles);
+      setPatient(chosenProfile);
+      setActiveProfileId(chosenProfile.id || null);
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("gpc_patient", JSON.stringify(chosenProfile));
+        localStorage.setItem("gpc_available_profiles", JSON.stringify(profiles));
+        if (chosenProfile.id) {
+          localStorage.setItem("gpc_active_patient_id", chosenProfile.id);
+        }
+        sessionStorage.setItem("gpc_profile_selected_session", "true");
+      }
+
+      if (profiles.length > 1) {
+        setShowProfileSelector(true);
+      }
+
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      console.error("Phone OTP login error:", err);
+      setLoading(false);
+      const msg = err.message || "Failed to complete login with verification code.";
+      setError(msg);
+      return { success: false, error: msg };
+    }
+  };
+
   // Action: Add a new family member profile from Patient Hub
   const addFamilyMemberProfile = async (data: {
     name: string;
@@ -881,7 +967,9 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         localStorage.removeItem("gpc_patient");
         localStorage.removeItem("gpc_available_profiles");
         localStorage.removeItem("gpc_active_patient_id");
+        localStorage.removeItem("gpc_auth_phone");
         sessionStorage.removeItem("gpc_profile_selected_session");
+        sessionStorage.removeItem("gpc_auth_phone");
       }
       setPatient(null);
       setAvailableProfiles([]);
@@ -923,6 +1011,8 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         localStorage.removeItem("gpc_patient");
         localStorage.removeItem("gpc_available_profiles");
         localStorage.removeItem("gpc_active_patient_id");
+        localStorage.removeItem("gpc_auth_phone");
+        sessionStorage.removeItem("gpc_auth_phone");
       }
       await signOut(auth);
     }
@@ -947,6 +1037,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         linkGoogleWithActivationCode,
         loginWithEmail,
         signUpWithCode,
+        loginWithPhoneOtp,
         logout,
         refreshProfile,
         addFamilyMemberProfile,

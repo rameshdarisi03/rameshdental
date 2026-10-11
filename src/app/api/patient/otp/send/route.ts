@@ -1,0 +1,162 @@
+import { NextResponse } from "next/server";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { sendWhatsAppTextMessage } from "@/lib/whatsapp";
+import { sendEmail } from "@/lib/email";
+
+/**
+ * Patient Hub - OTP Dispatch Route
+ * Enforces strict registration verification:
+ * - Rejects any alien phone number that does not exist in clinic records.
+ * - For new user signup: verifies phone exists AND activation code matches.
+ * - Stores 6-digit OTP with 5-minute TTL.
+ * - Dispatches OTP via WhatsApp (and email if registered).
+ */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { phone, purpose = "login", activationCode } = body;
+
+    if (!phone || typeof phone !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Please enter a valid mobile number." },
+        { status: 400 }
+      );
+    }
+
+    const cleanDigits = phone.replace(/\D/g, "").slice(-10);
+    if (cleanDigits.length < 10) {
+      return NextResponse.json(
+        { success: false, error: "Please enter a valid 10-digit mobile number." },
+        { status: 400 }
+      );
+    }
+
+    const { db } = getFirebaseAdmin();
+
+    // 1. Strict Search: Look up patient(s) matching this mobile number
+    const patientsSnap = await db.collection("patients").get();
+    const matchedPatients: any[] = [];
+
+    patientsSnap.forEach((doc) => {
+      const data = doc.data();
+      const pPhoneDigits = (data.phone || "").replace(/\D/g, "").slice(-10);
+      if (pPhoneDigits === cleanDigits) {
+        matchedPatients.push({ id: doc.id, ...data });
+      }
+    });
+
+    // 2. Strict Block: If mobile number does not exist in any patient profile, block immediately
+    if (matchedPatients.length === 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "This mobile number is not registered with the clinic. Please contact our receptionist or front desk to register." 
+        },
+        { status: 404 }
+      );
+    }
+
+    // 3. New User Validation: Verify activation code
+    if (purpose === "signup") {
+      const cleanCode = (activationCode || "").trim().toUpperCase();
+      if (!cleanCode) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Please enter the activation code sent to you by the clinic." 
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check if at least one patient under this phone number matches the activation code
+      const codeMatched = matchedPatients.some((p) => {
+        const pCode = (p.activationCode || "").trim().toUpperCase();
+        const pId = (p.id || "").trim().toUpperCase();
+        return pCode === cleanCode || pId === cleanCode;
+      });
+
+      if (!codeMatched) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Invalid activation code for this mobile number. Please check the code sent to your WhatsApp/SMS or ask clinic reception." 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 4. Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+    // Store in patient_otps collection
+    await db.collection("patient_otps").doc(cleanDigits).set({
+      phone: cleanDigits,
+      otp,
+      purpose,
+      activationCode: (activationCode || "").trim().toUpperCase(),
+      expiresAt,
+      attempts: 0,
+      createdAt: Date.now(),
+    });
+
+    const primaryPatient = matchedPatients[0];
+    const patientName = primaryPatient.name || "Patient";
+
+    // 5. Send via WhatsApp
+    const message = 
+`🏥 *GAIT PHYSIO CLINIC*
+*Patient Hub Verification Code*
+
+Hello ${patientName},
+
+Your 6-digit login verification code is: *${otp}*
+
+⏱️ _Valid for 5 minutes. Please do not share this code with anyone._
+
+If you did not request this code, please contact our clinic reception.`;
+
+    const waRes = await sendWhatsAppTextMessage(`91${cleanDigits}`, message);
+    if (!waRes.success) {
+      console.warn("[OTP Dispatch] WhatsApp send notice:", waRes.error);
+    }
+
+    // Optional: Also send to registered email if present
+    if (primaryPatient.email) {
+      try {
+        await sendEmail({
+          to: primaryPatient.email,
+          subject: `Your Gait Physio Clinic Verification Code: ${otp}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 16px;">
+              <h2 style="color: #062e36; margin-bottom: 8px;">Gait Physio Clinic</h2>
+              <p style="color: #475569; font-size: 14px;">Your Patient Hub verification code is:</p>
+              <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #f9ab55; margin: 20px 0; background: #062e36; padding: 14px 20px; text-align: center; border-radius: 12px;">
+                ${otp}
+              </div>
+              <p style="color: #64748b; font-size: 12px;">Valid for 5 minutes. Do not share this code with anyone.</p>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        console.warn("[OTP Dispatch] Email send notice:", emailErr);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Verification code sent to your WhatsApp.",
+      phone: cleanDigits,
+      // For automated development fallback only if WhatsApp Cloud API simulated
+      debugSimulated: !process.env.WHATSAPP_ACCESS_TOKEN,
+    });
+  } catch (error: any) {
+    console.error("[API Patient OTP Send Error]:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to send verification code." },
+      { status: 500 }
+    );
+  }
+}
