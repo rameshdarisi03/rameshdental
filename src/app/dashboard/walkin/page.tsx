@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, query, where, getDocs, orderBy } from "firebase/firestore";
 import {
   getAppointmentsByDate,
   getBlocksByDate,
@@ -51,8 +51,10 @@ import {
   UserCheck,
   AlertCircle,
   Users,
-  MapPin
+  MapPin,
+  CalendarSync
 } from "lucide-react";
+import RescheduleModal from "@/components/RescheduleModal";
 
 // Get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -111,6 +113,12 @@ function WalkInBookingContent() {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Reschedule existing appointment state
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [selectedRescheduleApp, setSelectedRescheduleApp] = useState<Appointment | null>(null);
+  const [patientActiveAppointment, setPatientActiveAppointment] = useState<Appointment | null>(null);
+  const [checkingPatientApp, setCheckingPatientApp] = useState(false);
 
   // Firestore availability state for selected date
   const [approvedSlotCounts, setApprovedSlotCounts] = useState<Record<string, number>>({});
@@ -253,6 +261,33 @@ function WalkInBookingContent() {
       serviceId: p.treatmentPlan || prev.serviceId,
       assignedTherapist: p.therapistName || prev.assignedTherapist,
     }));
+
+    // Check if this patient already has an active/pending appointment that can be rescheduled
+    setPatientActiveAppointment(null);
+    setCheckingPatientApp(true);
+    (async () => {
+      try {
+        const cleanDigits = rawPhone.replace(/\D/g, "").slice(-10);
+        const qApps = query(
+          collection(db, "appointments"),
+          where("status", "in", ["approved", "pending"])
+        );
+        const snaps = await getDocs(qApps);
+        const found = snaps.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Appointment))
+          .find((a) => {
+            const aDigits = (a.patientPhone || "").replace(/\D/g, "").slice(-10);
+            return aDigits === cleanDigits || a.patientName?.toLowerCase() === p.name?.toLowerCase();
+          });
+        if (found) {
+          setPatientActiveAppointment(found);
+        }
+      } catch (err) {
+        console.warn("Failed checking patient appointment for reschedule:", err);
+      } finally {
+        setCheckingPatientApp(false);
+      }
+    })();
   };
 
   // Pre-populate patient details if patientId query param is provided
@@ -1047,6 +1082,35 @@ function WalkInBookingContent() {
                     </div>
                   </div>
 
+                  {/* Active Booking Banner + Direct Reschedule Action */}
+                  {patientActiveAppointment && (
+                    <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-xs space-y-2 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-brand-green">
+                          Active Booking Found
+                        </span>
+                        <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
+                          {patientActiveAppointment.status}
+                        </span>
+                      </div>
+                      <p className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-brand-green" />
+                        <span>{patientActiveAppointment.date} at {patientActiveAppointment.slot}</span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRescheduleApp(patientActiveAppointment);
+                          setRescheduleModalOpen(true);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                      >
+                        <CalendarSync className="w-3.5 h-3.5" />
+                        <span>Reschedule This Existing Booking →</span>
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => {
@@ -1226,6 +1290,30 @@ function WalkInBookingContent() {
           </div>
         </div>
       </div>
+
+      {/* Reschedule Modal */}
+      {rescheduleModalOpen && selectedRescheduleApp && (
+        <RescheduleModal
+          isOpen={rescheduleModalOpen}
+          onClose={() => {
+            setRescheduleModalOpen(false);
+            setSelectedRescheduleApp(null);
+          }}
+          appointment={selectedRescheduleApp}
+          userRole={currentUser?.role || "receptionist"}
+          userName={currentUser?.name || "Clinic Staff"}
+          userUid={currentUser?.uid || ""}
+          onSuccess={(updated) => {
+            setPatientActiveAppointment(updated);
+            setSuccessBooking({
+              patientName: updated.patientName || selectedPatient?.name || "Patient",
+              serviceId: updated.serviceId || "Physiotherapy Session",
+              date: updated.date,
+              slot: updated.slot,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

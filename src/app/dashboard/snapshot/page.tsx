@@ -60,9 +60,11 @@ import {
   FileText,
   Sparkles,
   Phone,
-  MapPin
+  MapPin,
+  CalendarSync
 } from "lucide-react";
 import Link from "next/link";
+import RescheduleModal from "@/components/RescheduleModal";
 
 interface UserProfile {
   uid: string;
@@ -130,6 +132,10 @@ export default function DaySnapshot() {
   const [showCustomMsgInput, setShowCustomMsgInput] = useState(false);
   const [actionToast, setActionToast] = useState<string | null>(null);
   const [sendingActionType, setSendingActionType] = useState<string | null>(null);
+
+  // Reschedule Modal states
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [selectedRescheduleApp, setSelectedRescheduleApp] = useState<Appointment | null>(null);
 
   const showToast = (msg: string) => {
     setActionToast(msg);
@@ -2137,17 +2143,31 @@ export default function DaySnapshot() {
                       </button>
                     </>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPatientActionModalOpen(false);
-                        triggerRejectionGuard(activePatientApp);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
-                    >
-                      <X className="w-4 h-4" />
-                      <span>Cancel / Reject Slot</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedRescheduleApp(activePatientApp);
+                          setRescheduleModalOpen(true);
+                        }}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-brand-green dark:text-teal-300 hover:bg-teal-100 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                        title="Reschedule to another date & time (frees up current slot)"
+                      >
+                        <CalendarSync className="w-4 h-4" />
+                        <span>Reschedule Slot</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPatientActionModalOpen(false);
+                          triggerRejectionGuard(activePatientApp);
+                        }}
+                        className="flex-1 py-2.5 px-3 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Cancel Slot</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2474,6 +2494,26 @@ export default function DaySnapshot() {
             <p className="text-xs font-semibold leading-snug">{actionToast}</p>
           </div>
         </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleModalOpen && selectedRescheduleApp && (
+        <RescheduleModal
+          isOpen={rescheduleModalOpen}
+          onClose={() => {
+            setRescheduleModalOpen(false);
+            setSelectedRescheduleApp(null);
+          }}
+          appointment={selectedRescheduleApp}
+          userRole={currentUser?.role || "receptionist"}
+          userName={currentUser?.name || "Clinic Staff"}
+          userUid={currentUser?.uid || ""}
+          onSuccess={async (updated) => {
+            setPatientActionModalOpen(false);
+            showToast(`Appointment successfully moved to ${updated.date} at ${updated.slot}! Old slot is now free.`);
+            await fetchDayData();
+          }}
+        />
       )}
 
     </div>

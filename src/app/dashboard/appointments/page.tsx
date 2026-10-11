@@ -44,8 +44,10 @@ import {
   ShieldAlert,
   ClipboardList,
   RotateCw,
-  MapPin
+  MapPin,
+  CalendarSync
 } from "lucide-react";
+import RescheduleModal from "@/components/RescheduleModal";
 
 // Helper to get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -100,6 +102,10 @@ export default function DashboardAppointments() {
   const [pendingNotificationApp, setPendingNotificationApp] = useState<Appointment | null>(null);
   const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
   const [manualNotifyWhatsApp, setManualNotifyWhatsApp] = useState(true);
+
+  // Reschedule Modal State
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [selectedRescheduleApp, setSelectedRescheduleApp] = useState<Appointment | null>(null);
 
   // Manual Booking Date availability details
   const [manualDateAppointments, setManualDateAppointments] = useState<Appointment[]>([]);
@@ -701,6 +707,19 @@ export default function DashboardAppointments() {
                       )}
                       Approve
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRescheduleApp(app);
+                        setRescheduleModalOpen(true);
+                      }}
+                      className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 dark:bg-teal-950/40 text-brand-green dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 px-4 py-2.5 text-xs font-black transition-colors"
+                      title="Reschedule to another date & time (frees up current slot)"
+                    >
+                      <CalendarSync className="h-3.5 w-3.5" />
+                      Reschedule
+                    </button>
                     
                     <button
                       onClick={() => triggerRejectionGuard(app.id!)}
@@ -715,6 +734,19 @@ export default function DashboardAppointments() {
 
                 {activeTab === "approved" && (
                   <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedRescheduleApp(app);
+                        setRescheduleModalOpen(true);
+                      }}
+                      className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 dark:bg-teal-950/40 text-brand-green dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 px-4.5 py-2.5 text-xs font-black transition-colors"
+                      title="Reschedule to another date & time (frees up current slot)"
+                    >
+                      <CalendarSync className="h-3.5 w-3.5" />
+                      Reschedule
+                    </button>
+
                     <button
                       onClick={() => triggerWhatsAppConfirmation(app)}
                       className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 text-brand-green px-5 py-2.5 text-xs font-black hover:bg-brand-sand transition-colors"
@@ -897,6 +929,24 @@ export default function DashboardAppointments() {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Reschedule Slot Modal */}
+      {rescheduleModalOpen && selectedRescheduleApp && (
+        <RescheduleModal
+          isOpen={rescheduleModalOpen}
+          onClose={() => {
+            setRescheduleModalOpen(false);
+            setSelectedRescheduleApp(null);
+          }}
+          appointment={selectedRescheduleApp}
+          userRole={currentUser?.role || "receptionist"}
+          userName={currentUser?.name || "Clinic Staff"}
+          userUid={currentUser?.uid || ""}
+          onSuccess={() => {
+            fetchAppointments();
+          }}
+        />
       )}
 
     </div>

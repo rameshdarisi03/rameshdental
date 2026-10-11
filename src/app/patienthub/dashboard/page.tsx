@@ -32,8 +32,11 @@ import {
   FileText,
   Flame,
   CheckCircle,
-  Sparkles
+  Sparkles,
+  CalendarSync
 } from "lucide-react";
+import RescheduleModal from "@/components/RescheduleModal";
+import { Appointment } from "@/lib/db";
 import { subscribePatientInvoices, Invoice } from "@/lib/invoicesDb";
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG } from "@/lib/db";
 import { getCleanWhatsAppNumber, getPrimaryDialNumber } from "@/lib/phoneUtils";
@@ -58,6 +61,11 @@ export default function DashboardPage() {
   const [clinicConfig, setClinicConfig] = useState<ClinicConfig>(DEFAULT_CLINIC_CONFIG);
   const [markingDay, setMarkingDay] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Active appointment & reschedule states
+  const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+  const [appointmentLoadedDate, setAppointmentLoadedDate] = useState<string>("");
 
   useEffect(() => {
     getClinicConfig().then(setClinicConfig).catch(console.error);
@@ -119,6 +127,37 @@ export default function DashboardPage() {
       progUnsub();
       progUnsub = subscribePatientWorkoutProgress(patient.id!, rxData, setProgress);
     });
+
+    // 4. Fetch patient's upcoming active appointment for direct rescheduling
+    const fetchPatientApp = async () => {
+      try {
+        const cleanPhone = (patient.phone || "").replace(/\D/g, "").slice(-10);
+        const qApps = query(
+          collection(db, "appointments"),
+          where("status", "in", ["approved", "pending"])
+        );
+        const snaps = await getDocs(qApps);
+        const matched = snaps.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Appointment))
+          .filter((a) => {
+            const aDigits = (a.patientPhone || "").replace(/\D/g, "").slice(-10);
+            return (
+              (cleanPhone && aDigits === cleanPhone) ||
+              (patient.email && a.patientEmail?.toLowerCase() === patient.email?.toLowerCase()) ||
+              (a.patientName?.toLowerCase() === patient.name?.toLowerCase())
+            );
+          })
+          .sort((a, b) => (b.date > a.date ? 1 : -1));
+
+        if (matched.length > 0) {
+          setActiveAppointment(matched[0]);
+          setAppointmentLoadedDate(`${matched[0].date} at ${matched[0].slot}`);
+        }
+      } catch (err) {
+        console.warn("Failed fetching patient active appointment:", err);
+      }
+    };
+    fetchPatientApp();
 
     setLoading(false);
 
@@ -213,13 +252,33 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <Link
-          href="/book"
-          className="relative z-10 inline-flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-bold text-xs px-5 py-3 rounded-full transition-all shadow-md shrink-0 cursor-pointer"
-        >
-          <span>Schedule Visit</span>
-          <ChevronRight className="h-4 w-4" />
-        </Link>
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5 shrink-0">
+          {activeAppointment ? (
+            <button
+              type="button"
+              onClick={() => setRescheduleModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-extrabold text-xs px-5 py-3 rounded-full transition-all shadow-md shrink-0 cursor-pointer active:scale-95"
+            >
+              <CalendarSync className="h-4 w-4" />
+              <span>Reschedule Session</span>
+            </button>
+          ) : (
+            <Link
+              href="/book"
+              className="inline-flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-bold text-xs px-5 py-3 rounded-full transition-all shadow-md shrink-0 cursor-pointer"
+            >
+              <span>Schedule Visit</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          )}
+
+          <Link
+            href="/book"
+            className="inline-flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-3 rounded-full transition-all border border-white/15 shrink-0"
+          >
+            <span>Book New</span>
+          </Link>
+        </div>
       </section>
 
       {/* 3. Quick Action Hub */}
@@ -454,6 +513,22 @@ export default function DashboardPage() {
           <span>Call Clinic Desk</span>
         </a>
       </section>
+
+      {/* Reschedule Modal */}
+      {rescheduleModalOpen && activeAppointment && (
+        <RescheduleModal
+          isOpen={rescheduleModalOpen}
+          onClose={() => setRescheduleModalOpen(false)}
+          appointment={activeAppointment}
+          userRole="patient"
+          userName={patient?.name || "Patient"}
+          userUid={patient?.authUid || patient?.id || ""}
+          onSuccess={(updated) => {
+            setActiveAppointment(updated);
+            setAppointmentLoadedDate(`${updated.date} at ${updated.slot}`);
+          }}
+        />
+      )}
 
     </div>
   );
