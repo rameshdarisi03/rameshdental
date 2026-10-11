@@ -493,11 +493,11 @@ export default function ClinicalBillingPage() {
         patientName: inv.patientName,
         recipient: inv.patientPhone,
         amount: inv.totalAmount || 0,
-        message: `Official Tax Invoice PDF and payment receipt delivered directly to ${inv.patientName}'s WhatsApp via Meta Cloud API.`,
+        message: `Official Tax Invoice PDF and payment receipt delivered directly to ${inv.patientName}'s WhatsApp.`,
       });
     } catch (err: any) {
-      console.error("Failed to send WhatsApp invoice PDF via Meta Cloud API:", err);
-      setActionError(err.message || "Meta Cloud API dispatch failed.");
+      console.error("Failed to send WhatsApp invoice PDF:", err);
+      setActionError(err.message || "WhatsApp delivery failed.");
       setTimeout(() => setActionError(""), 4000);
 
       setDispatchModal({
@@ -508,7 +508,7 @@ export default function ClinicalBillingPage() {
         patientName: inv.patientName,
         recipient: inv.patientPhone,
         amount: inv.totalAmount || 0,
-        message: err.message || "Meta WhatsApp Cloud API could not complete the dispatch. You can still deliver it instantly via WhatsApp Web.",
+        message: err.message || "Automated WhatsApp delivery could not complete. You can still deliver it immediately via WhatsApp Web below.",
         whatsappUrl: getWhatsAppShareUrl(inv),
       });
     } finally {
@@ -1142,7 +1142,7 @@ Warm regards,
                     )}
                   </div>
                   <div className="flex-1">
-                    <div>Send Bill via WhatsApp (Meta API)</div>
+                    <div>Send Bill via WhatsApp</div>
                     <div className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-normal">
                       Delivers official PDF tax invoice directly to patient
                     </div>
@@ -1233,11 +1233,11 @@ Warm regards,
       {/* Visual Confirmation Popup Modal for WhatsApp & Email Dispatch */}
       {mounted && dispatchModal?.isOpen && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setDispatchModal(null)}
         >
           <div 
-            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-5 animate-in zoom-in-95 duration-200"
+            className="w-[92vw] sm:w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header with status badge */}
@@ -1268,15 +1268,15 @@ Warm regards,
                         : "Invoice Emailed Successfully!"
                       : "Dispatch Notification"}
                   </h3>
-                  <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                  <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full mt-0.5 ${
                     dispatchModal.status === "success"
                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
                       : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"
                   }`}>
                     {dispatchModal.status === "success"
                       ? dispatchModal.channel === "whatsapp"
-                        ? "Delivered via Meta Cloud API with PDF"
-                        : "Delivered via Brevo Fast SMTP with PDF"
+                        ? "Delivered via WhatsApp with PDF"
+                        : "Delivered via Email with PDF"
                       : "Action Required"}
                   </span>
                 </div>

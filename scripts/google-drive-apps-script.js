@@ -188,6 +188,103 @@ function doPost(e) {
       return jsonResponse({ success: false, error: "Missing folderId or patientId for deleteFolder." });
     }
 
+    // 6. Selectively Delete Category Subfolders Across Entire Date Folders
+    if (action === "deleteCategorySubfolders") {
+      if (!data.parentFolderId && !data.patientId) {
+        return jsonResponse({ success: false, error: "Missing parentFolderId or patientId for deleteCategorySubfolders." });
+      }
+
+      var patientFolder = null;
+      if (data.parentFolderId) {
+        try {
+          patientFolder = DriveApp.getFolderById(data.parentFolderId);
+        } catch (e) {}
+      }
+
+      if (!patientFolder && data.patientId && data.rootFolderId) {
+        var root = DriveApp.getFolderById(data.rootFolderId);
+        var folders = root.getFolders();
+        while (folders.hasNext()) {
+          var sub = folders.next();
+          if (sub.getName().startsWith(data.patientId)) {
+            patientFolder = sub;
+            break;
+          }
+        }
+      }
+
+      if (!patientFolder) {
+        return jsonResponse({ success: true, message: "Patient folder not found; nothing to delete.", deletedFolders: 0, deletedFiles: 0 });
+      }
+
+      var rawCategories = data.categories || [];
+      var targetCategories = [];
+      for (var i = 0; i < rawCategories.length; i++) {
+        targetCategories.push(String(rawCategories[i]).toLowerCase().trim());
+      }
+
+      if (targetCategories.length === 0) {
+        return jsonResponse({ success: true, message: "No categories specified.", deletedFolders: 0, deletedFiles: 0 });
+      }
+
+      var deletedFolders = 0;
+      var deletedFiles = 0;
+
+      // Iterate through all subfolders of patientFolder (date folders, e.g. "DD-MM-YYYY")
+      var dateFoldersIterator = patientFolder.getFolders();
+      while (dateFoldersIterator.hasNext()) {
+        var dateFolder = dateFoldersIterator.next();
+
+        // 1. Check if dateFolder has subfolders matching any target category
+        var catFoldersIterator = dateFolder.getFolders();
+        while (catFoldersIterator.hasNext()) {
+          var subFolder = catFoldersIterator.next();
+          var subNameLower = subFolder.getName().toLowerCase();
+
+          var matchesCategory = false;
+          for (var j = 0; j < targetCategories.length; j++) {
+            var cat = targetCategories[j];
+            if (subNameLower === cat || subNameLower.indexOf(cat) !== -1) {
+              matchesCategory = true;
+              break;
+            }
+          }
+
+          if (matchesCategory) {
+            subFolder.setTrashed(true);
+            deletedFolders++;
+          }
+        }
+
+        // 2. Also check direct files inside the dateFolder matching category keywords
+        var filesIterator = dateFolder.getFiles();
+        while (filesIterator.hasNext()) {
+          var file = filesIterator.next();
+          var fileNameLower = file.getName().toLowerCase();
+
+          var fileMatches = false;
+          for (var k = 0; k < targetCategories.length; k++) {
+            var c = targetCategories[k];
+            if (c === "prescriptions" && (fileNameLower.indexOf("prescription") !== -1 || fileNameLower.indexOf("consultation") !== -1)) fileMatches = true;
+            if (c === "reports" && (fileNameLower.indexOf("report") !== -1 || fileNameLower.indexOf("scan") !== -1 || fileNameLower.indexOf("medical") !== -1)) fileMatches = true;
+            if (c === "invoices" && (fileNameLower.indexOf("invoice") !== -1 || fileNameLower.indexOf("bill") !== -1)) fileMatches = true;
+            if (fileMatches) break;
+          }
+
+          if (fileMatches) {
+            file.setTrashed(true);
+            deletedFiles++;
+          }
+        }
+      }
+
+      return jsonResponse({
+        success: true,
+        deletedFolders: deletedFolders,
+        deletedFiles: deletedFiles
+      });
+    }
+
     return jsonResponse({ success: false, error: "Unknown action: " + action });
 
   } catch (err) {

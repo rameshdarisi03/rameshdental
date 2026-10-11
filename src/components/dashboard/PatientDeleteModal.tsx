@@ -227,7 +227,7 @@ export default function PatientDeleteModal({
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Clinical session notes, SOAP evaluation logs & prescribed home exercise routines
+                  Clinical session notes, SOAP logs, home exercises & deletes all prescription subfolders from Google Drive
                 </p>
               </div>
             </div>
@@ -252,7 +252,7 @@ export default function PatientDeleteModal({
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  Permanently deletes uploaded X-rays, MRI scans, lab reports & cloud files from Google Drive
+                  Permanently deletes uploaded X-rays, MRI scans & all report subfolders across Google Drive
                 </p>
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function PatientDeleteModal({
                   </h4>
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                  GST invoices, payment receipts & clinic financial ledger records
+                  GST invoices, payment receipts & deletes all invoice subfolders across Google Drive
                 </p>
               </div>
             </div>

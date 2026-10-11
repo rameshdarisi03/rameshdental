@@ -155,3 +155,106 @@ export async function deletePatientFolder(folderId?: string | null, patientId?: 
   }
 }
 
+/**
+ * Lists subfolders inside a specific Google Drive folder.
+ */
+export async function listSubfolders(folderId: string): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const result = await callAppsScript({
+      action: "listFolders",
+      folderId: folderId,
+    });
+    return result.folders || [];
+  } catch (error: any) {
+    console.error("Error listing subfolders in Google Drive folder:", error);
+    return [];
+  }
+}
+
+/**
+ * Selectively deletes category subfolders (e.g. "Prescriptions", "Reports", "Invoices")
+ * lying across all date folders of a patient's Google Drive directory.
+ * Includes automatic dual-layer fallback if Apps Script hasn't been re-deployed yet.
+ */
+export async function deletePatientCategoryFolders(
+  folderId?: string | null,
+  patientId?: string | null,
+  categories: string[] = []
+): Promise<{ success: boolean; deletedCount?: number }> {
+  if (!folderId && !patientId) return { success: false };
+  if (!categories || categories.length === 0) return { success: true, deletedCount: 0 };
+
+  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+
+  // 1. Try atomic Apps Script action first
+  try {
+    const result = await callAppsScript({
+      action: "deleteCategorySubfolders",
+      parentFolderId: folderId || undefined,
+      patientId: patientId || undefined,
+      rootFolderId: rootFolderId,
+      categories: categories,
+    });
+    if (result && result.success) {
+      console.log(`[deletePatientCategoryFolders] Apps Script purged ${result.deletedFolders || 0} subfolders and ${result.deletedFiles || 0} files.`);
+      return { 
+        success: true, 
+        deletedCount: (result.deletedFolders || 0) + (result.deletedFiles || 0) 
+      };
+    }
+  } catch (scriptErr: any) {
+    console.warn("[deletePatientCategoryFolders] Direct Apps Script action warning (using multi-step fallback):", scriptErr?.message || scriptErr);
+  }
+
+  // 2. Infallible fallback using existing listFolders + deleteFolder actions
+  try {
+    let targetPatientFolderId = folderId;
+
+    // If folderId is missing, look up patient folder in root directory
+    if (!targetPatientFolderId && patientId && rootFolderId) {
+      const rootFolders = await listSubfolders(rootFolderId);
+      const matched = rootFolders.find((f) => f.name.startsWith(patientId));
+      if (matched) {
+        targetPatientFolderId = matched.id;
+      }
+    }
+
+    if (!targetPatientFolderId) {
+      console.warn("[deletePatientCategoryFolders] Patient folder could not be located in Google Drive.");
+      return { success: false };
+    }
+
+    // List all date folders inside the patient's root directory (e.g. "DD-MM-YYYY")
+    const dateFolders = await listSubfolders(targetPatientFolderId);
+    let totalDeleted = 0;
+    const lowerCategories = categories.map((c) => c.toLowerCase().trim());
+
+    for (const dateFolder of dateFolders) {
+      // List subfolders inside each date folder
+      const subfolders = await listSubfolders(dateFolder.id);
+      for (const sub of subfolders) {
+        const subNameLower = sub.name.toLowerCase();
+        const shouldDelete = lowerCategories.some((cat) => subNameLower === cat || subNameLower.includes(cat));
+
+        if (shouldDelete) {
+          try {
+            await callAppsScript({
+              action: "deleteFolder",
+              folderId: sub.id,
+            });
+            totalDeleted++;
+            console.log(`[deletePatientCategoryFolders] Trashed category subfolder '${sub.name}' in date folder '${dateFolder.name}'`);
+          } catch (delErr) {
+            console.warn(`[deletePatientCategoryFolders] Failed to trash subfolder ${sub.id}:`, delErr);
+          }
+        }
+      }
+    }
+
+    return { success: true, deletedCount: totalDeleted };
+  } catch (fallbackErr: any) {
+    console.error("[deletePatientCategoryFolders] Fallback deletion error:", fallbackErr);
+    return { success: false };
+  }
+}
+

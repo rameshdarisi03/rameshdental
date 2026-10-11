@@ -748,10 +748,10 @@ export async function deletePatientData(
     const patientData = patientSnap.data() as Patient;
     const driveFolderId = patientData?.googleDriveFolderId;
 
-    // Permanently purge Google Drive Folder if profile or scans are selected for deletion
-    if (options.profile || options.scansAndReports) {
+    // Selective Google Drive cloud folder purge based on ticks
+    if (options.profile) {
       try {
-        console.log(`[deletePatientData] Purging Google Drive cloud folder for patient ${patientId} (folderId: ${driveFolderId || "lookup-by-id"})...`);
+        console.log(`[deletePatientData] Purging entire Google Drive cloud folder for patient ${patientId} (folderId: ${driveFolderId || "lookup-by-id"})...`);
         const driveRes = await fetch("/api/drive/delete-folder", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -764,10 +764,38 @@ export async function deletePatientData(
         if (!driveJson.success) {
           console.warn("[deletePatientData] Google Drive purge notice:", driveJson.error);
         } else {
-          console.log("[deletePatientData] Google Drive folder permanently erased:", driveJson);
+          console.log("[deletePatientData] Entire Google Drive folder permanently erased:", driveJson);
         }
       } catch (driveErr) {
         console.warn("[deletePatientData] Non-fatal Google Drive purge error:", driveErr);
+      }
+    } else {
+      const categories: string[] = [];
+      if (options.consultationsAndPrescriptions) categories.push("Prescriptions");
+      if (options.scansAndReports) categories.push("Reports");
+      if (options.invoices) categories.push("Invoices");
+
+      if (categories.length > 0) {
+        try {
+          console.log(`[deletePatientData] Selectively purging Google Drive category subfolders [${categories.join(", ")}]...`);
+          const driveRes = await fetch("/api/drive/delete-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              folderId: driveFolderId || undefined,
+              patientId: patientId,
+              categories,
+            }),
+          });
+          const driveJson = await driveRes.json();
+          if (!driveJson.success) {
+            console.warn("[deletePatientData] Google Drive selective purge notice:", driveJson.error);
+          } else {
+            console.log("[deletePatientData] Google Drive category subfolders erased:", driveJson);
+          }
+        } catch (driveErr) {
+          console.warn("[deletePatientData] Non-fatal Google Drive selective purge error:", driveErr);
+        }
       }
     }
 

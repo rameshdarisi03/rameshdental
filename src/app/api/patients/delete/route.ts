@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
-import { deletePatientFolder } from "@/lib/drive";
+import { deletePatientFolder, deletePatientCategoryFolders } from "@/lib/drive";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,14 +53,37 @@ export async function POST(request: Request) {
     const driveFolderId = patientData?.googleDriveFolderId;
     const authUid = patientData?.authUid;
 
-    // 1. Google Drive Cloud Folder Purge
-    if (deleteOptions.profile || deleteOptions.scansAndReports) {
+    // 1. Google Drive Cloud Folder Purge (Granular Selective Deletion based on ticks)
+    if (deleteOptions.profile) {
+      // Complete profile deletion: wipe the entire patient folder and all date subfolders
       try {
-        console.log(`[API Patient Delete] Purging Google Drive folder for ${patientId}...`);
+        console.log(`[API Patient Delete] Purging entire Google Drive folder for ${patientId}...`);
         await deletePatientFolder(driveFolderId, patientId);
-        console.log(`[API Patient Delete] ✓ Google Drive folder purged for ${patientId}`);
+        console.log(`[API Patient Delete] ✓ Entire Google Drive patient folder purged for ${patientId}`);
       } catch (driveErr: any) {
         console.warn(`[API Patient Delete] Non-fatal Google Drive purge error:`, driveErr?.message || driveErr);
+      }
+    } else {
+      // Selective deletion: patient profile remains, purge only the selected category subfolders across all date folders
+      const categoriesToPurge: string[] = [];
+      if (deleteOptions.consultationsAndPrescriptions) {
+        categoriesToPurge.push("Prescriptions");
+      }
+      if (deleteOptions.scansAndReports) {
+        categoriesToPurge.push("Reports");
+      }
+      if (deleteOptions.invoices) {
+        categoriesToPurge.push("Invoices");
+      }
+
+      if (categoriesToPurge.length > 0) {
+        try {
+          console.log(`[API Patient Delete] Selectively purging Google Drive category subfolders [${categoriesToPurge.join(", ")}] across all date folders for patient ${patientId}...`);
+          const catResult = await deletePatientCategoryFolders(driveFolderId, patientId, categoriesToPurge);
+          console.log(`[API Patient Delete] ✓ Selectively purged ${catResult.deletedCount || 0} subfolders/files from Google Drive for ${patientId}`);
+        } catch (driveErr: any) {
+          console.warn(`[API Patient Delete] Non-fatal Google Drive selective purge error:`, driveErr?.message || driveErr);
+        }
       }
     }
 

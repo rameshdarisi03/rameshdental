@@ -1809,7 +1809,7 @@ Warm regards,
         patientName: inv.patientName || patient?.name || "Patient",
         recipient: targetEmail,
         amount: inv.totalAmount || 0,
-        message: `Official A4 Tax Invoice PDF has been delivered to ${targetEmail} via Brevo Fast SMTP.`,
+        message: `Official A4 Tax Invoice PDF has been delivered directly to ${targetEmail} with full itemized details.`,
       });
     } catch (err: any) {
       console.error("Failed to email invoice PDF:", err);
@@ -1870,7 +1870,7 @@ Warm regards,
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to dispatch WhatsApp message via Meta Cloud API");
+        throw new Error(data.error || "Failed to dispatch WhatsApp message");
       }
 
       setFormSuccess(`📱 Invoice ${inv.invoiceNumber} PDF sent to WhatsApp (${targetPhone})!`);
@@ -1884,10 +1884,10 @@ Warm regards,
         patientName: inv.patientName || patient?.name || "Patient",
         recipient: targetPhone,
         amount: inv.totalAmount || 0,
-        message: `Official Tax Invoice PDF delivered directly to ${inv.patientName || patient?.name}'s WhatsApp via Meta Cloud API.`,
+        message: `Official Tax Invoice PDF delivered directly to ${inv.patientName || patient?.name}'s WhatsApp.`,
       });
     } catch (err: any) {
-      console.error("Failed to send WhatsApp invoice via Meta Cloud API:", err);
+      console.error("Failed to send WhatsApp invoice PDF:", err);
       setInvoiceDispatchModal({
         isOpen: true,
         channel: "whatsapp",
@@ -1896,7 +1896,7 @@ Warm regards,
         patientName: inv.patientName || patient?.name || "Patient",
         recipient: targetPhone,
         amount: inv.totalAmount || 0,
-        message: err.message || "Meta WhatsApp Cloud API could not complete dispatch. You can still deliver it instantly via WhatsApp Web.",
+        message: err.message || "Automated WhatsApp delivery could not complete. You can still deliver it immediately via WhatsApp Web below.",
         whatsappUrl: getWhatsAppInvoiceUrl(inv),
       });
     } finally {
@@ -3515,27 +3515,27 @@ Warm regards,
                               </button>
                             )}
 
-                            {/* 2. WhatsApp Button via Meta Cloud API */}
+                            {/* 2. WhatsApp Button with PDF */}
                             {(inv.patientPhone || patient.phone) && !isVoided && (
                               <button
                                 type="button"
                                 disabled={whatsAppingInvoiceId === inv.id}
                                 onClick={() => handleWhatsAppInvoice(inv)}
                                 className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer shadow-2xs group relative disabled:opacity-50"
-                                title="Send WhatsApp bill to patient via Meta Cloud API"
+                                title="Send WhatsApp PDF invoice to patient"
                               >
                                 {whatsAppingInvoiceId === inv.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
                                 ) : (
                                   <MessageSquare className="h-4 w-4" />
                                 )}
-                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-44 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center pointer-events-none">
-                                  Send WhatsApp PDF bill via Meta Cloud API
+                                <span className="absolute right-0 bottom-full mb-1 hidden group-hover:block w-40 p-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-xl z-30 text-center pointer-events-none">
+                                  Send WhatsApp PDF invoice to patient
                                 </span>
                               </button>
                             )}
 
-                            {/* 2b. Email PDF Button via Brevo */}
+                            {/* 2b. Email PDF Button */}
                             {(inv.patientEmail || patient.email) && !isVoided && (
                               <button
                                 type="button"
@@ -3724,11 +3724,11 @@ Warm regards,
       {/* Visual Confirmation Popup Modal for Invoice WhatsApp & Email Dispatch */}
       {mounted && invoiceDispatchModal?.isOpen && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setInvoiceDispatchModal(null)}
         >
           <div 
-            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-5 animate-in zoom-in-95 duration-200"
+            className="w-[92vw] sm:w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-100 dark:border-slate-800 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header with status badge */}
@@ -3759,15 +3759,15 @@ Warm regards,
                         : "Invoice Emailed Successfully!"
                       : "Dispatch Notification"}
                   </h3>
-                  <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
+                  <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full mt-0.5 ${
                     invoiceDispatchModal.status === "success"
                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
                       : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400"
                   }`}>
                     {invoiceDispatchModal.status === "success"
                       ? invoiceDispatchModal.channel === "whatsapp"
-                        ? "Delivered via Meta Cloud API with PDF"
-                        : "Delivered via Brevo Fast SMTP with PDF"
+                        ? "Delivered via WhatsApp with PDF"
+                        : "Delivered via Email with PDF"
                       : "Action Required"}
                   </span>
                 </div>
