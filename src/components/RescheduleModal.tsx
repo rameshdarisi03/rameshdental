@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -56,11 +57,16 @@ export default function RescheduleModal({
   const [selectedSlot, setSelectedSlot] = useState<string>("");
   const [reason, setReason] = useState<string>("");
 
+  const [mounted, setMounted] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [approvedSlotCounts, setApprovedSlotCounts] = useState<Record<string, number>>({});
   const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
@@ -162,7 +168,7 @@ export default function RescheduleModal({
     loadAvailability();
   }, [isOpen, selectedDate, loadingConfig, appointment?.id]);
 
-  if (!isOpen || !appointment) return null;
+  if (!isOpen || !appointment || !mounted) return null;
 
   const allSlots = generateSlotsForDay(clinicConfig, selectedDate);
 
@@ -287,8 +293,8 @@ export default function RescheduleModal({
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-6 max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -468,6 +474,7 @@ export default function RescheduleModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

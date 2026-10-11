@@ -2148,6 +2148,7 @@ export default function DaySnapshot() {
                         type="button"
                         onClick={() => {
                           setSelectedRescheduleApp(activePatientApp);
+                          setPatientActionModalOpen(false);
                           setRescheduleModalOpen(true);
                         }}
                         className="flex-1 py-2.5 px-3 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-brand-green dark:text-teal-300 hover:bg-teal-100 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-2xs"
