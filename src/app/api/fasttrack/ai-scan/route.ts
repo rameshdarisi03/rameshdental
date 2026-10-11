@@ -67,7 +67,7 @@ async function expandMultiPagePdfs(
 export async function POST(req: NextRequest) {
   try {
     const body: AiScanRequest = await req.json();
-    const { images = [], rawText = "", enrolledTherapists = ["Dr. Kinnera", "Dr. Sarah Jenkins", "Dr. Rohan Das"] } = body;
+    const { images = [], rawText = "", enrolledTherapists = ["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"] } = body;
 
     const apiKey =
       process.env.GEMINI_API_KEY ||

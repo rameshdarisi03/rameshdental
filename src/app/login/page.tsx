@@ -295,7 +295,7 @@ export default function Login() {
         try {
           const isDefaultAdmin = targetEmail === "admin@gaitphysio.com";
           const defaultRole = isDefaultAdmin ? ("admin" as const) : ("receptionist" as const);
-          const defaultName = isDefaultAdmin ? "Dr. Rohan (Admin)" : "Anjali (Receptionist)";
+          const defaultName = isDefaultAdmin ? "Administrator" : "Reception Desk";
 
           const cred = await createUserWithEmailAndPassword(auth, targetEmail, password);
           const userDocRef = doc(db, "users", cred.user.uid);

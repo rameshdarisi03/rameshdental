@@ -53,7 +53,7 @@ export default function DashboardAnalytics() {
   const [refreshing, setRefreshing] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [therapistsList, setTherapistsList] = useState<string[]>(["Dr. Rohan", "Dr. Kinnera"]);
+  const [therapistsList, setTherapistsList] = useState<string[]>(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
 
   // Toolbar Filters
   const [selectedTherapist, setSelectedTherapist] = useState<string>("All Therapists");
@@ -93,7 +93,7 @@ export default function DashboardAnalytics() {
   const [hourlyDemand, setHourlyDemand] = useState<{ hour: string; count: number }[]>([]);
   const [staffActivity, setStaffActivity] = useState<{ name: string; approved: number; rejected: number; utilization: number }[]>([]);
   const [patientMix, setPatientMix] = useState({ returningCount: 0, returningPercent: 60, newCount: 0, newPercent: 40 });
-  const [acquisitionChannels, setAcquisitionChannels] = useState({ online: 0, walkin: 0, referral: 0 });
+  const [acquisitionChannels, setAcquisitionChannels] = useState({ online: 0, walkin: 0 });
 
   // Key to force-trigger CSS animations when data updates
   const [animationKey, setAnimationKey] = useState(0);
@@ -130,11 +130,15 @@ export default function DashboardAnalytics() {
 
       // 2. Fetch enrolled therapists from config settings
       const config = await getClinicConfig();
+      let activeTherapists = ["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"];
       if (config && config.therapists && config.therapists.length > 0) {
-        setTherapistsList(config.therapists);
+        activeTherapists = config.therapists.filter(
+          (t) => !t.toLowerCase().includes("rohan") && !t.toLowerCase().includes("sarah")
+        );
       }
+      setTherapistsList(activeTherapists);
 
-      calculateStats(apps, invs, timeRange, selectedTherapist, selectedService);
+      calculateStats(apps, invs, timeRange, selectedTherapist, selectedService, activeTherapists);
     } catch (err) {
       console.error("Failed to fetch data for analytics: ", err);
     } finally {
@@ -188,7 +192,8 @@ export default function DashboardAnalytics() {
     allInvoices: Invoice[],
     range: "week" | "month" | "all",
     therapist: string,
-    service: string
+    service: string,
+    currentTherapists?: string[]
   ) => {
     // 1. Initial filter by therapist & service selection
     let baseApps = [...apps];
@@ -377,26 +382,33 @@ export default function DashboardAnalytics() {
     setHourlyDemand(sortedHours);
 
     // 6. Staff Workload & Utilization
+    const sourceList = (currentTherapists && currentTherapists.length > 0 ? currentTherapists : therapistsList)
+      .filter((t) => !t.toLowerCase().includes("rohan") && !t.toLowerCase().includes("sarah"));
+
     const staff: Record<string, { approved: number; rejected: number }> = {};
-    therapistsList.forEach(t => { staff[t] = { approved: 0, rejected: 0 }; });
+    sourceList.forEach(t => { staff[t] = { approved: 0, rejected: 0 }; });
+
     currentApps.forEach((a) => {
-      const name = a.actionedByName || "Online Patient / System";
-      if (!staff[name]) staff[name] = { approved: 0, rejected: 0 };
-      if (a.status === "approved") staff[name].approved += 1;
-      if (a.status === "rejected") staff[name].rejected += 1;
+      const assigned = a.assignedTherapist || a.actionedByName;
+      if (assigned && sourceList.includes(assigned)) {
+        if (a.status === "approved") staff[assigned].approved += 1;
+        if (a.status === "rejected") staff[assigned].rejected += 1;
+      }
     });
 
-    const staffList = Object.entries(staff).map(([name, vals]) => {
-      // Hardcoded capacity benchmarks
-      const capacity = name.includes("Rohan") ? 26 : 5;
-      const utilization = Math.min(Math.round((vals.approved / capacity) * 100), 100);
-      return {
-        name,
-        approved: vals.approved,
-        rejected: vals.rejected,
-        utilization: isNaN(utilization) ? 0 : utilization
-      };
-    });
+    const staffList = Object.entries(staff)
+      .filter(([name]) => !name.toLowerCase().includes("rohan") && !name.toLowerCase().includes("sarah"))
+      .map(([name, vals]) => {
+        // Hardcoded capacity benchmarks
+        const capacity = name.includes("Kinnera") ? 26 : 15;
+        const utilization = Math.min(Math.round((vals.approved / capacity) * 100), 100);
+        return {
+          name,
+          approved: vals.approved,
+          rejected: vals.rejected,
+          utilization: isNaN(utilization) ? 0 : utilization
+        };
+      });
     setStaffActivity(staffList);
 
     // 7. Patient Mix (New vs Returning)
@@ -421,22 +433,17 @@ export default function DashboardAnalytics() {
       newPercent
     });
 
-    // 8. Acquisition Channels
+    // 8. Acquisition Channels (Online Booking vs Walk-in)
     let online = 0;
     let walkin = 0;
-    let referral = 0;
     currentApps.forEach(a => {
       if (a.type === "manual") {
-        if (a.notes?.toLowerCase().includes("referral")) {
-          referral += 1;
-        } else {
-          walkin += 1;
-        }
+        walkin += 1;
       } else {
         online += 1;
       }
     });
-    setAcquisitionChannels({ online, walkin, referral });
+    setAcquisitionChannels({ online, walkin });
 
     // 9. Generate dynamic insight messages
     const topSvc = serviceList[0]?.name || "Gait & Biomechanical";
@@ -1264,13 +1271,13 @@ export default function DashboardAnalytics() {
 
           <div key={`channels-${animationKey}`} className="space-y-4 pt-4 flex-grow flex flex-col justify-center">
             
-            {/* Channel 1 */}
+            {/* Channel 1: Online Booking */}
             <div className="flex items-center gap-3">
-              <span className="w-24 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Online Booking</span>
+              <span className="w-28 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Online Booking</span>
               <div className="flex-1 h-2 bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brand-green rounded-full animate-grow-bar"
-                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.online / stats.total) * 100) : 50}%` }}
+                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.online / stats.total) * 100) : 0}%` }}
                 />
               </div>
               <span className={`w-10 text-right text-xs font-semibold text-slate-500 ${ibmPlexMono.className}`}>
@@ -1278,31 +1285,17 @@ export default function DashboardAnalytics() {
               </span>
             </div>
 
-            {/* Channel 2 */}
+            {/* Channel 2: Walk-in */}
             <div className="flex items-center gap-3">
-              <span className="w-24 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Walk-in</span>
+              <span className="w-28 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Walk-in</span>
               <div className="flex-1 h-2 bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#D9A441] rounded-full animate-grow-bar"
-                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.walkin / stats.total) * 100) : 40}%` }}
+                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.walkin / stats.total) * 100) : 0}%` }}
                 />
               </div>
               <span className={`w-10 text-right text-xs font-semibold text-slate-500 ${ibmPlexMono.className}`}>
                 {acquisitionChannels.walkin}
-              </span>
-            </div>
-
-            {/* Channel 3 */}
-            <div className="flex items-center gap-3">
-              <span className="w-24 text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 select-none">Referral</span>
-              <div className="flex-1 h-2 bg-brand-sand/50 dark:bg-slate-950 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#C65D4B] rounded-full animate-grow-bar"
-                  style={{ width: `${stats.total > 0 ? Math.round((acquisitionChannels.referral / stats.total) * 100) : 10}%` }}
-                />
-              </div>
-              <span className={`w-10 text-right text-xs font-semibold text-slate-500 ${ibmPlexMono.className}`}>
-                {acquisitionChannels.referral}
               </span>
             </div>
 

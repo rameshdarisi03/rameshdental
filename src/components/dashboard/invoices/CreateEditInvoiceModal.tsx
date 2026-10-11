@@ -12,6 +12,7 @@ import {
   findLatestUnreplacedVoidedInvoice
 } from "@/lib/invoicesDb";
 import { Patient } from "@/lib/patientsDb";
+import { getClinicConfig } from "@/lib/db";
 import { sanitizeName, sanitizePhone, sanitizeEmail, sanitizeText } from "@/lib/sanitizer";
 import jsPDF from "jspdf";
 import { 
@@ -75,8 +76,24 @@ export default function CreateEditInvoiceModal({
     initialInvoice?.patientPhone || initialPatient?.phone || ""
   );
   const [therapistName, setTherapistName] = useState(
-    initialInvoice?.therapistName || initialPatient?.therapistName || "Dr. Kinnera"
+    initialInvoice?.therapistName || initialPatient?.therapistName || "Dr.Kinnera"
   );
+  const [enrolledTherapists, setEnrolledTherapists] = useState<string[]>([
+    "Dr.Kinnera",
+    "Dr.Ridha",
+    "Dr.Ammulu John",
+    "Dr.Rakshitha"
+  ]);
+
+  useEffect(() => {
+    getClinicConfig().then((cfg) => {
+      if (cfg && cfg.therapists && cfg.therapists.length > 0) {
+        setEnrolledTherapists(cfg.therapists);
+      }
+    }).catch((err) => {
+      console.warn("Failed to load clinic config therapists for invoice:", err);
+    });
+  }, []);
 
   const [serviceDate, setServiceDate] = useState(
     initialInvoice?.serviceDate || new Date().toISOString().split("T")[0]
@@ -618,9 +635,9 @@ export default function CreateEditInvoiceModal({
                 onChange={(e) => setTherapistName(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-brand-green"
               >
-                <option value="Dr. Kinnera">Dr. Kinnera</option>
-                <option value="Dr. Sarah Jenkins">Dr. Sarah Jenkins</option>
-                <option value="Dr. Rohan Das">Dr. Rohan Das</option>
+                {enrolledTherapists.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
               </select>
             </div>
           </div>

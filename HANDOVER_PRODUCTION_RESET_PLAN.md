@@ -29,7 +29,7 @@ Ensure that upon production handover, the Analytics Hub, Invoicing Hub, Appointm
 > The following collections and records contain operational configurations and must **never** be deleted during the reset:
 
 1. **Clinic Configurations (`clinic_config`)**:
-   - Enrolled Therapists roster (e.g. Dr. Rohan, Dr. Kinnera, and any newly enrolled therapists).
+   - Enrolled Therapists roster (Dr. Kinnera, Dr. Ridha, Dr. Ammulu John, Dr. Rakshitha).
    - Working hours, slot durations, clinic phone numbers, and emergency contact details.
    - Clinical service catalogs and pricing presets.
 2. **Staff Credentials & Roles (`users` / staff logins)**:

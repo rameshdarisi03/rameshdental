@@ -101,20 +101,20 @@ export function detectStatus(rawStatus: string | undefined): "active" | "complet
 }
 
 export const SAMPLE_PATIENT_CSV = `Patient Name,Age,Gender,Phone,Email,Chief Complaint / Treatment Plan,Assigned Therapist,Status
-Rahul Sharma,34,Male,9876543210,rahul.s@example.com,Cervical Spondylosis & Posture Rehab,Dr. Kinnera,Active
-Ananya Deshmukh,29,Female,9811223344,ananya.d@example.com,Post-op ACL Knee Rehabilitation,Dr. Sarah Jenkins,Active
-Suresh Reddy,45,Male,9922334455,suresh.r@example.com,Frozen Shoulder (Adhesive Capsulitis),Dr. Rohan Das,Active
-Priya Verma,38,Female,9833445566,priya.v@example.com,Lower Back Lumbar Strain,Dr. Kinnera,Active
-Vikram Malhotra,52,Male,9744556677,,Total Knee Replacement Mobility Protocol,Dr. Sarah Jenkins,Active
-Kiran Patel,24,Male,9855667788,kiran.p@example.com,Hamstring Pull & Sports Injury Rehab,Dr. Rohan Das,Pending
-Meera Iyer,61,Female,9866778899,,Cervical Radiculopathy & Neck Traction,Dr. Kinnera,Completed`;
+Rahul Sharma,34,Male,9876543210,rahul.s@example.com,Cervical Spondylosis & Posture Rehab,Dr.Kinnera,Active
+Ananya Deshmukh,29,Female,9811223344,ananya.d@example.com,Post-op ACL Knee Rehabilitation,Dr.Ridha,Active
+Suresh Reddy,45,Male,9922334455,suresh.r@example.com,Frozen Shoulder (Adhesive Capsulitis),Dr.Ammulu John,Active
+Priya Verma,38,Female,9833445566,priya.v@example.com,Lower Back Lumbar Strain,Dr.Kinnera,Active
+Vikram Malhotra,52,Male,9744556677,,Total Knee Replacement Mobility Protocol,Dr.Rakshitha,Active
+Kiran Patel,24,Male,9855667788,kiran.p@example.com,Hamstring Pull & Sports Injury Rehab,Dr.Ridha,Pending
+Meera Iyer,61,Female,9866778899,,Cervical Radiculopathy & Neck Traction,Dr.Kinnera,Completed`;
 
 /**
  * Parses raw text, CSV, TSV, or spreadsheet clipboard data
  */
 export function parsePatientSpreadsheetText(
   rawText: string,
-  enrolledTherapists: string[] = ["Dr. Kinnera", "Dr. Sarah Jenkins", "Dr. Rohan Das"]
+  enrolledTherapists: string[] = ["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]
 ): FastTrackPatientParseResult {
   if (!rawText || !rawText.trim()) {
     return {

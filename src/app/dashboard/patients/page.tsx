@@ -104,7 +104,7 @@ export default function PatientsPage() {
     age: "",
     gender: "Male",
     treatmentPlan: "",
-    therapistName: "Dr. Sarah Jenkins", // Default matching mockup
+    therapistName: "Dr.Kinnera",
     status: "active" as "active" | "completed" | "pending",
     joinedDate: getTodayDateString(),
     upcoming: "",
@@ -177,11 +177,11 @@ export default function PatientsPage() {
         const slots = generateSlotsForDay(config, undefined);
         setTodaySlots(slots);
       } else {
-        setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+        setEnrolledTherapists(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
       }
     } catch (err) {
       console.error("Error loading enrolled therapists: ", err);
-      setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+      setEnrolledTherapists(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
     }
   };
 
@@ -433,7 +433,7 @@ export default function PatientsPage() {
       age: "",
       gender: "Male",
       treatmentPlan: "",
-      therapistName: enrolledTherapists[0] || "Dr. Sarah Jenkins",
+      therapistName: enrolledTherapists[0] || "Dr.Kinnera",
       status: "active",
       joinedDate: getTodayDateString(),
       upcoming: "",
@@ -623,7 +623,7 @@ export default function PatientsPage() {
         age: "",
         gender: "Male",
         treatmentPlan: "",
-        therapistName: enrolledTherapists[0] || "Dr. Sarah Jenkins",
+        therapistName: enrolledTherapists[0] || "Dr.Kinnera",
         status: "active",
         joinedDate: getTodayDateString(),
         upcoming: "",

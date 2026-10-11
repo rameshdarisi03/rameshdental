@@ -697,11 +697,11 @@ PLAN:
         if (config && config.therapists && config.therapists.length > 0) {
           setEnrolledTherapists(config.therapists);
         } else {
-          setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+          setEnrolledTherapists(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
         }
       } catch (err) {
         console.error("Error loading therapists list in patient details:", err);
-        setEnrolledTherapists(["Dr. Sarah Jenkins", "Dr. Rohan Das"]);
+        setEnrolledTherapists(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
       }
     }
     loadTherapists();
@@ -713,7 +713,7 @@ PLAN:
     };
   }, [id]);
 
-  const defaultTherapist = enrolledTherapists[0] || "Dr. Sarah Jenkins";
+  const defaultTherapist = enrolledTherapists[0] || "Dr.Kinnera";
 
   // Set default visit date to today
   useEffect(() => {

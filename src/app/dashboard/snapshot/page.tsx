@@ -1735,7 +1735,7 @@ export default function DaySnapshot() {
                   >
                     {(clinicConfig.therapists && clinicConfig.therapists.length > 0
                       ? clinicConfig.therapists
-                      : ["Dr. Sarah Jenkins", "Dr. Rohan Das"]
+                      : ["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]
                     ).map((docName) => (
                       <option key={docName} value={docName}>{docName}</option>
                     ))}

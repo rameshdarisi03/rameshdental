@@ -55,7 +55,7 @@ export default function FastTrackPatientImportModal({
   isOpen,
   onClose,
   onSuccess,
-  enrolledTherapists = ["Dr. Kinnera", "Dr. Sarah Jenkins", "Dr. Rohan Das"]
+  enrolledTherapists = ["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]
 }: FastTrackPatientImportModalProps) {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"SHEET" | "CAMERA">("SHEET");
@@ -500,7 +500,7 @@ export default function FastTrackPatientImportModal({
                     rows={7}
                     value={pastedText}
                     onChange={(e) => setPastedText(e.target.value)}
-                    placeholder={`Name, Age, Gender, Phone, Email, Condition, Therapist, Status\nRahul Sharma, 34, Male, 9876543210, rahul@example.com, Cervical Spondylosis, Dr. Kinnera, Active\nAnanya Deshmukh, 28, Female, 9811223344, , Post-op ACL Rehab, Dr. Sarah Jenkins, Active`}
+                    placeholder={`Name, Age, Gender, Phone, Email, Condition, Therapist, Status\nRahul Sharma, 34, Male, 9876543210, rahul@example.com, Cervical Spondylosis, Dr.Kinnera, Active\nAnanya Deshmukh, 28, Female, 9811223344, , Post-op ACL Rehab, Dr.Ridha, Active`}
                     className="w-full text-xs font-mono p-4 rounded-2xl border border-slate-200/80 dark:border-slate-750 bg-slate-50/50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 outline-none focus:border-brand-green transition-all"
                   />
                 </div>
