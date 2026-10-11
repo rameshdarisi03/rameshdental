@@ -249,9 +249,9 @@ export async function sendWhatsAppPatientOnboarding(params: {
   // Body: Hello {{1}}, Welcome to Gait Physio Clinic. Your clinical patient record has been registered with ID {{2}}.
   //
   // Meta Cloud API strictly forbids new-line/tab characters inside template parameters.
-  // We format parameter {{2}} on a single clean line containing the Clinical Patient ID, Portal Activation Code, and login URL:
+  // We format parameter {{2}} cleanly on a single line with the canonical URL at the end without trailing punctuation:
   const idAndPortalInfo = params.activationCode
-    ? `${patientId} (Portal Code: ${params.activationCode} • Portal: gaitphysioclinic.com/patienthub/login)`
+    ? `${patientId} • Activation Code: ${params.activationCode} • Portal: https://www.gaitphysioclinic.com/patienthub/login`
     : `${patientId}`;
 
   // Primary: Use Meta-Approved Template (patient_welcome_gpc)

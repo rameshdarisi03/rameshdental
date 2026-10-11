@@ -13,6 +13,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // Strip trailing punctuation or closing parenthesis (e.g. from WhatsApp/SMS auto-link detection)
+  const pathname = request.nextUrl.pathname;
+  if (/[)\]>.,;]$/.test(pathname)) {
+    const cleanedPath = pathname.replace(/[)\]>.,;]+$/, "");
+    const url = request.nextUrl.clone();
+    url.pathname = cleanedPath;
+    return NextResponse.redirect(url, 308);
+  }
+
   return NextResponse.next();
 }
 

@@ -36,6 +36,7 @@ function LoginContent() {
   
   const errorParam = searchParams.get("error");
   const emailParam = searchParams.get("email");
+  const codeParam = searchParams.get("code");
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -49,6 +50,13 @@ function LoginContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (codeParam) {
+      setActivationCode(codeParam.trim().toUpperCase());
+      setIsSignUp(true);
+    }
+  }, [codeParam]);
 
   useEffect(() => {
     if (errorParam === "not_registered") {
