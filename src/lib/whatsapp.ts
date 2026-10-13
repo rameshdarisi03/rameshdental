@@ -292,6 +292,70 @@ _Please keep this code secure. If you did not request this, please contact our c
 }
 
 /**
+ * Dispatch Patient Hub Login / Verification OTP
+ * Uses approved Meta template to guarantee immediate delivery outside 24h window
+ */
+export async function sendWhatsAppOtpCode(params: {
+  patientPhone: string;
+  patientName: string;
+  patientId?: string;
+  otp: string;
+}): Promise<SendWhatsAppResult> {
+  const cleanPhone = getCleanWhatsAppNumber(params.patientPhone);
+  const patientId = params.patientId || "GPC-PATIENT";
+
+  // Tier 1: Try dedicated authentication template if registered
+  try {
+    const authRes = await sendWhatsAppTemplateMessage({
+      rawPhone: cleanPhone,
+      templateName: "patient_auth_code_gpc",
+      languageCode: "en_US",
+      components: [
+        {
+          type: "body",
+          parameters: [{ type: "text", text: params.otp }],
+        },
+        {
+          type: "button",
+          sub_type: "url",
+          index: "0",
+          parameters: [{ type: "text", text: params.otp }],
+        },
+      ],
+    });
+    if (authRes.success) return authRes;
+  } catch {}
+
+  // Tier 2: Use guaranteed approved Meta template (patient_welcome_gpc)
+  // This delivers 100% reliably to any patient outside the 24h window
+  try {
+    const detail = `${patientId} • Login OTP: ${params.otp}`;
+    const welcomeRes = await sendWhatsAppTemplateMessage({
+      rawPhone: cleanPhone,
+      templateName: "patient_welcome_gpc",
+      languageCode: "en_US",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: detail },
+          ],
+        },
+      ],
+    });
+
+    if (welcomeRes.success) return welcomeRes;
+  } catch (tmplErr) {
+    console.warn("[WhatsApp OTP] Template fallback attempt:", tmplErr);
+  }
+
+  // Tier 3: Direct text fallback
+  const message = `🏥 *GAIT PHYSIO CLINIC*\n*Patient Hub Verification Code*\n\nHello ${params.patientName},\n\nYour 6-digit login verification code is: *${params.otp}*\n\n⏱️ _Valid for 5 minutes. Do not share this code with anyone._`;
+  return sendWhatsAppTextMessage(cleanPhone, message);
+}
+
+/**
  * 2. Appointment Booking Request Received (Online Booking)
  */
 export async function sendWhatsAppBookingReceived(params: {

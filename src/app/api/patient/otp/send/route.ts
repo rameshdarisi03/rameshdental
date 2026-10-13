@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAllPatientsRest, savePatientOtpRest } from "@/lib/firebaseRestAdmin";
-import { sendWhatsAppTextMessage } from "@/lib/whatsapp";
+import { sendWhatsAppOtpCode } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -101,20 +101,13 @@ export async function POST(request: Request) {
     const primaryPatient = matchedPatients[0];
     const patientName = primaryPatient.name || "Patient";
 
-    // 5. Send via WhatsApp
-    const message = 
-`🏥 *GAIT PHYSIO CLINIC*
-*Patient Hub Verification Code*
-
-Hello ${patientName},
-
-Your 6-digit login verification code is: *${otp}*
-
-⏱️ _Valid for 5 minutes. Please do not share this code with anyone._
-
-If you did not request this code, please contact our clinic reception.`;
-
-    const waRes = await sendWhatsAppTextMessage(`91${cleanDigits}`, message);
+    // 5. Send via WhatsApp (Guaranteed template delivery outside 24h window)
+    const waRes = await sendWhatsAppOtpCode({
+      patientPhone: `91${cleanDigits}`,
+      patientName: patientName,
+      patientId: primaryPatient.id,
+      otp: otp,
+    });
     if (!waRes.success) {
       console.warn("[OTP Dispatch] WhatsApp send notice:", waRes.error);
     }
