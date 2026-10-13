@@ -1,22 +1,15 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { getAllPatientsRest } from "@/lib/firebaseRestAdmin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const queryParam = searchParams.get("q")?.toLowerCase().trim() || "";
 
-    const { db } = getFirebaseAdmin();
-    const snapshot = await db.collection("patients").get();
-
-    let patients = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null,
-      };
-    });
+    let patients = await getAllPatientsRest();
 
     // Client-side / In-memory sorting by creation date descending
     patients.sort((a: any, b: any) => {

@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { 
+  getPatientOtpRest, 
+  deletePatientOtpRest, 
+  updatePatientOtpAttemptsRest, 
+  getAllPatientsRest, 
+  activatePatientRest, 
+  createFirebaseCustomToken 
+} from "@/lib/firebaseRestAdmin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
- * Patient Hub - OTP Verification & Authentication Route
+ * Patient Hub - OTP Verification & Authentication Route (Pure REST Admin Engine)
  * Verifies the 6-digit WhatsApp OTP, marks account active if signup,
  * and issues a genuine Firebase Custom Auth Token for seamless client sign-in.
  */
@@ -21,24 +31,19 @@ export async function POST(request: Request) {
     const cleanDigits = phone.replace(/\D/g, "").slice(-10);
     const cleanOtp = otp.toString().trim();
 
-    const { db, auth } = getFirebaseAdmin();
+    // 1. Fetch OTP record via pure REST engine
+    const otpData = await getPatientOtpRest(cleanDigits);
 
-    // 1. Fetch OTP record
-    const otpDocRef = db.collection("patient_otps").doc(cleanDigits);
-    const otpSnap = await otpDocRef.get();
-
-    if (!otpSnap.exists) {
+    if (!otpData || !otpData.otp) {
       return NextResponse.json(
         { success: false, error: "No active verification code found. Please request a new one." },
         { status: 400 }
       );
     }
 
-    const otpData = otpSnap.data() || {};
-
     // 2. Check Expiry
-    if (Date.now() > otpData.expiresAt) {
-      await otpDocRef.delete();
+    if (Date.now() > (otpData.expiresAt || 0)) {
+      await deletePatientOtpRest(cleanDigits);
       return NextResponse.json(
         { success: false, error: "Verification code has expired. Please request a new code." },
         { status: 400 }
@@ -46,8 +51,9 @@ export async function POST(request: Request) {
     }
 
     // 3. Check Attempts
-    if ((otpData.attempts || 0) >= 4) {
-      await otpDocRef.delete();
+    const attempts = otpData.attempts || 0;
+    if (attempts >= 4) {
+      await deletePatientOtpRest(cleanDigits);
       return NextResponse.json(
         { success: false, error: "Too many incorrect attempts. Please request a new code." },
         { status: 429 }
@@ -55,10 +61,8 @@ export async function POST(request: Request) {
     }
 
     // 4. Verify Code
-    if (otpData.otp !== cleanOtp) {
-      await otpDocRef.update({
-        attempts: (otpData.attempts || 0) + 1,
-      });
+    if (String(otpData.otp).trim() !== cleanOtp) {
+      await updatePatientOtpAttemptsRest(cleanDigits, attempts + 1);
       return NextResponse.json(
         { success: false, error: "Incorrect verification code. Please check your WhatsApp and try again." },
         { status: 400 }
@@ -66,18 +70,13 @@ export async function POST(request: Request) {
     }
 
     // Code is valid! Delete it immediately to prevent replay
-    await otpDocRef.delete();
+    await deletePatientOtpRest(cleanDigits);
 
-    // 5. Look up patient profile(s)
-    const patientsSnap = await db.collection("patients").get();
-    const matchedPatients: any[] = [];
-
-    patientsSnap.forEach((doc) => {
-      const data = doc.data();
-      const pPhoneDigits = (data.phone || "").replace(/\D/g, "").slice(-10);
-      if (pPhoneDigits === cleanDigits) {
-        matchedPatients.push({ id: doc.id, ...data });
-      }
+    // 5. Look up patient profile(s) via pure REST engine
+    const allPatients = await getAllPatientsRest();
+    const matchedPatients = allPatients.filter((p: any) => {
+      const pPhoneDigits = (p.phone || "").replace(/\D/g, "").slice(-10);
+      return pPhoneDigits === cleanDigits;
     });
 
     if (matchedPatients.length === 0) {
@@ -88,21 +87,17 @@ export async function POST(request: Request) {
     }
 
     // 6. If signup, activate the matched patient(s)
-    if (purpose === "signup" || !matchedPatients.some((p) => p.activated)) {
+    if (purpose === "signup" || !matchedPatients.some((p: any) => p.activated)) {
       await Promise.all(
-        matchedPatients.map((p) =>
-          db.collection("patients").doc(p.id).update({
-            activated: true,
-          })
-        )
+        matchedPatients.map((p: any) => activatePatientRest(p.id))
       );
     }
 
     // Choose primary patient for auth session
-    const primaryPatient = matchedPatients.find((p) => p.isPrimaryAccount || !p.primaryPatientId) || matchedPatients[0];
+    const primaryPatient = matchedPatients.find((p: any) => p.isPrimaryAccount || !p.primaryPatientId) || matchedPatients[0];
 
-    // 7. Mint Firebase Custom Auth Token
-    const customToken = await auth.createCustomToken(primaryPatient.id, {
+    // 7. Mint genuine Firebase Custom Auth Token (signed with RS256)
+    const customToken = createFirebaseCustomToken(primaryPatient.id, {
       role: "patient",
       phone: cleanDigits,
     });

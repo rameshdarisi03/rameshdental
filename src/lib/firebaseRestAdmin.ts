@@ -350,3 +350,213 @@ export async function updatePatientRecord(
   }
 }
 
+/**
+ * Parses raw Firestore REST document fields into a clean JavaScript object.
+ */
+export function parseFirestoreFields(fields: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  if (!fields) return result;
+  for (const [key, val] of Object.entries(fields)) {
+    if (val.stringValue !== undefined) result[key] = val.stringValue;
+    else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
+    else if (val.integerValue !== undefined) result[key] = parseInt(val.integerValue, 10);
+    else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
+    else if (val.timestampValue !== undefined) result[key] = val.timestampValue;
+    else if (val.arrayValue !== undefined) {
+      result[key] = (val.arrayValue.values || []).map((v: any) => {
+        if (v.stringValue !== undefined) return v.stringValue;
+        if (v.booleanValue !== undefined) return v.booleanValue;
+        if (v.integerValue !== undefined) return parseInt(v.integerValue, 10);
+        return v;
+      });
+    } else if (val.mapValue !== undefined) {
+      result[key] = parseFirestoreFields(val.mapValue.fields || {});
+    } else if (val.nullValue !== undefined) {
+      result[key] = null;
+    }
+  }
+  return result;
+}
+
+/**
+ * Converts a plain JavaScript object into typed Firestore REST document fields.
+ */
+export function toFirestoreFields(obj: Record<string, any>): Record<string, any> {
+  const fields: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val === undefined || val === null) continue;
+    if (typeof val === "string") fields[key] = { stringValue: val };
+    else if (typeof val === "boolean") fields[key] = { booleanValue: val };
+    else if (typeof val === "number") {
+      if (Number.isInteger(val)) fields[key] = { integerValue: val.toString() };
+      else fields[key] = { doubleValue: val };
+    } else if (Array.isArray(val)) {
+      fields[key] = {
+        arrayValue: {
+          values: val.map((item) => {
+            if (typeof item === "string") return { stringValue: item };
+            if (typeof item === "boolean") return { booleanValue: item };
+            if (typeof item === "number") return { integerValue: item.toString() };
+            return { stringValue: String(item) };
+          }),
+        },
+      };
+    } else if (typeof val === "object") {
+      fields[key] = { mapValue: { fields: toFirestoreFields(val) } };
+    }
+  }
+  return fields;
+}
+
+/**
+ * Issues a genuine Firebase Custom Auth Token signed with the service account's RS256 private key.
+ * 100% compatible with client-side signInWithCustomToken(auth, token).
+ */
+export function createFirebaseCustomToken(uid: string, claims: Record<string, any> = {}): string {
+  const { clientEmail, privateKey } = getCredentials();
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: clientEmail,
+    sub: clientEmail,
+    aud: "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit",
+    iat: now,
+    exp: now + 3600,
+    uid,
+    claims,
+  };
+
+  const b64 = (obj: any) => Buffer.from(JSON.stringify(obj)).toString("base64url");
+  const unsignedJwt = `${b64(header)}.${b64(payload)}`;
+  const signer = crypto.createSign("RSA-SHA256");
+  signer.update(unsignedJwt);
+  const signature = signer.sign(privateKey, "base64url");
+  return `${unsignedJwt}.${signature}`;
+}
+
+/**
+ * Retrieves all patients directly from Firestore via pure REST API.
+ */
+export async function getAllPatientsRest(): Promise<any[]> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patients?pageSize=300`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to list patients via REST: ${await res.text()}`);
+  }
+  const data = await res.json();
+  const docs = data.documents || [];
+  return docs.map((doc: any) => {
+    const id = doc.name.split("/").pop();
+    const fields = parseFirestoreFields(doc.fields || {});
+    return { id, ...fields };
+  });
+}
+
+/**
+ * Stores an OTP code in the patient_otps collection via pure REST API.
+ */
+export async function savePatientOtpRest(phone: string, data: any): Promise<void> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+  const firestoreFields = toFirestoreFields(data);
+
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${cleanPhone}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields: firestoreFields }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to store OTP: ${await res.text()}`);
+  }
+}
+
+/**
+ * Reads an OTP code from the patient_otps collection via pure REST API.
+ */
+export async function getPatientOtpRest(phone: string): Promise<any | null> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${cleanPhone}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return parseFirestoreFields(data.fields || {});
+}
+
+/**
+ * Deletes an OTP code from the patient_otps collection via pure REST API.
+ */
+export async function deletePatientOtpRest(phone: string): Promise<void> {
+  try {
+    const token = await getGoogleAccessToken();
+    const { projectId } = getCredentials();
+    const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+
+    await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${cleanPhone}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  } catch {}
+}
+
+/**
+ * Updates attempts count on an OTP document.
+ */
+export async function updatePatientOtpAttemptsRest(phone: string, attempts: number): Promise<void> {
+  try {
+    const token = await getGoogleAccessToken();
+    const { projectId } = getCredentials();
+    const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+
+    await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${cleanPhone}?updateMask.fieldPaths=attempts`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            attempts: { integerValue: attempts.toString() },
+          },
+        }),
+      }
+    );
+  } catch {}
+}
+
+/**
+ * Marks a patient record as activated via pure REST API.
+ */
+export async function activatePatientRest(patientId: string): Promise<void> {
+  await updatePatientRecord(patientId, { activated: true });
+}
+
+

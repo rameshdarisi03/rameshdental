@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /**
  * Server-side Family Circle Linking / Unlinking Route
  * Runs with Firebase Admin SDK privileges to prevent client permission denied errors.

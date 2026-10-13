@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { getAllPatientsRest, savePatientOtpRest } from "@/lib/firebaseRestAdmin";
 import { sendWhatsAppTextMessage } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /**
- * Patient Hub - OTP Dispatch Route
+ * Patient Hub - OTP Dispatch Route (Pure REST Admin Engine)
  * Enforces strict registration verification:
  * - Rejects any alien phone number that does not exist in clinic records.
  * - For new user signup: verifies phone exists AND activation code matches.
@@ -31,18 +34,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const { db } = getFirebaseAdmin();
-
-    // 1. Strict Search: Look up patient(s) matching this mobile number
-    const patientsSnap = await db.collection("patients").get();
-    const matchedPatients: any[] = [];
-
-    patientsSnap.forEach((doc) => {
-      const data = doc.data();
-      const pPhoneDigits = (data.phone || "").replace(/\D/g, "").slice(-10);
-      if (pPhoneDigits === cleanDigits) {
-        matchedPatients.push({ id: doc.id, ...data });
-      }
+    // 1. Strict Search: Query patients via pure REST engine (100% serverless safe)
+    const allPatients = await getAllPatientsRest();
+    const matchedPatients = allPatients.filter((p: any) => {
+      const pPhoneDigits = (p.phone || "").replace(/\D/g, "").slice(-10);
+      return pPhoneDigits === cleanDigits;
     });
 
     // 2. Strict Block: If mobile number does not exist in any patient profile, block immediately
@@ -70,7 +66,7 @@ export async function POST(request: Request) {
       }
 
       // Check if at least one patient under this phone number matches the activation code
-      const codeMatched = matchedPatients.some((p) => {
+      const codeMatched = matchedPatients.some((p: any) => {
         const pCode = (p.activationCode || "").trim().toUpperCase();
         const pId = (p.id || "").trim().toUpperCase();
         return pCode === cleanCode || pId === cleanCode;
@@ -91,8 +87,8 @@ export async function POST(request: Request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
-    // Store in patient_otps collection
-    await db.collection("patient_otps").doc(cleanDigits).set({
+    // Store in patient_otps collection via pure REST
+    await savePatientOtpRest(cleanDigits, {
       phone: cleanDigits,
       otp,
       purpose,
@@ -130,7 +126,7 @@ If you did not request this code, please contact our clinic reception.`;
           to: primaryPatient.email,
           subject: `Your Gait Physio Clinic Verification Code: ${otp}`,
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 16px;">
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
               <h2 style="color: #062e36; margin-bottom: 8px;">Gait Physio Clinic</h2>
               <p style="color: #475569; font-size: 14px;">Your Patient Hub verification code is:</p>
               <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #f9ab55; margin: 20px 0; background: #062e36; padding: 14px 20px; text-align: center; border-radius: 12px;">
@@ -149,7 +145,6 @@ If you did not request this code, please contact our clinic reception.`;
       success: true,
       message: "Verification code sent to your WhatsApp.",
       phone: cleanDigits,
-      // For automated development fallback only if WhatsApp Cloud API simulated
       debugSimulated: !process.env.WHATSAPP_ACCESS_TOKEN,
     });
   } catch (error: any) {

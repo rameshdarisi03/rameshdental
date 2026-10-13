@@ -206,9 +206,9 @@ function LoginContent() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        setError(data.error || "Failed to send verification code.");
+        setError(data.error || `Server returned error (${res.status}). Please try again.`);
         setIsSubmitting(false);
         return;
       }
@@ -217,7 +217,7 @@ function LoginContent() {
       setCountdown(60);
       setOtpSuccessMessage(`Verification code sent to WhatsApp: +91 ${cleanDigits}`);
     } catch (err: any) {
-      setError("Network error while requesting verification code.");
+      setError(err?.message || "Network error while requesting verification code.");
     } finally {
       setIsSubmitting(false);
     }
@@ -247,9 +247,9 @@ function LoginContent() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        setError(data.error || "Invalid verification code.");
+        setError(data.error || `Invalid verification code (${res.status}).`);
         setIsSubmitting(false);
         return;
       }
@@ -263,7 +263,7 @@ function LoginContent() {
         setError(loginRes.error || "Failed to complete login session.");
       }
     } catch (err: any) {
-      setError("Network error while verifying code.");
+      setError(err?.message || "Network error while verifying code.");
     } finally {
       setIsSubmitting(false);
     }
