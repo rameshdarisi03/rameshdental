@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendWhatsAppTextMessage } from "@/lib/whatsapp";
+import { sendWhatsAppFortnightUsageReport } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -83,12 +83,22 @@ async function handleFortnightUsage(req: NextRequest) {
 ━━━━━━━━━━━━━━━━━━━━━
 _Automated fortnightly digest from Gait Physio Clinical Engine._`;
 
-    // 3. Dispatch WhatsApp messages to recipients
+    // 3. Dispatch WhatsApp messages to recipients using official Meta template
     const whatsappResults = [];
+    const periodStr = `${startDateStr} - ${endDateStr}`;
+
     for (const recipient of FORTNIGHT_RECIPIENTS) {
       try {
-        console.log(`[Fortnight Usage] Dispatching WhatsApp to ${recipient.name} (${recipient.phone})...`);
-        const res = await sendWhatsAppTextMessage(recipient.phone, whatsappMessage);
+        console.log(`[Fortnight Usage] Dispatching WhatsApp Template to ${recipient.name} (${recipient.phone})...`);
+        const res = await sendWhatsAppFortnightUsageReport({
+          rawPhone: recipient.phone,
+          recipientName: recipient.name,
+          period: periodStr,
+          deliveredCount: total14Delivered,
+          totalDispatches: total14Sent,
+          estimatedCostINR: estimatedCost14,
+          qualityRating,
+        });
         whatsappResults.push({ recipient: recipient.name, phone: recipient.phone, success: res.success, id: res.messageId, error: res.error });
       } catch (err: any) {
         whatsappResults.push({ recipient: recipient.name, phone: recipient.phone, success: false, error: err.message });

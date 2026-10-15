@@ -994,3 +994,62 @@ _Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
   return sendWhatsAppTextMessage(cleanPhone, message);
 }
 
+/**
+ * 12. WhatsApp Fortnightly Usage & Spend Digest (Meta Approved Template)
+ */
+export async function sendWhatsAppFortnightUsageReport(params: {
+  rawPhone: string;
+  recipientName: string;
+  period: string;
+  deliveredCount: number;
+  totalDispatches: number;
+  estimatedCostINR: string;
+  qualityRating?: string;
+}): Promise<SendWhatsAppResult> {
+  const cleanPhone = getCleanWhatsAppNumber(params.rawPhone);
+  const quality = (params.qualityRating || "GREEN").toUpperCase();
+
+  // Tier 1: Dispatch using official Meta-Approved Template (guarantees delivery outside 24h window)
+  try {
+    const tmplRes = await sendWhatsAppTemplateMessage({
+      rawPhone: cleanPhone,
+      templateName: "whatsapp_fortnight_digest",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.recipientName },
+            { type: "text", text: params.period },
+            { type: "text", text: params.deliveredCount.toString() },
+            { type: "text", text: params.totalDispatches.toString() },
+            { type: "text", text: params.estimatedCostINR },
+            { type: "text", text: `${quality} (Active)` },
+          ],
+        },
+      ],
+    });
+
+    if (tmplRes.success) {
+      return tmplRes;
+    }
+    console.warn("[WhatsApp Fortnight Template Failed, falling back to text]", tmplRes.error);
+  } catch (err: any) {
+    console.warn("[WhatsApp Fortnight Template Exception]", err?.message);
+  }
+
+  // Tier 2: Fallback rich text
+  const text =
+`🏥 *GAIT PHYSIO CLINIC*
+📊 *WhatsApp Fortnightly Consumption Digest*
+🗓️ *Period:* ${params.period}
+
+• *Delivered Messages:* ${params.deliveredCount}
+• *Total Dispatches:* ${params.totalDispatches}
+• *Estimated Cost:* ₹${params.estimatedCostINR} INR
+• *Account Quality:* ${quality}
+
+🔗 Dashboard: https://www.gaitphysioclinic.com/dashboard/settings`;
+
+  return sendWhatsAppTextMessage(cleanPhone, text);
+}
+
