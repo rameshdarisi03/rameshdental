@@ -594,8 +594,15 @@ export async function patchFirestoreDocRest(
   const fields = toFirestoreFields(data);
 
   let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${docId}`;
-  if (updateMaskFields && updateMaskFields.length > 0) {
-    const maskParams = updateMaskFields.map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`).join("&");
+  const keysToMask =
+    updateMaskFields && updateMaskFields.length > 0
+      ? updateMaskFields
+      : Object.keys(data);
+
+  if (keysToMask.length > 0) {
+    const maskParams = keysToMask
+      .map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`)
+      .join("&");
     url += `?${maskParams}`;
   }
 

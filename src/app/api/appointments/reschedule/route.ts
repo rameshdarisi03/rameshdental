@@ -6,6 +6,8 @@ import {
   getAllPatientsRest,
 } from "@/lib/firebaseRestAdmin";
 import { generateGoogleCalendarUrl } from "@/lib/calendarUtils";
+import { sendWhatsAppAppointmentRescheduled } from "@/lib/whatsapp";
+import { sendAppointmentRescheduledEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,11 +50,25 @@ export async function POST(req: NextRequest) {
 
     const previousDate = appData.date;
     const previousSlot = appData.slot;
-    const patientName = appData.patientName || "Patient";
-    const patientPhone = appData.patientPhone || "";
-    const patientEmail = appData.patientEmail || "";
+    let patientName = appData.patientName || appData.name || "Patient";
+    let patientPhone = appData.patientPhone || appData.phone || "";
+    let patientEmail = appData.patientEmail || appData.email || "";
     const serviceId = appData.serviceId || "Physiotherapy Session";
     const assignedTherapist = appData.assignedTherapist || "Dr. Kinnera";
+
+    // If phone or email missing from appointment doc, try looking up linked patient profile
+    if ((!patientPhone || !patientEmail) && appData.patientId) {
+      try {
+        const patientDoc = await getFirestoreDocRest("patients", appData.patientId);
+        if (patientDoc) {
+          if (!patientPhone && patientDoc.phone) patientPhone = patientDoc.phone;
+          if (!patientEmail && patientDoc.email) patientEmail = patientDoc.email;
+          if (patientName === "Patient" && patientDoc.name) patientName = patientDoc.name;
+        }
+      } catch (err) {
+        console.warn("[Reschedule] Patient doc lookup fallback failed:", err);
+      }
+    }
 
     // 2. Check Capacity on target date and slot
     const config = (await getFirestoreDocRest("clinic_settings", "config")) || {};
@@ -106,7 +122,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Update appointment in Firestore via REST
+    // 4. Update appointment in Firestore via REST (using automatic updateMask to preserve all other fields)
     const nowIso = new Date().toISOString();
     await patchFirestoreDocRest("appointments", appointmentId, {
       date: newDate,
@@ -151,46 +167,48 @@ export async function POST(req: NextRequest) {
       patientName,
     });
 
-    // 6. Trigger Automated WhatsApp & Email notifications asynchronously
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
-
-    // WhatsApp Dispatch
+    // 6. Dispatch Automated WhatsApp & Email notifications (Directly awaited)
     if (patientPhone) {
-      fetch(`${baseUrl}/api/whatsapp/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "APPOINTMENT_RESCHEDULED",
-          payload: {
-            patientName,
-            patientPhone,
-            newDate,
-            newSlot,
-            therapistName: assignedTherapist,
-          },
-        }),
-      }).catch((err) => console.warn("[Reschedule WhatsApp] Failed:", err));
+      try {
+        console.log(`[Reschedule] Dispatching WhatsApp confirmation to ${patientPhone}...`);
+        const waRes = await sendWhatsAppAppointmentRescheduled({
+          patientName,
+          patientPhone,
+          newDate,
+          newSlot,
+          therapistName: assignedTherapist,
+        });
+        if (!waRes.success) {
+          console.warn("[Reschedule WhatsApp Failed]:", waRes.error);
+        } else {
+          console.log("[Reschedule WhatsApp Sent Successfully]");
+        }
+      } catch (waErr) {
+        console.warn("[Reschedule WhatsApp Exception]:", waErr);
+      }
     }
 
-    // Email Dispatch
     if (patientEmail) {
-      fetch(`${baseUrl}/api/email/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "APPOINTMENT_RESCHEDULED",
-          payload: {
-            patientName,
-            patientEmail,
-            serviceId,
-            previousSlot: `${previousDate} at ${previousSlot}`,
-            newDate,
-            newSlot,
-            assignedTherapist,
-            googleCalendarUrl: calendarUrl,
-          },
-        }),
-      }).catch((err) => console.warn("[Reschedule Email] Failed:", err));
+      try {
+        console.log(`[Reschedule] Dispatching Email confirmation to ${patientEmail}...`);
+        const emailRes = await sendAppointmentRescheduledEmail({
+          patientName,
+          patientEmail,
+          serviceId,
+          previousSlot: `${previousDate} at ${previousSlot}`,
+          newDate,
+          newSlot,
+          assignedTherapist,
+          googleCalendarUrl: calendarUrl,
+        });
+        if (!emailRes.success) {
+          console.warn("[Reschedule Email Failed]:", emailRes.error);
+        } else {
+          console.log("[Reschedule Email Sent Successfully]");
+        }
+      } catch (emErr) {
+        console.warn("[Reschedule Email Exception]:", emErr);
+      }
     }
 
     return NextResponse.json({
