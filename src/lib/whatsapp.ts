@@ -962,15 +962,18 @@ ${scheduleListText}
 _Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
 🔗 Dashboard: https://www.gaitphysioclinic.com/dashboard/appointments`;
 
-  // Tier 1: Try approved template if available
-  const summarySummary = count === 0
+  // Tier 1: Try approved template (formats each appointment on a single separate line)
+  const lineFormattedAppointments = count === 0
     ? "No appointments scheduled today"
-    : params.appointments.slice(0, 5).map(a => `${a.slot}: ${a.patientName}`).join(", ") + (count > 5 ? ` +${count - 5} more` : "");
+    : "\u2028" + params.appointments
+        .map((a) => `• ${a.slot} — ${a.patientName}`)
+        .join("\u2028");
 
   try {
-    const tmplRes = await sendWhatsAppTemplateMessage({
+    // Attempt doctor_daily_schedule_v2 first, then fallback to therapist_schedule_alert
+    let tmplRes = await sendWhatsAppTemplateMessage({
       rawPhone: cleanPhone,
-      templateName: "therapist_schedule_alert",
+      templateName: "doctor_daily_schedule_v2",
       components: [
         {
           type: "body",
@@ -978,17 +981,38 @@ _Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
             { type: "text", text: doctorName },
             { type: "text", text: params.date },
             { type: "text", text: count.toString() },
-            { type: "text", text: summarySummary.slice(0, 100) },
+            { type: "text", text: lineFormattedAppointments.slice(0, 1000) },
           ],
         },
       ],
     });
+
+    if (!tmplRes.success) {
+      tmplRes = await sendWhatsAppTemplateMessage({
+        rawPhone: cleanPhone,
+        templateName: "therapist_schedule_alert",
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: doctorName },
+              { type: "text", text: params.date },
+              { type: "text", text: count.toString() },
+              { type: "text", text: lineFormattedAppointments.slice(0, 1000) },
+            ],
+          },
+        ],
+      });
+    }
+
     if (tmplRes.success) {
-      // Also send the detailed breakdown message
+      // Also send the detailed breakdown message if user opened 24h window
       await sendWhatsAppTextMessage(cleanPhone, message).catch(() => {});
       return tmplRes;
     }
-  } catch {}
+  } catch (err: any) {
+    console.warn("[Doctor Daily Schedule Template Exception]", err?.message);
+  }
 
   // Tier 2: Direct rich text dispatch
   return sendWhatsAppTextMessage(cleanPhone, message);
