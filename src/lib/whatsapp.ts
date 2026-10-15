@@ -526,10 +526,10 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
 }): Promise<SendWhatsAppResult> {
   const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
 
-  // Primary: Use Meta-Approved Template (appointment_confirmation_gpc) with new details
+  // Primary: Use Meta-Approved Dedicated Rescheduled Template (appointment_rescheduled_gpc)
   const templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "appointment_confirmation_gpc",
+    templateName: "appointment_rescheduled_gpc",
     components: [
       {
         type: "body",
@@ -544,7 +544,25 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   });
 
   if (templateRes.success) return templateRes;
-  console.warn("[WhatsApp Reschedule Template Failed, attempting text fallback]", templateRes.error);
+  console.warn("[WhatsApp Reschedule Template Failed, attempting confirmation template fallback]", templateRes.error);
+
+  // Secondary fallback: appointment_confirmation_gpc
+  const fallbackTmpl = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "appointment_confirmation_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.newDate },
+          { type: "text", text: params.newSlot },
+          { type: "text", text: cleanTherapist },
+        ],
+      },
+    ],
+  });
+  if (fallbackTmpl.success) return fallbackTmpl;
 
   const text = 
 `🏥 *GAIT PHYSIO CLINIC*
