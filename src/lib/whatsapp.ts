@@ -919,3 +919,78 @@ Need to ask a follow-up question? Simply reply to this chat or call our clinic d
 
   return sendWhatsAppTextMessage(params.patientPhone, caption);
 }
+
+/**
+ * 11. Daily Morning Clinical Schedule Alert to Doctor / Therapist
+ */
+export async function sendWhatsAppDoctorDailySchedule(params: {
+  rawPhone: string;
+  doctorName?: string;
+  date: string;
+  appointments: Array<{
+    slot: string;
+    patientName: string;
+    serviceName?: string;
+    phone?: string;
+  }>;
+}): Promise<SendWhatsAppResult> {
+  const doctorName = params.doctorName || "Kinnera";
+  const cleanPhone = getCleanWhatsAppNumber(params.rawPhone);
+  const count = params.appointments.length;
+
+  let scheduleListText = "";
+  if (count === 0) {
+    scheduleListText = "No appointments scheduled for today yet. Have a relaxed day!";
+  } else {
+    scheduleListText = params.appointments
+      .map(
+        (a, i) =>
+          `*${i + 1}.* ⏰ *${a.slot}* — ${a.patientName}\n   🩺 ${a.serviceName || "Physiotherapy Session"}\n   📞 ${a.phone || "N/A"}`
+      )
+      .join("\n\n");
+  }
+
+  const message = 
+`🏥 *GAIT PHYSIO CLINIC*
+📅 *Daily Schedule — Dr. ${doctorName}*
+🗓️ *Date:* ${params.date}
+👥 *Total Booked Patients:* ${count}
+
+${scheduleListText}
+
+━━━━━━━━━━━━━━━━━━━━━
+_Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
+🔗 Dashboard: https://www.gaitphysioclinic.com/dashboard/appointments`;
+
+  // Tier 1: Try approved template if available
+  const summarySummary = count === 0
+    ? "No appointments scheduled today"
+    : params.appointments.slice(0, 5).map(a => `${a.slot}: ${a.patientName}`).join(", ") + (count > 5 ? ` +${count - 5} more` : "");
+
+  try {
+    const tmplRes = await sendWhatsAppTemplateMessage({
+      rawPhone: cleanPhone,
+      templateName: "therapist_schedule_alert",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: doctorName },
+            { type: "text", text: params.date },
+            { type: "text", text: count.toString() },
+            { type: "text", text: summarySummary.slice(0, 100) },
+          ],
+        },
+      ],
+    });
+    if (tmplRes.success) {
+      // Also send the detailed breakdown message
+      await sendWhatsAppTextMessage(cleanPhone, message).catch(() => {});
+      return tmplRes;
+    }
+  } catch {}
+
+  // Tier 2: Direct rich text dispatch
+  return sendWhatsAppTextMessage(cleanPhone, message);
+}
+

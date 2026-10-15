@@ -112,6 +112,57 @@ export default function DashboardAppointments() {
   const [manualDateBlocks, setManualDateBlocks] = useState<DayBlock[]>([]);
   const [loadingManualSlots, setLoadingManualSlots] = useState(false);
 
+  // Daily Doctor Schedule & Backup state
+  const [sendingDoctorSchedule, setSendingDoctorSchedule] = useState(false);
+  const [scheduleSentAlert, setScheduleSentAlert] = useState<string | null>(null);
+
+  const handleSendDoctorSchedule = async () => {
+    setSendingDoctorSchedule(true);
+    setScheduleSentAlert(null);
+    try {
+      const res = await fetch("/api/cron/daily-schedule", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to send schedule.");
+      }
+      setScheduleSentAlert(`Dispatched today's schedule (${data.count} bookings) to Dr. Kinnera's WhatsApp!`);
+      setTimeout(() => setScheduleSentAlert(null), 6000);
+    } catch (err: any) {
+      alert(err.message || "Could not dispatch schedule alert.");
+    } finally {
+      setSendingDoctorSchedule(false);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (appointments.length === 0) {
+      alert("No appointments to export.");
+      return;
+    }
+    const headers = ["Date", "Slot", "Patient Name", "Phone", "Email", "Service", "Status", "Therapist", "Type", "Notes"];
+    const rows = appointments.map((a) => [
+      `"${a.date || ""}"`,
+      `"${a.slot || ""}"`,
+      `"${(a.patientName || "").replace(/"/g, '""')}"`,
+      `"${a.patientPhone || ""}"`,
+      `"${a.patientEmail || ""}"`,
+      `"${(a.serviceId || "").replace(/"/g, '""')}"`,
+      `"${a.status || ""}"`,
+      `"${(a.assignedTherapist || "").replace(/"/g, '""')}"`,
+      `"${a.type || "online"}"`,
+      `"${(a.notes || "").replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `GaitPhysio_Appointments_${getTodayDateString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const servicesList = [
     "General Physiotherapy Consultation",
     "Gait & Biomechanical Analysis",
@@ -566,18 +617,50 @@ export default function DashboardAppointments() {
           <p className="text-xs text-slate-500 mt-1 font-semibold">Review pending requests, check availability slots, and manually book call-ins.</p>
         </div>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
+          <button
+            onClick={handleExportCsv}
+            title="Download full appointments backup in CSV / Excel format"
+            type="button"
+            className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold shadow-sm transition-all focus:outline-none"
+          >
+            <ClipboardList className="h-4 w-4 text-slate-500" />
+            <span className="hidden md:inline">Export CSV</span>
+          </button>
+
+          <button
+            onClick={handleSendDoctorSchedule}
+            disabled={sendingDoctorSchedule}
+            title="Send today's schedule to Dr. Kinnera's WhatsApp (8904456243)"
+            type="button"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all focus:outline-none disabled:opacity-50"
+          >
+            {sendingDoctorSchedule ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MessageSquare className="h-4 w-4" />
+            )}
+            <span>Send Dr. Kinnera Schedule</span>
+          </button>
+
           <button
             onClick={fetchAppointments}
             disabled={loading}
             title="Refresh database"
             type="button"
-            className="p-3 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
+            className="p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-brand-bg text-slate-500 hover:text-brand-green transition-all focus:outline-none shrink-0"
           >
-            <RotateCw className={`h-4.5 w-4.5 ${loading ? "animate-spin text-brand-green" : ""}`} />
+            <RotateCw className={`h-4 w-4 ${loading ? "animate-spin text-brand-green" : ""}`} />
           </button>
         </div>
       </div>
+
+      {scheduleSentAlert && (
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
+          <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+          <span>{scheduleSentAlert}</span>
+        </div>
+      )}
 
       {/* Search and Filters Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between border-b border-slate-200/80 dark:border-slate-805 pb-4">
