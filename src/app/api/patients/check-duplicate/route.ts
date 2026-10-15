@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { getAllPatientsRest } from "@/lib/firebaseRestAdmin";
 import { sanitizePhone, sanitizeName } from "@/lib/sanitizer";
 
 export async function POST(request: Request) {
@@ -13,15 +13,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ isDuplicate: false });
     }
 
-    const { db } = getFirebaseAdmin();
-    const snapshot = await db.collection("patients").get();
+    const allPatients = await getAllPatientsRest();
 
     let phoneMatchPatient: any = null;
     let emailMatchPatient: any = null;
     let nameMatchPatient: any = null;
 
-    for (const d of snapshot.docs) {
-      const data = d.data();
+    for (const d of allPatients) {
+      const data = d;
+
       const pPhone = sanitizePhone(data.phone);
       const pName = (data.name || "").trim().toLowerCase();
       const pEmail = (data.email || "").trim().toLowerCase();

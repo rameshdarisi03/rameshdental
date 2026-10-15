@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { getFirestoreDocRest, patchFirestoreDocRest } from "@/lib/firebaseRestAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * Server-side Family Circle Linking / Unlinking Route
- * Runs with Firebase Admin SDK privileges to prevent client permission denied errors.
+ * Uses pure Firestore REST engine to ensure zero serverless crashes.
  */
 export async function POST(request: Request) {
   try {
@@ -20,33 +20,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const { db } = getFirebaseAdmin();
-    const primaryRef = db.collection("patients").doc(primaryPatientId);
-    const memberRef = db.collection("patients").doc(memberPatientId);
-
-    const [primarySnap, memberSnap] = await Promise.all([
-      primaryRef.get(),
-      memberRef.get(),
+    const [primaryData, memberData] = await Promise.all([
+      getFirestoreDocRest("patients", primaryPatientId),
+      getFirestoreDocRest("patients", memberPatientId),
     ]);
 
-    if (!primarySnap.exists) {
+    if (!primaryData) {
       return NextResponse.json(
         { success: false, error: `Primary patient "${primaryPatientId}" not found.` },
         { status: 404 }
       );
     }
 
-    if (!memberSnap.exists) {
+    if (!memberData) {
       return NextResponse.json(
         { success: false, error: `Member patient "${memberPatientId}" not found.` },
         { status: 404 }
       );
     }
 
-    const primaryData = primarySnap.data() || {};
-    const memberData = memberSnap.data() || {};
-
-    const familyHeadId = primaryData.primaryPatientId || primarySnap.id;
+    const familyHeadId = primaryData.primaryPatientId || primaryPatientId;
     const familyHeadName = primaryData.primaryPatientId
       ? (primaryData.familyHeadName || primaryData.name)
       : primaryData.name;
@@ -60,14 +53,14 @@ export async function POST(request: Request) {
     const linkedEmails = Array.from(emailsSet);
 
     // Update primary patient
-    await primaryRef.update({
+    await patchFirestoreDocRest("patients", primaryPatientId, {
       familyGroupId,
       isPrimaryAccount: !primaryData.primaryPatientId,
       linkedEmails,
     });
 
     // Update member patient
-    await memberRef.update({
+    await patchFirestoreDocRest("patients", memberPatientId, {
       familyGroupId,
       primaryPatientId: familyHeadId,
       familyHeadName: familyHeadName,
@@ -102,21 +95,18 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const { db, admin } = getFirebaseAdmin();
-    const docRef = db.collection("patients").doc(patientId);
-    const snap = await docRef.get();
-
-    if (!snap.exists) {
+    const patient = await getFirestoreDocRest("patients", patientId);
+    if (!patient) {
       return NextResponse.json(
         { success: false, error: `Patient "${patientId}" not found.` },
         { status: 404 }
       );
     }
 
-    await docRef.update({
-      primaryPatientId: admin.firestore.FieldValue.delete(),
-      familyGroupId: admin.firestore.FieldValue.delete(),
-      familyHeadName: admin.firestore.FieldValue.delete(),
+    await patchFirestoreDocRest("patients", patientId, {
+      primaryPatientId: "",
+      familyGroupId: "",
+      familyHeadName: "",
       relationship: "Self",
       isPrimaryAccount: true,
       linkedEmails: [],

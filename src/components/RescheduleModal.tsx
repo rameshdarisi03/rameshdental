@@ -211,9 +211,15 @@ export default function RescheduleModal({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to reschedule appointment.");
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Unable to connect to the scheduling service. Please try again.");
+      }
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Failed to reschedule appointment.");
       }
 
       setSuccessMsg(data.message || "Appointment rescheduled successfully!");

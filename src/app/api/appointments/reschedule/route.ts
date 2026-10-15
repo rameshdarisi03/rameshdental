@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
-import { Timestamp, FieldValue } from "firebase-admin/firestore";
+import {
+  getFirestoreDocRest,
+  patchFirestoreDocRest,
+  queryFirestoreCollectionRest,
+  getAllPatientsRest,
+} from "@/lib/firebaseRestAdmin";
 import { generateGoogleCalendarUrl } from "@/lib/calendarUtils";
 
 export const runtime = "nodejs";
@@ -8,7 +12,14 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json(
+        { success: false, error: "Invalid JSON request body" },
+        { status: 400 }
+      );
+    }
+
     const {
       appointmentId,
       newDate,
@@ -26,18 +37,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { db } = getFirebaseAdmin();
-    const appRef = db.collection("appointments").doc(appointmentId);
-    const appSnap = await appRef.get();
-
-    if (!appSnap.exists) {
+    // 1. Fetch current appointment using pure REST
+    const appData = await getFirestoreDocRest("appointments", appointmentId);
+    if (!appData) {
       return NextResponse.json(
         { success: false, error: "Appointment not found." },
         { status: 404 }
       );
     }
 
-    const appData = appSnap.data() || {};
     const previousDate = appData.date;
     const previousSlot = appData.slot;
     const patientName = appData.patientName || "Patient";
@@ -46,25 +54,29 @@ export async function POST(req: NextRequest) {
     const serviceId = appData.serviceId || "Physiotherapy Session";
     const assignedTherapist = appData.assignedTherapist || "Dr. Kinnera";
 
-    // 1. Check Capacity on target date and slot
-    // Fetch clinic config
-    const configSnap = await db.collection("clinic_settings").doc("config").get();
-    const config = configSnap.data() || {};
+    // 2. Check Capacity on target date and slot
+    const config = (await getFirestoreDocRest("clinic_settings", "config")) || {};
     const maxCapacity = config.defaultSlotCapacity || 2;
 
-    // Check existing approved appointments for new date & slot
     const altNewDate = newDate.includes("-") ? newDate.split("-").reverse().join("-") : newDate;
-    const dateList = Array.from(new Set([newDate, altNewDate]));
+    const validDates = new Set([newDate, altNewDate]);
 
-    const existingApps = await db
-      .collection("appointments")
-      .where("date", "in", dateList)
-      .where("slot", "==", newSlot)
-      .where("status", "==", "approved")
-      .get();
+    // Query appointments for new slot
+    const existingApps = await queryFirestoreCollectionRest("appointments", {
+      fieldFilter: {
+        field: { fieldPath: "slot" },
+        op: "EQUAL",
+        value: { stringValue: newSlot },
+      },
+    });
 
-    // Filter out this appointment itself if re-booking same date
-    const conflicting = existingApps.docs.filter((d) => d.id !== appointmentId);
+    const conflicting = existingApps.filter(
+      (doc) =>
+        doc.id !== appointmentId &&
+        validDates.has(doc.date) &&
+        doc.status === "approved"
+    );
+
     if (conflicting.length >= maxCapacity) {
       return NextResponse.json(
         { success: false, error: "The selected time slot is fully booked. Please choose an alternative slot." },
@@ -72,21 +84,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Check blocks on new date & slot
-    const blocksSnap = await db
-      .collection("blocks")
-      .where("date", "in", dateList)
-      .get();
-
+    // 3. Check blocks on new date & slot
+    const blocks = await queryFirestoreCollectionRest("blocks");
     let isBlocked = false;
-    blocksSnap.forEach((docSnap) => {
-      const block = docSnap.data();
-      if (block.type === "full_day" || block.type === "holiday") {
-        isBlocked = true;
-      } else if (block.type === "slot" && block.slot === newSlot) {
-        isBlocked = true;
+    for (const block of blocks) {
+      if (validDates.has(block.date)) {
+        if (block.type === "full_day" || block.type === "holiday") {
+          isBlocked = true;
+          break;
+        } else if (block.type === "slot" && block.slot === newSlot) {
+          isBlocked = true;
+          break;
+        }
       }
-    });
+    }
 
     if (isBlocked) {
       return NextResponse.json(
@@ -95,50 +106,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Update appointment in Firestore
-    // By updating 'date' and 'slot', the old date & slot are instantly released and freed up for others!
-    const now = Timestamp.now();
-    await appRef.update({
+    // 4. Update appointment in Firestore via REST
+    const nowIso = new Date().toISOString();
+    await patchFirestoreDocRest("appointments", appointmentId, {
       date: newDate,
       slot: newSlot,
-      status: "approved", // Confirmed on reschedule
+      status: "approved",
       previousDate: previousDate || "",
       previousSlot: previousSlot || "",
-      rescheduledAt: now,
+      rescheduledAt: nowIso,
       rescheduledBy: actionedBy,
       rescheduledByRole: actionedByRole,
       rescheduleReason: reason,
-      actionedAt: now,
+      actionedAt: nowIso,
       actionedByName: actionedBy,
       actionedByRole: actionedByRole,
-      rejectionReason: FieldValue.delete(),
     });
 
-    // 4. Update corresponding patient's upcoming date in 'patients' collection
-    try {
-      let patientQuery = null;
-      if (patientPhone) {
-        // Digits clean
+    // 5. Update patient's upcoming date in 'patients' collection
+    if (patientPhone) {
+      try {
         const phoneDigits = patientPhone.replace(/\D/g, "").slice(-10);
-        const patientsSnap = await db.collection("patients").get();
-        const matched = patientsSnap.docs.find((pDoc) => {
-          const p = pDoc.data();
+        const allPatients = await getAllPatientsRest();
+        const matched = allPatients.find((p) => {
           const pDigits = (p.phone || "").replace(/\D/g, "").slice(-10);
           return pDigits && pDigits === phoneDigits;
         });
-        if (matched) {
-          patientQuery = matched.ref;
-        }
-      }
 
-      if (patientQuery) {
-        await patientQuery.update({
-          upcoming: `${newDate} (${newSlot})`,
-          lastRescheduledAt: now,
-        });
+        if (matched?.id) {
+          await patchFirestoreDocRest("patients", matched.id, {
+            upcoming: `${newDate} (${newSlot})`,
+            lastRescheduledAt: nowIso,
+          });
+        }
+      } catch (e) {
+        console.warn("[Reschedule] Non-critical error updating patient doc upcoming:", e);
       }
-    } catch (e) {
-      console.warn("[Reschedule] Non-critical error updating patient doc upcoming:", e);
     }
 
     const calendarUrl = generateGoogleCalendarUrl({
@@ -148,9 +151,8 @@ export async function POST(req: NextRequest) {
       patientName,
     });
 
-    // 5. Trigger Automated WhatsApp & Email notifications asynchronously
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
+    // 6. Trigger Automated WhatsApp & Email notifications asynchronously
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
 
     // WhatsApp Dispatch
     if (patientPhone) {

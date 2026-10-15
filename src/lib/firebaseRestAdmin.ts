@@ -559,4 +559,106 @@ export async function activatePatientRest(patientId: string): Promise<void> {
   await updatePatientRecord(patientId, { activated: true });
 }
 
+/**
+ * Fetches a single document from Firestore via pure REST API.
+ */
+export async function getFirestoreDocRest(collection: string, docId: string): Promise<any | null> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${docId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Firestore get doc failed: ${errText}`);
+  }
+  const data = await res.json();
+  return { id: docId, ...parseFirestoreFields(data.fields || {}) };
+}
+
+/**
+ * Patches fields on a document via pure REST API.
+ */
+export async function patchFirestoreDocRest(
+  collection: string,
+  docId: string,
+  data: Record<string, any>,
+  updateMaskFields?: string[]
+): Promise<void> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const fields = toFirestoreFields(data);
+
+  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${docId}`;
+  if (updateMaskFields && updateMaskFields.length > 0) {
+    const maskParams = updateMaskFields.map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`).join("&");
+    url += `?${maskParams}`;
+  }
+
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Firestore patch doc failed: ${errText}`);
+  }
+}
+
+/**
+ * Runs a query on a Firestore collection via pure REST API.
+ */
+export async function queryFirestoreCollectionRest(
+  collectionId: string,
+  structuredWhere?: any
+): Promise<any[]> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+
+  const body: any = {
+    structuredQuery: {
+      from: [{ collectionId }],
+    },
+  };
+  if (structuredWhere) {
+    body.structuredQuery.where = structuredWhere;
+  }
+
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Firestore query failed: ${errText}`);
+  }
+
+  const results = await res.json();
+  const docs: any[] = [];
+  for (const item of results) {
+    if (item.document) {
+      const id = item.document.name.split("/").pop();
+      docs.push({ id, ...parseFirestoreFields(item.document.fields || {}) });
+    }
+  }
+  return docs;
+}
+
 
