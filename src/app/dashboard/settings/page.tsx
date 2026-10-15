@@ -66,6 +66,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { THEME_OPTIONS, ThemeKey } from "@/components/public/ThemeSwitcher";
 import { syncMetaThemeColor } from "@/lib/themeHelper";
+import WhatsAppUsageCard from "@/components/dashboard/WhatsAppUsageCard";
 
 interface UserProfile {
   uid: string;
@@ -1503,6 +1504,10 @@ export default function DashboardSettings() {
                 </button>
               </div>
             </div>
+
+            {/* WhatsApp Cloud API Live Usage & Billing Card */}
+            <WhatsAppUsageCard />
+
 
             {/* Website Brand Theme Palette Card */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-5">
