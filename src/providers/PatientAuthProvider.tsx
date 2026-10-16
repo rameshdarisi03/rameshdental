@@ -97,6 +97,7 @@ async function syncPatientActivation(payload: {
   email?: string;
   activationCode?: string;
   linkedEmails?: string[];
+  phone?: string;
 }) {
   try {
     await fetch("/api/patient/activate", {
@@ -311,9 +312,9 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
 
           // Check if clinic explicitly revoked or disabled access
           const isAccessRevoked = 
-            chosenProfile.status === "inactive" || 
-            chosenProfile.status === "revoked" ||
-            chosenProfile.status === "suspended";
+            (chosenProfile.status as string) === "inactive" || 
+            (chosenProfile.status as string) === "revoked" ||
+            (chosenProfile.status as string) === "suspended";
 
           if (isAccessRevoked) {
             setPatient(null);
