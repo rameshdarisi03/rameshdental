@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { 
           success: false, 
-          error: "This mobile number is not registered with the clinic. Please contact our receptionist or front desk to register." 
+          error: "This mobile number has not been registered with the clinic. Please use the mobile number provided during your clinic registration or contact our front desk at +91 89044 56243." 
         },
         { status: 404 }
       );

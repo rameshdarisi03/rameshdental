@@ -481,6 +481,22 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         return { success: false, error: msg };
       }
 
+      const userEmail = pendingGoogle.email.toLowerCase().trim();
+
+      // Strict Validation: Ensure Google email is registered in clinic database
+      const valRes = await fetch("/api/patient/validate-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail, activationCode: cleanCode }),
+      });
+      const valData = await valRes.json().catch(() => ({}));
+      if (!valRes.ok || !valData.success) {
+        setLoading(false);
+        const msg = valData.error || "This Google account has not been registered with the clinic. Please use the email provided during clinic registration or contact our front desk at +91 89044 56243.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
       let matchedDoc: any = null;
 
       const q = query(collection(db, "patients"), where("activationCode", "==", cleanCode));
@@ -504,8 +520,6 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         setError(msg);
         return { success: false, error: msg };
       }
-
-      const userEmail = pendingGoogle.email.toLowerCase().trim();
       const existingData = matchedDoc.data() as Patient;
       const emailsSet = new Set<string>();
       if (existingData.email) emailsSet.add(existingData.email.toLowerCase().trim());
@@ -581,7 +595,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       if (profiles.length === 0) {
         await signOut(auth);
         setLoading(false);
-        const msg = "This email is not registered as a patient. Please sign up with your activation code.";
+        const msg = "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 89044 56243.";
         setError(msg);
         return { success: false, error: msg };
       }
@@ -650,10 +664,33 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
     await ensureLocalPersistence();
 
     try {
+      const cleanEmail = emailStr.trim().toLowerCase();
       const cleanCode = code.trim().toUpperCase();
+
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        setLoading(false);
+        const msg = "Please enter a valid registered email address.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
       if (!cleanCode) {
         setLoading(false);
         const msg = "Please enter a valid activation code provided by the clinic.";
+        setError(msg);
+        return { success: false, error: msg };
+      }
+
+      // Step 1: Strict Server-Side Validation against Clinic Database
+      const valRes = await fetch("/api/patient/validate-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, activationCode: cleanCode }),
+      });
+      const valData = await valRes.json().catch(() => ({}));
+      if (!valRes.ok || !valData.success) {
+        setLoading(false);
+        const msg = valData.error || "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 89044 56243.";
         setError(msg);
         return { success: false, error: msg };
       }
