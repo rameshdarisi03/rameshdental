@@ -189,11 +189,6 @@ function LoginContent() {
       return;
     }
 
-    if (isSignUp && !activationCode.trim()) {
-      setError("Activation code is required for initial sign-up.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/patient/otp/send", {
@@ -201,8 +196,7 @@ function LoginContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: cleanDigits,
-          purpose: isSignUp ? "signup" : "login",
-          activationCode: isSignUp ? activationCode.trim().toUpperCase() : undefined,
+          purpose: "auth",
         }),
       });
 
@@ -243,7 +237,7 @@ function LoginContent() {
         body: JSON.stringify({
           phone: cleanDigits,
           otp: cleanOtp,
-          purpose: isSignUp ? "signup" : "login",
+          purpose: "auth",
         }),
       });
 
@@ -350,6 +344,19 @@ function LoginContent() {
           /* Scenario: Mobile Number & WhatsApp OTP Login (Method 1)                  */
           /* ========================================================================= */
           <>
+            {/* Back Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setOtpSuccessMessage("");
+                setAuthMethod("password");
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-[#8a5100] dark:text-[#f9ab55] hover:underline cursor-pointer mb-2"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to Login Options
+            </button>
+
             {/* Brand Header */}
             <div className="text-center flex flex-col items-center space-y-2 mb-6">
               <div className="relative">
@@ -385,82 +392,16 @@ function LoginContent() {
               </div>
             )}
 
-            {/* Side-by-Side Segmented Tabs: Existing vs New User */}
-            <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 mb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setOtpSuccessMessage("");
-                  setOtpStep("idle");
-                  setIsSignUp(false);
-                }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  !isSignUp
-                    ? "bg-[#062e36] text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                }`}
-              >
-                <UserCheck className={`w-4 h-4 ${!isSignUp ? "text-emerald-400" : "text-slate-400"}`} />
-                <span>Existing User</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setOtpSuccessMessage("");
-                  setOtpStep("idle");
-                  setIsSignUp(true);
-                }}
-                className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isSignUp
-                    ? "bg-[#062e36] text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                }`}
-              >
-                <UserPlus className={`w-4 h-4 ${isSignUp ? "text-emerald-400" : "text-slate-400"}`} />
-                <span>New User</span>
-              </button>
-            </div>
-
             {/* Context Hint */}
             <div className="text-center pb-2">
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                {isSignUp ? (
-                  <>Enter your clinic activation code and registered mobile number.</>
-                ) : (
-                  <>Enter your registered mobile number to receive a 6-digit WhatsApp OTP.</>
-                )}
+                Enter your registered mobile number to receive a 6-digit WhatsApp OTP.
               </p>
             </div>
 
-            {/* Step 1: Input Mobile (+ Activation Code if Signup) */}
+            {/* Step 1: Input Mobile */}
             {otpStep === "idle" ? (
               <form onSubmit={handleSendOtp} className="space-y-3.5">
-                {/* Activation Code (Only for New User signup) */}
-                {isSignUp && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">
-                        Activation Code
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-medium">From clinic card/WhatsApp</span>
-                    </div>
-                    <div className="relative">
-                      <KeyRound className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                      <input
-                        type="text"
-                        required
-                        value={activationCode}
-                        onChange={(e) => setActivationCode(e.target.value)}
-                        placeholder="e.g. TB32TBG5"
-                        className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-[#FAF9F9] dark:bg-slate-900 pl-11 pr-4 py-3 text-xs outline-none focus:border-emerald-600 dark:focus:border-emerald-400 transition-colors text-slate-800 dark:text-slate-100 font-bold tracking-widest uppercase"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* Mobile Number Field */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-[#41484A] dark:text-slate-300">
@@ -620,7 +561,7 @@ function LoginContent() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50 mb-5"
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50 mb-2.5"
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
                 <path
@@ -641,6 +582,24 @@ function LoginContent() {
                 />
               </svg>
               <span>Continue with Google</span>
+            </button>
+
+            {/* Continue with Phone Number Button (Matching size and style) */}
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setOtpSuccessMessage("");
+                setOtpStep("idle");
+                setAuthMethod("otp");
+              }}
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50 mb-5"
+            >
+              <div className="h-5 w-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Smartphone className="h-3.5 w-3.5" />
+              </div>
+              <span>Continue with Phone Number</span>
             </button>
 
             {/* Divider */}
@@ -781,27 +740,6 @@ function LoginContent() {
                 )}
               </button>
             </form>
-
-            {/* ========================================================================= */}
-            {/* Style A: Direct WhatsApp OTP Trigger in highlighted red box area          */}
-            {/* ========================================================================= */}
-            <div className="pt-4 mt-3 border-t border-slate-100 dark:border-slate-800/80">
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setOtpSuccessMessage("");
-                  setOtpStep("idle");
-                  setAuthMethod("otp");
-                }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-full bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200/80 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold transition-all shadow-xs cursor-pointer group"
-              >
-                <div className="h-5 w-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Smartphone className="h-3 w-3" />
-                </div>
-                <span>Login with Mobile Number &amp; WhatsApp OTP</span>
-              </button>
-            </div>
           </>
         )}
       </div>

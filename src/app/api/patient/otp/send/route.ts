@@ -52,36 +52,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. New User Validation: Verify activation code
-    if (purpose === "signup") {
-      const cleanCode = (activationCode || "").trim().toUpperCase();
-      if (!cleanCode) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: "Please enter the activation code sent to you by the clinic." 
-          },
-          { status: 400 }
-        );
-      }
-
-      // Check if at least one patient under this phone number matches the activation code
-      const codeMatched = matchedPatients.some((p: any) => {
-        const pCode = (p.activationCode || "").trim().toUpperCase();
-        const pId = (p.id || "").trim().toUpperCase();
-        return pCode === cleanCode || pId === cleanCode;
-      });
-
-      if (!codeMatched) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: "Invalid activation code for this mobile number. Please check the code sent to your WhatsApp/SMS or ask clinic reception." 
-          },
-          { status: 400 }
-        );
-      }
-    }
+    // 3. Auto-link: Retrieve activation code from patient record if present
+    const cleanCode = (activationCode || "").trim().toUpperCase() ||
+      matchedPatients.find((p: any) => p.activationCode)?.activationCode || "";
 
     // 4. Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();

@@ -556,7 +556,7 @@ export async function updatePatientOtpAttemptsRest(phone: string, attempts: numb
  * Marks a patient record as activated via pure REST API.
  */
 export async function activatePatientRest(patientId: string): Promise<void> {
-  await updatePatientRecord(patientId, { activated: true });
+  await updatePatientRecord(patientId, { activated: true, activationCode: "" });
 }
 
 /**

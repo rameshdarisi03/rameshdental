@@ -86,8 +86,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. If signup, activate the matched patient(s)
-    if (purpose === "signup" || !matchedPatients.some((p: any) => p.activated)) {
+    // 6. Auto-activate any matched patient profile that is not yet activated
+    if (purpose === "signup" || purpose === "auth" || !matchedPatients.some((p: any) => p.activated)) {
       await Promise.all(
         matchedPatients.map((p: any) => activatePatientRest(p.id))
       );
