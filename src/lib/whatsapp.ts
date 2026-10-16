@@ -304,12 +304,13 @@ export async function sendWhatsAppOtpCode(params: {
   const cleanPhone = getCleanWhatsAppNumber(params.patientPhone);
   const patientId = params.patientId || "GPC-PATIENT";
 
-  // Tier 1: Try dedicated authentication template if registered
+  // Tier 1: Dedicated official authentication template (patient_authcode_gpc)
+  // Approved in "en" with native Copy Code button
   try {
     const authRes = await sendWhatsAppTemplateMessage({
       rawPhone: cleanPhone,
-      templateName: "patient_auth_code_gpc",
-      languageCode: "en_US",
+      templateName: "patient_authcode_gpc",
+      languageCode: "en",
       components: [
         {
           type: "body",
@@ -323,8 +324,14 @@ export async function sendWhatsAppOtpCode(params: {
         },
       ],
     });
-    if (authRes.success) return authRes;
-  } catch {}
+    if (authRes.success) {
+      console.log(`[WhatsApp OTP] Successfully dispatched patient_authcode_gpc to ${cleanPhone} (Msg ID: ${authRes.messageId})`);
+      return authRes;
+    }
+    console.warn("[WhatsApp OTP] patient_authcode_gpc attempt notice:", authRes.error);
+  } catch (err: any) {
+    console.warn("[WhatsApp OTP] patient_authcode_gpc exception:", err?.message);
+  }
 
   // Tier 2: Use guaranteed approved Meta template (patient_welcome_gpc)
   // This delivers 100% reliably to any patient outside the 24h window
