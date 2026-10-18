@@ -969,18 +969,24 @@ ${scheduleListText}
 _Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
 🔗 Dashboard: https://www.gaitphysioclinic.com/dashboard/appointments`;
 
-  // Tier 1: Try approved template (formats each appointment on a single separate line)
-  const lineFormattedAppointments = count === 0
+  // Clean list formatting for legacy single-variable template (avoids \u2028 which produces black diamond glyphs)
+  const cleanListFormattedAppointments = count === 0
     ? "No appointments scheduled today"
-    : "\u2028" + params.appointments
-        .map((a) => `• ${a.slot} — ${a.patientName}`)
-        .join("\u2028");
+    : params.appointments
+        .map((a) => `[${a.slot} — ${a.patientName}]`)
+        .join(" • ");
 
   try {
-    // Attempt doctor_daily_schedule_v2 first, then fallback to therapist_schedule_alert
+    // Primary: Attempt dedicated multi-line template (doctor_schedule_slots_v1)
+    const slot1 = params.appointments[0] ? `${params.appointments[0].slot} — ${params.appointments[0].patientName}` : "—";
+    const slot2 = params.appointments[1] ? `${params.appointments[1].slot} — ${params.appointments[1].patientName}` : "—";
+    const slot3 = params.appointments[2] ? `${params.appointments[2].slot} — ${params.appointments[2].patientName}` : "—";
+    const slot4 = params.appointments[3] ? `${params.appointments[3].slot} — ${params.appointments[3].patientName}` : "—";
+    const slot5 = params.appointments[4] ? `${params.appointments[4].slot} — ${params.appointments[4].patientName}` : "—";
+
     let tmplRes = await sendWhatsAppTemplateMessage({
       rawPhone: cleanPhone,
-      templateName: "doctor_daily_schedule_v2",
+      templateName: "doctor_schedule_slots_v1",
       components: [
         {
           type: "body",
@@ -988,12 +994,17 @@ _Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
             { type: "text", text: doctorName },
             { type: "text", text: params.date },
             { type: "text", text: count.toString() },
-            { type: "text", text: lineFormattedAppointments.slice(0, 1000) },
+            { type: "text", text: slot1 },
+            { type: "text", text: slot2 },
+            { type: "text", text: slot3 },
+            { type: "text", text: slot4 },
+            { type: "text", text: slot5 },
           ],
         },
       ],
     });
 
+    // Fallback: If doctor_schedule_slots_v1 is still pending review, use approved therapist_schedule_alert
     if (!tmplRes.success) {
       tmplRes = await sendWhatsAppTemplateMessage({
         rawPhone: cleanPhone,
@@ -1005,7 +1016,7 @@ _Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
               { type: "text", text: doctorName },
               { type: "text", text: params.date },
               { type: "text", text: count.toString() },
-              { type: "text", text: lineFormattedAppointments.slice(0, 1000) },
+              { type: "text", text: cleanListFormattedAppointments.slice(0, 1000) },
             ],
           },
         ],
