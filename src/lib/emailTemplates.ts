@@ -864,3 +864,56 @@ export function renderConsultationReportEmail(params: {
     html: wrapEmail("Consultation & Prescription Report", body),
   };
 }
+
+/**
+ * 6-Digit Email OTP for Patient Portal Signup & Password Reset
+ */
+export function patientAuthOtpEmail(params: {
+  patientName: string;
+  otp: string;
+  purpose: "signup" | "reset";
+}): { subject: string; html: string } {
+  const isSignup = params.purpose === "signup";
+  const headline = isSignup ? "Verify Your Email & Activate Portal" : "Reset Your Portal Password";
+  const subtext = isSignup
+    ? "Welcome to Gait Physio Clinic! Use the verification code below to set up your password and access your home exercises, recovery plans, and treatment invoices online."
+    : "We received a request to reset your password for the Gait Physio Clinic Patient Hub. Use the security code below to create a new password.";
+
+  const body = `
+    <div>
+      <h2 style="margin: 0 0 8px; font-size: 20px; font-weight: 800; color: #062e36;">
+        ${headline}
+      </h2>
+      <p style="margin: 0 0 20px; font-size: 13.5px; color: #475569; line-height: 1.5;">
+        Hello <strong style="color: #0f172a;">${params.patientName || "Valued Patient"}</strong>,
+      </p>
+      <p style="margin: 0 0 24px; font-size: 13px; color: #475569; line-height: 1.6;">
+        ${subtext}
+      </p>
+
+      <!-- 6-digit OTP Box -->
+      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px dashed #059669; border-radius: 16px; padding: 24px; text-align: center; margin: 24px 0;">
+        <p style="margin: 0 0 6px; font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 1.2px;">
+          Your 6-Digit Verification Code
+        </p>
+        <div style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #062e36; padding: 6px 0; text-align: center;">
+          ${params.otp}
+        </div>
+        <p style="margin: 8px 0 0; font-size: 11.5px; color: #059669; font-weight: 600;">
+          ⏱ Valid for the next 5 minutes. Do not share this code with anyone.
+        </p>
+      </div>
+
+      <p style="margin: 20px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+        If you did not request this verification code, please ignore this email or reach out to our clinic team at <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a>.
+      </p>
+    </div>
+  `;
+
+  return {
+    subject: isSignup
+      ? `Your Verification Code: ${params.otp} - Gait Physio Clinic`
+      : `Password Reset Code: ${params.otp} - Gait Physio Clinic`,
+    html: wrapEmail(headline, body),
+  };
+}

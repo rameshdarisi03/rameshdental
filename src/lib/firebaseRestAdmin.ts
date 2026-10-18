@@ -169,7 +169,7 @@ export async function getStaffUserByEmail(
 
 export async function getFirebaseAuthUserByEmail(
   email: string
-): Promise<{ uid: string; email: string } | null> {
+): Promise<{ uid: string; email: string; hasPassword?: boolean } | null> {
   const token = await getGoogleAccessToken();
   const { projectId } = getCredentials();
   const cleanEmail = email.trim().toLowerCase();
@@ -198,9 +198,15 @@ export async function getFirebaseAuthUserByEmail(
     return null;
   }
 
+  const hasPassword = Boolean(
+    user.passwordHash ||
+    user.providerUserInfo?.some((p: any) => p.providerId === "password")
+  );
+
   return {
     uid: user.localId,
     email: user.email || cleanEmail,
+    hasPassword,
   };
 }
 
@@ -233,6 +239,44 @@ export async function updateUserPassword(
       errData.error?.message || `Failed to update password for account.`
     );
   }
+}
+
+export async function createFirebaseAuthUser(
+  email: string,
+  password: string
+): Promise<{ uid: string; email: string }> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const cleanEmail = email.trim().toLowerCase();
+
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/projects/${projectId}/accounts`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: cleanEmail,
+        password: password,
+        returnSecureToken: false,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(
+      errData.error?.message || `Failed to create Firebase Auth account.`
+    );
+  }
+
+  const data = await res.json();
+  return {
+    uid: data.localId,
+    email: data.email || cleanEmail,
+  };
 }
 
 export async function recordPasswordResetAudit(
@@ -536,6 +580,105 @@ export async function updatePatientOtpAttemptsRest(phone: string, attempts: numb
 
     await fetch(
       `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${cleanPhone}?updateMask.fieldPaths=attempts`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            attempts: { integerValue: attempts.toString() },
+          },
+        }),
+      }
+    );
+  } catch {}
+}
+
+function getEmailOtpDocId(email: string): string {
+  const clean = email.trim().toLowerCase();
+  return "email_" + Buffer.from(clean).toString("hex");
+}
+
+/**
+ * Stores an Email OTP code in the patient_otps collection via pure REST API.
+ */
+export async function savePatientEmailOtpRest(email: string, data: any): Promise<void> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const docId = getEmailOtpDocId(email);
+  const firestoreFields = toFirestoreFields(data);
+
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${docId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields: firestoreFields }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to store email OTP: ${await res.text()}`);
+  }
+}
+
+/**
+ * Reads an Email OTP code from the patient_otps collection via pure REST API.
+ */
+export async function getPatientEmailOtpRest(email: string): Promise<any | null> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const docId = getEmailOtpDocId(email);
+
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${docId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return parseFirestoreFields(data.fields || {});
+}
+
+/**
+ * Deletes an Email OTP code from the patient_otps collection via pure REST API.
+ */
+export async function deletePatientEmailOtpRest(email: string): Promise<void> {
+  try {
+    const token = await getGoogleAccessToken();
+    const { projectId } = getCredentials();
+    const docId = getEmailOtpDocId(email);
+
+    await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${docId}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  } catch {}
+}
+
+/**
+ * Updates attempts count on an Email OTP document.
+ */
+export async function updatePatientEmailOtpAttemptsRest(email: string, attempts: number): Promise<void> {
+  try {
+    const token = await getGoogleAccessToken();
+    const { projectId } = getCredentials();
+    const docId = getEmailOtpDocId(email);
+
+    await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/patient_otps/${docId}?updateMask.fieldPaths=attempts`,
       {
         method: "PATCH",
         headers: {
