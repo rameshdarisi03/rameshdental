@@ -12,6 +12,49 @@ import { sendAppointmentRescheduledEmail } from "@/lib/email";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+async function isAuthorizedRescheduleCaller(req: NextRequest, appData: any, body: any): Promise<boolean> {
+  // 1. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  // 2. Bearer Firebase ID token
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { getFirebaseAdmin } = await import("@/lib/firebaseAdmin");
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+
+      // Check if caller is staff
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+
+      // Check if caller is the patient who booked this appointment
+      const callerEmail = (decoded.email || "").toLowerCase().trim();
+      const appEmail = (appData.patientEmail || appData.email || "").toLowerCase().trim();
+      if (callerEmail && appEmail && callerEmail === appEmail) {
+        return true;
+      }
+
+      if (decoded.uid && (decoded.uid === appData.authUid || decoded.uid === appData.userId || decoded.uid === appData.patientId)) {
+        return true;
+      }
+    } catch {
+      // Invalid token
+    }
+  }
+
+  return false;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
@@ -45,6 +88,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Appointment not found." },
         { status: 404 }
+      );
+    }
+
+    // Verify caller is either clinic staff or the patient who owns this appointment
+    const isAuthorized = await isAuthorizedRescheduleCaller(req, appData, body);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { success: false, error: "Access denied. You do not have permission to reschedule this appointment." },
+        { status: 403 }
       );
     }
 

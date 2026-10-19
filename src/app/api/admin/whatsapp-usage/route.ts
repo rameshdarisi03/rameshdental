@@ -1,10 +1,48 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  // 1. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  // 2. Bearer Firebase ID token
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+    } catch {
+      // Invalid token
+    }
+  }
+
+  return false;
+}
+
+export async function GET(req: NextRequest) {
   try {
+    const authorized = await isAuthorizedStaff(req);
+    if (!authorized) {
+      return NextResponse.json(
+        { success: false, error: "Access denied. Valid clinic staff credentials required." },
+        { status: 401 }
+      );
+    }
+
     const token = process.env.WHATSAPP_ACCESS_TOKEN?.trim().replace(/^["']|["']$/g, "");
     const wabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "1139209992097469";
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || "1347657255099510";

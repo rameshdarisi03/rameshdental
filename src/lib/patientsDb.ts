@@ -326,9 +326,13 @@ export async function linkPatientsInFamilyCircle(
   // Tier 1: Infallible Server-side API endpoint (Runs with Firebase Admin SDK privileges)
   if (typeof window !== "undefined") {
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
       const res = await fetch("/api/patients/link-family", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: JSON.stringify({
           primaryPatientId: primaryPatient.id,
           memberPatientId: memberPatient.id,
@@ -398,8 +402,12 @@ export async function unlinkPatientFromFamilyCircle(
   // Tier 1: Infallible Server-side API endpoint
   if (typeof window !== "undefined") {
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
       const res = await fetch(`/api/patients/link-family?patientId=${encodeURIComponent(patientToUnlink.id)}`, {
         method: "DELETE",
+        headers: {
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
       });
       if (res.ok) {
         const data = await res.json();

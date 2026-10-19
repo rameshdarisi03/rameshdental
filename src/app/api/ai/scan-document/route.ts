@@ -1,5 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Type } from "@google/genai";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  // 1. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  // 2. Bearer Firebase ID token
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+    } catch {
+      // Invalid token
+    }
+  }
+
+  return false;
+}
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
 You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
@@ -111,6 +144,14 @@ const doctorPrescriptionSchema = {
 
 export async function POST(req: NextRequest) {
   try {
+    const authorized = await isAuthorizedStaff(req);
+    if (!authorized) {
+      return NextResponse.json(
+        { error: "Access denied. Valid clinic staff credentials required to scan clinical documents." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { imageBase64, documentType = "CLINICAL_ASSESSMENT", mimeType = "image/jpeg" } = body;
 

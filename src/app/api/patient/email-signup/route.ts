@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getPatientEmailOtpRest,
   deletePatientEmailOtpRest,
+  updatePatientEmailOtpAttemptsRest,
   getAllPatientsRest,
   updatePatientRecord,
   getFirebaseAuthUserByEmail,
@@ -50,9 +51,22 @@ export async function POST(request: Request) {
       );
     }
 
-    if (record.otp !== cleanOtp) {
+    // Rate Limiting Attempts (Max 5 attempts)
+    const attempts = Number(record.attempts || 0);
+    if (attempts >= 5) {
       return NextResponse.json(
-        { success: false, error: "Invalid verification code." },
+        {
+          success: false,
+          error: "Too many failed attempts. Please request a fresh verification code.",
+        },
+        { status: 429 }
+      );
+    }
+
+    if (record.otp !== cleanOtp) {
+      await updatePatientEmailOtpAttemptsRest(cleanEmail, attempts + 1);
+      return NextResponse.json(
+        { success: false, error: `Invalid verification code. ${4 - attempts} attempt(s) remaining.` },
         { status: 400 }
       );
     }

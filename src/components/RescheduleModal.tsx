@@ -24,6 +24,7 @@ import {
   isSlotInPast,
   Appointment
 } from "@/lib/db";
+import { auth } from "@/lib/firebase";
 
 // Format date to YYYY-MM-DD
 function formatDate(d: Date): string {
@@ -197,9 +198,13 @@ export default function RescheduleModal({
     setError("");
 
     try {
+      const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : "";
       const res = await fetch("/api/appointments/reschedule", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: JSON.stringify({
           appointmentId: appointment.id,
           newDate: selectedDate,
