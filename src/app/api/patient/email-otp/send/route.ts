@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { getAllPatientsRest, savePatientEmailOtpRest } from "@/lib/firebaseRestAdmin";
 import { sendEmail } from "@/lib/email";
 import { patientAuthOtpEmail } from "@/lib/emailTemplates";
@@ -44,8 +45,8 @@ export async function POST(request: Request) {
     const primaryPatient = matchedPatients[0];
     const patientName = primaryPatient.name || primaryPatient.patientName || "Valued Patient";
 
-    // 2. Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 2. Generate cryptographically secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const now = Date.now();
     const expiresAt = now + 5 * 60 * 1000; // 5 minutes TTL
 

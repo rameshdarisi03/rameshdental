@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getPatientEmailOtpRest,
   deletePatientEmailOtpRest,
+  updatePatientEmailOtpAttemptsRest,
   getFirebaseAuthUserByEmail,
   updateUserPassword,
 } from "@/lib/firebaseRestAdmin";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = otp.trim().replace(/\s+/g, "");
 
-    // 1. Verify OTP
+    // 1. Verify OTP record exists
     const record = await getPatientEmailOtpRest(cleanEmail);
     if (!record || !record.otp) {
       return NextResponse.json(
@@ -40,16 +41,39 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check expiration
     if (new Date(record.expiresAt).getTime() < Date.now()) {
+      await deletePatientEmailOtpRest(cleanEmail);
       return NextResponse.json(
         { success: false, error: "Reset verification code has expired. Please request a new code." },
         { status: 400 }
       );
     }
 
-    if (record.otp !== cleanOtp) {
+    // Check attempt lockout (max 5 failed attempts)
+    const attempts = Number(record.attempts || 0);
+    if (attempts >= 5) {
+      await deletePatientEmailOtpRest(cleanEmail);
       return NextResponse.json(
-        { success: false, error: "Invalid verification code. Please check your email." },
+        {
+          success: false,
+          error: "Too many failed attempts. This code has been invalidated for security. Please request a fresh code.",
+        },
+        { status: 429 }
+      );
+    }
+
+    // Compare OTP
+    if (record.otp !== cleanOtp) {
+      await updatePatientEmailOtpAttemptsRest(cleanEmail, attempts + 1);
+      const remaining = 5 - (attempts + 1);
+      return NextResponse.json(
+        {
+          success: false,
+          error: remaining > 0
+            ? `Invalid verification code. ${remaining} attempt(s) remaining.`
+            : "Too many failed attempts. This code has been invalidated for security. Please request a fresh code.",
+        },
         { status: 400 }
       );
     }

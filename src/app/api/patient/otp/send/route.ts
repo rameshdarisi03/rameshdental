@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { getAllPatientsRest, savePatientOtpRest } from "@/lib/firebaseRestAdmin";
 import { sendWhatsAppOtpCode } from "@/lib/whatsapp";
 import { sendEmail } from "@/lib/email";
@@ -56,8 +57,8 @@ export async function POST(request: Request) {
     const cleanCode = (activationCode || "").trim().toUpperCase() ||
       matchedPatients.find((p: any) => p.activationCode)?.activationCode || "";
 
-    // 4. Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 4. Generate cryptographically secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
     // Store in patient_otps collection via pure REST

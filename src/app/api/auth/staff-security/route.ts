@@ -10,6 +10,7 @@ import {
   updateUserPassword,
   recordPasswordResetAudit,
 } from "@/lib/firebaseRestAdmin";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,9 +68,34 @@ export async function POST(req: NextRequest) {
     }
 
     // ------------------------------------------------------------------------
-    // ACTION 3: ADMIN DIRECT PASSWORD RESET (OVERRIDE)
+    // ACTION 3: ADMIN DIRECT PASSWORD RESET (OVERRIDE - ADMIN ONLY)
     // ------------------------------------------------------------------------
     if (action === "ADMIN_DIRECT_RESET_PASSWORD") {
+      // Security check: Verify caller is an authenticated clinic Administrator
+      const authHeader = req.headers.get("authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+
+      let isVerifiedAdmin = false;
+      if (bearerToken) {
+        try {
+          const { auth: adminAuth, db: adminDb } = getFirebaseAdmin();
+          const decoded = await adminAuth.verifyIdToken(bearerToken);
+          const callerDoc = await adminDb.collection("users").doc(decoded.uid).get();
+          if (callerDoc.exists && callerDoc.data()?.role === "admin") {
+            isVerifiedAdmin = true;
+          }
+        } catch (authErr) {
+          console.warn("[staff-security] Admin token verification rejected:", authErr);
+        }
+      }
+
+      if (!isVerifiedAdmin) {
+        return NextResponse.json(
+          { success: false, error: "Access denied. Only clinic administrators can reset staff passwords." },
+          { status: 403 }
+        );
+      }
+
       const targetUid = uid || body.userId;
       const targetPassword = newPassword || body.password;
 
