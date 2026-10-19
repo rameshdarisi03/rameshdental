@@ -1,4 +1,4 @@
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 import {
   collection,
   query,
@@ -170,9 +170,13 @@ export async function checkDuplicatePatient(
     // Tier 1: Dedicated Server-side API endpoint (Infallible, runs with Firebase Admin privileges)
     if (typeof window !== "undefined") {
       try {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
         const res = await fetch("/api/patients/check-duplicate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
           body: JSON.stringify({ phone, name, email }),
         });
         if (res.ok) {
@@ -609,7 +613,12 @@ export async function getPatients(): Promise<Patient[]> {
 
     // Tier 3: Infallible Server-side API endpoint fallback (bypasses any client auth rule blocks)
     if (typeof window !== "undefined") {
-      const res = await fetch("/api/patients");
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
+      const res = await fetch("/api/patients", {
+        headers: {
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && Array.isArray(data.patients)) {
@@ -763,9 +772,13 @@ export async function deletePatientData(
   // Tier 1: Infallible Server-side API endpoint (Runs with Firebase Admin SDK privileges)
   if (typeof window !== "undefined") {
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
       const res = await fetch("/api/patients/delete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: JSON.stringify({ patientId, options }),
       });
       if (res.ok) {
@@ -791,6 +804,7 @@ export async function deletePatientData(
 
     const patientData = patientSnap.data() as Patient;
     const driveFolderId = patientData?.googleDriveFolderId;
+    const idToken = typeof window !== "undefined" && auth.currentUser ? await auth.currentUser.getIdToken() : "";
 
     // Selective Google Drive cloud folder purge based on ticks
     if (options.profile) {
@@ -798,7 +812,10 @@ export async function deletePatientData(
         console.log(`[deletePatientData] Purging entire Google Drive cloud folder for patient ${patientId} (folderId: ${driveFolderId || "lookup-by-id"})...`);
         const driveRes = await fetch("/api/drive/delete-folder", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
           body: JSON.stringify({ 
             folderId: driveFolderId || undefined,
             patientId: patientId,
@@ -824,7 +841,10 @@ export async function deletePatientData(
           console.log(`[deletePatientData] Selectively purging Google Drive category subfolders [${categories.join(", ")}]...`);
           const driveRes = await fetch("/api/drive/delete-folder", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+            },
             body: JSON.stringify({ 
               folderId: driveFolderId || undefined,
               patientId: patientId,

@@ -285,9 +285,13 @@ export default function DashboardStaff() {
       let serverErrorMsg = "";
 
       try {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
         const deleteResponse = await fetch("/api/staff/delete", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
           body: JSON.stringify({
             uid: memberToDelete.uid,
             email: memberToDelete.email,

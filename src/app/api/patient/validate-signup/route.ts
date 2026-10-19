@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
     // 4. Verify that the activation code matches the registered patient profile
     const codeMatchedPatient = emailMatchedPatients.find((p: any) => {
       const pCode = (p.activationCode || "").trim().toUpperCase();
-      const pId = (p.id || "").trim().toUpperCase();
-      return pCode === cleanCode || pId === cleanCode;
+      return Boolean(pCode && pCode === cleanCode);
     });
 
     if (!codeMatchedPatient) {
@@ -72,6 +71,7 @@ export async function POST(req: NextRequest) {
       success: true,
       patientId: codeMatchedPatient.id,
       patientName: codeMatchedPatient.name || "Patient",
+      patient: codeMatchedPatient,
     });
   } catch (err: any) {
     console.error("[API patient validate-signup error]:", err);

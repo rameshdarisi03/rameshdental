@@ -508,11 +508,18 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         const allSnap = await getDocs(collection(db, "patients"));
         for (const d of allSnap.docs) {
           const data = d.data();
-          if ((data.activationCode && data.activationCode.trim().toUpperCase() === cleanCode) || (data.email && d.id.toUpperCase() === cleanCode)) {
+          if (data.activationCode && data.activationCode.trim().toUpperCase() === cleanCode) {
             matchedDoc = d;
             break;
           }
         }
+      }
+
+      if (!matchedDoc && valData?.patient) {
+        matchedDoc = {
+          id: valData.patient.id || valData.patientId,
+          data: () => valData.patient,
+        };
       }
 
       if (!matchedDoc) {
@@ -706,11 +713,18 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         const allSnap = await getDocs(collection(db, "patients"));
         for (const d of allSnap.docs) {
           const data = d.data();
-          if ((data.activationCode && data.activationCode.trim().toUpperCase() === cleanCode) || (data.email && d.id.toUpperCase() === cleanCode)) {
+          if (data.activationCode && data.activationCode.trim().toUpperCase() === cleanCode) {
             matchedDoc = d;
             break;
           }
         }
+      }
+
+      if (!matchedDoc && valData?.patient) {
+        matchedDoc = {
+          id: valData.patient.id || valData.patientId,
+          data: () => valData.patient,
+        };
       }
 
       if (!matchedDoc) {

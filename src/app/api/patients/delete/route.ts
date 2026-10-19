@@ -36,9 +36,36 @@ export async function POST(request: Request) {
       invoices: Boolean(options?.invoices),
     };
 
-    console.log(`[API Patient Delete] Purging patient ${patientId} with options:`, deleteOptions);
+    const authHeader = request.headers.get("authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
 
     const { db, auth } = getFirebaseAdmin();
+
+    let isAuthorizedStaff = false;
+    if (bearerToken) {
+      try {
+        const decoded = await auth.verifyIdToken(bearerToken);
+        const callerDoc = await db.collection("users").doc(decoded.uid).get();
+        if (callerDoc.exists) {
+          const role = callerDoc.data()?.role;
+          if (role === "admin" || role === "receptionist" || role === "doctor" || role === "staff") {
+            isAuthorizedStaff = true;
+          }
+        }
+      } catch (authErr) {
+        console.warn("[API Patient Delete] Staff token verification rejected:", authErr);
+      }
+    }
+
+    if (!isAuthorizedStaff) {
+      return NextResponse.json(
+        { success: false, error: "Access denied. Only authenticated clinic staff can delete patient records." },
+        { status: 403 }
+      );
+    }
+
+    console.log(`[API Patient Delete] Purging patient ${patientId} with options:`, deleteOptions);
+
     const patientDocRef = db.collection("patients").doc(patientId);
     const patientSnap = await patientDocRef.get();
 

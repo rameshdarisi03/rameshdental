@@ -9,16 +9,41 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { uid, email } = body;
 
-    if (!uid) {
+    const authHeader = request.headers.get("authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+
+    const { auth, db } = getFirebaseAdmin();
+
+    let isAuthorizedAdmin = false;
+    let callerUid = "";
+    if (bearerToken) {
+      try {
+        const decoded = await auth.verifyIdToken(bearerToken);
+        callerUid = decoded.uid;
+        const callerDoc = await db.collection("users").doc(callerUid).get();
+        if (callerDoc.exists && callerDoc.data()?.role === "admin") {
+          isAuthorizedAdmin = true;
+        }
+      } catch (authErr) {
+        console.warn("[API Staff Delete] Admin token verification rejected:", authErr);
+      }
+    }
+
+    if (!isAuthorizedAdmin) {
       return NextResponse.json(
-        { success: false, error: "Missing required staff UID." },
+        { success: false, error: "Access denied. Only authenticated clinic administrators can delete staff accounts." },
+        { status: 403 }
+      );
+    }
+
+    if (callerUid === uid) {
+      return NextResponse.json(
+        { success: false, error: "Cannot delete your own active administrator account." },
         { status: 400 }
       );
     }
 
     console.log(`[API Staff Delete] Initiating complete purge for staff UID: ${uid} (${email || "no-email"})...`);
-
-    const { auth, db } = getFirebaseAdmin();
 
     // 1. Permanently delete from Firebase Authentication (wipes email, credentials, tokens)
     let authDeleted = false;

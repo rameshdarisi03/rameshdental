@@ -82,25 +82,26 @@ service cloud.firestore {
     // =========================================================================
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write, delete: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isStaff();
+      allow delete: if isStaff();
     }
 
     // =========================================================================
     // 5. PATIENTS COLLECTION & FAMILY CIRCLE
     // =========================================================================
     match /patients/{patientId} {
-      // Clinic staff, duplicate detection, and patient directory can read patient profiles
-      allow read: if true;
+      // Clinic staff or verified patient/family member can view their record
+      allow read: if isStaff() || isFamilyCircleMember(resource.data);
 
-      // Staff and authenticated patients can register and link patients
-      allow create: if true;
-      allow update: if isStaff() || isSignedIn();
+      // Staff and registered patients can manage their records
+      allow create: if isStaff() || isSignedIn();
+      allow update: if isStaff() || isFamilyCircleMember(resource.data);
       allow delete: if isStaff();
 
       // Sub-collections: files (scans/PDFs), consultations (SOAP notes), prescription history
       match /{allSubcollections=**} {
-        allow read: if true;
-        allow write, delete: if isStaff() || isSignedIn();
+        allow read: if isStaff() || isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data);
+        allow write, delete: if isStaff();
       }
     }
 
@@ -116,8 +117,8 @@ service cloud.firestore {
     // 7. ACTIVE PRESCRIPTIONS
     // =========================================================================
     match /prescriptions/{prescriptionId} {
-      // Allow read so Patient Hub can stream assigned exercise prescriptions
-      allow read: if true;
+      // Allow read for staff or authenticated patient streaming assigned exercises
+      allow read: if isStaff() || isSignedIn();
       allow write, delete: if isStaff();
     }
 
@@ -137,10 +138,13 @@ service cloud.firestore {
     // 9. INVOICES COLLECTION
     // =========================================================================
     match /invoices/{invoiceId} {
-      // Allow read so Patient Hub can subscribe to patient billing receipts
-      // and Clinic Reception can manage all invoices.
-      // Zero-leak patient data isolation is enforced by subscribePatientInvoices.
-      allow read: if true;
+      // Staff can manage all invoices; patients can only view invoices issued to them
+      allow read: if isStaff() || (
+        isSignedIn() && (
+          (request.auth.uid != null && "authUid" in resource.data && resource.data.authUid == request.auth.uid) ||
+          (userEmail() != "" && "patientEmail" in resource.data && resource.data.patientEmail.lower() == userEmail())
+        )
+      );
       allow write, delete: if isStaff();
     }
 

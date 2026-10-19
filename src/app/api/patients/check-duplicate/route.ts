@@ -1,9 +1,65 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAllPatientsRest } from "@/lib/firebaseRestAdmin";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 import { sanitizePhone, sanitizeName } from "@/lib/sanitizer";
 
-export async function POST(request: Request) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  // 1. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  // 2. Bearer Firebase ID token
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+    } catch {
+      // Invalid token
+    }
+  }
+
+  return false;
+}
+
+function sanitizeDuplicatePatient(p: any) {
+  if (!p) return null;
+  return {
+    id: p.id,
+    name: p.name || "",
+    phone: p.phone || "",
+    email: p.email || "",
+    address: p.address || "",
+    therapistName: p.therapistName || "",
+    familyGroupId: p.familyGroupId || "",
+    isPrimaryAccount: Boolean(p.isPrimaryAccount),
+    primaryPatientId: p.primaryPatientId || "",
+  };
+}
+
+export async function POST(request: NextRequest) {
   try {
+    const authorized = await isAuthorizedStaff(request);
+    if (!authorized) {
+      return NextResponse.json(
+        { isDuplicate: false, error: "Access denied. Valid staff credentials required." },
+        { status: 401 }
+      );
+    }
+
     const { phone, name, email } = await request.json();
     const cleanPhone = sanitizePhone(phone);
     const cleanName = sanitizeName(name).trim().toLowerCase();
@@ -34,7 +90,7 @@ export async function POST(request: Request) {
             isDuplicate: true,
             matchType: "exact",
             matchField: "email",
-            existingPatient: { id: d.id, ...data },
+            existingPatient: sanitizeDuplicatePatient({ id: d.id, ...data }),
             message: `Patient "${data.name}" is already registered with this email (${cleanEmail}).`,
           });
         }
@@ -48,7 +104,7 @@ export async function POST(request: Request) {
             isDuplicate: true,
             matchType: "exact",
             matchField: "phone",
-            existingPatient: { id: d.id, ...data },
+            existingPatient: sanitizeDuplicatePatient({ id: d.id, ...data }),
             message: `Patient "${data.name}" is already registered with this phone number (${pPhone}).`,
           });
         }
@@ -67,7 +123,7 @@ export async function POST(request: Request) {
         isDuplicate: false,
         matchType: "family_member",
         matchField: "email",
-        existingPatient: emailMatchPatient,
+        existingPatient: sanitizeDuplicatePatient(emailMatchPatient),
         message: `Email is already linked to family member "${emailMatchPatient.name}". A separate individual profile will be created in this Family Circle.`,
       });
     }
@@ -78,7 +134,7 @@ export async function POST(request: Request) {
         isDuplicate: false,
         matchType: "family_member",
         matchField: "phone",
-        existingPatient: phoneMatchPatient,
+        existingPatient: sanitizeDuplicatePatient(phoneMatchPatient),
         message: `Phone number is shared with family member "${phoneMatchPatient.name}". A separate individual profile will be created in this Family Circle.`,
       });
     }
@@ -88,7 +144,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         isDuplicate: false,
         matchType: "name_collision",
-        existingPatient: nameMatchPatient,
+        existingPatient: sanitizeDuplicatePatient(nameMatchPatient),
         message: `Another patient is named "${nameMatchPatient.name}" with different contact details.`,
       });
     }

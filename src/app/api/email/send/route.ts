@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 import {
   sendPatientOnboardingEmail,
   sendBookingRequestReceivedEmail,
@@ -13,6 +14,32 @@ import {
   sendConsultationReportEmail,
   sendEmail,
 } from "@/lib/email";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+    } catch {}
+  }
+  return false;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,9 +103,17 @@ export async function POST(req: NextRequest) {
         result = await sendConsultationReportEmail(payload);
         break;
 
-      case "CUSTOM":
+      case "CUSTOM": {
+        const authorized = await isAuthorizedStaff(req);
+        if (!authorized) {
+          return NextResponse.json(
+            { success: false, error: "Access denied. Valid staff credentials required to send custom emails." },
+            { status: 401 }
+          );
+        }
         result = await sendEmail(payload);
         break;
+      }
 
       default:
         return NextResponse.json(

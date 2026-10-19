@@ -1,8 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updatePatientRecord, getFirebaseAuthUserByEmail, updateUserPassword } from "@/lib/firebaseRestAdmin";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+    } catch {}
+  }
+  return false;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,15 +40,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { db } = getFirebaseAdmin();
+    const cleanPatientId = patientId.trim();
+    const patientSnap = await db.collection("patients").doc(cleanPatientId).get();
+
+    if (!patientSnap.exists) {
+      return NextResponse.json(
+        { success: false, error: "Patient record not found." },
+        { status: 404 }
+      );
+    }
+
+    const patientData = patientSnap.data() || {};
     let finalAuthUid = authUid;
 
-    // If a password was provided, set/update it on the Firebase Auth user
+    // If a password was provided, verify caller holds the legitimate activationCode or is authenticated staff
     if (password && typeof password === "string") {
       const cleanEmail = (email || "").trim().toLowerCase();
       if (!cleanEmail) {
         return NextResponse.json(
           { success: false, error: "Email is required to set account password." },
           { status: 400 }
+        );
+      }
+
+      const cleanActivationCode = (activationCode || "").trim().toUpperCase();
+      const dbActivationCode = (patientData.activationCode || "").trim().toUpperCase();
+
+      const isStaff = await isAuthorizedStaff(req);
+      const isCodeValid = Boolean(dbActivationCode && cleanActivationCode && dbActivationCode === cleanActivationCode);
+
+      if (!isStaff && !isCodeValid) {
+        return NextResponse.json(
+          { success: false, error: "Invalid or expired activation code. Cannot set account credentials." },
+          { status: 403 }
         );
       }
 

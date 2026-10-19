@@ -1,11 +1,49 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAllPatientsRest } from "@/lib/firebaseRestAdmin";
+import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  // 1. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  // 2. Bearer Firebase ID token
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const { auth, db } = getFirebaseAdmin();
+      const decoded = await auth.verifyIdToken(bearerToken);
+      const userDoc = await db.collection("users").doc(decoded.uid).get();
+      if (userDoc.exists) {
+        const role = userDoc.data()?.role;
+        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+          return true;
+        }
+      }
+    } catch {
+      // Invalid token
+    }
+  }
+
+  return false;
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const authorized = await isAuthorizedStaff(request);
+    if (!authorized) {
+      return NextResponse.json(
+        { success: false, error: "Access denied. Valid staff credentials required.", patients: [] },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const queryParam = searchParams.get("q")?.toLowerCase().trim() || "";
 

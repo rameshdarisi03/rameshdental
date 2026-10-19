@@ -19,8 +19,32 @@ export async function POST(req: NextRequest) {
   return handleFortnightUsage(req);
 }
 
+function isAuthorizedCronOrStaff(req: NextRequest): boolean {
+  // 1. Vercel automated Cron header
+  if (req.headers.get("x-vercel-cron") === "1") return true;
+
+  // 2. Bearer CRON_SECRET header
+  const authHeader = req.headers.get("authorization") || "";
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return true;
+
+  // 3. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  return false;
+}
+
 async function handleFortnightUsage(req: NextRequest) {
   try {
+    if (!isAuthorizedCronOrStaff(req)) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Valid cron token or staff session required." },
+        { status: 401 }
+      );
+    }
     const token = process.env.WHATSAPP_ACCESS_TOKEN?.trim().replace(/^["']|["']$/g, "");
     const wabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "1139209992097469";
     const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || "1347657255099510";

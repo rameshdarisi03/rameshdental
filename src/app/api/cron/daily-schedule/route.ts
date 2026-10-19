@@ -42,8 +42,33 @@ export async function POST(req: NextRequest) {
   return handleDailySchedule(req);
 }
 
+function isAuthorizedCronOrStaff(req: NextRequest): boolean {
+  // 1. Vercel automated Cron header
+  if (req.headers.get("x-vercel-cron") === "1") return true;
+
+  // 2. Bearer CRON_SECRET header
+  const authHeader = req.headers.get("authorization") || "";
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return true;
+
+  // 3. Staff session cookie from dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
+    return true;
+  }
+
+  return false;
+}
+
 async function handleDailySchedule(req: NextRequest) {
   try {
+    if (!isAuthorizedCronOrStaff(req)) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Valid cron token or staff session required." },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get("date");
     const today = dateParam || getTodayIST();
@@ -144,9 +169,9 @@ async function handleDailySchedule(req: NextRequest) {
       success: true,
       date: today,
       count: formattedList.length,
-      appointments: formattedList,
-      whatsapp: waResult,
-      email: emailResult,
+      message: `Daily schedule for ${today} dispatched successfully (${formattedList.length} appointments).`,
+      whatsappSent: Boolean(waResult?.success),
+      emailSent: Boolean(emailResult?.success),
     });
   } catch (error: any) {
     console.error("[Daily Schedule Cron Error]:", error);
