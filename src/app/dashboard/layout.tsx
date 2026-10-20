@@ -76,9 +76,16 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-brand-bg dark:bg-slate-955 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-green mr-2" />
-        <span className="text-sm font-semibold">Loading portal session...</span>
+      <div className="flex h-screen flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 gap-4">
+        <img 
+          src="/images/gait_pwa_splash.png" 
+          alt="Gait Physio Clinic" 
+          className="h-36 w-36 object-contain drop-shadow-sm animate-pulse"
+        />
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin text-brand-green" />
+          <span>Loading portal session...</span>
+        </div>
       </div>
     );
   }

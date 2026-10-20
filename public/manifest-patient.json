@@ -7,30 +7,30 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#062e36",
+  "background_color": "#ffffff",
   "theme_color": "#062e36",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/images/gait_physio_logo.png",
+      "src": "/images/gait_pwa_icon_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/gait_physio_logo.png",
+      "src": "/images/gait_pwa_splash.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/gait_physio_logo.png",
+      "src": "/images/gait_pwa_icon_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/images/gait_physio_logo.png",
+      "src": "/images/gait_pwa_splash.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

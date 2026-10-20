@@ -63,12 +63,12 @@ export const metadata: Metadata = {
     icon: [
       { url: "/icon.png", sizes: "192x192", type: "image/png" },
       { url: "/favicon.ico" },
-      { url: "/images/gait_physio_logo.png", sizes: "512x512", type: "image/png" }
+      { url: "/images/gait_pwa_splash.png", sizes: "512x512", type: "image/png" }
     ],
     shortcut: "/favicon.ico",
     apple: [
       { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
-      { url: "/images/gait_physio_logo.png" }
+      { url: "/images/gait_pwa_splash.png" }
     ],
   },
   openGraph: {

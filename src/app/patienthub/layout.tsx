@@ -120,25 +120,17 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
 
   if (loading || !patient) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#062e36] text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-white dark:bg-[#062e36] text-slate-800 dark:text-white">
         <div className="text-center space-y-4 animate-fade-in flex flex-col items-center">
           <div className="relative">
             <img 
-              src="/images/gait_physio_logo.png" 
-              alt="GaitPhysio Logo" 
-              className="h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(249,171,85,0.3)] animate-pulse"
+              src="/images/gait_pwa_splash.png" 
+              alt="Gait Physio Clinic" 
+              className="h-36 w-36 object-contain drop-shadow-sm animate-pulse"
             />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
-              <span>Gait</span> <span className="text-emerald-400">Physio</span>
-            </h1>
-            <p className="text-[10px] text-[#f9ab55] font-black tracking-[0.25em] uppercase mt-1">
-              Patient Hub
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-300/80 font-medium pt-2">
-            <Loader2 className="h-4 w-4 animate-spin text-[#f9ab55]" />
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300/80 font-medium pt-2">
+            <Loader2 className="h-4 w-4 animate-spin text-[#062e36] dark:text-[#f9ab55]" />
             <span>{!patient ? "Redirecting to Patient Login..." : "Connecting to your care timeline..."}</span>
           </div>
         </div>
