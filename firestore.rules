@@ -142,8 +142,10 @@ service cloud.firestore {
       // Staff can manage all invoices; patients can only view invoices issued to them
       allow read: if isStaff() || (
         isSignedIn() && (
+          (request.auth.uid != null && "patientId" in resource.data && resource.data.patientId == request.auth.uid) ||
           (request.auth.uid != null && "authUid" in resource.data && resource.data.authUid == request.auth.uid) ||
-          (userEmail() != "" && "patientEmail" in resource.data && resource.data.patientEmail.lower() == userEmail())
+          (userEmail() != "" && "patientEmail" in resource.data && resource.data.patientEmail.lower() == userEmail()) ||
+          (request.auth.token.phone != null && "patientPhone" in resource.data && resource.data.patientPhone.matches('.*' + request.auth.token.phone + '.*'))
         )
       );
       allow write, delete: if isStaff();

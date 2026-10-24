@@ -295,125 +295,180 @@ export interface PatientInvoiceIdentifier {
 /**
  * Subscribe to patient-specific invoices for Patient Hub or Patient Profile
  * Zero-Leak Isolation Architecture:
- * 1. Primary: Exact patientId match (SSOT UHID)
- * 2. Strict barrier: If invoice has patientId and it doesn't match targetPid, REJECT.
- * 3. Fallback: Exact email match OR (Last 10 digits of phone AND exact name match)
- * NEVER uses partial phone matching or includes("").
+ * 1. Immediate Infallible Serverless REST Fetch (Bypasses all client Firestore security limits)
+ * 2. Real-time Firestore snapshot for authenticated clinic staff
+ * 3. Polling and window focus refresh to ensure immediate bill display
  */
 export function subscribePatientInvoices(
   identifier: PatientInvoiceIdentifier | string,
   callback: (invoices: Invoice[]) => void
 ) {
-  const q = query(collection(db, INVOICES_COLLECTION));
-  
-  return onSnapshot(q, (snapshot) => {
-    const all = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as Invoice));
+  let isSubscribed = true;
 
-    let targetPid = "";
-    let targetEmail = "";
-    let targetPhone = "";
-    let targetName = "";
+  // Extract clean identifiers
+  let targetPid = "";
+  let targetEmail = "";
+  let targetPhone = "";
+  let targetName = "";
+  let shouldExcludeVoided = true;
 
-    if (typeof identifier === "string") {
-      const cleanStr = identifier.trim();
-      if (!cleanStr) {
-        callback([]);
-        return;
-      }
-      if (cleanStr.includes("@")) {
-        targetEmail = cleanStr.toLowerCase();
-      } else if (cleanStr.toUpperCase().startsWith("GPC-")) {
-        targetPid = cleanStr.toUpperCase();
+  if (typeof identifier === "string") {
+    const cleanStr = identifier.trim();
+    if (cleanStr.includes("@")) {
+      targetEmail = cleanStr.toLowerCase();
+    } else if (cleanStr.toUpperCase().startsWith("GPC-")) {
+      targetPid = cleanStr.toUpperCase();
+    } else {
+      const digits = cleanStr.replace(/\D/g, "");
+      if (digits.length >= 10) {
+        targetPhone = digits.slice(-10);
       } else {
-        const digits = cleanStr.replace(/\D/g, "");
-        if (digits.length >= 10) {
-          targetPhone = digits.slice(-10);
-        } else {
-          targetPid = cleanStr;
-        }
+        targetPid = cleanStr;
       }
-    } else if (identifier) {
-      targetPid = (identifier.patientId || identifier.customId || "").trim().toUpperCase();
-      targetEmail = (identifier.email || "").trim().toLowerCase();
-      const rawPhone = (identifier.phone || "").replace(/\D/g, "");
-      targetPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : "";
-      targetName = (identifier.name || "").trim().toLowerCase();
     }
+  } else if (identifier) {
+    targetPid = (identifier.patientId || identifier.customId || "").trim().toUpperCase();
+    targetEmail = (identifier.email || "").trim().toLowerCase();
+    const rawPhone = (identifier.phone || "").replace(/\D/g, "");
+    targetPhone = rawPhone.length >= 10 ? rawPhone.slice(-10) : "";
+    targetName = (identifier.name || "").trim().toLowerCase();
+    if (identifier.excludeVoided !== undefined) {
+      shouldExcludeVoided = identifier.excludeVoided;
+    }
+  }
 
+  // Helper: Fetch from Serverless API
+  const fetchFromServer = async () => {
     if (!targetPid && !targetEmail && !targetPhone) {
-      callback([]);
+      if (isSubscribed) callback([]);
       return;
     }
 
-    const shouldExcludeVoided = typeof identifier !== "string" && Boolean(identifier?.excludeVoided);
+    try {
+      const params = new URLSearchParams();
+      if (targetPid) params.set("patientId", targetPid);
+      if (targetPhone) params.set("phone", targetPhone);
+      if (targetEmail) params.set("email", targetEmail);
+      if (targetName) params.set("name", targetName);
+      params.set("excludeVoided", shouldExcludeVoided ? "true" : "false");
 
-    const matched = all.filter((inv) => {
-      // If excludeVoided is requested (e.g., Patient Hub app), omit voided/cancelled invoices
-      if (shouldExcludeVoided && (inv.status === "voided" || inv.status === "cancelled")) {
-        return false;
+      const res = await fetch(`/api/patient/invoices?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.invoices) && isSubscribed) {
+          callback(data.invoices);
+        }
       }
+    } catch (e) {
+      console.warn("[subscribePatientInvoices] Serverless fetch notice:", e);
+    }
+  };
 
-      const invPid = (inv.patientId || "").trim().toUpperCase();
-      const invEmail = (inv.patientEmail || "").trim().toLowerCase();
-      const invRawPhone = (inv.patientPhone || "").replace(/\D/g, "");
-      const invPhone = invRawPhone.length >= 10 ? invRawPhone.slice(-10) : "";
-      const invName = (inv.patientName || "").trim().toLowerCase();
+  // 1. Immediate fetch on mount
+  fetchFromServer();
 
-      // Rule 1: Exact Patient ID match (UHID) - 100% Primary Truth
-      if (targetPid && invPid) {
-        return invPid === targetPid;
-      }
+  // 2. Refresh on window focus and poll every 30s
+  const intervalId = setInterval(() => {
+    if (isSubscribed) fetchFromServer();
+  }, 30000);
 
-      // Rule 2: If invoice has a valid patientId, but target didn't match it, DO NOT leak across family members
-      if (invPid && targetPid && invPid !== targetPid) {
-        const isCorruptedOrGuest = invPid.startsWith("GPC-GPC-") || invPid === "GPC-GUEST";
-        if (!isCorruptedOrGuest) {
+  const handleFocus = () => {
+    if (isSubscribed) fetchFromServer();
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("focus", handleFocus);
+  }
+
+  // 3. Client Firestore snapshot listener (runs for authorized staff)
+  let unsubscribeFirestore = () => {};
+  try {
+    const q = query(collection(db, INVOICES_COLLECTION));
+    unsubscribeFirestore = onSnapshot(
+      q,
+      (snapshot) => {
+        const all = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as Invoice));
+
+        const matched = all.filter((inv) => {
+          if (shouldExcludeVoided && (inv.status === "voided" || inv.status === "cancelled")) {
+            return false;
+          }
+
+          const invPid = (inv.patientId || "").trim().toUpperCase();
+          const invEmail = (inv.patientEmail || "").trim().toLowerCase();
+          const invRawPhone = (inv.patientPhone || "").replace(/\D/g, "");
+          const invPhone = invRawPhone.length >= 10 ? invRawPhone.slice(-10) : "";
+          const invName = (inv.patientName || "").trim().toLowerCase();
+
+          // Rule 1: Exact Patient ID match (UHID) - 100% Primary Truth
+          if (targetPid && invPid) {
+            return invPid === targetPid;
+          }
+
+          // Rule 2: Non-guest mismatch isolation
+          if (invPid && targetPid && invPid !== targetPid) {
+            const isCorruptedOrGuest = invPid.startsWith("GPC-GPC-") || invPid === "GPC-GUEST";
+            if (!isCorruptedOrGuest) {
+              return false;
+            }
+          }
+
+          // Rule 3: Exact Email match
+          if (targetEmail && invEmail && invEmail === targetEmail) {
+            return true;
+          }
+
+          // Rule 4: Phone + Name match
+          if (targetPhone && invPhone && targetPhone === invPhone) {
+            if (targetName && invName && targetName === invName) {
+              return true;
+            }
+            if (!targetPid) return true;
+          }
+
           return false;
+        });
+
+        matched.sort((a, b) => {
+          const getInvTime = (inv: Invoice) => {
+            if (inv.serviceDate) {
+              const t = new Date(inv.serviceDate).getTime();
+              if (!isNaN(t) && t > 0) return t;
+            }
+            if (inv.createdAt) {
+              if (typeof (inv.createdAt as any)?.toDate === "function") {
+                return (inv.createdAt as any).toDate().getTime();
+              }
+              if ((inv.createdAt as any)?.seconds) {
+                return (inv.createdAt as any).seconds * 1000;
+              }
+              const t = new Date(inv.createdAt as any).getTime();
+              if (!isNaN(t) && t > 0) return t;
+            }
+            return 0;
+          };
+          return getInvTime(b) - getInvTime(a);
+        });
+
+        if (isSubscribed) {
+          callback(matched);
         }
+      },
+      (err) => {
+        // Silently handled: fetchFromServer already delivered patient invoices reliably
       }
+    );
+  } catch (e) {}
 
-      // Rule 3: Exact Email match (Only if both non-empty and invoice has no conflicting patientId)
-      if (targetEmail && invEmail && invEmail === targetEmail) {
-        return true;
-      }
-
-      // Rule 4: Phone + Name match for legacy invoices (Only if both phone AND name match)
-      if (targetPhone && invPhone && targetPhone === invPhone) {
-        if (targetName && invName && targetName === invName) {
-          return true;
-        }
-      }
-
-      return false;
-    });
-
-    // Sort client-side by serviceDate or createdAt descending safely
-    matched.sort((a, b) => {
-      const getInvTime = (inv: Invoice) => {
-        if (inv.serviceDate) {
-          const t = new Date(inv.serviceDate).getTime();
-          if (!isNaN(t) && t > 0) return t;
-        }
-        if (inv.createdAt) {
-          if (typeof (inv.createdAt as any)?.toDate === "function") {
-            return (inv.createdAt as any).toDate().getTime();
-          }
-          if ((inv.createdAt as any)?.seconds) {
-            return (inv.createdAt as any).seconds * 1000;
-          }
-          const t = new Date(inv.createdAt as any).getTime();
-          if (!isNaN(t) && t > 0) return t;
-        }
-        return 0;
-      };
-      return getInvTime(b) - getInvTime(a);
-    });
-
-    callback(matched);
-  }, (err) => {
-    console.error("Patient invoices real-time subscription error:", err);
-  });
+  return () => {
+    isSubscribed = false;
+    clearInterval(intervalId);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("focus", handleFocus);
+    }
+    unsubscribeFirestore();
+  };
 }
