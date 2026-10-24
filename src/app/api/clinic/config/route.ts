@@ -1,8 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { verifyFirebaseIdTokenRest, getFirestoreDocRest } from "@/lib/firebaseRestAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+async function isAuthorizedAdminOrStaff(req: NextRequest): Promise<boolean> {
+  // 1. Session cookie check from authenticated staff dashboard
+  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  if (sessionCookie && ["admin", "receptionist", "staff", "doctor"].includes(sessionCookie)) {
+    return true;
+  }
+
+  // 2. Bearer Firebase ID token verification
+  const authHeader = req.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (bearerToken) {
+    try {
+      const decoded = await verifyFirebaseIdTokenRest(bearerToken);
+      if (decoded?.uid) {
+        const userDoc = await getFirestoreDocRest("users", decoded.uid);
+        if (userDoc && ["admin", "receptionist", "staff", "doctor"].includes(userDoc.role)) {
+          return true;
+        }
+      }
+    } catch {}
+  }
+
+  return false;
+}
 
 export async function GET() {
   try {
@@ -20,6 +46,15 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Security Guard: Verify that the caller is an authenticated clinic staff or administrator
+    const isAuthorized = await isAuthorizedAdminOrStaff(req);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { success: false, error: "Access denied. Valid clinic administrator credentials required." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     if (!body || typeof body !== "object") {
       return NextResponse.json({ success: false, error: "Invalid configuration payload." }, { status: 400 });
