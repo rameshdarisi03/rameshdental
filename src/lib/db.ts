@@ -24,7 +24,8 @@ export interface Appointment {
   slot: string; // e.g. "09:30 AM"
   status: "pending" | "approved" | "rejected";
   notes?: string;
-  type: "online" | "manual";
+  type: "online" | "manual" | "practo";
+  practoEventId?: string; // Unique Practo UID for deduplication
   createdAt: Timestamp;
   
   // Multi-Therapist assignment
@@ -162,6 +163,11 @@ export interface ClinicConfig {
   heroDesktopImage?: string; // Custom panoramic desktop cover image (or preset)
   heroMobileImage?: string;  // Custom vertical mobile cover image (or preset)
   customHeroPresets?: HeroPresetOption[]; // Uploaded custom images appended to preset library
+  // Practo Calendar Integration
+  practoIcalUrl?: string; // e.g. "webcal://www.practo.com/ray/calendar/feed/..."
+  practoDoctorName?: string; // Doctor name assigned to Practo appointments
+  practoLastSyncedAt?: Timestamp;
+  practoLastImportCount?: number;
 }
 
 export interface HeroPresetOption {

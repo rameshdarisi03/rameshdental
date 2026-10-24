@@ -60,7 +60,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderPlus,
-  Library
+  Library,
+  CalendarSync
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -400,6 +401,44 @@ export default function DashboardSettings() {
   const [isDirty, setIsDirty] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeKey>("teal");
   const [initialTheme, setInitialTheme] = useState<ThemeKey>("teal");
+
+  // Practo Calendar Sync state & handlers
+  const [testingPracto, setTestingPracto] = useState(false);
+  const [practoSyncResult, setPractoSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestPractoSync = async () => {
+    if (!config.practoIcalUrl || !config.practoIcalUrl.trim()) {
+      alert("Please enter Dr. Kinnera's Practo iCal URL before testing the sync.");
+      return;
+    }
+    setTestingPracto(true);
+    setPractoSyncResult(null);
+    try {
+      const res = await fetch("/api/practo/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          overrideUrl: config.practoIcalUrl,
+          doctorName: config.practoDoctorName || "Dr.Kinnera",
+        }),
+      });
+      const data = await res.json();
+      setPractoSyncResult({
+        success: data.success,
+        message: data.message,
+      });
+      if (data.success) {
+        setIsDirty(true);
+      }
+    } catch (err: any) {
+      setPractoSyncResult({
+        success: false,
+        message: err.message || "Network error while connecting to Practo.",
+      });
+    } finally {
+      setTestingPracto(false);
+    }
+  };
 
   // Initial config snapshot to compute granular diff
   const [initialConfig, setInitialConfig] = useState<ClinicConfig | null>(null);
@@ -2278,6 +2317,113 @@ export default function DashboardSettings() {
 
               </div>
 
+            </div>
+
+            {/* Practo Ray Calendar Sync Card */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-7 rounded-[2rem] shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <CalendarSync className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-brand-charcoal dark:text-white text-sm sm:text-base leading-none">
+                      Practo Ray Calendar Sync
+                    </h3>
+                    <p className="text-[10px] text-slate-400 mt-1 font-semibold">
+                      Automatically import Practo doctor appointments into your clinic queue and block matching time slots
+                    </p>
+                  </div>
+                </div>
+
+                <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 text-[10px] font-black uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3" />
+                  2-Way Slot Protection
+                </span>
+              </div>
+
+              {/* URL Input & Doctor Selector */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
+                    Practo iCal / Webcal Subscription Feed URL
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="text"
+                      name="practoIcalUrl"
+                      value={config.practoIcalUrl || ""}
+                      onChange={handleInputChange}
+                      placeholder="e.g. webcal://www.practo.com/ray/calendar/feed/... or https://..."
+                      className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-3.5 py-2.5 text-xs outline-none focus:border-purple-500 text-slate-800 dark:text-slate-200 font-mono transition-colors"
+                    />
+                    <button
+                      type="button"
+                      disabled={testingPracto}
+                      onClick={handleTestPractoSync}
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50 cursor-pointer shadow-xs"
+                    >
+                      {testingPracto ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CalendarSync className="w-3.5 h-3.5" />
+                      )}
+                      <span>{testingPracto ? "Testing Feed..." : "Test & Sync Now"}</span>
+                    </button>
+                  </div>
+                  <p className="text-[10.5px] text-slate-400 mt-1 font-medium">
+                    Supports both <code className="text-purple-600">webcal://</code> and <code className="text-purple-600">https://</code> calendar links provided by Practo Ray.
+                  </p>
+                </div>
+
+                {/* Doctor Assignment Selection */}
+                <div>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1.5">
+                    Assign Practo Bookings To
+                  </label>
+                  <select
+                    name="practoDoctorName"
+                    value={config.practoDoctorName || "Dr.Kinnera"}
+                    onChange={handleInputChange}
+                    className="w-full sm:w-72 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-purple-500"
+                  >
+                    <option value="Dr.Kinnera">Dr.Kinnera (Lead Physiotherapist)</option>
+                    {(config.therapists || []).map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Sync Result Alert */}
+                {practoSyncResult && (
+                  <div className={`p-3.5 rounded-2xl border text-xs font-semibold flex items-center gap-2 ${
+                    practoSyncResult.success
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+                      : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300"
+                  }`}>
+                    {practoSyncResult.success ? (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{practoSyncResult.message}</span>
+                  </div>
+                )}
+
+                {/* How to get link guide for the doctor */}
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-black text-slate-800 dark:text-slate-200">
+                    <Info className="w-4 h-4 text-purple-600" />
+                    <span>How Dr. Kinnera gets her Practo Calendar link (3 steps):</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed pl-1 font-medium">
+                    <li>Log in to the <strong>Practo Ray</strong> account (desktop web portal or app).</li>
+                    <li>Navigate to <strong>Settings &rarr; Calendar &rarr; Subscribe</strong>.</li>
+                    <li>Click <strong>Google Calendar Sync</strong> next to Dr. Kinnera's name and copy the link.</li>
+                    <li>Paste the link into the box above and click <strong>Save</strong> at the top right.</li>
+                  </ol>
+                </div>
+              </div>
             </div>
 
             {/* Homepage Hero Cover Banners (Desktop & Mobile) Card */}

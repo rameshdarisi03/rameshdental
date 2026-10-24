@@ -144,6 +144,27 @@ export default function DashboardAppointments() {
   const [sendingDoctorSchedule, setSendingDoctorSchedule] = useState(false);
   const [scheduleSentAlert, setScheduleSentAlert] = useState<string | null>(null);
 
+  // Practo Calendar Sync state
+  const [syncingPracto, setSyncingPracto] = useState(false);
+
+  const handleSyncPracto = async () => {
+    setSyncingPracto(true);
+    try {
+      const res = await fetch("/api/practo/sync", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.message || "Failed to sync Practo appointments.");
+      } else {
+        alert(data.message || "Practo calendar synced successfully!");
+        fetchAppointments();
+      }
+    } catch (err: any) {
+      alert(err?.message || "Error syncing with Practo.");
+    } finally {
+      setSyncingPracto(false);
+    }
+  };
+
   const handleSendDoctorSchedule = async () => {
     setSendingDoctorSchedule(true);
     setScheduleSentAlert(null);
@@ -806,6 +827,17 @@ export default function DashboardAppointments() {
           </button>
 
           <button
+            onClick={handleSyncPracto}
+            disabled={syncingPracto}
+            title="Sync appointments with Dr. Kinnera's Practo Calendar Feed"
+            type="button"
+            className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all focus:outline-none disabled:opacity-50 cursor-pointer"
+          >
+            <CalendarSync className={`h-4 w-4 ${syncingPracto ? "animate-spin" : ""}`} />
+            <span>{syncingPracto ? "Syncing..." : "Sync Practo"}</span>
+          </button>
+
+          <button
             onClick={fetchAppointments}
             disabled={loading}
             title="Refresh database"
@@ -887,6 +919,11 @@ export default function DashboardAppointments() {
                   {app.type === "manual" && (
                     <span className="inline-flex items-center rounded-md bg-brand-sand/80 dark:bg-brand-green/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">
                       Staff Manual
+                    </span>
+                  )}
+                  {app.type === "practo" && (
+                    <span className="inline-flex items-center rounded-md bg-purple-100 dark:bg-purple-950/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                      Practo
                     </span>
                   )}
                 </div>
