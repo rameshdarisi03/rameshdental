@@ -228,15 +228,7 @@ export default function Navbar() {
               </Link>
             </>
           ) : (
-            <a
-              href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-3.5 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold text-white shadow-xs hover:bg-brand-green-hover transition-all active:scale-95 whitespace-nowrap shrink-0"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden xl:inline">WhatsApp Us</span>
-            </a>
+            <a href="tel:+918971462949" className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-3.5 py-1.5 lg:px-5 lg:py-2 text-xs lg:text-sm font-bold text-white shadow-xs hover:bg-brand-green-hover transition-all active:scale-95 whitespace-nowrap shrink-0" title="Call Clinic: +91 89714 62949"><Phone className="h-4 w-4" /><span className="hidden xl:inline">Call Clinic</span></a>
           )}
           
           <a
@@ -306,16 +298,7 @@ export default function Navbar() {
                 Book Appointment
               </Link>
             ) : (
-              <a
-                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsOpen(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-center text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"
-              >
-                <MessageSquare className="h-4 w-4" />
-                WhatsApp Reception
-              </a>
+              <a href="tel:+918971462949" onClick={() => setIsOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-center text-sm font-semibold text-white hover:bg-brand-green-hover transition-colors"><Phone className="h-4 w-4" />Call Clinic (+91 89714 62949)</a>
             )}
           </div>
         </div>

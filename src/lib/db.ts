@@ -39,6 +39,17 @@ export interface Appointment {
   actionedByName?: string;
   actionedByRole?: string;
   actionedAt?: Timestamp;
+
+  // Reschedule Request Tracking
+  reschedulePending?: boolean;
+  requestedDate?: string;
+  requestedSlot?: string;
+  rescheduleReason?: string;
+  rescheduleRequestedAt?: string;
+  rescheduleRequestedBy?: string;
+  previousDate?: string;
+  previousSlot?: string;
+  rescheduledAt?: string;
 }
 
 export interface DayBlock {

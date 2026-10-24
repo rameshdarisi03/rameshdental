@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { 
   getPatientPrescription,
   subscribePatientPrescription,
@@ -128,15 +128,16 @@ export default function DashboardPage() {
       progUnsub = subscribePatientWorkoutProgress(patient.id!, rxData, setProgress);
     });
 
-    // 4. Fetch patient's upcoming active appointment for direct rescheduling
-    const fetchPatientApp = async () => {
-      try {
-        const cleanPhone = (patient.phone || "").replace(/\D/g, "").slice(-10);
-        const qApps = query(
-          collection(db, "appointments"),
-          where("status", "in", ["approved", "pending"])
-        );
-        const snaps = await getDocs(qApps);
+    // 4. Live real-time subscription for patient's upcoming active appointment
+    let appUnsub = () => {};
+    try {
+      const cleanPhone = (patient.phone || "").replace(/\D/g, "").slice(-10);
+      const qApps = query(
+        collection(db, "appointments"),
+        where("status", "in", ["approved", "pending"])
+      );
+      appUnsub = onSnapshot(qApps, (snaps) => {
+        const todayStr = new Date().toISOString().split("T")[0];
         const matched = snaps.docs
           .map((d) => ({ id: d.id, ...d.data() } as Appointment))
           .filter((a) => {
@@ -147,17 +148,27 @@ export default function DashboardPage() {
               (a.patientName?.toLowerCase() === patient.name?.toLowerCase())
             );
           })
-          .sort((a, b) => (b.date > a.date ? 1 : -1));
+          .sort((a, b) => {
+            const aIsUpcoming = a.date >= todayStr;
+            const bIsUpcoming = b.date >= todayStr;
+            if (aIsUpcoming && !bIsUpcoming) return -1;
+            if (!aIsUpcoming && bIsUpcoming) return 1;
+            if (aIsUpcoming && bIsUpcoming) return a.date.localeCompare(b.date);
+            return b.date.localeCompare(a.date);
+          });
 
         if (matched.length > 0) {
           setActiveAppointment(matched[0]);
           setAppointmentLoadedDate(`${matched[0].date} at ${matched[0].slot}`);
+        } else {
+          setActiveAppointment(null);
         }
-      } catch (err) {
-        console.warn("Failed fetching patient active appointment:", err);
-      }
-    };
-    fetchPatientApp();
+      }, (err) => {
+        console.warn("Real-time appointments subscription warning:", err);
+      });
+    } catch (err) {
+      console.warn("Failed setting up patient appointment subscription:", err);
+    }
 
     setLoading(false);
 
@@ -260,7 +271,7 @@ export default function DashboardPage() {
               className="inline-flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-extrabold text-xs px-5 py-3 rounded-full transition-all shadow-md shrink-0 cursor-pointer active:scale-95"
             >
               <CalendarSync className="h-4 w-4" />
-              <span>Reschedule Session</span>
+              <span>{activeAppointment?.reschedulePending ? "Change Reschedule Slot" : "Reschedule Session"}</span>
             </button>
           ) : (
             <Link

@@ -315,10 +315,12 @@ export default function RescheduleModal({
               <span>Reschedule Slot</span>
             </div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white">
-              Reschedule Appointment
+              {userRole === "patient" ? "Request Session Reschedule" : "Reschedule Appointment"}
             </h2>
             <p className="text-xs text-slate-500 font-semibold mt-0.5">
-              Moving this appointment will <strong>instantly free up</strong> the previous slot for other patients.
+              {userRole === "patient"
+                ? "Select your preferred new timing. Our clinic desk will review and confirm your slot shortly."
+                : "Moving this appointment will immediately update the schedule and notify the patient."}
             </p>
           </div>
           <button
@@ -474,11 +476,11 @@ export default function RescheduleModal({
             {submitting ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Re-allocating Slot...</span>
+                <span>{userRole === "patient" ? "Submitting Request..." : "Re-allocating Slot..."}</span>
               </>
             ) : (
               <>
-                <span>Confirm & Release Old Slot</span>
+                <span>{userRole === "patient" ? "Submit Reschedule Request" : "Confirm & Update Slot"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}

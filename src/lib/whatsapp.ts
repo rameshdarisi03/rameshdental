@@ -415,6 +415,78 @@ You will receive an official confirmation message once your slot is confirmed.`;
 }
 
 /**
+ * 2b. Appointment Reschedule Request Received (Pending Clinic Approval)
+ */
+export async function sendWhatsAppRescheduleRequestReceived(params: {
+  patientName: string;
+  patientPhone: string;
+  requestedDate: string;
+  requestedSlot: string;
+  serviceName?: string;
+}): Promise<SendWhatsAppResult> {
+  // 1. Primary: Attempt dedicated Meta-Approved Template (reschedule_request_received_gpc)
+  let templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "reschedule_request_received_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.requestedDate },
+          { type: "text", text: params.requestedSlot },
+          { type: "text", text: params.serviceName || "Physiotherapy Session" },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+  console.warn("[WhatsApp Reschedule Request Template not active/approved yet, attempting booking_request_received_gpc fallback]:", templateRes.error);
+
+  // 2. Safe interim fallback: Use already approved booking_request_received_gpc template
+  templateRes = await sendWhatsAppTemplateMessage({
+    rawPhone: params.patientPhone,
+    templateName: "booking_request_received_gpc",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: params.patientName },
+          { type: "text", text: params.requestedDate },
+          { type: "text", text: params.requestedSlot },
+          { type: "text", text: `${params.serviceName || "Physiotherapy"} (Reschedule Request)` },
+        ],
+      },
+    ],
+  });
+
+  if (templateRes.success) return templateRes;
+
+  // 3. Fallback to direct text message
+  const text = 
+`🏥 *GAIT PHYSIO CLINIC*
+*Reschedule Request Received*
+
+Hello ${params.patientName},
+
+We have received your request to reschedule your therapy session.
+
+📋 *Requested New Timing:*
+• 📅 *New Date:* ${params.requestedDate}
+• ⏰ *New Time Slot:* ${params.requestedSlot}
+• 🩺 *Service:* ${params.serviceName || "Physiotherapy Session"}
+• 📍 *Clinic Location:* ${CLINIC_ADDRESS}
+
+⏳ *Status:* Pending Clinic Approval
+
+Our team is reviewing the therapist schedule and will confirm your updated slot shortly.
+Need immediate assistance? Call us directly at +91 8971462949.`;
+
+  return sendWhatsAppTextMessage(params.patientPhone, text);
+}
+
+/**
  * 3. Appointment Approved & Confirmed
  */
 export async function sendWhatsAppAppointmentConfirmed(params: {

@@ -429,6 +429,57 @@ export default function DashboardAppointments() {
     }
   };
 
+
+  const handleApproveRescheduleRequest = async (app: Appointment) => {
+    if (!app.id || !app.requestedDate || !app.requestedSlot) return;
+    setActionLoadingId(app.id);
+    try {
+      const res = await fetch("/api/appointments/reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appointmentId: app.id,
+          newDate: app.requestedDate,
+          newSlot: app.requestedSlot,
+          actionedBy: currentUser?.name || "Clinic Staff",
+          actionedByRole: currentUser?.role || "admin",
+          actionedByUid: currentUser?.uid || "",
+          reason: "Staff approved patient reschedule request",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to approve reschedule request.");
+      }
+      fetchAppointments();
+    } catch (err: any) {
+      console.error("Error approving reschedule request:", err);
+      alert(err.message || "Failed to approve reschedule request.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleDeclineRescheduleRequest = async (app: Appointment) => {
+    if (!app.id) return;
+    if (!confirm("Decline this reschedule request and keep the patient on their original appointment date?")) {
+      return;
+    }
+    setActionLoadingId(app.id);
+    try {
+      const appRef = doc(db, "appointments", app.id);
+      await updateDoc(appRef, {
+        reschedulePending: false,
+      });
+      fetchAppointments();
+    } catch (err: any) {
+      console.error("Error declining reschedule:", err);
+      alert("Failed to decline reschedule request.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   // Rejection Warning Modal Trigger
   const triggerRejectionGuard = (appId: string) => {
     setPendingRejectionId(appId);
@@ -963,6 +1014,46 @@ export default function DashboardAppointments() {
                     </p>
                   )}
                 </div>
+
+
+                {/* Reschedule Request Notice */}
+                {app.reschedulePending && app.requestedDate && (
+                  <div className="mt-2.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                          Reschedule Requested: <span className="font-black text-amber-600 dark:text-amber-400">{app.requestedDate} ({app.requestedSlot})</span>
+                        </div>
+                        {app.rescheduleReason && (
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                            Reason: {app.rescheduleReason}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleApproveRescheduleRequest(app)}
+                        disabled={actionLoadingId === app.id}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-xs cursor-pointer transition-all active:scale-95"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Approve Reschedule
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeclineRescheduleRequest(app)}
+                        disabled={actionLoadingId === app.id}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer transition-all"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Audit Trail text */}
                 {(app.createdByName || app.actionedByName) && (

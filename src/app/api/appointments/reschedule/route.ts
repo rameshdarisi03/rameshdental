@@ -6,8 +6,14 @@ import {
   getAllPatientsRest,
 } from "@/lib/firebaseRestAdmin";
 import { generateGoogleCalendarUrl } from "@/lib/calendarUtils";
-import { sendWhatsAppAppointmentRescheduled } from "@/lib/whatsapp";
-import { sendAppointmentRescheduledEmail } from "@/lib/email";
+import {
+  sendWhatsAppAppointmentRescheduled,
+  sendWhatsAppRescheduleRequestReceived,
+} from "@/lib/whatsapp";
+import {
+  sendAppointmentRescheduledEmail,
+  sendAppointmentRescheduleRequestEmail,
+} from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -174,12 +180,73 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Update appointment in Firestore via REST (using automatic updateMask to preserve all other fields)
+    // 4. Handle Patient Request vs Staff Immediate Approval
     const nowIso = new Date().toISOString();
+    const isPatientRequest = actionedByRole === "patient";
+
+    if (isPatientRequest) {
+      // Patient requested reschedule — Keep current slot active & record request for clinic approval
+      await patchFirestoreDocRest("appointments", appointmentId, {
+        reschedulePending: true,
+        requestedDate: newDate,
+        requestedSlot: newSlot,
+        rescheduleReason: reason,
+        rescheduleRequestedAt: nowIso,
+        rescheduleRequestedBy: actionedBy,
+      });
+
+      // Dispatch "Reschedule Request Received" WhatsApp message
+      if (patientPhone) {
+        try {
+          console.log(`[Reschedule Request] Dispatching WhatsApp to ${patientPhone}...`);
+          await sendWhatsAppRescheduleRequestReceived({
+            patientName,
+            patientPhone,
+            requestedDate: newDate,
+            requestedSlot: newSlot,
+            serviceName: appData.serviceName || appData.serviceId || "Physiotherapy Session",
+          });
+        } catch (waErr) {
+          console.warn("[Reschedule Request WhatsApp Failed]:", waErr);
+        }
+      }
+
+      // Dispatch "Reschedule Request Received" Email
+      if (patientEmail) {
+        try {
+          console.log(`[Reschedule Request] Dispatching Email to ${patientEmail}...`);
+          await sendAppointmentRescheduleRequestEmail({
+            patientName,
+            patientEmail,
+            currentDate: previousDate,
+            currentSlot: previousSlot,
+            requestedDate: newDate,
+            requestedSlot: newSlot,
+            serviceName: appData.serviceName || appData.serviceId || "Physiotherapy Session",
+          });
+        } catch (emErr) {
+          console.warn("[Reschedule Request Email Failed]:", emErr);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Your reschedule request has been submitted to the clinic for approval. You will receive a confirmation message once confirmed.",
+        appointment: {
+          ...appData,
+          reschedulePending: true,
+          requestedDate: newDate,
+          requestedSlot: newSlot,
+        },
+      });
+    }
+
+    // 5. Staff Immediate Reschedule / Approval: Update appointment in Firestore via REST
     await patchFirestoreDocRest("appointments", appointmentId, {
       date: newDate,
       slot: newSlot,
       status: "approved",
+      reschedulePending: false,
       previousDate: previousDate || "",
       previousSlot: previousSlot || "",
       rescheduledAt: nowIso,

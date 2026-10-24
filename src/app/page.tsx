@@ -1001,15 +1001,7 @@ export default function Home() {
                   Book Appointment
                 </Link>
               ) : (
-                <a
-                  href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a consultation.")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/90 dark:text-white dark:border-slate-700/80 hover:dark:border-slate-500 hover:dark:bg-slate-850"
-                >
-                  <MessageSquare className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-                  WhatsApp Us
-                </a>
+                <a href="tel:+918971462949" className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-green/80 text-brand-green hover:bg-brand-green/10 bg-white/85 backdrop-blur-md px-7 py-3.5 sm:px-8 sm:py-4 text-sm sm:text-base font-bold transition-all active:scale-95 shadow-sm dark:bg-slate-900/90 dark:text-white dark:border-slate-700/80 hover:dark:border-slate-500 hover:dark:bg-slate-850"><Phone className="h-4.5 w-4.5 sm:h-5 sm:w-5" />Call Clinic</a>
               )}
             </div>
 
@@ -2956,15 +2948,7 @@ export default function Home() {
                 Book Online Now
               </Link>
             ) : (
-              <a
-                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule an appointment.")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"
-              >
-                <MessageSquare className="h-5 w-5 text-brand-green" />
-                WhatsApp Us
-              </a>
+              <a href="tel:+918971462949" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-brand-charcoal shadow-lg hover:bg-slate-50 transition-all hover:scale-105 active:scale-95"><Phone className="h-5 w-5 text-brand-green" />Call Clinic</a>
             )}
             <Link
               href="/locate-us"

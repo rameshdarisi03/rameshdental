@@ -1,5 +1,5 @@
 export const CLINIC_PRIMARY_WHATSAPP = "918904456243";
-export const CLINIC_PRIMARY_DIAL = "+918904456243";
+export const CLINIC_PRIMARY_DIAL = "+918971462949";
 
 /**
  * Sanitizes phone numbers for WhatsApp wa.me links.
