@@ -241,7 +241,7 @@ export default function Navbar() {
                 href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20bd5a] px-3.5 py-1.5 lg:px-4.5 lg:py-2 text-xs lg:text-sm font-bold text-white shadow-xs transition-all active:scale-95 whitespace-nowrap shrink-0"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-3.5 py-1.5 lg:px-4.5 lg:py-2 text-xs lg:text-sm font-bold text-white shadow-xs hover:bg-brand-green-hover transition-all active:scale-95 whitespace-nowrap shrink-0"
                 title="WhatsApp Us: +91 89714 62949"
               >
                 <MessageSquare className="h-4 w-4" />
@@ -263,7 +263,7 @@ export default function Navbar() {
               href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center h-10 w-10 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+              className="flex items-center justify-center h-10 w-10 rounded-full border border-slate-200 dark:border-slate-800 text-brand-green dark:text-teal-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
               title="WhatsApp Us: +91 89714 62949"
             >
               <MessageSquare className="h-4 w-4" />
@@ -334,7 +334,7 @@ export default function Navbar() {
                   <Phone className="h-4 w-4" />
                   Call Clinic (+91 89714 62949)
                 </a>
-                <a href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`} target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] hover:bg-[#20bd5a] py-3 text-center text-sm font-bold text-white transition-colors shadow-xs">
+                <a href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`} target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-center text-sm font-bold text-white hover:bg-brand-green-hover transition-colors shadow-xs">
                   <MessageSquare className="h-4 w-4" />
                   WhatsApp Us (+91 89714 62949)
                 </a>
