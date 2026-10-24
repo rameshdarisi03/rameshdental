@@ -264,7 +264,7 @@ export default function DashboardPage() {
             </button>
           ) : (
             <Link
-              href="/book"
+              href="/patienthub/appointments"
               className="inline-flex items-center justify-center gap-2 bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] font-bold text-xs px-5 py-3 rounded-full transition-all shadow-md shrink-0 cursor-pointer"
             >
               <span>Schedule Visit</span>
@@ -272,19 +272,13 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          <Link
-            href="/book"
-            className="inline-flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-3 rounded-full transition-all border border-white/15 shrink-0"
-          >
-            <span>Book New</span>
-          </Link>
-        </div>
+          </div>
       </section>
 
       {/* 3. Quick Action Hub */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <Link 
-          href="/book"
+          href="/patienthub/appointments"
           className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
         >
           <div className="w-11 h-11 rounded-2xl bg-[#f9ab55]/15 text-[#8a5100] dark:text-[#f9ab55] flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
