@@ -48,7 +48,7 @@ interface PatientAuthContextType {
   linkGoogleWithActivationCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithCode: (email: string, pass: string, code: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithPhoneOtp: (customToken: string, phoneDigits: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithPhoneOtp: (customToken: string, phoneDigits: string, initialProfiles?: Patient[]) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   addFamilyMemberProfile: (data: {
@@ -121,17 +121,52 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
   const [pendingGoogle, setPendingGoogle] = useState<PendingGoogleUser | null>(null);
 
   // Helper: Find all matching Patient Profiles in Cloud Firestore for this user (Multi-Profile Family Circle)
-  const lookupAllPatientProfiles = async (fbUser: User): Promise<Patient[]> => {
+  const lookupAllPatientProfiles = async (fbUser: User, phoneDigits?: string): Promise<Patient[]> => {
     try {
       const email = fbUser.email ? fbUser.email.trim().toLowerCase() : "";
       const uid = fbUser.uid;
-      
-      let all: Patient[] = [];
+      const storedPhone = phoneDigits || (typeof window !== "undefined" 
+        ? (sessionStorage.getItem("gpc_auth_phone") || localStorage.getItem("gpc_auth_phone") || "") 
+        : "");
+      const cleanPhoneDigits = storedPhone.replace(/\D/g, "").slice(-10);
+
+      // Tier 1: Infallible Serverless REST API lookup (bypasses all client Firestore security limits)
       try {
-        const allPatientsSnap = await getDocs(collection(db, "patients"));
-        all = allPatientsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Patient));
-      } catch (err) {
-        console.warn("Bulk patients read non-fatal, falling back to targeted queries:", err);
+        const params = new URLSearchParams();
+        if (cleanPhoneDigits) params.set("phone", cleanPhoneDigits);
+        if (uid) params.set("uid", uid);
+        if (email) params.set("email", email);
+
+        const res = await fetch(`/api/patient/profiles?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.success && Array.isArray(data.profiles) && data.profiles.length > 0) {
+            return data.profiles;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("[lookupAllPatientProfiles] Serverless API lookup warning:", apiErr);
+      }
+
+      // Tier 2: Direct Document Lookup by UID (e.g. if fbUser.uid is the patient document ID)
+      let all: Patient[] = [];
+      if (uid) {
+        try {
+          const directDocSnap = await getDoc(doc(db, "patients", uid));
+          if (directDocSnap.exists()) {
+            all.push({ id: directDocSnap.id, ...directDocSnap.data() } as Patient);
+          }
+        } catch (e) {}
+      }
+
+      // Tier 3: Bulk and targeted queries
+      if (all.length === 0) {
+        try {
+          const allPatientsSnap = await getDocs(collection(db, "patients"));
+          all = allPatientsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Patient));
+        } catch (err) {
+          console.warn("Bulk patients read non-fatal, falling back to targeted queries:", err);
+        }
       }
 
       if (all.length === 0) {
@@ -151,12 +186,18 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
         }
       }
 
-      // 1. Direct matches for this authenticated user
-      const storedPhone = typeof window !== "undefined" 
-        ? (sessionStorage.getItem("gpc_auth_phone") || localStorage.getItem("gpc_auth_phone") || "") 
-        : "";
-      const cleanPhoneDigits = storedPhone.replace(/\D/g, "").slice(-10);
+      // Tier 4: Cache fallback
+      if (all.length === 0 && typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem("gpc_available_profiles");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch (e) {}
+      }
 
+      // 1. Direct matches for this authenticated user
       const directMatches = all.filter((p) => {
         const pEmail = (p.email || "").trim().toLowerCase();
         const pLinked = (p.linkedEmails || []).map((e) => e.trim().toLowerCase());
@@ -834,7 +875,8 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
   // Action: Authenticate with verified Phone OTP custom token
   const loginWithPhoneOtp = async (
     customToken: string, 
-    phoneDigits: string
+    phoneDigits: string,
+    initialProfiles?: Patient[]
   ): Promise<{ success: boolean; error?: string }> => {
     setError(null);
     setLoading(true);
@@ -848,7 +890,11 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       }
 
       const cred = await signInWithCustomToken(auth, customToken);
-      const profiles = await lookupAllPatientProfiles(cred.user);
+      
+      let profiles: Patient[] = (initialProfiles && initialProfiles.length > 0) ? initialProfiles : [];
+      if (profiles.length === 0) {
+        profiles = await lookupAllPatientProfiles(cred.user, cleanPhone);
+      }
 
       if (profiles.length === 0) {
         await signOut(auth);

@@ -86,15 +86,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Auto-activate any matched patient profile that is not yet activated
-    if (purpose === "signup" || purpose === "auth" || !matchedPatients.some((p: any) => p.activated)) {
-      await Promise.all(
-        matchedPatients.map((p: any) => activatePatientRest(p.id))
-      );
-    }
-
     // Choose primary patient for auth session
     const primaryPatient = matchedPatients.find((p: any) => p.isPrimaryAccount || !p.primaryPatientId) || matchedPatients[0];
+
+    // 6. Auto-activate and link authUid so all subsequent security checks pass effortlessly
+    await Promise.all(
+      matchedPatients.map((p: any) => {
+        p.authUid = primaryPatient.id;
+        p.activated = true;
+        return activatePatientRest(p.id);
+      })
+    );
 
     // 7. Mint genuine Firebase Custom Auth Token (signed with RS256)
     const customToken = createFirebaseCustomToken(primaryPatient.id, {
@@ -108,6 +110,7 @@ export async function POST(request: Request) {
       primaryPatientId: primaryPatient.id,
       patientCount: matchedPatients.length,
       patientName: primaryPatient.name,
+      profiles: matchedPatients,
       message: "Phone verified successfully.",
     });
   } catch (error: any) {

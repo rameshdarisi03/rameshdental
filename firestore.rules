@@ -39,13 +39,14 @@ service cloud.firestore {
     }
 
     // Check if the logged-in user belongs to this Family Circle
-    // (Matches authUid, legacy userId, primary email, or email in linkedEmails)
+    // (Matches authUid, legacy userId, primary email, email in linkedEmails, phone claim, or direct patientId)
     function isFamilyCircleMember(patientData) {
       return isSignedIn() && (
         (request.auth.uid != null && "authUid" in patientData && patientData.authUid == request.auth.uid) ||
         (request.auth.uid != null && "userId" in patientData && patientData.userId == request.auth.uid) ||
         (userEmail() != "" && "email" in patientData && patientData.email.lower() == userEmail()) ||
-        (userEmail() != "" && "linkedEmails" in patientData && userEmail() in patientData.linkedEmails)
+        (userEmail() != "" && "linkedEmails" in patientData && userEmail() in patientData.linkedEmails) ||
+        (request.auth.token.phone != null && "phone" in patientData && patientData.phone.matches('.*' + request.auth.token.phone + '.*'))
       );
     }
 
@@ -91,11 +92,11 @@ service cloud.firestore {
     // =========================================================================
     match /patients/{patientId} {
       // Clinic staff or verified patient/family member can view their record
-      allow read: if isStaff() || isFamilyCircleMember(resource.data);
+      allow read: if isStaff() || isFamilyCircleMember(resource.data) || (request.auth != null && request.auth.uid == patientId);
 
       // Staff and registered patients can manage their records
       allow create: if isStaff() || isSignedIn();
-      allow update: if isStaff() || isFamilyCircleMember(resource.data);
+      allow update: if isStaff() || isFamilyCircleMember(resource.data) || (request.auth != null && request.auth.uid == patientId);
       allow delete: if isStaff();
 
       // Sub-collections: files (scans/PDFs), consultations (SOAP notes), prescription history

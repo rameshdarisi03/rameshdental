@@ -554,7 +554,7 @@ function LoginContent() {
         return;
       }
 
-      const loginRes = await loginWithPhoneOtp(data.customToken, cleanDigits);
+      const loginRes = await loginWithPhoneOtp(data.customToken, cleanDigits, data.profiles);
       if (loginRes.success) {
         if (typeof window !== "undefined") {
           window.location.href = "/patienthub/dashboard";
