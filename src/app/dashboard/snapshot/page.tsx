@@ -899,7 +899,13 @@ export default function DaySnapshot() {
     customMsg?: string,
     mode: "api" | "redirect" = "api"
   ) => {
-    const cleanPhone = getCleanWhatsAppNumber(app.patientPhone);
+    const matchedP = patients.find(
+      (p) =>
+        (app.patientId && p.id === app.patientId) ||
+        (app.patientName && p.name && p.name.trim().toLowerCase() === app.patientName.trim().toLowerCase())
+    );
+    const targetPhone = matchedP?.phone || app.patientPhone || app.phone;
+    const cleanPhone = getCleanWhatsAppNumber(targetPhone);
 
     const effectiveDelay = isCustomDelay && customDelayInput ? parseInt(customDelayInput, 10) || delayMinutes : delayMinutes;
     const therapistText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : "";
@@ -2056,7 +2062,14 @@ export default function DaySnapshot() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    {activePatientApp.patientPhone}
+                    {(() => {
+                      const matchedP = patients.find(
+                        (p) =>
+                          (activePatientApp.patientId && p.id === activePatientApp.patientId) ||
+                          (activePatientApp.patientName && p.name && p.name.trim().toLowerCase() === activePatientApp.patientName.trim().toLowerCase())
+                      );
+                      return matchedP?.phone || activePatientApp.patientPhone || activePatientApp.phone;
+                    })()}
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">
@@ -2447,7 +2460,14 @@ export default function DaySnapshot() {
               {/* 4. Patient Profile & Actions Links */}
               <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-3">
                 <a
-                  href={`tel:${activePatientApp.patientPhone}`}
+                  href={`tel:${(() => {
+                    const matchedP = patients.find(
+                      (p) =>
+                        (activePatientApp.patientId && p.id === activePatientApp.patientId) ||
+                        (activePatientApp.patientName && p.name && p.name.trim().toLowerCase() === activePatientApp.patientName.trim().toLowerCase())
+                    );
+                    return matchedP?.phone || activePatientApp.patientPhone || activePatientApp.phone;
+                  })()}`}
                   className="flex-1 py-2 px-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <Phone className="w-3.5 h-3.5 text-brand-green" />

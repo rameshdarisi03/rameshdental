@@ -386,10 +386,12 @@ export default function PatientDetailClient({ id }: { id: string }) {
         return;
       }
 
+      const newFormattedPhone = data.phone || `+91 ${cleanDigits}`;
       setPatient((prev) => prev ? {
         ...prev,
-        phone: data.phone || `+91 ${cleanDigits}`,
+        phone: newFormattedPhone,
       } : null);
+      setPatientInvoices((prev) => prev.map((inv) => ({ ...inv, patientPhone: newFormattedPhone })));
 
       setIsEditingPhone(false);
       setPhoneInput("");
@@ -439,6 +441,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
         email: cleanEmail,
         activationCode: newActivationCode,
       } : null);
+      setPatientInvoices((prev) => prev.map((inv) => ({ ...inv, patientEmail: cleanEmail })));
 
       setIsEditingEmail(false);
       setEmailInput("");
@@ -1713,8 +1716,8 @@ PLAN:
       invoiceNumber: inv.invoiceNumber,
       patientName: inv.patientName || patient?.name || "Patient",
       patientId: inv.patientId || patient?.id,
-      patientEmail: inv.patientEmail || patient?.email,
-      patientPhone: inv.patientPhone || patient?.phone,
+      patientEmail: patient?.email || inv.patientEmail,
+      patientPhone: patient?.phone || inv.patientPhone,
       clinicAddress: clinicConfig?.address,
       clinicPhone: clinicConfig?.phone,
       therapistName: inv.therapistName || patient?.therapistName || defaultTherapist,
@@ -1899,7 +1902,7 @@ Warm regards,
   };
 
   const handleEmailInvoicePdf = async (inv: Invoice) => {
-    const targetEmail = inv.patientEmail || patient?.email;
+    const targetEmail = patient?.email || inv.patientEmail;
     if (!targetEmail || !targetEmail.includes("@")) {
       setInvoiceDispatchModal({
         isOpen: true,
@@ -1977,7 +1980,7 @@ Warm regards,
   };
 
   const handleWhatsAppInvoice = async (inv: Invoice) => {
-    const targetPhone = inv.patientPhone || patient?.phone;
+    const targetPhone = patient?.phone || inv.patientPhone;
     if (!targetPhone) {
       setInvoiceDispatchModal({
         isOpen: true,

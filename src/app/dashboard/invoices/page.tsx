@@ -309,12 +309,20 @@ export default function ClinicalBillingPage() {
 
   // Build Vector PDF Document via SSOT Unified Invoice PDF Generator
   const buildInvoicePdf = (inv: Invoice): jsPDF => {
+    const matchedP = patients.find(
+      (p) =>
+        (inv.patientId && p.id === inv.patientId) ||
+        (inv.patientName && p.name && p.name.trim().toLowerCase() === inv.patientName.trim().toLowerCase())
+    );
+    const liveEmail = matchedP?.email || inv.patientEmail;
+    const livePhone = matchedP?.phone || inv.patientPhone;
+
     return buildUnifiedInvoicePdf({
       invoiceNumber: inv.invoiceNumber,
       patientName: inv.patientName,
       patientId: inv.patientId,
-      patientEmail: inv.patientEmail,
-      patientPhone: inv.patientPhone,
+      patientEmail: liveEmail,
+      patientPhone: livePhone,
       clinicAddress: clinicConfig?.address,
       clinicPhone: clinicConfig?.phone,
       therapistName: inv.therapistName,
@@ -352,7 +360,13 @@ export default function ClinicalBillingPage() {
 
   // Email PDF to Patient Action
   const handleEmailInvoicePdf = async (inv: Invoice) => {
-    if (!inv.patientEmail || !inv.patientEmail.includes("@")) {
+    const matchedP = patients.find(
+      (p) =>
+        (inv.patientId && p.id === inv.patientId) ||
+        (inv.patientName && p.name && p.name.trim().toLowerCase() === inv.patientName.trim().toLowerCase())
+    );
+    const targetEmail = matchedP?.email || inv.patientEmail;
+    if (!targetEmail || !targetEmail.includes("@")) {
       setDispatchModal({
         isOpen: true,
         channel: "email",
@@ -382,7 +396,7 @@ export default function ClinicalBillingPage() {
           type: "INVOICE_DELIVERY",
           payload: {
             patientName: inv.patientName,
-            patientEmail: inv.patientEmail,
+            patientEmail: targetEmail,
             invoiceNumber: inv.invoiceNumber,
             amount: inv.totalAmount,
             serviceDate: inv.serviceDate,
@@ -436,7 +450,13 @@ export default function ClinicalBillingPage() {
 
   // Automated WhatsApp Dispatch with PDF via Meta WhatsApp Cloud API
   const handleWhatsAppInvoice = async (inv: Invoice) => {
-    if (!inv.patientPhone) {
+    const matchedP = patients.find(
+      (p) =>
+        (inv.patientId && p.id === inv.patientId) ||
+        (inv.patientName && p.name && p.name.trim().toLowerCase() === inv.patientName.trim().toLowerCase())
+    );
+    const targetPhone = matchedP?.phone || inv.patientPhone;
+    if (!targetPhone) {
       setDispatchModal({
         isOpen: true,
         channel: "whatsapp",
@@ -466,7 +486,7 @@ export default function ClinicalBillingPage() {
           type: "INVOICE_DELIVERY",
           payload: {
             patientName: inv.patientName,
-            patientPhone: inv.patientPhone,
+            patientPhone: targetPhone,
             invoiceNumber: inv.invoiceNumber,
             date: inv.serviceDate,
             amount: inv.totalAmount,
@@ -781,6 +801,13 @@ Warm regards,
                 {filteredInvoices.map((inv) => {
                   const isVoided = inv.status === "voided" || inv.status === "cancelled";
                   const isPaid = inv.status === "paid";
+                  const matchedP = patients.find(
+                    (p) =>
+                      (inv.patientId && p.id === inv.patientId) ||
+                      (inv.patientName && p.name && p.name.trim().toLowerCase() === inv.patientName.trim().toLowerCase())
+                  );
+                  const displayPhone = matchedP?.phone || inv.patientPhone;
+                  const displayEmail = matchedP?.email || inv.patientEmail;
 
                   return (
                     <tr 
@@ -808,10 +835,10 @@ Warm regards,
                         </div>
                         <div className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5">
                           <span>{inv.patientId || "PID: ----"}</span>
-                          {inv.patientPhone && (
+                          {displayPhone && (
                             <>
                               <span>•</span>
-                              <span>{inv.patientPhone}</span>
+                              <span>{displayPhone}</span>
                             </>
                           )}
                         </div>
@@ -909,13 +936,13 @@ Warm regards,
                           </button>
 
                           {/* 2b. Email PDF Button */}
-                          {inv.patientEmail && !isVoided && (
+                          {displayEmail && !isVoided && (
                             <button
                               type="button"
                               disabled={emailingInvoiceId === inv.id}
                               onClick={() => handleEmailInvoicePdf(inv)}
                               className="p-2 rounded-xl bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/50 text-teal-700 dark:text-teal-300 transition-colors group relative cursor-pointer shadow-2xs disabled:opacity-50"
-                              title={`Email PDF invoice to ${inv.patientEmail}`}
+                              title={`Email PDF invoice to ${displayEmail}`}
                             >
                               {emailingInvoiceId === inv.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin text-teal-600" />

@@ -152,21 +152,49 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Update upcoming appointments for this patient so notifications go to the new phone
+    // 6. Cascade update appointments for this patient so notifications go to the new phone
     try {
-      const appointments = await queryFirestoreCollectionRest("appointments", [
-        { field: "patientId", op: "EQUAL", value: patientId },
-      ]);
+      const appointments = await queryFirestoreCollectionRest("appointments", []);
       for (const app of appointments) {
-        if (app.id && app.status !== "cancelled" && app.status !== "completed") {
+        if (!app.id) continue;
+        const appPhoneDigits = (app.patientPhone || app.phone || "").replace(/\D/g, "").slice(-10);
+        const nameMatches = patientDoc.name && app.patientName && 
+          patientDoc.name.trim().toLowerCase() === app.patientName.trim().toLowerCase();
+        const idMatches = app.patientId === patientId;
+        const phoneMatches = cleanOldDigits && appPhoneDigits === cleanOldDigits;
+
+        if (idMatches || (nameMatches && (phoneMatches || !app.patientId))) {
           await patchFirestoreDocRest("appointments", app.id, {
             phone: formattedPhone,
             patientPhone: formattedPhone,
+            patientId: patientId,
           });
         }
       }
     } catch (appErr) {
-      console.warn("[update-phone] Non-fatal appointments sync note:", appErr);
+      console.warn("[update-phone] Appointments cascade update notice:", appErr);
+    }
+
+    // 7. Cascade update invoices for this patient so billing records reflect the new phone
+    try {
+      const invoices = await queryFirestoreCollectionRest("invoices", []);
+      for (const inv of invoices) {
+        if (!inv.id) continue;
+        const invPhoneDigits = (inv.patientPhone || "").replace(/\D/g, "").slice(-10);
+        const nameMatches = patientDoc.name && inv.patientName && 
+          patientDoc.name.trim().toLowerCase() === inv.patientName.trim().toLowerCase();
+        const idMatches = inv.patientId === patientId;
+        const phoneMatches = cleanOldDigits && invPhoneDigits === cleanOldDigits;
+
+        if (idMatches || (nameMatches && (phoneMatches || !inv.patientId))) {
+          await patchFirestoreDocRest("invoices", inv.id, {
+            patientPhone: formattedPhone,
+            patientId: patientId,
+          });
+        }
+      }
+    } catch (invErr) {
+      console.warn("[update-phone] Invoices cascade update notice:", invErr);
     }
 
     return NextResponse.json({
