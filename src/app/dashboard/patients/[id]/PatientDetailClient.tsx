@@ -339,6 +339,70 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const [uploadingDoctorScan, setUploadingDoctorScan] = useState(false);
   const doctorScanFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Contact phone management states
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+
+  const handleSavePhone = async () => {
+    if (!phoneInput.trim() || !patient || !id) return;
+    const cleanDigits = phoneInput.replace(/\D/g, "");
+
+    if (cleanDigits.length !== 10) {
+      setPhoneError("Indian mobile number must be exactly 10 digits.");
+      return;
+    }
+
+    if (!/^[6-9]/.test(cleanDigits)) {
+      setPhoneError("Indian mobile numbers must begin with 6, 7, 8, or 9.");
+      return;
+    }
+
+    const currentDigits = (patient.phone || "").replace(/\D/g, "").slice(-10);
+    if (cleanDigits === currentDigits) {
+      setIsEditingPhone(false);
+      setPhoneError("");
+      return;
+    }
+
+    setSavingPhone(true);
+    setPhoneError("");
+
+    try {
+      const res = await fetch("/api/patient/update-phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: id,
+          newPhone: cleanDigits,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setPhoneError(data.error || "Failed to update contact number.");
+        setSavingPhone(false);
+        return;
+      }
+
+      setPatient((prev) => prev ? {
+        ...prev,
+        phone: data.phone || `+91 ${cleanDigits}`,
+      } : null);
+
+      setIsEditingPhone(false);
+      setPhoneInput("");
+      setFormSuccess(data.message || `Contact number updated to ${data.phone}. Old number delinked from Patient Hub.`);
+      setTimeout(() => setFormSuccess(""), 7000);
+    } catch (err) {
+      console.error("Error updating patient phone:", err);
+      setPhoneError(err.message || "Failed to update contact number.");
+    } finally {
+      setSavingPhone(false);
+    }
+  };
+
   // Email management states
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState("");
@@ -2270,22 +2334,89 @@ Warm regards,
               </div>
 
               <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
-                <p className="text-[9px] font-extrabold uppercase text-slate-400">Contact Number</p>
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
-                  <button
-                    onClick={() => {
-                      const cleanPhone = getCleanWhatsAppNumber(patient.phone);
-                      const waUrl = `https://wa.me/${cleanPhone}`;
-                      window.open(waUrl, "_blank");
-                    }}
-                    className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-sand/50 dark:bg-brand-green/20 px-2.5 py-1 rounded-lg hover:bg-brand-sand transition-colors cursor-pointer"
-                    title="Chat on WhatsApp"
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    <span>WhatsApp</span>
-                  </button>
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-extrabold uppercase text-slate-400">Contact Number</p>
+                  {!isEditingPhone && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const clean = (patient.phone || "").replace(/\D/g, "").slice(-10);
+                        setPhoneInput(clean);
+                        setIsEditingPhone(true);
+                        setPhoneError("");
+                      }}
+                      className="text-[10px] font-black text-slate-400 hover:text-brand-green cursor-pointer transition-colors"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
+
+                {isEditingPhone ? (
+                  <div className="mt-1.5 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative flex-1 flex items-center">
+                        <span className="absolute left-2.5 text-xs font-bold text-slate-400 select-none">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          placeholder="9876543210"
+                          value={phoneInput}
+                          maxLength={10}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                            setPhoneInput(val);
+                            if (phoneError) setPhoneError("");
+                          }}
+                          className="w-full text-xs font-bold pl-10 pr-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:border-brand-green text-slate-900 dark:text-white"
+                          autoFocus
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSavePhone}
+                        disabled={savingPhone || phoneInput.length !== 10}
+                        className="px-3 py-1.5 rounded-xl bg-brand-green text-white text-[10px] font-black cursor-pointer hover:bg-brand-green-hover disabled:opacity-50 active:scale-95 shrink-0"
+                      >
+                        {savingPhone ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingPhone(false);
+                          setPhoneError("");
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {phoneError ? (
+                      <p className="text-[10px] font-bold text-red-500">{phoneError}</p>
+                    ) : (
+                      <p className="text-[9px] font-medium text-slate-400 leading-tight">
+                        🔒 Updating will link Patient Hub to this number and immediately delink/block the old number.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200">{patient.phone}</p>
+                    <button
+                      onClick={() => {
+                        const cleanPhone = getCleanWhatsAppNumber(patient.phone);
+                        const waUrl = `https://wa.me/${cleanPhone}`;
+                        window.open(waUrl, "_blank");
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-black text-brand-green bg-brand-sand/50 dark:bg-brand-green/20 px-2.5 py-1 rounded-lg hover:bg-brand-sand transition-colors cursor-pointer"
+                      title="Chat on WhatsApp"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Email Address */}
