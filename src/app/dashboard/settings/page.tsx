@@ -1260,8 +1260,8 @@ export default function DashboardSettings() {
     };
 
     try {
-      const success = await saveClinicConfig(updatedConfig);
-      if (success) {
+      const result = await saveClinicConfig(updatedConfig);
+      if (result.success) {
         setSavedSuccess(true);
         setIsDirty(false);
         setConfig(updatedConfig);
@@ -1276,12 +1276,12 @@ export default function DashboardSettings() {
         localStorage.setItem("gpc_config_saved_at", formatted);
         return true;
       } else {
-        alert("Failed to save settings. Please try again.");
+        alert(result.error ? `Failed to save settings: ${result.error}` : "Failed to save settings. Please try again.");
         return false;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Error saving settings.");
+      alert(err?.message ? `Error saving settings: ${err.message}` : "Error saving settings.");
       return false;
     } finally {
       setSaving(false);

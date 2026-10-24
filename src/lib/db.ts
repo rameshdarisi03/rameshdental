@@ -287,11 +287,13 @@ export async function getClinicConfig(): Promise<ClinicConfig> {
 }
 
 // Save Clinic Config settings
-export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
+export async function saveClinicConfig(config: ClinicConfig): Promise<{ success: boolean; error?: string }> {
   // 1. Sanitize to pure JSON without any undefined values (preventing Firestore undefined property rejection)
   const cleanConfig = JSON.parse(JSON.stringify(config));
 
-  // Tier 1: Infallible Serverless API endpoint (runs with Admin SDK root privileges)
+  let lastError = "";
+
+  // Tier 1: Infallible Serverless REST API endpoint (runs with Admin root privileges)
   if (typeof window !== "undefined") {
     try {
       let staffRole = "admin";
@@ -323,21 +325,25 @@ export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
         },
         body: JSON.stringify(cleanConfig),
       });
+
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => null);
         if (data && data.success) {
           try {
             localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(cleanConfig));
           } catch (e) {}
-          return true;
+          return { success: true };
         } else {
-          console.warn("[saveClinicConfig] API returned failure:", data?.error);
+          lastError = data?.error || "Server rejected clinic settings configuration.";
+          console.warn("[saveClinicConfig] API returned failure:", lastError);
         }
       } else {
         const errJson = await res.json().catch(() => null);
+        lastError = errJson?.error || `Server HTTP Error (${res.status}): ${res.statusText}`;
         console.warn("[saveClinicConfig] API HTTP error:", res.status, errJson);
       }
-    } catch (apiErr) {
+    } catch (apiErr: any) {
+      lastError = apiErr?.message || "Network error contacting configuration server.";
       console.warn("[saveClinicConfig] API endpoint attempt notice:", apiErr);
     }
   }
@@ -351,10 +357,13 @@ export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
         localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(cleanConfig));
       } catch (e) {}
     }
-    return true;
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error("Error saving clinic config via client SDK: ", error);
-    return false;
+    return {
+      success: false,
+      error: lastError || error?.message || "Failed to persist clinic configuration.",
+    };
   }
 }
 

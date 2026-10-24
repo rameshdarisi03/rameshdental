@@ -367,31 +367,59 @@ export async function updatePatientRecord(
 }
 
 /**
+ * Recursively parses a typed Firestore REST value into a native JavaScript value.
+ */
+export function parseFirestoreValue(v: any): any {
+  if (!v) return null;
+  if (v.stringValue !== undefined) return v.stringValue;
+  if (v.booleanValue !== undefined) return v.booleanValue;
+  if (v.integerValue !== undefined) return parseInt(v.integerValue, 10);
+  if (v.doubleValue !== undefined) return parseFloat(v.doubleValue);
+  if (v.timestampValue !== undefined) return v.timestampValue;
+  if (v.arrayValue !== undefined) {
+    return (v.arrayValue.values || []).map(parseFirestoreValue);
+  }
+  if (v.mapValue !== undefined) {
+    return parseFirestoreFields(v.mapValue.fields || {});
+  }
+  if (v.nullValue !== undefined) return null;
+  return v;
+}
+
+/**
  * Parses raw Firestore REST document fields into a clean JavaScript object.
  */
 export function parseFirestoreFields(fields: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {};
   if (!fields) return result;
   for (const [key, val] of Object.entries(fields)) {
-    if (val.stringValue !== undefined) result[key] = val.stringValue;
-    else if (val.booleanValue !== undefined) result[key] = val.booleanValue;
-    else if (val.integerValue !== undefined) result[key] = parseInt(val.integerValue, 10);
-    else if (val.doubleValue !== undefined) result[key] = parseFloat(val.doubleValue);
-    else if (val.timestampValue !== undefined) result[key] = val.timestampValue;
-    else if (val.arrayValue !== undefined) {
-      result[key] = (val.arrayValue.values || []).map((v: any) => {
-        if (v.stringValue !== undefined) return v.stringValue;
-        if (v.booleanValue !== undefined) return v.booleanValue;
-        if (v.integerValue !== undefined) return parseInt(v.integerValue, 10);
-        return v;
-      });
-    } else if (val.mapValue !== undefined) {
-      result[key] = parseFirestoreFields(val.mapValue.fields || {});
-    } else if (val.nullValue !== undefined) {
-      result[key] = null;
-    }
+    result[key] = parseFirestoreValue(val);
   }
   return result;
+}
+
+/**
+ * Recursively converts a native JavaScript value into typed Firestore REST format.
+ */
+export function toFirestoreValue(val: any): any {
+  if (val === undefined || val === null) return { nullValue: null };
+  if (typeof val === "string") return { stringValue: val };
+  if (typeof val === "boolean") return { booleanValue: val };
+  if (typeof val === "number") {
+    if (Number.isInteger(val)) return { integerValue: val.toString() };
+    return { doubleValue: val };
+  }
+  if (Array.isArray(val)) {
+    return {
+      arrayValue: {
+        values: val.map((item) => toFirestoreValue(item)),
+      },
+    };
+  }
+  if (typeof val === "object") {
+    return { mapValue: { fields: toFirestoreFields(val) } };
+  }
+  return { stringValue: String(val) };
 }
 
 /**
@@ -399,27 +427,10 @@ export function parseFirestoreFields(fields: Record<string, any>): Record<string
  */
 export function toFirestoreFields(obj: Record<string, any>): Record<string, any> {
   const fields: Record<string, any> = {};
+  if (!obj || typeof obj !== "object") return fields;
   for (const [key, val] of Object.entries(obj)) {
-    if (val === undefined || val === null) continue;
-    if (typeof val === "string") fields[key] = { stringValue: val };
-    else if (typeof val === "boolean") fields[key] = { booleanValue: val };
-    else if (typeof val === "number") {
-      if (Number.isInteger(val)) fields[key] = { integerValue: val.toString() };
-      else fields[key] = { doubleValue: val };
-    } else if (Array.isArray(val)) {
-      fields[key] = {
-        arrayValue: {
-          values: val.map((item) => {
-            if (typeof item === "string") return { stringValue: item };
-            if (typeof item === "boolean") return { booleanValue: item };
-            if (typeof item === "number") return { integerValue: item.toString() };
-            return { stringValue: String(item) };
-          }),
-        },
-      };
-    } else if (typeof val === "object") {
-      fields[key] = { mapValue: { fields: toFirestoreFields(val) } };
-    }
+    if (val === undefined) continue;
+    fields[key] = toFirestoreValue(val);
   }
   return fields;
 }
@@ -733,6 +744,46 @@ export async function patchFirestoreDocRest(
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`Firestore patch doc failed: ${errText}`);
+  }
+}
+
+/**
+ * Sets or merges a document in Firestore via pure REST API.
+ */
+export async function setFirestoreDocRest(
+  collection: string,
+  docId: string,
+  data: Record<string, any>,
+  merge: boolean = true
+): Promise<void> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+  const fields = toFirestoreFields(data);
+
+  let url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${docId}`;
+
+  if (merge) {
+    const keysToMask = Object.keys(data);
+    if (keysToMask.length > 0) {
+      const maskParams = keysToMask
+        .map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`)
+        .join("&");
+      url += `?${maskParams}`;
+    }
+  }
+
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Firestore set/patch doc failed: ${errText}`);
   }
 }
 
