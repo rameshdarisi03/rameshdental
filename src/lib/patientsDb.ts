@@ -496,9 +496,13 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     // 2. Auto-create & Link Google Drive Folder for the new patient
     try {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      const idToken = (typeof window !== "undefined" && auth.currentUser) ? await auth.currentUser.getIdToken().catch(() => "") : "";
       const driveRes = await fetch(`${baseUrl}/api/drive/create-folder`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: JSON.stringify({
           patientId: newPatient.id,
           patientName: newPatient.name,

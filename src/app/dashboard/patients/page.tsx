@@ -580,9 +580,13 @@ export default function PatientsPage() {
       // Fallback: In case Drive folder wasn't provisioned during createPatient
       if (!newPatient.googleDriveFolderId) {
         try {
+          const idToken = auth.currentUser ? await auth.currentUser.getIdToken().catch(() => "") : "";
           const driveResponse = await fetch("/api/drive/create-folder", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+            },
             body: JSON.stringify({
               patientId: newPatient.id,
               patientName: newPatient.name

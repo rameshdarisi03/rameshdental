@@ -51,7 +51,10 @@ export default function DashboardLayout({
     if (!userJson) {
       router.replace("/dashboard/login");
     } else {
-      setUser(JSON.parse(userJson));
+      const parsedUser = JSON.parse(userJson);
+      setUser(parsedUser);
+      const role = parsedUser.role || "staff";
+      document.cookie = "gpc_session=" + role + "; path=/; max-age=2592000; SameSite=Lax";
       setLoading(false);
     }
   }, [router, isLoginPage]);

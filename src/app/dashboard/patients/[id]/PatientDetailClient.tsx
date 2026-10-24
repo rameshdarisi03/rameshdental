@@ -899,15 +899,25 @@ PLAN:
     setFormError("");
     setFormSuccess("");
     try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken().catch(() => "") : "";
       const driveRes = await fetch("/api/drive/create-folder", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: JSON.stringify({
           patientId: patient.id,
           patientName: patient.name,
         }),
       });
-      const data = await driveRes.json();
+      const text = await driveRes.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(`Server returned status ${driveRes.status}. Please try again.`);
+      }
       if (data.success && data.folderId) {
         await updatePatient(patient.id, { googleDriveFolderId: data.folderId });
         setPatient((prev) => (prev ? { ...prev, googleDriveFolderId: data.folderId } : null));
@@ -949,15 +959,25 @@ PLAN:
       let activeFolderId = patient.googleDriveFolderId;
       if (!activeFolderId) {
         console.log("Patient missing Drive folder during upload. Auto-initializing folder...");
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken().catch(() => "") : "";
         const initRes = await fetch("/api/drive/create-folder", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
           body: JSON.stringify({
             patientId: patient.id,
             patientName: patient.name,
           }),
         });
-        const initData = await initRes.json();
+        const initText = await initRes.text();
+        let initData: any = {};
+        try {
+          initData = JSON.parse(initText);
+        } catch {
+          throw new Error(`Server returned status ${initRes.status}. Please try again.`);
+        }
         if (initData.success && initData.folderId) {
           activeFolderId = initData.folderId;
           await updatePatient(patient.id, { googleDriveFolderId: initData.folderId });
