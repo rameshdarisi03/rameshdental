@@ -108,7 +108,7 @@ export default function FloatingSocials() {
           <LinkedinIcon className="w-5 h-5" />
         </Link>
         <Link
-          href="https://youtube.com"
+          href="https://www.youtube.com/@gaitphysioclinic01"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
