@@ -916,9 +916,9 @@ export default function DaySnapshot() {
       const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
       message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${therapistText} on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
     } else if (templateType === "delay") {
-      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes later* (around ${app.slot}). Thank you for your kind understanding! - Gait Physio Clinic`;
+      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes after your scheduled time*. Thank you for your kind understanding! - Gait Physio Clinic`;
     } else if (templateType === "early") {
-      message = `Hi *${app.patientName}*, kindly arrive *${earlyMinutes} minutes before* your appointment at *${app.slot}* today for initial biometric preparation. See you soon! - Gait Physio Clinic`;
+      message = `Hi *${app.patientName}*, kindly arrive approximately *${earlyMinutes} minutes before your scheduled appointment at ${app.slot}* today for initial biometric preparation. See you soon! - Gait Physio Clinic`;
     } else if (templateType === "custom") {
       message = customMsg || `Hi *${app.patientName}*, regarding your appointment on *${app.date}* at *${app.slot}* at Gait Physio Clinic...`;
     }
@@ -943,11 +943,12 @@ export default function DaySnapshot() {
             type: "APPOINTMENT_APPROVED",
             payload: {
               patientName: app.patientName,
-              patientPhone: app.patientPhone,
+              patientPhone: targetPhone,
               serviceName: app.serviceId,
               date: app.date,
               slot: app.slot,
               therapistName: app.assignedTherapist || "Clinical Team",
+              appointmentId: app.id,
             },
           }),
         });
@@ -980,7 +981,7 @@ export default function DaySnapshot() {
           body: JSON.stringify({
             type: "CUSTOM_TEXT",
             payload: {
-              patientPhone: app.patientPhone,
+              patientPhone: targetPhone,
               text: message,
             },
           }),

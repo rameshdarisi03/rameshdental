@@ -27,14 +27,14 @@ interface PatientDeleteModalProps {
   patientName: string;
 }
 
-const STORAGE_KEY = "gpc_patient_delete_prefs_v3";
+const STORAGE_KEY = "gpc_patient_delete_prefs_v4";
 
 const DEFAULT_PREFS: PatientDeleteOptions = {
   profile: true,
   hub: true,
   consultationsAndPrescriptions: true,
   scansAndReports: true,
-  invoices: false,
+  invoices: true,
 };
 
 export default function PatientDeleteModal({
@@ -71,12 +71,38 @@ export default function PatientDeleteModal({
 
   if (!mounted || !isOpen || typeof window === "undefined" || !document?.body) return null;
 
-  // Toggle option and auto-save
+  // Toggle option with auto-check cascade and auto-save
   const handleToggle = (key: keyof PatientDeleteOptions) => {
-    const updated = {
-      ...options,
-      [key]: !options[key],
-    };
+    let updated: PatientDeleteOptions;
+
+    if (key === "profile") {
+      const willBeProfile = !options.profile;
+      if (willBeProfile) {
+        // Auto-check all components when Patient Profile is selected (preventing orphan records & broken Drive links)
+        updated = {
+          profile: true,
+          hub: true,
+          consultationsAndPrescriptions: true,
+          scansAndReports: true,
+          invoices: true,
+        };
+      } else {
+        // Untick only profile, leaving other components for selective cleanup
+        updated = {
+          ...options,
+          profile: false,
+        };
+      }
+    } else {
+      const nextVal = !options[key];
+      updated = {
+        ...options,
+        [key]: nextVal,
+        // If a subcomponent is unticked while profile was ticked, untick profile to prevent unintended full profile wipeout
+        profile: !nextVal ? false : options.profile,
+      };
+    }
+
     setOptions(updated);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -200,6 +226,11 @@ export default function PatientDeleteModal({
                   <h4 className="text-xs font-black text-slate-900 dark:text-white">
                     2. Patient Hub Access
                   </h4>
+                  {options.profile && (
+                    <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-100/70 dark:bg-rose-950/60 border border-rose-200/60 dark:border-rose-900/40 px-2 py-0.5 rounded-full ml-auto shrink-0">
+                      Auto-selected with Profile
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   Revoke portal login account, Auth UID link & activation code
@@ -225,6 +256,11 @@ export default function PatientDeleteModal({
                   <h4 className="text-xs font-black text-slate-900 dark:text-white">
                     3. Consultations & Prescriptions
                   </h4>
+                  {options.profile && (
+                    <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-100/70 dark:bg-rose-950/60 border border-rose-200/60 dark:border-rose-900/40 px-2 py-0.5 rounded-full ml-auto shrink-0">
+                      Auto-selected with Profile
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   Clinical session notes, SOAP logs, home exercises & deletes all prescription subfolders from Google Drive
@@ -250,6 +286,11 @@ export default function PatientDeleteModal({
                   <h4 className="text-xs font-black text-slate-900 dark:text-white">
                     4. Medical Scans & Reports
                   </h4>
+                  {options.profile && (
+                    <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-100/70 dark:bg-rose-950/60 border border-rose-200/60 dark:border-rose-900/40 px-2 py-0.5 rounded-full ml-auto shrink-0">
+                      Auto-selected with Profile
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   Permanently deletes uploaded X-rays, MRI scans & all report subfolders across Google Drive
@@ -275,6 +316,11 @@ export default function PatientDeleteModal({
                   <h4 className="text-xs font-black text-slate-900 dark:text-white">
                     5. Invoices & Billing
                   </h4>
+                  {options.profile && (
+                    <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-100/70 dark:bg-rose-950/60 border border-rose-200/60 dark:border-rose-900/40 px-2 py-0.5 rounded-full ml-auto shrink-0">
+                      Auto-selected with Profile
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                   GST invoices, payment receipts & deletes all invoice subfolders across Google Drive
@@ -285,10 +331,10 @@ export default function PatientDeleteModal({
 
           {/* Warning Banner */}
           {options.profile && (
-            <div className="flex items-start gap-2.5 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl text-amber-800 dark:text-amber-300 text-xs font-semibold">
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <div className="flex items-start gap-2.5 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-2xl text-rose-800 dark:text-rose-300 text-xs font-semibold">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" />
               <span>
-                <strong>Warning:</strong> Selecting <em>Patient Profile</em> will completely remove this patient from the directory.
+                <strong>Complete Patient Wipeout:</strong> Selecting <em>Patient Profile</em> auto-selects all categories to permanently wipe this patient, all records, and their Google Drive cloud folder from the clinic without leaving orphan data.
               </span>
             </div>
           )}
