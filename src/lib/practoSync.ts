@@ -338,7 +338,7 @@ export async function syncPractoAppointments(params?: {
 
     // Record last sync metadata in clinic configuration
     try {
-      const configRef = doc(db, "clinic", "settings");
+      const configRef = doc(db, "settings", "clinic_config");
       await updateDoc(configRef, {
         practoLastSyncedAt: Timestamp.now(),
         practoLastImportCount: importedCount,

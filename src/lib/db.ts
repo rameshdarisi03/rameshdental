@@ -227,6 +227,7 @@ export function getSlotCapacity(config: ClinicConfig, slotStr: string): number {
 
 // Fetch Clinic Config settings
 export async function getClinicConfig(): Promise<ClinicConfig> {
+  // Tier 1: Client SDK Firestore lookup
   try {
     const docRef = doc(db, "settings", "clinic_config");
     const docSnap = await getDoc(docRef);
@@ -247,32 +248,83 @@ export async function getClinicConfig(): Promise<ClinicConfig> {
       }
       return merged;
     }
-    return DEFAULT_CLINIC_CONFIG;
   } catch (error) {
-    console.error("Error fetching clinic config: ", error);
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("gpc_clinic_config_cache");
-        if (cached) return JSON.parse(cached);
-      } catch (e) {}
-    }
-    return DEFAULT_CLINIC_CONFIG;
+    console.warn("Client getDoc failed for clinic config, attempting API fallback: ", error);
   }
+
+  // Tier 2: Infallible Serverless API endpoint
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/clinic/config");
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.config) {
+          const merged = {
+            ...DEFAULT_CLINIC_CONFIG,
+            ...data.config,
+            daySchedules: {
+              ...DEFAULT_DAY_SCHEDULES,
+              ...(data.config?.daySchedules || {}),
+            },
+          } as ClinicConfig;
+          try {
+            localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(merged));
+          } catch (e) {}
+          return merged;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[getClinicConfig] API endpoint fallback error:", apiErr);
+    }
+
+    try {
+      const cached = localStorage.getItem("gpc_clinic_config_cache");
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  return DEFAULT_CLINIC_CONFIG;
 }
 
 // Save Clinic Config settings
 export async function saveClinicConfig(config: ClinicConfig): Promise<boolean> {
+  // 1. Sanitize to pure JSON without any undefined values (preventing Firestore undefined property rejection)
+  const cleanConfig = JSON.parse(JSON.stringify(config));
+
+  // Tier 1: Infallible Serverless API endpoint (runs with Admin SDK root privileges)
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/clinic/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cleanConfig),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success) {
+          try {
+            localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(cleanConfig));
+          } catch (e) {}
+          return true;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[saveClinicConfig] API endpoint attempt notice:", apiErr);
+    }
+  }
+
+  // Tier 2: Direct Client Firestore SDK fallback
   try {
     const docRef = doc(db, "settings", "clinic_config");
-    await setDoc(docRef, config);
+    await setDoc(docRef, cleanConfig);
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(config));
+        localStorage.setItem("gpc_clinic_config_cache", JSON.stringify(cleanConfig));
       } catch (e) {}
     }
     return true;
   } catch (error) {
-    console.error("Error saving clinic config: ", error);
+    console.error("Error saving clinic config via client SDK: ", error);
     return false;
   }
 }
