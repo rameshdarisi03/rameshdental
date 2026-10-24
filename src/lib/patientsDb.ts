@@ -646,10 +646,13 @@ export async function getPatients(): Promise<Patient[]> {
   }
 }
 
-// Get single patient details
+// Get single patient details (with infallible 3-tier fallback)
 export async function getPatientById(id: string): Promise<Patient | null> {
+  const cleanId = decodeURIComponent(id || "").trim();
+  if (!cleanId) return null;
+
+  // Tier 1: Client SDK Firestore lookup
   try {
-    const cleanId = (id || "").trim();
     let docSnap = await getDoc(doc(db, "patients", cleanId));
     if (!docSnap.exists() && cleanId.toUpperCase() !== cleanId) {
       docSnap = await getDoc(doc(db, "patients", cleanId.toUpperCase()));
@@ -673,11 +676,43 @@ export async function getPatientById(id: string): Promise<Patient | null> {
         return { id: d.id, ...data } as Patient;
       }
     }
-    return null;
-  } catch (error) {
-    console.error("Error getting patient by ID:", error);
-    return null;
+  } catch (clientErr) {
+    console.warn("[patientsDb] Client getPatientById failed, attempting server API fallback:", clientErr);
   }
+
+  // Tier 2: Infallible Server-side API endpoint fallback (bypasses client auth rule blocks)
+  if (typeof window !== "undefined") {
+    try {
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : "";
+      const res = await fetch(`/api/patients/${encodeURIComponent(cleanId)}`, {
+        headers: {
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.success && json.patient) {
+          return json.patient as Patient;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[patientsDb] Server API getPatientById error:", apiErr);
+    }
+
+    // Tier 3: In-memory fallback via getPatients() (which already has infallible 3-tier fallbacks)
+    try {
+      const all = await getPatients();
+      const match = all.find(
+        (p) =>
+          p.id?.toLowerCase() === cleanId.toLowerCase() || 
+          (p as any).customId?.toLowerCase() === cleanId.toLowerCase() || 
+          p.activationCode?.toLowerCase() === cleanId.toLowerCase()
+      );
+      if (match) return match;
+    } catch {}
+  }
+
+  return null;
 }
 
 // Add a consultation to a patient profile

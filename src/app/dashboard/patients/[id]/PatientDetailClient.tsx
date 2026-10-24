@@ -2133,16 +2133,28 @@ Warm regards,
 
   if (error || !patient) {
     return (
-      <div className="flex flex-col h-96 items-center justify-center text-red-500 text-xs font-semibold">
+      <div className="flex flex-col h-96 items-center justify-center text-red-500 text-xs font-semibold p-4 text-center">
         <AlertCircle className="h-8 w-8 text-red-400 mb-3" />
-        <span>{error || "Failed to load patient detail profile."}</span>
-        <Link 
-          href="/dashboard/patients" 
-          className="mt-4 px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 flex items-center gap-1.5 font-black text-slate-700"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Directory
-        </Link>
+        <span className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-1">{error || "Failed to load patient detail profile."}</span>
+        <p className="text-slate-400 text-xs font-medium max-w-sm mb-4">
+          The requested patient ID ({id}) could not be retrieved from the database.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => loadPatientDetails()}
+            className="px-4 py-2 bg-brand-green text-white rounded-xl hover:bg-brand-green-hover flex items-center gap-1.5 font-bold cursor-pointer transition-colors shadow-sm"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Try Again
+          </button>
+          <Link 
+            href="/dashboard/patients" 
+            className="px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300 transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Directory
+          </Link>
+        </div>
       </div>
     );
   }
