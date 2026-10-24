@@ -10,6 +10,7 @@
  */
 
 import { getCleanWhatsAppNumber } from "./phoneUtils";
+import { encodeCalendarToken } from "./calendarUtils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
 const CLINIC_PHONE = "+91 89044 56243";
@@ -423,11 +424,23 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
   slot: string;
   therapistName?: string;
   serviceName?: string;
+  appointmentId?: string;
 }): Promise<SendWhatsAppResult> {
   const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
 
-  // Primary: Use Meta-Approved Template (appointment_confirmation_gpc)
-  const templateRes = await sendWhatsAppTemplateMessage({
+  // Generate URL-safe slug for dynamic "Add to Calendar" button (Button 0)
+  // Button 1 ("Get Location") is a static URL pre-configured in Meta WhatsApp Manager.
+  const calendarSlug = encodeCalendarToken({
+    id: params.appointmentId,
+    patientName: params.patientName,
+    date: params.date,
+    slot: params.slot,
+    therapistName: cleanTherapist,
+    serviceName: params.serviceName,
+  });
+
+  // Attempt 1: Dispatch with "Add to Calendar" dynamic button component
+  let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
     templateName: "appointment_confirmation_gpc",
     components: [
@@ -440,8 +453,36 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
           { type: "text", text: cleanTherapist },
         ],
       },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [
+          { type: "text", text: calendarSlug },
+        ],
+      },
     ],
   });
+
+  // Fallback 1b: If template with buttons is pending review in Meta, fallback to body-only parameters
+  if (!templateRes.success) {
+    console.warn("[WhatsApp Confirmed with buttons note, attempting body-only]", templateRes.error);
+    templateRes = await sendWhatsAppTemplateMessage({
+      rawPhone: params.patientPhone,
+      templateName: "appointment_confirmation_gpc",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: params.date },
+            { type: "text", text: params.slot },
+            { type: "text", text: cleanTherapist },
+          ],
+        },
+      ],
+    });
+  }
 
   if (templateRes.success) return templateRes;
   console.warn("[WhatsApp Appointment Confirmed Template Failed, attempting text fallback]", templateRes.error);
@@ -530,11 +571,24 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   newDate: string;
   newSlot: string;
   therapistName?: string;
+  serviceName?: string;
+  appointmentId?: string;
 }): Promise<SendWhatsAppResult> {
   const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
 
-  // Primary: Use Meta-Approved Dedicated Rescheduled Template (appointment_rescheduled_gpc)
-  const templateRes = await sendWhatsAppTemplateMessage({
+  // Generate URL-safe slug for dynamic "Add to Calendar" button (Button 0)
+  // Button 1 ("Get Location") is a static URL pre-configured in Meta WhatsApp Manager.
+  const calendarSlug = encodeCalendarToken({
+    id: params.appointmentId,
+    patientName: params.patientName,
+    date: params.newDate,
+    slot: params.newSlot,
+    therapistName: cleanTherapist,
+    serviceName: params.serviceName,
+  });
+
+  // Attempt 1: Use Meta-Approved Dedicated Rescheduled Template with buttons
+  let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
     templateName: "appointment_rescheduled_gpc",
     components: [
@@ -547,8 +601,36 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
           { type: "text", text: cleanTherapist },
         ],
       },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [
+          { type: "text", text: calendarSlug },
+        ],
+      },
     ],
   });
+
+  // Fallback 1b: If template with buttons is pending review in Meta, fallback to body-only parameters
+  if (!templateRes.success) {
+    console.warn("[WhatsApp Reschedule with buttons note, attempting body-only]", templateRes.error);
+    templateRes = await sendWhatsAppTemplateMessage({
+      rawPhone: params.patientPhone,
+      templateName: "appointment_rescheduled_gpc",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: params.newDate },
+            { type: "text", text: params.newSlot },
+            { type: "text", text: cleanTherapist },
+          ],
+        },
+      ],
+    });
+  }
 
   if (templateRes.success) return templateRes;
   console.warn("[WhatsApp Reschedule Template Failed, attempting confirmation template fallback]", templateRes.error);

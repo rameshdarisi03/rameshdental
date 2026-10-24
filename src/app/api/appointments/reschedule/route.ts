@@ -229,6 +229,8 @@ export async function POST(req: NextRequest) {
           newDate,
           newSlot,
           therapistName: assignedTherapist,
+          serviceName: appData.serviceName || appData.serviceId || "Physiotherapy Session",
+          appointmentId: appointmentId,
         });
         if (!waRes.success) {
           console.warn("[Reschedule WhatsApp Failed]:", waRes.error);
