@@ -45,8 +45,13 @@ import {
   ClipboardList,
   RotateCw,
   MapPin,
-  CalendarSync
+  CalendarSync,
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  ExternalLink
 } from "lucide-react";
+import { getPatients, Patient } from "@/lib/patientsDb";
 import RescheduleModal from "@/components/RescheduleModal";
 
 // Helper to get today's date formatted as YYYY-MM-DD
@@ -106,6 +111,29 @@ export default function DashboardAppointments() {
   // Reschedule Modal State
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [selectedRescheduleApp, setSelectedRescheduleApp] = useState<Appointment | null>(null);
+
+  // Live master patient list for resolving latest phone & email
+  const [patients, setPatients] = useState<Patient[]>([]);
+
+  // Send Confirmation action & Visual Delivery Modal state
+  const [sendingConfirmAppId, setSendingConfirmAppId] = useState<string | null>(null);
+  const [deliveryModalData, setDeliveryModalData] = useState<{
+    isOpen: boolean;
+    status: "success" | "error" | "partial";
+    patientName: string;
+    patientPhone: string;
+    patientEmail?: string;
+    date: string;
+    slot: string;
+    serviceName?: string;
+    therapistName?: string;
+    whatsappStatus: "sent" | "failed" | "skipped";
+    whatsappMessageId?: string;
+    whatsappError?: string;
+    emailStatus: "sent" | "failed" | "skipped";
+    emailError?: string;
+    fallbackWhatsAppUrl?: string;
+  } | null>(null);
 
   // Manual Booking Date availability details
   const [manualDateAppointments, setManualDateAppointments] = useState<Appointment[]>([]);
@@ -211,16 +239,20 @@ export default function DashboardAppointments() {
     setMounted(true);
     fetchAppointments();
 
-    // 1. Fetch clinic configuration
-    async function loadConfig() {
+    // 1. Fetch clinic configuration & live patients
+    async function loadInitialData() {
       try {
-        const fetched = await getClinicConfig();
-        setClinicConfig(fetched);
+        const [fetchedConfig, fetchedPatients] = await Promise.allSettled([
+          getClinicConfig(),
+          getPatients(),
+        ]);
+        if (fetchedConfig.status === "fulfilled") setClinicConfig(fetchedConfig.value);
+        if (fetchedPatients.status === "fulfilled") setPatients(fetchedPatients.value);
       } catch (err) {
-        console.error(err);
+        console.error("Error loading config or patients:", err);
       }
     }
-    loadConfig();
+    loadInitialData();
 
     // 2. Fetch logged-in user profile
     const userJson = localStorage.getItem("gpc_user");
@@ -428,9 +460,139 @@ export default function DashboardAppointments() {
     }
   };
 
+  // Helper to resolve up-to-date phone and email from patient master directory
+  const getEffectivePatient = (app: Appointment) => {
+    if (!patients || patients.length === 0) return null;
+    const cleanAppPhone = app.patientPhone ? getCleanWhatsAppNumber(app.patientPhone, false) : "";
+    return (
+      patients.find((p) => {
+        if (p.id && p.id === (app as any).patientId) return true;
+        if (app.patientName && p.name && p.name.trim().toLowerCase() === app.patientName.trim().toLowerCase()) return true;
+        if (cleanAppPhone && p.phone) {
+          const cleanPPhone = getCleanWhatsAppNumber(p.phone, false);
+          if (cleanPPhone && cleanPPhone === cleanAppPhone) return true;
+        }
+        return false;
+      }) || null
+    );
+  };
+
+  // Dispatch official Meta WhatsApp & Brevo email confirmation and display visual result modal
+  const handleSendConfirmation = async (app: Appointment) => {
+    const matchedP = getEffectivePatient(app);
+    const effectivePhone = matchedP?.phone || app.patientPhone;
+    const effectiveEmail = matchedP?.email || app.patientEmail;
+
+    if (!effectivePhone) {
+      alert("This appointment does not have a valid mobile number.");
+      return;
+    }
+
+    setSendingConfirmAppId(app.id || "sending");
+
+    let waStatus: "sent" | "failed" | "skipped" = "failed";
+    let waMsgId: string | undefined;
+    let waError: string | undefined;
+
+    let emailStatus: "sent" | "failed" | "skipped" = "skipped";
+    let emailError: string | undefined;
+
+    try {
+      // 1. Dispatch official Meta WhatsApp template (includes "Add to Calendar" & "Get Location" action buttons)
+      const waRes = await fetch("/api/whatsapp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "APPOINTMENT_APPROVED",
+          payload: {
+            patientName: app.patientName,
+            patientPhone: effectivePhone,
+            serviceName: app.serviceId,
+            date: app.date,
+            slot: app.slot,
+            therapistName: app.assignedTherapist || "Clinical Team",
+            appointmentId: app.id,
+          },
+        }),
+      });
+      const waData = await waRes.json();
+      if (waRes.ok && waData.success) {
+        waStatus = "sent";
+        waMsgId = waData.messageId;
+      } else {
+        waStatus = "failed";
+        waError = waData.error || "Meta Cloud API failed to accept message.";
+      }
+    } catch (err: any) {
+      waStatus = "failed";
+      waError = err.message || "Network error connecting to WhatsApp API.";
+    }
+
+    // 2. Dispatch Email Confirmation if patient has email
+    if (effectiveEmail && effectiveEmail.includes("@")) {
+      try {
+        const calUrl = generateGoogleCalendarUrl(app);
+        const emailRes = await fetch("/api/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "APPOINTMENT_APPROVED",
+            payload: {
+              patientName: app.patientName,
+              patientEmail: effectiveEmail,
+              serviceId: app.serviceId,
+              date: app.date,
+              slot: app.slot,
+              assignedTherapist: app.assignedTherapist || "Clinical Team",
+              googleCalendarUrl: calUrl,
+            },
+          }),
+        });
+        const emailData = await emailRes.json();
+        if (emailRes.ok && emailData.success) {
+          emailStatus = "sent";
+        } else {
+          emailStatus = "failed";
+          emailError = emailData.error || "Email delivery failed.";
+        }
+      } catch (err: any) {
+        emailStatus = "failed";
+        emailError = err.message || "Network error sending email.";
+      }
+    }
+
+    // Generate fallback direct WhatsApp Web link in case staff wants to open Web WhatsApp
+    const cleanPhone = getCleanWhatsAppNumber(effectivePhone);
+    const calendarUrl = generateGoogleCalendarUrl(app);
+    const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
+    const fallbackMessage = `Hi ${app.patientName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
+    const fallbackWhatsAppUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fallbackMessage)}`;
+
+    setDeliveryModalData({
+      isOpen: true,
+      status: waStatus === "sent" ? "success" : "partial",
+      patientName: app.patientName,
+      patientPhone: effectivePhone,
+      patientEmail: effectiveEmail,
+      date: app.date,
+      slot: app.slot,
+      serviceName: app.serviceId,
+      therapistName: app.assignedTherapist || "Clinical Team",
+      whatsappStatus: waStatus,
+      whatsappMessageId: waMsgId,
+      whatsappError: waError,
+      emailStatus: emailStatus,
+      emailError: emailError,
+      fallbackWhatsAppUrl: fallbackWhatsAppUrl,
+    });
+
+    setSendingConfirmAppId(null);
+  };
+
   // Pre-fill WhatsApp confirmation message
   const triggerWhatsAppConfirmation = (app: Appointment) => {
-    const cleanPhone = getCleanWhatsAppNumber(app.patientPhone);
+    const matchedP = getEffectivePatient(app);
+    const cleanPhone = getCleanWhatsAppNumber(matchedP?.phone || app.patientPhone);
 
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
@@ -708,7 +870,12 @@ export default function DashboardAppointments() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {filteredAppointments.map((app) => (
+          {filteredAppointments.map((app) => {
+            const matchedP = getEffectivePatient(app);
+            const displayPhone = matchedP?.phone || app.patientPhone;
+            const displayEmail = matchedP?.email || app.patientEmail;
+
+            return (
             <div
               key={app.id}
               className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-[0_6px_25px_-6px_var(--brand-shadow)] hover:shadow-[0_12px_35px_-8px_var(--brand-shadow-hover)] transition-all duration-300"
@@ -735,7 +902,7 @@ export default function DashboardAppointments() {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Phone className="h-3.5 w-3.5 text-brand-green" />
-                    {app.patientPhone}
+                    {displayPhone}
                   </span>
                   {app.assignedTherapist && (
                     <span className="flex items-center gap-1.5 text-brand-green bg-brand-green/10 dark:bg-brand-green/20 px-2 py-0.5 rounded-lg text-[11px] font-bold">
@@ -831,11 +998,18 @@ export default function DashboardAppointments() {
                     </button>
 
                     <button
-                      onClick={() => triggerWhatsAppConfirmation(app)}
-                      className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-sand/80 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 text-brand-green px-5 py-2.5 text-xs font-black hover:bg-brand-sand transition-colors"
+                      type="button"
+                      onClick={() => handleSendConfirmation(app)}
+                      disabled={sendingConfirmAppId === app.id}
+                      title="Dispatch official Meta WhatsApp & Email confirmation with Add to Calendar & Get Location buttons"
+                      className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 text-xs font-black shadow-sm transition-all duration-200 disabled:opacity-50 cursor-pointer"
                     >
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      WhatsApp Link
+                      {sendingConfirmAppId === app.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      <span>Send Confirmation</span>
                     </button>
                     <button
                       onClick={() => triggerRejectionGuard(app.id!)}
@@ -858,7 +1032,8 @@ export default function DashboardAppointments() {
               </div>
 
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1030,6 +1205,212 @@ export default function DashboardAppointments() {
             fetchAppointments();
           }}
         />
+      )}
+
+      {/* Visual Delivery Confirmation Modal for Therapists & Staff (Uncropped & Fully Responsive) */}
+      {mounted && deliveryModalData && deliveryModalData.isOpen && createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setDeliveryModalData(null)}
+        >
+          <div
+            className="w-full max-w-md max-h-[90vh] overflow-y-auto overscroll-contain bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-2xl space-y-4 animate-scale-in text-left font-['Inter',sans-serif]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top header with delivery status icon & close button */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                    deliveryModalData.status === "success"
+                      ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
+                      : "bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400"
+                  }`}
+                >
+                  {deliveryModalData.status === "success" ? (
+                    <CheckCircle2 className="h-6 w-6" />
+                  ) : (
+                    <AlertTriangle className="h-6 w-6" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
+                    {deliveryModalData.status === "success" ? "Confirmation Sent!" : "Dispatch Notice"}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                    Live delivery report for clinic staff
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeliveryModalData(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Appointment Snapshot Card */}
+            <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-black text-sm text-slate-900 dark:text-white truncate">
+                  {deliveryModalData.patientName}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/40 shrink-0">
+                  Confirmed
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 font-medium">
+                <span className="flex items-center gap-1 text-[11px]">
+                  <Calendar className="h-3 w-3 text-brand-green" />
+                  {deliveryModalData.date}
+                </span>
+                <span className="flex items-center gap-1 text-[11px]">
+                  <Clock className="h-3 w-3 text-brand-green" />
+                  {deliveryModalData.slot}
+                </span>
+                {deliveryModalData.therapistName && (
+                  <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <User className="h-3 w-3 text-brand-green" />
+                    {deliveryModalData.therapistName}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Delivery Channels Breakdown */}
+            <div className="space-y-2.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                Delivery Channels &amp; Status
+              </label>
+
+              {/* WhatsApp Channel Card */}
+              <div className="p-3.5 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      WhatsApp Cloud API
+                    </span>
+                  </div>
+                  {deliveryModalData.whatsappStatus === "sent" ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/90 dark:bg-emerald-900/50 px-2.5 py-0.5 rounded-full">
+                      <Check className="h-3 w-3 stroke-[3]" />
+                      Delivered
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-rose-700 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-900/50 px-2.5 py-0.5 rounded-full">
+                      <X className="h-3 w-3 stroke-[3]" />
+                      Failed
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300 font-medium">
+                  <p className="flex items-center gap-1.5 text-[11px]">
+                    <Phone className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="font-bold text-slate-800 dark:text-slate-100 font-mono">
+                      {deliveryModalData.patientPhone}
+                    </span>
+                  </p>
+                  {deliveryModalData.whatsappMessageId && (
+                    <p className="text-[10px] text-slate-400 font-mono truncate">
+                      Meta Msg ID: {deliveryModalData.whatsappMessageId}
+                    </p>
+                  )}
+                  {deliveryModalData.whatsappError && (
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-50 dark:bg-rose-950/40 p-2 rounded-xl">
+                      {deliveryModalData.whatsappError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Attached Interactive Features */}
+                <div className="pt-2 border-t border-emerald-200/50 dark:border-emerald-900/40 flex flex-wrap gap-1.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-200">
+                  <span className="px-2 py-0.5 rounded-md bg-white/90 dark:bg-slate-900/80 border border-emerald-200/70 dark:border-emerald-800/50 shadow-xs">
+                    📅 "Add to Calendar" button
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white/90 dark:bg-slate-900/80 border border-emerald-200/70 dark:border-emerald-800/50 shadow-xs">
+                    📍 "Get Location" button
+                  </span>
+                </div>
+              </div>
+
+              {/* Email Channel Card */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      Email Confirmation (Brevo)
+                    </span>
+                  </div>
+                  {deliveryModalData.emailStatus === "sent" ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-sky-700 dark:text-sky-300 bg-sky-100/90 dark:bg-sky-900/50 px-2.5 py-0.5 rounded-full">
+                      <Check className="h-3 w-3 stroke-[3]" />
+                      Delivered
+                    </span>
+                  ) : deliveryModalData.emailStatus === "skipped" ? (
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-150 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                      Skipped (No email)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-rose-700 dark:text-rose-300 bg-rose-100/90 dark:bg-rose-900/50 px-2.5 py-0.5 rounded-full">
+                      <X className="h-3 w-3 stroke-[3]" />
+                      Failed
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300 font-medium">
+                  {deliveryModalData.patientEmail ? (
+                    <p className="flex items-center gap-1.5 text-[11px] truncate">
+                      <span className="font-bold text-slate-800 dark:text-slate-100">
+                        {deliveryModalData.patientEmail}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic">
+                      No email address is linked to this patient.
+                    </p>
+                  )}
+                  {deliveryModalData.emailError && (
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold bg-rose-50 dark:bg-rose-950/40 p-2 rounded-xl">
+                      {deliveryModalData.emailError}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons (Mobile-first responsive row) */}
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              {deliveryModalData.fallbackWhatsAppUrl && (
+                <a
+                  href={deliveryModalData.fallbackWhatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-all text-center cursor-pointer"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>Open WhatsApp Web</span>
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setDeliveryModalData(null)}
+                className="flex-1 px-5 py-2.5 rounded-2xl bg-brand-charcoal dark:bg-white text-white dark:text-slate-900 text-xs font-black shadow-md hover:opacity-90 active:scale-95 transition-all text-center cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>
