@@ -255,7 +255,10 @@ export async function getClinicConfig(): Promise<ClinicConfig> {
   // Tier 2: Infallible Serverless API endpoint
   if (typeof window !== "undefined") {
     try {
-      const res = await fetch("/api/clinic/config");
+      let res = await fetch("/api/clinic/settings");
+      if (!res.ok) {
+        res = await fetch("/api/clinic/config");
+      }
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && data.config) {
@@ -314,17 +317,28 @@ export async function saveClinicConfig(config: ClinicConfig): Promise<{ success:
 
       const { auth } = await import("./firebase");
       const idToken = auth?.currentUser ? await auth.currentUser.getIdToken() : "";
-      const res = await fetch("/api/clinic/config", {
+      const reqHeaders = {
+        "Content-Type": "application/json",
+        "x-staff-role": staffRole,
+        "x-staff-email": staffEmail,
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      };
+
+      let res = await fetch("/api/clinic/settings", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "x-staff-role": staffRole,
-          "x-staff-email": staffEmail,
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
+        headers: reqHeaders,
         body: JSON.stringify(cleanConfig),
       });
+
+      if (!res.ok) {
+        res = await fetch("/api/clinic/config", {
+          method: "POST",
+          credentials: "include",
+          headers: reqHeaders,
+          body: JSON.stringify(cleanConfig),
+        });
+      }
 
       if (res.ok) {
         const data = await res.json().catch(() => null);
