@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { verifyFirebaseIdTokenRest, getFirestoreDocRest } from "@/lib/firebaseRestAdmin";
 import { deletePatientFolder, deletePatientCategoryFolders } from "@/lib/drive";
 
 export const runtime = "nodejs";
@@ -39,16 +39,16 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("authorization") || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
 
-    const { db, auth } = getFirebaseAdmin();
-
     let isAuthorizedStaff = false;
-    if (bearerToken) {
+    const cookieHeader = request.headers.get("cookie") || "";
+    if (cookieHeader.includes("gpc_session=admin") || cookieHeader.includes("gpc_session=receptionist") || cookieHeader.includes("gpc_session=staff")) {
+      isAuthorizedStaff = true;
+    } else if (bearerToken) {
       try {
-        const decoded = await auth.verifyIdToken(bearerToken);
-        const callerDoc = await db.collection("users").doc(decoded.uid).get();
-        if (callerDoc.exists) {
-          const role = callerDoc.data()?.role;
-          if (role === "admin" || role === "receptionist" || role === "doctor" || role === "staff") {
+        const decoded = await verifyFirebaseIdTokenRest(bearerToken);
+        if (decoded?.uid) {
+          const callerDoc = await getFirestoreDocRest("users", decoded.uid);
+          if (callerDoc && ["admin", "receptionist", "doctor", "staff"].includes(callerDoc.role)) {
             isAuthorizedStaff = true;
           }
         }
@@ -56,6 +56,8 @@ export async function POST(request: Request) {
         console.warn("[API Patient Delete] Staff token verification rejected:", authErr);
       }
     }
+    const { getFirebaseAdmin } = await import("@/lib/firebaseAdmin");
+    const { db, auth } = getFirebaseAdmin();
 
     if (!isAuthorizedStaff) {
       return NextResponse.json(

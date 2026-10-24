@@ -784,3 +784,27 @@ export async function queryFirestoreCollectionRest(
 }
 
 
+
+/**
+ * Verifies a Firebase ID token using Google's public OAuth2 tokeninfo endpoint.
+ * 100% serverless safe - requires zero native SDKs.
+ */
+export async function verifyFirebaseIdTokenRest(
+  idToken: string
+): Promise<{ uid: string; email?: string } | null> {
+  if (!idToken || typeof idToken !== "string") return null;
+  try {
+    const res = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const projectId = process.env.FIREBASE_PROJECT_ID || DEFAULT_PROJECT_ID;
+    if (data.sub && (data.aud === projectId || String(data.aud).includes(projectId))) {
+      return { uid: data.sub, email: data.email };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

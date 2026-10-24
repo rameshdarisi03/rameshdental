@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
+import { verifyFirebaseIdTokenRest, getFirestoreDocRest } from "@/lib/firebaseRestAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,17 +12,17 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get("authorization") || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
 
-    const { auth, db } = getFirebaseAdmin();
-
     let isAuthorizedAdmin = false;
     let callerUid = "";
     if (bearerToken) {
       try {
-        const decoded = await auth.verifyIdToken(bearerToken);
-        callerUid = decoded.uid;
-        const callerDoc = await db.collection("users").doc(callerUid).get();
-        if (callerDoc.exists && callerDoc.data()?.role === "admin") {
-          isAuthorizedAdmin = true;
+        const decoded = await verifyFirebaseIdTokenRest(bearerToken);
+        if (decoded?.uid) {
+          callerUid = decoded.uid;
+          const callerDoc = await getFirestoreDocRest("users", callerUid);
+          if (callerDoc && callerDoc.role === "admin") {
+            isAuthorizedAdmin = true;
+          }
         }
       } catch (authErr) {
         console.warn("[API Staff Delete] Admin token verification rejected:", authErr);
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
     // 1. Permanently delete from Firebase Authentication (wipes email, credentials, tokens)
     let authDeleted = false;
     try {
+      const { getFirebaseAdmin } = await import("@/lib/firebaseAdmin");
+      const { auth } = getFirebaseAdmin();
       await auth.deleteUser(uid);
       authDeleted = true;
       console.log(`[API Staff Delete] ✓ Vaporized user from Firebase Auth: ${uid}`);
@@ -61,7 +63,9 @@ export async function POST(request: Request) {
     }
 
     // 2. Permanently delete from Firestore Database (/users/{uid})
-    await db.collection("users").doc(uid).delete();
+    const { getFirebaseAdmin } = await import("@/lib/firebaseAdmin");
+      const { db } = getFirebaseAdmin();
+      await db.collection("users").doc(uid).delete();
     console.log(`[API Staff Delete] ✓ Wiped user document from Firestore: ${uid}`);
 
     return NextResponse.json({

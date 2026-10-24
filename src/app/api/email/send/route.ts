@@ -1,5 +1,5 @@
+import { verifyFirebaseIdTokenRest, getFirestoreDocRest, patchFirestoreDocRest } from "@/lib/firebaseRestAdmin";
 import { NextRequest, NextResponse } from "next/server";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 import {
   sendPatientOnboardingEmail,
   sendBookingRequestReceivedEmail,
@@ -19,25 +19,27 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
+  // 1. Staff session cookie from dashboard
   const sessionCookie = req.cookies.get("gpc_session")?.value;
   if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
     return true;
   }
+
+  // 2. Bearer Firebase ID token
   const authHeader = req.headers.get("authorization") || "";
   const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   if (bearerToken) {
     try {
-      const { auth, db } = getFirebaseAdmin();
-      const decoded = await auth.verifyIdToken(bearerToken);
-      const userDoc = await db.collection("users").doc(decoded.uid).get();
-      if (userDoc.exists) {
-        const role = userDoc.data()?.role;
-        if (["admin", "receptionist", "doctor", "staff"].includes(role)) {
+      const decoded = await verifyFirebaseIdTokenRest(bearerToken);
+      if (decoded?.uid) {
+        const userDoc = await getFirestoreDocRest("users", decoded.uid);
+        if (userDoc && ["admin", "receptionist", "doctor", "staff"].includes(userDoc.role)) {
           return true;
         }
       }
     } catch {}
   }
+
   return false;
 }
 

@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  generateTOTPSecret,
-  getOtpAuthUrl,
-  generateQRCodeDataUrl,
-  formatSecretForDisplay,
-  verifyTOTP,
-} from "@/lib/totp";
 import {
   updateUserPassword,
   recordPasswordResetAudit,
+  verifyFirebaseIdTokenRest,
+  getFirestoreDocRest,
+  patchFirestoreDocRest
 } from "@/lib/firebaseRestAdmin";
-import { getFirebaseAdmin } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
