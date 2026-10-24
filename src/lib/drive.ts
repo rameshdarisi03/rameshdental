@@ -142,9 +142,25 @@ export async function deletePatientFolder(folderId?: string | null, patientId?: 
   if (!folderId && !patientId) return false;
   const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
   try {
+    let targetFolderId = folderId;
+
+    // Infallible resolution: If folderId is missing, look up patient folder in root directory by prefix match
+    if (!targetFolderId && patientId && rootFolderId) {
+      try {
+        const rootFolders = await listSubfolders(rootFolderId);
+        const matched = rootFolders.find((f) => f.name.startsWith(patientId) || f.name.includes(patientId));
+        if (matched) {
+          console.log(`[deletePatientFolder] Found folder for ${patientId} by prefix match: ${matched.name} (${matched.id})`);
+          targetFolderId = matched.id;
+        }
+      } catch (scanErr) {
+        console.warn(`[deletePatientFolder] Scanning root directory failed:`, scanErr);
+      }
+    }
+
     const result = await callAppsScript({
       action: "deleteFolder",
-      folderId: folderId || undefined,
+      folderId: targetFolderId || undefined,
       patientId: patientId || undefined,
       parentFolderId: rootFolderId,
     });
