@@ -43,6 +43,7 @@ import {
 import { getClinicConfig, ClinicConfig, DEFAULT_CLINIC_CONFIG, TeamDoctorProfile, DEFAULT_TEAM_MEMBERS } from "@/lib/db";
 import { getCleanWhatsAppNumber, getPrimaryDialNumber } from "@/lib/phoneUtils";
 import { articles } from "@/data/articles";
+import RecoveryStoriesCarousel from "@/components/public/RecoveryStoriesCarousel";
 
 // Viewport-Triggered rolling number counter for trust stats
 function ScrollTriggeredCounter({ 
@@ -2361,6 +2362,9 @@ export default function Home() {
 
         </div>
       </section>
+
+      {/* Patient Recovery Stories Video Showcase */}
+      <RecoveryStoriesCarousel />
 
       {/* Patient Hub Section */}
       <section id="patient-hub" className="py-16 sm:py-20 bg-brand-bg dark:bg-slate-955 border-t border-slate-200/60 dark:border-slate-800">

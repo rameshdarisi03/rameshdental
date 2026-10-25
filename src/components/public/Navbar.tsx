@@ -90,6 +90,7 @@ export default function Navbar() {
     { name: "Services", href: "/#services", sectionId: "services" },
     { name: "Team", href: "/#team", sectionId: "team" },
     { name: "Gallery", href: "/#gallery", sectionId: "gallery" },
+    { name: "Stories", href: "/#stories", sectionId: "stories" },
     { name: "Articles", href: "/#articles", sectionId: "articles" },
     { name: "FAQ", href: "/#faq", sectionId: "faq" },
     { name: "Locate Us", href: "/#locate-us", sectionId: "locate-us" },
