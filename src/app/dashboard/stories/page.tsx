@@ -99,7 +99,12 @@ export default function DashboardStoriesPage() {
     setFilePreviewUrl(null);
     setUploadProgress(null);
 
-    setEditingStory({ ...story });
+    const assessment = story.doctorAssessment || story.clinicalNotes || "";
+    setEditingStory({ 
+      ...story,
+      doctorAssessment: assessment,
+      clinicalNotes: assessment
+    });
     setHighlightsInput(story.highlights?.join(", ") || "");
     setIsModalOpen(true);
   };

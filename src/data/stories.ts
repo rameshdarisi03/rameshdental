@@ -5,11 +5,12 @@ export interface RecoveryStory {
   category: "Orthopedic Rehab" | "Hand & Upper Limb" | "Geriatric Mobility" | "Spine & Posture" | "Neuro & Gait";
   orientation: "portrait" | "landscape";
   videoUrl: string;
-  condition: string;
+  condition?: string;
   therapist: string;
   duration?: string;
   highlights: string[];
-  clinicalNotes: string;
+  clinicalNotes?: string;
+  doctorAssessment?: string;
   featured: boolean;
   order: number;
 }
@@ -27,6 +28,7 @@ export const recoveryStories: RecoveryStory[] = [
     duration: "0:45",
     highlights: ["Post-ORIF Internal Fixation", "Soft Tissue Desensitization", "Progressive Kinetic Loading"],
     clinicalNotes: "Patient presented post-high-energy crush trauma with comminuted tibia fracture and surgical skin graft. Treatment focused on gentle scar tissue release, ankle dorsiflexion mobilization, and progressive closed-chain kinetic loading to restore independent ambulation without compensatory limp.",
+    doctorAssessment: "Patient presented post-high-energy crush trauma with comminuted tibia fracture and surgical skin graft. Treatment focused on gentle scar tissue release, ankle dorsiflexion mobilization, and progressive closed-chain kinetic loading to restore independent ambulation without compensatory limp.",
     featured: true,
     order: 1,
   },
@@ -42,6 +44,7 @@ export const recoveryStories: RecoveryStory[] = [
     duration: "0:30",
     highlights: ["Paraffin Wax Thermal Therapy", "Myofascial Trigger Release", "End-Range Supination & Grip"],
     clinicalNotes: "Managed conservatively without surgical intervention. Utilized deep paraffin wax bath therapy to warm periarticular collagen fibers, followed by Maitland joint mobilization grades III & IV to break stubborn adhesions and restore full elbow extension and functional wrist grasping.",
+    doctorAssessment: "Managed conservatively without surgical intervention. Utilized deep paraffin wax bath therapy to warm periarticular collagen fibers, followed by Maitland joint mobilization grades III & IV to break stubborn adhesions and restore full elbow extension and functional wrist grasping.",
     featured: true,
     order: 2,
   },
@@ -57,6 +60,7 @@ export const recoveryStories: RecoveryStory[] = [
     duration: "0:38",
     highlights: ["Neuro-Facilitation (PNF)", "Quadriceps Eccentric Control", "Independent Stair Ambulation"],
     clinicalNotes: "Patient suffered severe unilateral lower motor weakness. Rehabilitation integrated Proprioceptive Neuromuscular Facilitation (PNF), dynamic pelvic stability training, and progressive step-up drills, advancing from parallel rail support to autonomous alternating stair climbing.",
+    doctorAssessment: "Patient suffered severe unilateral lower motor weakness. Rehabilitation integrated Proprioceptive Neuromuscular Facilitation (PNF), dynamic pelvic stability training, and progressive step-up drills, advancing from parallel rail support to autonomous alternating stair climbing.",
     featured: true,
     order: 3,
   },
@@ -72,6 +76,7 @@ export const recoveryStories: RecoveryStory[] = [
     duration: "0:42",
     highlights: ["Manual Spinal Decompression", "McKenzie Extension Protocol", "Deep Multifidus Stabilization"],
     clinicalNotes: "Intense nerve root impingement and mechanical low back stiffness. Employed manual disc unloading techniques combined with progressive transversus abdominis engagement to centralize symptoms and prevent surgical microdiscectomy.",
+    doctorAssessment: "Intense nerve root impingement and mechanical low back stiffness. Employed manual disc unloading techniques combined with progressive transversus abdominis engagement to centralize symptoms and prevent surgical microdiscectomy.",
     featured: true,
     order: 4,
   },
@@ -87,6 +92,7 @@ export const recoveryStories: RecoveryStory[] = [
     duration: "0:50",
     highlights: ["Vestibular & Proprioception Drills", "Closed-Chain Sit-to-Stand", "Gait Symmetry Restoration"],
     clinicalNotes: "Tailored active senior rehabilitation focusing on quadriceps and gluteal neuromuscular firing. Utilized supported balance pads and gradual stride lengthening to eliminate fear of falling and restore everyday home autonomy.",
+    doctorAssessment: "Tailored active senior rehabilitation focusing on quadriceps and gluteal neuromuscular firing. Utilized supported balance pads and gradual stride lengthening to eliminate fear of falling and restore everyday home autonomy.",
     featured: true,
     order: 5,
   },

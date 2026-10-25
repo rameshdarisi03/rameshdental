@@ -361,20 +361,20 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
               </div>
             )}
 
-            {/* Doctor's Assessment (Optional) */}
-            {story.doctorAssessment && story.doctorAssessment.trim().length > 0 && (
+            {/* Doctor's Clinical Assessment & Technique (Optional) */}
+            {(story.doctorAssessment?.trim() || story.clinicalNotes?.trim()) && (
               <div className="space-y-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block">
-                  Doctor&apos;s Clinical Assessment
+                  Doctor&apos;s Clinical Assessment &amp; Technique
                 </span>
                 <blockquote className="text-xs sm:text-sm text-slate-200 italic bg-white/5 p-4 rounded-2xl border-l-4 border-[#f9ab55] leading-relaxed">
-                  &ldquo;{story.doctorAssessment}&rdquo;
+                  &ldquo;{story.doctorAssessment || story.clinicalNotes}&rdquo;
                 </blockquote>
                 <div className="flex items-center gap-2 pt-1 text-xs text-slate-400">
                   <span className="w-6 h-6 rounded-full bg-[#f9ab55]/20 text-[#f9ab55] font-black text-[10px] flex items-center justify-center">
                     DK
                   </span>
-                  <span>Dr. Kinnera (Lead Physiotherapist)</span>
+                  <span>{story.therapist || "Dr. Kinnera (Lead Physiotherapist)"}</span>
                 </div>
               </div>
             )}
