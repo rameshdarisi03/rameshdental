@@ -159,10 +159,27 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
 
   const toggleFullscreen = () => {
     if (!videoRef.current) return;
-    if (!document.fullscreenElement) {
-      videoRef.current.requestFullscreen().catch(() => {});
+    const video = videoRef.current as any;
+    // Native iOS Safari video fullscreen support
+    if (video.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
+      return;
+    }
+    // Standard and WebKit/Blink Fullscreen API
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+      if (video.requestFullscreen) {
+        video.requestFullscreen().catch(() => {});
+      } else if (video.webkitRequestFullscreen) {
+        video.webkitRequestFullscreen();
+      } else if (video.msRequestFullscreen) {
+        video.msRequestFullscreen();
+      }
     } else {
-      document.exitFullscreen().catch(() => {});
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
     }
   };
 
@@ -247,7 +264,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
             )}
 
             {/* Custom Bottom Control Bar inside video */}
-            <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-lg">
+            <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 z-20 flex flex-col gap-1.5 bg-black/80 backdrop-blur-md px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-2xl border border-white/10 shadow-lg">
               {/* Scrub bar */}
               <input
                 type="range"
@@ -260,7 +277,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
               />
 
               <div className="flex items-center justify-between text-xs text-white font-medium pt-1 gap-2">
-                {/* Left controls: Play/Pause, Volume + Persistent Slider, Timestamp */}
+                {/* Left controls: Play/Pause, Volume + Persistent Slider (Desktop), Timestamp */}
                 <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                   <button 
                     onClick={togglePlay} 
@@ -287,7 +304,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
                       )}
                     </button>
 
-                    {/* Interactive Volume Slider */}
+                    {/* Interactive Volume Slider (Hidden on mobile phones to save space for fullscreen button, visible on tablets/desktops) */}
                     <input
                       type="range"
                       min="0"
@@ -295,7 +312,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
                       step="0.05"
                       value={isMuted ? 0 : volume}
                       onChange={handleVolumeChange}
-                      className="w-14 sm:w-18 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[#f9ab55] transition-all"
+                      className="hidden sm:block w-14 sm:w-18 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[#f9ab55] transition-all"
                       title={`Volume: ${isMuted || volume === 0 ? "Muted" : `${Math.round(volume * 100)}%`}`}
                       aria-label="Volume slider"
                     />
@@ -307,16 +324,16 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
                   </span>
                 </div>
 
-                {/* Right controls: Verified badge + Fullscreen */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold uppercase tracking-wider hidden xs:flex items-center gap-1">
+                {/* Right controls: Verified badge (desktop) + Fullscreen Expand Button (always visible on mobile & desktop) */}
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold uppercase tracking-wider hidden sm:flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                     Verified Case
                   </span>
                   <button
                     onClick={toggleFullscreen}
-                    className="hover:text-[#f9ab55] transition-colors cursor-pointer p-0.5 text-slate-300 hover:text-white"
-                    title="Fullscreen"
+                    className="p-1 sm:p-1.5 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white hover:text-[#f9ab55] transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-xs"
+                    title="Fullscreen / Expand"
                     aria-label="Toggle Fullscreen"
                   >
                     <Maximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
