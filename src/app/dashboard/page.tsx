@@ -679,7 +679,7 @@ export default function DashboardOverview() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-black text-brand-charcoal dark:text-white truncate max-w-[160px]">
-                  {nextPatient.patientName}
+                  {nextPatient.patientName.replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "").replace(/\s*\([^)]*\)\s*$/i, "").trim() || nextPatient.patientName}
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   nextPatient.isLiveNow 
@@ -1041,11 +1041,18 @@ export default function DashboardOverview() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                          {app.patientName}
+                          {app.patientName.replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "").replace(/\s*\([^)]*\)\s*$/i, "").trim() || app.patientName}
                         </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                          {app.type === "manual" ? "Walk-in" : "Online"}
-                        </span>
+                        {(app.type === "practo" || (app as any).practoEventId || (app.notes && app.notes.includes("Practo"))) ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#6d28d9] dark:text-[#d8b4fe] border border-[#d8b4fe] dark:border-[#7c3aed]/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
+                            Practo
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            {app.type === "manual" ? "Walk-in" : "Online"}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 truncate mt-0.5">
                         {app.serviceId || "General Physical Therapy Session"}

@@ -162,11 +162,13 @@ export function parsePractoIcal(icalContent: string): ParsedPractoEvent[] {
             patientEmail = emailMatch[0];
           }
 
-          // Clean Patient Name from Summary: e.g. "Appointment with Ram" or "Practo: Ram"
+          // Clean Patient Name from Summary: e.g. "Appointment with Ram (Dr. Kinnera)" -> "Ram"
           let patientName = summary
             .replace(/^appointment\s+(?:with|for)\s+/i, "")
             .replace(/^practo\s*:\s*/i, "")
             .replace(/\s*-\s*physiotherapy.*$/i, "")
+            .replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "")
+            .replace(/\s*\([^)]*\)\s*$/i, "")
             .trim();
 
           if (!patientName) patientName = "Practo Patient";
@@ -297,6 +299,18 @@ export async function syncPractoAppointments(params?: {
       }
       if (data.date && data.slot) {
         existingSlotsByDate.add(`${data.date}__${data.slot}`);
+      }
+
+      // Retroactive cleanup: remove (Dr. ...) or (doctor) from patientName if previously synced
+      const rawName = data.patientName || "";
+      if (/\([^)]+\)/.test(rawName)) {
+        const cleaned = rawName
+          .replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "")
+          .replace(/\s*\([^)]*\)\s*$/i, "")
+          .trim();
+        if (cleaned && cleaned !== rawName) {
+          updateDoc(docSnap.ref, { patientName: cleaned }).catch(() => {});
+        }
       }
     });
 

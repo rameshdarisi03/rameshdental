@@ -63,6 +63,15 @@ function getTodayDateString() {
   return `${year}-${month}-${day}`;
 }
 
+// Clean patient name by removing doctor names in parentheses (e.g. from Practo iCal summaries)
+function cleanPatientName(name?: string) {
+  if (!name) return "Patient";
+  return name
+    .replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "")
+    .replace(/\s*\([^)]*\)\s*$/i, "")
+    .trim() || name;
+}
+
 interface UserProfile {
   uid: string;
   email: string;
@@ -280,6 +289,30 @@ export default function DashboardAppointments() {
     if (userJson) {
       setCurrentUser(JSON.parse(userJson));
     }
+
+    // 3. Continuous Background Practo Sync (Auto-syncs on mount, every 10 min, and on tab focus)
+    const autoSyncPractoSilently = async () => {
+      try {
+        const res = await fetch("/api/practo/sync", { method: "POST" });
+        const data = await res.json();
+        if (res.ok && data.success && data.importedCount > 0) {
+          fetchAppointments();
+        }
+      } catch {}
+    };
+
+    autoSyncPractoSilently();
+    const syncInterval = setInterval(autoSyncPractoSilently, 10 * 60 * 1000); // Poll every 10 minutes
+
+    const handleWindowFocus = () => {
+      autoSyncPractoSilently();
+    };
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      clearInterval(syncInterval);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
   }, []);
 
   // Fetch availability specifically for manual booking dates
@@ -637,13 +670,14 @@ export default function DashboardAppointments() {
     const cleanPhone = getCleanWhatsAppNumber(effectivePhone);
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-    const fallbackMessage = `Hi ${app.patientName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
+    const cleanName = cleanPatientName(app.patientName);
+    const fallbackMessage = `Hi ${cleanName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
     const fallbackWhatsAppUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fallbackMessage)}`;
 
     setDeliveryModalData({
       isOpen: true,
       status: waStatus === "sent" ? "success" : "partial",
-      patientName: app.patientName,
+      patientName: cleanName,
       patientPhone: effectivePhone,
       patientEmail: effectiveEmail,
       date: app.date,
@@ -665,10 +699,11 @@ export default function DashboardAppointments() {
   const triggerWhatsAppConfirmation = (app: Appointment) => {
     const matchedP = getEffectivePatient(app);
     const cleanPhone = getCleanWhatsAppNumber(matchedP?.phone || app.patientPhone);
+    const cleanName = cleanPatientName(app.patientName);
 
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-    const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
+    const message = `Hi ${cleanName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
     const encodedMessage = encodeURIComponent(message);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
@@ -965,15 +1000,18 @@ export default function DashboardAppointments() {
             >
               {/* Patient and Service info */}
               <div className="space-y-3 flex-grow">
-                <div className="flex items-center gap-3">
-                  <h4 className="font-black text-brand-charcoal dark:text-white text-base leading-tight">{app.patientName}</h4>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h4 className="font-black text-brand-charcoal dark:text-white text-base leading-tight">
+                    {cleanPatientName(app.patientName)}
+                  </h4>
                   {app.type === "manual" && (
                     <span className="inline-flex items-center rounded-md bg-brand-sand/80 dark:bg-brand-green/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brand-green">
                       Staff Manual
                     </span>
                   )}
-                  {app.type === "practo" && (
-                    <span className="inline-flex items-center rounded-md bg-purple-100 dark:bg-purple-950/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                  {(app.type === "practo" || app.practoEventId || (app.notes && app.notes.includes("Practo"))) && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#6d28d9] dark:text-[#d8b4fe] border border-[#d8b4fe] dark:border-[#7c3aed]/50 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
                       Practo
                     </span>
                   )}

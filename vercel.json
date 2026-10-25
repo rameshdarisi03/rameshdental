@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/fortnight-usage",
       "schedule": "30 3 1,15 * *"
+    },
+    {
+      "path": "/api/practo/sync",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
