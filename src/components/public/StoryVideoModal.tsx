@@ -330,11 +330,11 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
         {/* Clinical Case Details & Consultation Column */}
         <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto space-y-6">
           <div className="space-y-4">
-            {/* Lead Tag & Condition */}
+            {/* Lead Tag & Title */}
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f9ab55]/15 border border-[#f9ab55]/30 text-[#f9ab55] text-xs font-black uppercase tracking-wider mb-2">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{story.condition}</span>
+                <span>{story.category}</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-white font-['Plus_Jakarta_Sans',sans-serif] leading-tight">
                 {story.title}
@@ -361,8 +361,8 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
               </div>
             )}
 
-            {/* Doctor's Assessment */}
-            {story.doctorAssessment && (
+            {/* Doctor's Assessment (Optional) */}
+            {story.doctorAssessment && story.doctorAssessment.trim().length > 0 && (
               <div className="space-y-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block">
                   Doctor&apos;s Clinical Assessment

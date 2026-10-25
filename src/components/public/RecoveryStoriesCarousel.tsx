@@ -203,9 +203,6 @@ export default function RecoveryStoriesCarousel() {
                   {/* Card Content Details */}
                   <div className="p-6 flex-1 flex flex-col justify-between bg-[#062e36]">
                     <div className="space-y-2">
-                      <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#f9ab55] block">
-                        {story.condition}
-                      </span>
                       <h3 className="text-base font-bold text-white font-['Plus_Jakarta_Sans',sans-serif] leading-snug line-clamp-2 group-hover:text-[#f9ab55] transition-colors">
                         {story.title}
                       </h3>
@@ -288,9 +285,6 @@ export default function RecoveryStoriesCarousel() {
 
                   <div className="p-5 flex-1 flex flex-col justify-between bg-[#062e36]">
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block">
-                        {story.condition}
-                      </span>
                       <h3 className="text-base font-bold text-white font-['Plus_Jakarta_Sans',sans-serif] leading-tight">
                         {story.title}
                       </h3>

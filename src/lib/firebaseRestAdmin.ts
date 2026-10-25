@@ -788,6 +788,31 @@ export async function setFirestoreDocRest(
 }
 
 /**
+ * Deletes a document in Firestore via pure REST API.
+ */
+export async function deleteFirestoreDocRest(
+  collection: string,
+  docId: string
+): Promise<void> {
+  const token = await getGoogleAccessToken();
+  const { projectId } = getCredentials();
+
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${docId}`;
+
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok && res.status !== 404) {
+    const errText = await res.text();
+    throw new Error(`Firestore delete doc failed: ${errText}`);
+  }
+}
+
+/**
  * Runs a query on a Firestore collection via pure REST API.
  */
 export async function queryFirestoreCollectionRest(

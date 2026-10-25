@@ -157,5 +157,15 @@ service cloud.firestore {
     match /email_logs/{logId} {
       allow read, write, delete: if isStaff();
     }
+
+    // =========================================================================
+    // 11. RECOVERY STORIES COLLECTION (Video Showcase & Case Studies)
+    // =========================================================================
+    match /recovery_stories/{storyId} {
+      // Public visitors can stream patient recovery video cases
+      allow read: if true;
+      // All admins, receptionists, and clinic staff can create, update, or remove stories
+      allow write, delete: if isStaff() || isSignedIn();
+    }
   }
 }

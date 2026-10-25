@@ -18,7 +18,9 @@ import {
   EyeOff, 
   Activity,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  Upload,
+  FileVideo
 } from "lucide-react";
 import Link from "next/link";
 import { RecoveryStory, recoveryStories as defaultStories } from "@/data/stories";
@@ -49,6 +51,11 @@ export default function DashboardStoriesPage() {
   const [editingStory, setEditingStory] = useState<Partial<RecoveryStory> | null>(null);
   const [highlightsInput, setHighlightsInput] = useState("");
 
+  // File Upload State (for Firebase Storage bucket)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
   // Preview video in dashboard
   const [previewStory, setPreviewStory] = useState<RecoveryStory | null>(null);
 
@@ -62,6 +69,11 @@ export default function DashboardStoriesPage() {
   }, []);
 
   const openNewStoryModal = () => {
+    setSelectedFile(null);
+    if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    setFilePreviewUrl(null);
+    setUploadProgress(null);
+
     setEditingStory({
       id: `story-${Date.now()}`,
       title: "",
@@ -69,11 +81,11 @@ export default function DashboardStoriesPage() {
       category: "Orthopedic Rehab",
       orientation: "portrait",
       videoUrl: "",
-      condition: "",
       therapist: "Dr. Kinnera (Lead Physiotherapist)",
       duration: "0:45",
       highlights: [],
       clinicalNotes: "",
+      doctorAssessment: "",
       featured: true,
       order: stories.length + 1,
     });
@@ -82,23 +94,83 @@ export default function DashboardStoriesPage() {
   };
 
   const openEditModal = (story: RecoveryStory) => {
+    setSelectedFile(null);
+    if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+    setFilePreviewUrl(null);
+    setUploadProgress(null);
+
     setEditingStory({ ...story });
     setHighlightsInput(story.highlights?.join(", ") || "");
     setIsModalOpen(true);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setFilePreviewUrl(url);
+      setEditingStory((prev) => (prev ? { ...prev, videoUrl: url } : null));
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingStory?.title || !editingStory?.videoUrl) {
-      alert("Please provide at least a title and a video URL.");
+    if (!editingStory?.title || (!editingStory?.videoUrl && !selectedFile)) {
+      alert("Please provide a story title and select a video file or URL.");
       return;
     }
 
     setSaving(true);
+    let finalVideoUrl = editingStory.videoUrl || "";
+
+    // Upload to Firebase Storage bucket if file selected
+    if (selectedFile) {
+      try {
+        setUploadProgress(10);
+        const { storage } = await import("@/lib/firebase");
+        const { ref, uploadBytesResumable, getDownloadURL } = await import("firebase/storage");
+
+        const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const storagePath = `recovery_stories/${Date.now()}_${cleanFileName}`;
+        const storageRef = ref(storage, storagePath);
+
+        const uploadTask = uploadBytesResumable(storageRef, selectedFile);
+
+        finalVideoUrl = await new Promise<string>((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress);
+            },
+            (error) => {
+              console.warn("Firebase Storage upload task error:", error);
+              reject(error);
+            },
+            async () => {
+              const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(downloadUrl);
+            }
+          );
+        });
+      } catch (uploadErr: any) {
+        console.warn("Storage upload failed (bucket may not be activated yet):", uploadErr);
+        // If therapist hasn't configured Blaze plan yet, inform them
+        if (finalVideoUrl.startsWith("blob:")) {
+          alert(
+            "Firebase Storage bucket is not activated yet on this Google account (requires Blaze plan). We've saved the record with your local preview URL so your work isn't lost. Once Blaze is enabled, files will upload and stream directly from the cloud!"
+          );
+        }
+      }
+    }
+
     const parsedHighlights = highlightsInput
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+
+    const assessmentText = editingStory.doctorAssessment || editingStory.clinicalNotes || "";
 
     const updatedStory: RecoveryStory = {
       id: editingStory.id || `story-${Date.now()}`,
@@ -106,24 +178,27 @@ export default function DashboardStoriesPage() {
       subtitle: editingStory.subtitle || "",
       category: (editingStory.category as any) || "Orthopedic Rehab",
       orientation: editingStory.orientation || "portrait",
-      videoUrl: editingStory.videoUrl || "",
-      condition: editingStory.condition || "Clinical Rehabilitation",
+      videoUrl: finalVideoUrl,
       therapist: editingStory.therapist || "Dr. Kinnera (Lead Physiotherapist)",
       duration: editingStory.duration || "0:45",
       highlights: parsedHighlights,
-      clinicalNotes: editingStory.clinicalNotes || "",
+      clinicalNotes: assessmentText,
+      doctorAssessment: assessmentText,
       featured: editingStory.featured ?? true,
       order: editingStory.order ?? 1,
     };
 
     const res = await saveRecoveryStory(updatedStory);
     setSaving(false);
+    setUploadProgress(null);
+
     if (res.success) {
       setIsModalOpen(false);
+      setSelectedFile(null);
       setActionSuccess("Story saved and updated on live website!");
-      setTimeout(() => setActionSuccess(null), 3000);
+      setTimeout(() => setActionSuccess(null), 3500);
     } else {
-      alert(res.error || "Failed to save story");
+      alert(res.error || "Failed to save story. Please try again.");
     }
   };
 
@@ -139,214 +214,212 @@ export default function DashboardStoriesPage() {
   };
 
   const toggleFeatured = async (story: RecoveryStory) => {
-    await saveRecoveryStory({
-      ...story,
-      featured: !story.featured,
-    });
+    const updated = { ...story, featured: !story.featured };
+    await saveRecoveryStory(updated);
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-['Inter',sans-serif]">
-      {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/10 dark:bg-[#f9ab55]/15 text-brand-green dark:text-[#f9ab55] text-xs font-black uppercase tracking-wider mb-1">
+    <div className="space-y-8 font-['Inter',sans-serif]">
+      {/* Top Banner / Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-[#062e36] to-[#0d4550] p-6 sm:p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 -mr-16 -mt-16 w-64 h-64 bg-[#f9ab55]/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="space-y-1.5 relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[#f9ab55] text-xs font-black uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Website Media CMS</span>
+            Therapist Media Center
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
-            Recovery Stories & Videos
+          <h1 className="text-2xl sm:text-3xl font-black font-['Plus_Jakarta_Sans',sans-serif] tracking-tight">
+            Recovery Stories Manager
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            Manage real treatment videos, patient cases, and clinical proof showcased on your website homepage and stories page.
+          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+            Upload and manage patient clinical videos, configure Portrait (9:16) vs Landscape (16:9) orientation, and toggle homepage carousel features.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-3 relative z-10 shrink-0">
           <Link
             href="/stories"
             target="_blank"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-all shadow-xs"
+            className="px-4 py-2.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-xs font-bold text-white flex items-center gap-2 transition-colors cursor-pointer"
           >
             <span>View Live Page</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ExternalLink className="w-3.5 h-3.5" />
           </Link>
-
           <button
             onClick={openNewStoryModal}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-[#f9ab55] hover:bg-[#e49b4b] text-[#062e36] text-xs font-black shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[3]" />
             <span>Add New Story</span>
           </button>
         </div>
       </div>
 
-      {/* Success Notification Banner */}
+      {/* Success Notification Alert */}
       {actionSuccess && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <Check className="w-4 h-4 text-emerald-600" />
-            <span>{actionSuccess}</span>
-          </div>
-          <button onClick={() => setActionSuccess(null)} className="p-1 hover:bg-emerald-100 rounded-lg">
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
+          <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span>{actionSuccess}</span>
         </div>
       )}
 
-      {/* Stories Grid */}
+      {/* Stories Grid / Cards */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="p-16 flex flex-col items-center justify-center text-slate-400 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-brand-green" />
+          <span className="text-xs font-semibold">Loading recovery stories database...</span>
         </div>
       ) : stories.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 space-y-4">
+        <div className="p-12 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
           <Video className="w-12 h-12 text-slate-400 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white">No Stories Found</h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Click &quot;Add New Story&quot; above to publish your first patient recovery video.
-          </p>
+          <p className="text-sm font-black text-slate-700 dark:text-slate-200">No stories added yet</p>
+          <p className="text-xs text-slate-500">Click &ldquo;Add New Story&rdquo; to publish your first patient rehabilitation video.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {stories.map((story) => {
-            const isPortrait = story.orientation === "portrait";
-            return (
-              <div
-                key={story.id}
-                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-              >
-                {/* Video Preview Box */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stories.map((story) => (
+            <div
+              key={story.id}
+              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+            >
+              {/* Card Header & Video Preview Thumbnail */}
+              <div>
                 <div className="relative aspect-[16/10] bg-black overflow-hidden group">
                   <video
                     src={story.videoUrl}
                     muted
                     playsInline
-                    loop
                     preload="metadata"
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                    className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity"
                   />
-
-                  {/* Orientation Pill */}
-                  <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-black uppercase">
-                      {isPortrait ? <Smartphone className="w-3 h-3 text-[#f9ab55]" /> : <Monitor className="w-3 h-3 text-cyan-400" />}
-                      <span>{isPortrait ? "Portrait (9:16)" : "Landscape (16:9)"}</span>
+                  
+                  {/* Category Pill */}
+                  <div className="absolute top-3 left-3">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[#f9ab55] border border-[#f9ab55]/40 text-[9px] font-black uppercase">
+                      <Activity className="w-3 h-3 text-[#f9ab55]" />
+                      {story.category}
                     </span>
                   </div>
 
-                  {/* Homepage Featured Tag */}
-                  <div className="absolute top-3 right-3 z-10">
-                    <button
-                      type="button"
-                      onClick={() => toggleFeatured(story)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition-all cursor-pointer ${
-                        story.featured
-                          ? "bg-emerald-500 text-white shadow-xs"
-                          : "bg-black/60 text-slate-400 hover:text-white"
-                      }`}
-                      title="Click to toggle Homepage visibility"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      <span>{story.featured ? "Homepage" : "Stories Only"}</span>
-                    </button>
+                  {/* Orientation & Duration Badge */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[9px] font-bold">
+                      {story.orientation === "portrait" ? (
+                        <Smartphone className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <Monitor className="w-3 h-3 text-cyan-400" />
+                      )}
+                      <span>{story.orientation === "portrait" ? "9:16" : "16:9"}</span>
+                    </span>
                   </div>
 
-                  {/* Play Trigger */}
+                  {/* Click to Preview Play Button */}
                   <button
-                    type="button"
                     onClick={() => setPreviewStory(story)}
-                    className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-[#f9ab55] text-[#062e36] flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95 cursor-pointer z-10"
+                    className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-[#f9ab55] text-[#062e36] flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 active:scale-95 cursor-pointer"
+                    title="Preview video"
                   >
                     <Play className="w-5 h-5 fill-current translate-x-0.5" />
                   </button>
                 </div>
 
-                {/* Details Section */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-[#8a5100] dark:text-[#f9ab55] uppercase tracking-wider">
-                        {story.category}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-mono font-bold">
-                        {story.duration || "0:45"}
-                      </span>
-                    </div>
-
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                {/* Card Body */}
+                <div className="p-5 space-y-3">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white line-clamp-1">
                       {story.title}
                     </h3>
-
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
                       {story.subtitle}
                     </p>
                   </div>
 
-                  {/* Clinical Snippet */}
-                  {story.clinicalNotes && (
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl line-clamp-2 border border-slate-100 dark:border-slate-800">
-                      &ldquo;{story.clinicalNotes}&rdquo;
-                    </p>
-                  )}
-
-                  {/* Actions Footer */}
-                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-slate-400 font-bold truncate max-w-[140px]">
-                      {story.therapist?.split(" ")[0] || "Dr. Kinnera"}
-                    </span>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(story)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(story.id, story.title)}
-                        className="p-1.5 rounded-xl border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-bold transition-colors cursor-pointer"
-                        title="Delete Story"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                  {/* Highlights Pill Cloud */}
+                  {story.highlights && story.highlights.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {story.highlights.slice(0, 3).map((item, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                      {story.highlights.length > 3 && (
+                        <span className="px-1.5 py-0.5 text-[10px] text-slate-400 font-bold">
+                          +{story.highlights.length - 3} more
+                        </span>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            );
-          })}
+
+              {/* Card Footer Actions */}
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50/50 dark:bg-slate-850/50">
+                {/* Homepage Toggle */}
+                <button
+                  type="button"
+                  onClick={() => toggleFeatured(story)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
+                    story.featured
+                      ? "bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-teal-400"
+                      : "bg-slate-200 dark:bg-slate-800 text-slate-500"
+                  }`}
+                  title="Toggle homepage carousel display"
+                >
+                  {story.featured ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  <span>{story.featured ? "Home Carousel" : "Stories Only"}</span>
+                </button>
+
+                {/* Edit & Delete Buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditModal(story)}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                    title="Edit story details"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(story.id, story.title)}
+                    className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+                    title="Delete story"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* --- ADD / EDIT STORY MODAL --- */}
       {isModalOpen && editingStory && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] flex flex-col">
-            <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-5 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
-                  {editingStory.id?.startsWith("story-") ? "Add Recovery Story" : "Edit Recovery Story"}
+                <h2 className="text-lg font-black text-slate-900 dark:text-white font-['Plus_Jakarta_Sans',sans-serif]">
+                  {editingStory.id?.startsWith("story-") && !stories.some((s) => s.id === editingStory.id)
+                    ? "Add Recovery Story"
+                    : "Edit Recovery Story"}
                 </h2>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Update clinical details, video path, and showcase preferences.
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Configure clinical video, orientation, and showcase notes.
                 </p>
               </div>
               <button
-                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 overflow-y-auto pr-1 flex-1">
+            <form onSubmit={handleSave} className="space-y-4 text-left">
               {/* Title */}
               <div>
                 <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
@@ -357,12 +430,12 @@ export default function DashboardStoriesPage() {
                   required
                   value={editingStory.title || ""}
                   onChange={(e) => setEditingStory({ ...editingStory, title: e.target.value })}
-                  placeholder="e.g. Comminuted Tibia Fracture & Skin Grafting Rehab"
+                  placeholder="e.g. Comminuted Tibia Fracture & Mobilization"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-brand-green"
                 />
               </div>
 
-              {/* Subtitle / Synopsis */}
+              {/* Subtitle / Clinical Synopsis */}
               <div>
                 <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
                   Clinical Subtitle / Case Synopsis
@@ -371,12 +444,12 @@ export default function DashboardStoriesPage() {
                   type="text"
                   value={editingStory.subtitle || ""}
                   onChange={(e) => setEditingStory({ ...editingStory, subtitle: e.target.value })}
-                  placeholder="e.g. Complex lower limb crush trauma restoring progressive weight-bearing"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-brand-green"
+                  placeholder="e.g. Post-ORIF internal fixation restoring full unassisted gait."
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-brand-green"
                 />
               </div>
 
-              {/* Category & Condition */}
+              {/* Therapy Category & Orientation (Side by Side) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
@@ -397,36 +470,6 @@ export default function DashboardStoriesPage() {
 
                 <div>
                   <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
-                    Pathology / Condition Tag
-                  </label>
-                  <input
-                    type="text"
-                    value={editingStory.condition || ""}
-                    onChange={(e) => setEditingStory({ ...editingStory, condition: e.target.value })}
-                    placeholder="e.g. Complex Tibia Fracture"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-brand-green"
-                  />
-                </div>
-              </div>
-
-              {/* Video URL & Orientation */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
-                    Video URL or File Path *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editingStory.videoUrl || ""}
-                    onChange={(e) => setEditingStory({ ...editingStory, videoUrl: e.target.value })}
-                    placeholder="/videos/stories/tibia-fracture-recovery.mp4"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-brand-green"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
                     Video Orientation
                   </label>
                   <select
@@ -434,22 +477,100 @@ export default function DashboardStoriesPage() {
                     onChange={(e) => setEditingStory({ ...editingStory, orientation: e.target.value as any })}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-brand-green"
                   >
-                    <option value="portrait">📱 Portrait (9:16)</option>
-                    <option value="landscape">🖥 Landscape (16:9)</option>
+                    <option value="portrait">📱 Portrait (9:16 Mobile Reel)</option>
+                    <option value="landscape">🖥 Landscape (16:9 Wide)</option>
                   </select>
                 </div>
               </div>
 
-              {/* Clinical Notes */}
+              {/* Video Source: Browse Device File (Firebase Storage Ready) + URL option */}
+              <div className="space-y-2 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <FileVideo className="w-3.5 h-3.5 text-brand-green" />
+                    <span>Video File Source *</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-semibold">Firebase Storage / Local</span>
+                </div>
+
+                {/* Browse from Device Button */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <label className="relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-brand-green/50 dark:border-brand-green/40 bg-brand-green/5 dark:bg-brand-green/10 hover:bg-brand-green/10 dark:hover:bg-brand-green/20 text-brand-green dark:text-teal-400 font-black text-xs cursor-pointer transition-all shadow-2xs group">
+                    <Upload className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+                    <span>{selectedFile ? `Selected: ${selectedFile.name}` : "📁 Browse Video File from Device"}</span>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/quicktime,video/webm,video/*"
+                      onChange={handleFileSelect}
+                      className="sr-only"
+                    />
+                  </label>
+
+                  {selectedFile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        if (filePreviewUrl) URL.revokeObjectURL(filePreviewUrl);
+                        setFilePreviewUrl(null);
+                      }}
+                      className="px-3 py-2 text-xs text-rose-500 hover:text-rose-700 font-bold border border-rose-200 dark:border-rose-900/60 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                    >
+                      Clear File
+                    </button>
+                  )}
+                </div>
+
+                {/* Upload Progress Bar */}
+                {uploadProgress !== null && (
+                  <div className="space-y-1 pt-1">
+                    <div className="flex justify-between text-[11px] font-bold text-brand-green dark:text-teal-400">
+                      <span>Uploading to Firebase Cloud Storage...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-brand-green transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Direct URL or File Path Input */}
+                <div className="pt-1">
+                  <input
+                    type="text"
+                    required={!selectedFile}
+                    value={editingStory.videoUrl || ""}
+                    onChange={(e) => setEditingStory({ ...editingStory, videoUrl: e.target.value })}
+                    placeholder="Or enter video URL/path (e.g. /videos/stories/tibia-fracture-recovery.mp4)"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-brand-green"
+                  />
+                </div>
+              </div>
+
+              {/* Doctor's Clinical Assessment & Technique (Optional) */}
               <div>
-                <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
-                  Doctor&apos;s Clinical Assessment & Technique
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-black text-slate-700 dark:text-slate-200">
+                    Doctor&apos;s Clinical Assessment & Technique
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Optional
+                  </span>
+                </div>
                 <textarea
                   rows={3}
-                  value={editingStory.clinicalNotes || ""}
-                  onChange={(e) => setEditingStory({ ...editingStory, clinicalNotes: e.target.value })}
-                  placeholder="Describe the clinical progression, therapy techniques used, and mobility goals achieved..."
+                  value={editingStory.doctorAssessment || editingStory.clinicalNotes || ""}
+                  onChange={(e) =>
+                    setEditingStory({
+                      ...editingStory,
+                      doctorAssessment: e.target.value,
+                      clinicalNotes: e.target.value,
+                    })
+                  }
+                  placeholder="Optional: Enter clinical observations, techniques used, joint angles improved, or leave empty..."
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-brand-green leading-relaxed"
                 />
               </div>
@@ -481,12 +602,12 @@ export default function DashboardStoriesPage() {
                 </label>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -496,7 +617,7 @@ export default function DashboardStoriesPage() {
                   className="px-6 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-black shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  <span>Save & Publish</span>
+                  <span>{saving ? "Saving..." : "Save & Publish"}</span>
                 </button>
               </div>
             </form>

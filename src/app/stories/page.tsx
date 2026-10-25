@@ -144,10 +144,7 @@ export default function RecoveryStoriesPage() {
               {/* Story Content */}
               <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block">
-                      {story.condition}
-                    </span>
+                  <div className="flex items-center justify-end">
                     <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
                       Verified
