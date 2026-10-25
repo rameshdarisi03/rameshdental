@@ -102,8 +102,8 @@ export default function Navbar() {
   // Primary links visible on both lg and xl
   const primaryNavLinks: NavItem[] = [
     { name: "Services", href: "/#services", sectionId: "services" },
-    { name: "Stories", href: "/#stories", sectionId: "stories" },
     { name: "Team", href: "/#team", sectionId: "team" },
+    { name: "Stories", href: "/#stories", sectionId: "stories" },
     { name: "Articles", href: "/#articles", sectionId: "articles" },
     { name: "Locate Us", href: "/#locate-us", sectionId: "locate-us" },
     ...(FEATURES.enablePatientHub ? [{ name: "Patient Hub", href: "/#patient-hub", sectionId: "patient-hub" }] : [])
@@ -119,8 +119,8 @@ export default function Navbar() {
   const allMobileNavLinks: NavItem[] = [
     { name: "Home", href: "/#home", sectionId: "home" },
     { name: "Services", href: "/#services", sectionId: "services" },
-    { name: "Stories", href: "/#stories", sectionId: "stories" },
     { name: "Team", href: "/#team", sectionId: "team" },
+    { name: "Stories", href: "/#stories", sectionId: "stories" },
     { name: "Gallery", href: "/#gallery", sectionId: "gallery" },
     { name: "Articles", href: "/#articles", sectionId: "articles" },
     { name: "FAQ", href: "/#faq", sectionId: "faq" },
@@ -134,7 +134,7 @@ export default function Navbar() {
       return;
     }
 
-    const sectionIds = ["services", "stories", "team", "gallery", "articles", "patient-hub", "faq", "locate-us"];
+    const sectionIds = ["services", "team", "stories", "gallery", "articles", "patient-hub", "faq", "locate-us"];
     const handleScroll = () => {
       const scrollPos = window.scrollY + 140;
       let currentSection = "";

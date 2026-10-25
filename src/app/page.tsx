@@ -1445,6 +1445,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Patient Recovery Stories Video Showcase (Right after Team) */}
+      <RecoveryStoriesCarousel />
+
       {/* Clinic Gallery Section */}
       <section id="gallery" className="py-20 bg-brand-bg dark:bg-slate-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
@@ -2362,9 +2365,6 @@ export default function Home() {
 
         </div>
       </section>
-
-      {/* Patient Recovery Stories Video Showcase */}
-      <RecoveryStoriesCarousel />
 
       {/* Patient Hub Section */}
       <section id="patient-hub" className="py-16 sm:py-20 bg-brand-bg dark:bg-slate-955 border-t border-slate-200/60 dark:border-slate-800">
