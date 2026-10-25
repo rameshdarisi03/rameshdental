@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { RecoveryStory, recoveryStories as defaultStories } from "@/data/stories";
+import StoryVideoModal from "@/components/public/StoryVideoModal";
 import { 
   subscribeRecoveryStories, 
   saveRecoveryStory, 
@@ -503,29 +504,12 @@ export default function DashboardStoriesPage() {
         </div>
       )}
 
-      {/* --- QUICK PREVIEW MODAL --- */}
-      {previewStory && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-          <div className="relative max-w-lg w-full bg-slate-950 rounded-3xl border border-white/20 overflow-hidden shadow-2xl p-4">
-            <button
-              onClick={() => setPreviewStory(null)}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 text-white hover:bg-black/80"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="relative w-full aspect-[9/16] max-h-[80vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black">
-              <video
-                src={previewStory.videoUrl}
-                controls
-                autoPlay
-                playsInline
-                className="w-full h-full object-contain rounded-2xl"
-              />
-            </div>
-            <p className="text-xs text-white font-bold text-center mt-3">{previewStory.title}</p>
-          </div>
-        </div>
-      )}
+      {/* --- LIVE PREVIEW MODAL --- */}
+      <StoryVideoModal
+        story={previewStory}
+        isOpen={!!previewStory}
+        onClose={() => setPreviewStory(null)}
+      />
     </div>
   );
 }

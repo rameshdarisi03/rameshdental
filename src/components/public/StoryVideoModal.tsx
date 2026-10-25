@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { 
   X, 
@@ -25,17 +25,50 @@ interface StoryVideoModalProps {
   onClose: () => void;
 }
 
+const STORAGE_KEY_VOLUME = "gpc_recovery_video_volume";
+const STORAGE_KEY_MUTED = "gpc_recovery_video_muted";
+
+// Retrieve saved volume and mute preference from localStorage
+function getStoredVolumePreferences(): { volume: number; isMuted: boolean } {
+  if (typeof window === "undefined") {
+    return { volume: 0.8, isMuted: false };
+  }
+  try {
+    const savedVol = localStorage.getItem(STORAGE_KEY_VOLUME);
+    const savedMuted = localStorage.getItem(STORAGE_KEY_MUTED);
+
+    const volume = savedVol !== null ? Math.max(0, Math.min(1, parseFloat(savedVol))) : 0.8;
+    const isMuted = savedMuted !== null ? savedMuted === "true" : false;
+
+    return { volume, isMuted };
+  } catch (e) {
+    return { volume: 0.8, isMuted: false };
+  }
+}
+
+// Persist volume and mute state
+function persistVolumePreferences(volume: number, isMuted: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY_VOLUME, volume.toString());
+    localStorage.setItem(STORAGE_KEY_MUTED, isMuted.toString());
+  } catch (e) {}
+}
+
 export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoModalProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState<number>(0.8);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const prefs = getStoredVolumePreferences();
+    setVolume(prefs.volume);
+    setIsMuted(prefs.isMuted);
   }, []);
 
   // Handle ESC key to close
@@ -53,16 +86,22 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
     };
   }, [isOpen, onClose]);
 
-  // Reset and auto-play when a new story opens
+  // Synchronize audio preferences whenever a new story is opened or loaded
   useEffect(() => {
     if (isOpen && videoRef.current) {
+      const prefs = getStoredVolumePreferences();
       videoRef.current.currentTime = 0;
+      videoRef.current.volume = prefs.volume;
+      videoRef.current.muted = prefs.isMuted;
+      setVolume(prefs.volume);
+      setIsMuted(prefs.isMuted);
+
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => setIsPlaying(true))
           .catch(() => {
-            // Browser autoplay policy might require muted start
+            // If browser autoplay policy blocks unmuted audio on start, fallback to mute and keep preference
             if (videoRef.current) {
               videoRef.current.muted = true;
               setIsMuted(true);
@@ -90,30 +129,32 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
   const toggleMute = () => {
     if (!videoRef.current) return;
     if (isMuted || volume === 0) {
+      // Unmute: restore previous non-zero volume or 0.8
       const restoredVol = volume === 0 ? 0.8 : volume;
       videoRef.current.muted = false;
       videoRef.current.volume = restoredVol;
       setVolume(restoredVol);
       setIsMuted(false);
+      persistVolumePreferences(restoredVol, false);
     } else {
+      // Mute: save current muted state
       videoRef.current.muted = true;
       setIsMuted(true);
+      persistVolumePreferences(volume, true);
     }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVol = parseFloat(e.target.value);
     setVolume(newVol);
+    const newMuted = newVol === 0;
+    setIsMuted(newMuted);
+
     if (videoRef.current) {
       videoRef.current.volume = newVol;
-      if (newVol === 0) {
-        videoRef.current.muted = true;
-        setIsMuted(true);
-      } else {
-        videoRef.current.muted = false;
-        setIsMuted(false);
-      }
+      videoRef.current.muted = newMuted;
     }
+    persistVolumePreferences(newVol, newMuted);
   };
 
   const toggleFullscreen = () => {
@@ -184,7 +225,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
               onClick={togglePlay}
               playsInline
               loop
-              className={`w-full h-full object-contain rounded-2xl border border-white/10 shadow-inner cursor-pointer`}
+              className="w-full h-full object-contain rounded-2xl border border-white/10 shadow-inner cursor-pointer"
             />
 
             {/* Subtle Overlay Badge on Video (Clinical Tag) */}
@@ -219,7 +260,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
               />
 
               <div className="flex items-center justify-between text-xs text-white font-medium pt-1 gap-2">
-                {/* Left controls: Play/Pause, Volume + Slider, Timestamp */}
+                {/* Left controls: Play/Pause, Volume + Persistent Slider, Timestamp */}
                 <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                   <button 
                     onClick={togglePlay} 
@@ -229,7 +270,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
                     {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                   </button>
 
-                  {/* Volume Control Group with Interactive Slider */}
+                  {/* Volume Control Group with Interactive Slider & Persistent Memory */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button 
                       onClick={toggleMute} 
@@ -255,7 +296,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
                       value={isMuted ? 0 : volume}
                       onChange={handleVolumeChange}
                       className="w-14 sm:w-18 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[#f9ab55] transition-all"
-                      title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                      title={`Volume: ${isMuted || volume === 0 ? "Muted" : `${Math.round(volume * 100)}%`}`}
                       aria-label="Volume slider"
                     />
                   </div>
