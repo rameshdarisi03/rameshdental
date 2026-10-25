@@ -6,6 +6,7 @@ import {
   X, 
   Play, 
   Pause, 
+  Volume1,
   Volume2, 
   VolumeX, 
   Maximize, 
@@ -28,6 +29,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -87,8 +89,40 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
 
   const toggleMute = () => {
     if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
+    if (isMuted || volume === 0) {
+      const restoredVol = volume === 0 ? 0.8 : volume;
+      videoRef.current.muted = false;
+      videoRef.current.volume = restoredVol;
+      setVolume(restoredVol);
+      setIsMuted(false);
+    } else {
+      videoRef.current.muted = true;
+      setIsMuted(true);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVol = parseFloat(e.target.value);
+    setVolume(newVol);
+    if (videoRef.current) {
+      videoRef.current.volume = newVol;
+      if (newVol === 0) {
+        videoRef.current.muted = true;
+        setIsMuted(true);
+      } else {
+        videoRef.current.muted = false;
+        setIsMuted(false);
+      }
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!videoRef.current) return;
+    if (!document.fullscreenElement) {
+      videoRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
   };
 
   const handleTimeUpdate = () => {
@@ -172,7 +206,7 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
             )}
 
             {/* Custom Bottom Control Bar inside video */}
-            <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-1.5 bg-black/70 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-lg">
+            <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-1.5 bg-black/75 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-white/10 shadow-lg">
               {/* Scrub bar */}
               <input
                 type="range"
@@ -181,25 +215,72 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
                 value={currentTime}
                 onChange={handleSeek}
                 className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#f9ab55]"
+                aria-label="Seek time"
               />
 
-              <div className="flex items-center justify-between text-xs text-white font-medium pt-1">
-                <div className="flex items-center gap-3">
-                  <button onClick={togglePlay} className="hover:text-[#f9ab55] transition-colors cursor-pointer">
+              <div className="flex items-center justify-between text-xs text-white font-medium pt-1 gap-2">
+                {/* Left controls: Play/Pause, Volume + Slider, Timestamp */}
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <button 
+                    onClick={togglePlay} 
+                    className="hover:text-[#f9ab55] transition-colors cursor-pointer shrink-0 p-0.5"
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  >
                     {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                   </button>
-                  <button onClick={toggleMute} className="hover:text-[#f9ab55] transition-colors cursor-pointer">
-                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  </button>
-                  <span className="text-[11px] text-slate-300 font-mono font-bold">
+
+                  {/* Volume Control Group with Interactive Slider */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button 
+                      onClick={toggleMute} 
+                      className="hover:text-[#f9ab55] transition-colors cursor-pointer p-0.5 shrink-0"
+                      title={isMuted || volume === 0 ? "Unmute" : "Mute"}
+                      aria-label="Toggle Mute"
+                    >
+                      {isMuted || volume === 0 ? (
+                        <VolumeX className="w-4 h-4 text-rose-400" />
+                      ) : volume < 0.5 ? (
+                        <Volume1 className="w-4 h-4" />
+                      ) : (
+                        <Volume2 className="w-4 h-4" />
+                      )}
+                    </button>
+
+                    {/* Interactive Volume Slider */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      className="w-14 sm:w-18 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[#f9ab55] transition-all"
+                      title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                      aria-label="Volume slider"
+                    />
+                  </div>
+
+                  {/* Timestamp */}
+                  <span className="text-[10px] sm:text-[11px] text-slate-300 font-mono font-bold shrink-0">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
                 </div>
 
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Verified Case
-                </span>
+                {/* Right controls: Verified badge + Fullscreen */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold uppercase tracking-wider hidden xs:flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    Verified Case
+                  </span>
+                  <button
+                    onClick={toggleFullscreen}
+                    className="hover:text-[#f9ab55] transition-colors cursor-pointer p-0.5 text-slate-300 hover:text-white"
+                    title="Fullscreen"
+                    aria-label="Toggle Fullscreen"
+                  >
+                    <Maximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -239,33 +320,38 @@ export default function StoryVideoModal({ story, isOpen, onClose }: StoryVideoMo
               </div>
             )}
 
-            {/* Clinical Notes by Dr. Kinnera */}
-            <div className="space-y-1.5 border-t border-white/10 pt-4">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">
-                Doctor&apos;s Clinical Assessment
-              </span>
-              <p className="text-xs text-slate-300 leading-relaxed italic bg-black/20 p-3.5 rounded-xl border border-white/5">
-                &ldquo;{story.clinicalNotes}&rdquo;
-              </p>
-              <div className="flex items-center gap-2 pt-1 text-xs text-slate-400 font-bold">
-                <div className="w-6 h-6 rounded-full bg-[#f9ab55]/20 flex items-center justify-center text-[#f9ab55] text-[10px] font-black">
-                  DK
+            {/* Doctor's Assessment */}
+            {story.doctorAssessment && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#f9ab55] block">
+                  Doctor&apos;s Clinical Assessment
+                </span>
+                <blockquote className="text-xs sm:text-sm text-slate-200 italic bg-white/5 p-4 rounded-2xl border-l-4 border-[#f9ab55] leading-relaxed">
+                  &ldquo;{story.doctorAssessment}&rdquo;
+                </blockquote>
+                <div className="flex items-center gap-2 pt-1 text-xs text-slate-400">
+                  <span className="w-6 h-6 rounded-full bg-[#f9ab55]/20 text-[#f9ab55] font-black text-[10px] flex items-center justify-center">
+                    DK
+                  </span>
+                  <span>Dr. Kinnera (Lead Physiotherapist)</span>
                 </div>
-                <span>{story.therapist}</span>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Action Call to Action */}
-          <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center gap-3">
+          {/* Action Button: Book / Consult */}
+          <div className="pt-2 border-t border-white/10">
             <Link
-              href="/patienthub/appointments"
-              onClick={onClose}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#f9ab55] hover:bg-[#e09840] text-[#062e36] px-6 py-3.5 text-xs font-black shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer uppercase tracking-wide"
+              href={`https://wa.me/918971462949?text=${encodeURIComponent(
+                `Hello Dr. Kinnera, I watched the recovery story for "${story.title}" and would like to consult for a similar condition.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-full bg-[#f9ab55] hover:bg-[#e49b4b] text-[#062e36] font-black text-xs sm:text-sm shadow-xl transition-all hover:scale-[1.02] active:scale-98 group cursor-pointer"
             >
-              <Calendar className="w-4 h-4" />
-              <span>Consult Dr. Kinnera for Similar Condition</span>
-              <ArrowRight className="w-4 h-4" />
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>CONSULT DR. KINNERA FOR SIMILAR CONDITION</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
             </Link>
           </div>
         </div>
