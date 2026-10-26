@@ -32,15 +32,18 @@ export interface ParsedPractoEvent {
  */
 export function cleanPatientName(name?: string): string {
   if (!name) return "Patient";
-  return (
-    name
-      .replace(/^appointment\s+(?:with|for)\s+/i, "")
-      .replace(/^practo\s*:\s*/i, "")
-      .replace(/\s*-\s*physiotherapy.*$/i, "")
-      .replace(/\s*\([^)]*\)/g, "") // Removes any parenthetical content like (Ms. Dr.Madem Kinnera) anywhere
-      .replace(/\s*-\s*(?:confirmed|booked|practo).*$/i, "")
-      .trim() || name
-  );
+  const cleaned = name
+    .replace(/^appointment\s+(?:with|for)\s+/i, "")
+    .replace(/^practo\s*:\s*/i, "")
+    .replace(/\s*-\s*physiotherapy.*$/i, "")
+    .replace(/\s*\([^)]*\)/g, "") // Removes any balanced parenthetical content like (Ms. Dr.Madem Kinnera)
+    .replace(/\s*\[[^\]]*\]/g, "") // Removes any balanced bracketed content
+    .replace(/\s*-\s*(?:confirmed|booked|practo).*$/i, "")
+    .replace(/[\(\)\[\]]/g, "") // Strips any remaining stray unmatched parentheses or brackets
+    .replace(/^[\s\-_:–—]+|[\s\-_:–—]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return cleaned || name;
 }
 
 /**
@@ -328,9 +331,9 @@ export async function syncPractoAppointments(params?: {
         existingSlotsByDate.add(`${data.date}__${data.slot}`);
       }
 
-      // Retroactive cleanup: remove (Dr. ...) or (doctor) from patientName if previously synced
+      // Retroactive cleanup: remove (Dr. ...) or (doctor) or stray brackets from patientName if previously synced
       const rawName = data.patientName || "";
-      if (/\([^)]+\)/.test(rawName)) {
+      if (/[()\[\]]/.test(rawName)) {
         const cleaned = cleanPatientName(rawName);
         if (cleaned && cleaned !== rawName) {
           updateDoc(docSnap.ref, { patientName: cleaned }).catch(() => {});
