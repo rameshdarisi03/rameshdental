@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   collection,
@@ -36,6 +36,8 @@ import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
 import {
   Calendar,
+  CalendarCheck,
+  Users,
   Clock,
   User,
   Check,
@@ -1047,7 +1049,48 @@ export default function DaySnapshot() {
   };
 
   const totalSlotsCount = allSlots.length;
-  const bookedCount = allSlots.filter((s) => getSlotState(s).type === "appointment").length;
+  const activeDayAppointments = useMemo(() => {
+    return appointments.filter((a) => a.status !== "rejected");
+  }, [appointments]);
+
+  const approvedDayCount = useMemo(() => {
+    return activeDayAppointments.filter((a) => a.status === "approved").length;
+  }, [activeDayAppointments]);
+
+  const pendingDayCount = useMemo(() => {
+    return activeDayAppointments.filter((a) => a.status === "pending").length;
+  }, [activeDayAppointments]);
+
+  const practoDayCount = useMemo(() => {
+    return activeDayAppointments.filter((a) => isPractoAppointment(a)).length;
+  }, [activeDayAppointments]);
+
+  const sortedActiveAppointments = useMemo(() => {
+    return [...activeDayAppointments].sort((a, b) => {
+      const idxA = allSlots.indexOf(a.slot);
+      const idxB = allSlots.indexOf(b.slot);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      return (a.slot || "").localeCompare(b.slot || "");
+    });
+  }, [activeDayAppointments, allSlots]);
+
+  const formattedSelectedDate = useMemo(() => {
+    if (!selectedDate) return "";
+    try {
+      const [y, m, d] = selectedDate.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return selectedDate;
+    }
+  }, [selectedDate]);
+
+  const bookedCount = activeDayAppointments.length;
   const blockedCount = allSlots.filter((s) => getSlotState(s).type === "blocked").length;
   const availableCount = allSlots.filter((s) => {
     const state = getSlotState(s);
@@ -1133,13 +1176,110 @@ export default function DaySnapshot() {
         </div>
       </div>
 
-      {/* Helper Info Note */}
-      <div className="flex gap-2.5 bg-brand-sand/60 dark:bg-slate-900/60 border border-brand-green/20 p-4 rounded-2xl text-slate-655 dark:text-slate-300 text-xs">
-        <Info className="h-4.5 w-4.5 text-brand-green shrink-0 mt-0.5" />
-        <p className="leading-relaxed font-semibold">
-          <strong>Capacity & Therapist Grid:</strong> Multi-patient capacity slots allow concurrent bookings per therapist. Assign therapists directly from the dropdown or 1-tap book walk-ins.
-        </p>
-      </div>
+      {/* 🚀 QUICK DAY APPOINTMENTS COUNTER & PREVIEW HUB */}
+      {activeDayAppointments.length === 0 ? (
+        <div className="bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 animate-fade-in shadow-2xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
+              <CalendarCheck className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-black text-slate-800 dark:text-slate-200">
+                  0 Appointments
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  All Slots Free
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                No bookings or walk-ins found for {formattedSelectedDate || selectedDate}.
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0 hidden sm:block">
+            <span className="text-xs font-bold text-slate-400">
+              {totalSlotsCount} time slots available
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-brand-sand/40 to-emerald-500/5 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-brand-green/30 dark:border-emerald-800/50 p-3.5 sm:p-4 rounded-2xl space-y-2.5 animate-fade-in shadow-xs">
+          {/* Header row: Count & Badges */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-brand-green text-white flex items-center justify-center shadow-xs shrink-0">
+                <CalendarCheck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {activeDayAppointments.length} {activeDayAppointments.length === 1 ? "Appointment" : "Appointments"}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    • {formattedSelectedDate}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Quick preview of scheduled patients. Tap any chip to manage or view details.
+                </p>
+              </div>
+            </div>
+
+            {/* Pill summary counters */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {approvedDayCount > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-[10px] font-black text-emerald-800 dark:text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                  {approvedDayCount} Approved
+                </span>
+              )}
+              {pendingDayCount > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/80 text-[10px] font-black text-amber-800 dark:text-amber-300 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                  {pendingDayCount} Pending
+                </span>
+              )}
+              {practoDayCount > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 text-[10px] font-black text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/80 dark:border-[#7c3aed]/50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
+                  {practoDayCount} Practo
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Horizontal Quick Patient Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider shrink-0 flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-brand-green" /> Quick Peek:
+            </span>
+            {sortedActiveAppointments.map((app) => {
+              const isPracto = isPractoAppointment(app);
+              const cleanName = cleanPatientName(app.patientName);
+              return (
+                <button
+                  key={app.id || `${app.slot}-${cleanName}`}
+                  type="button"
+                  onClick={() => openPatientActions(app)}
+                  title={`Tap to view / manage ${cleanName} (${app.slot})`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800/90 hover:bg-emerald-50 dark:hover:bg-slate-700/80 border border-slate-200/90 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-2xs shrink-0 transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                >
+                  <Clock className="w-3 h-3 text-brand-green shrink-0" />
+                  <span className="text-brand-green font-black">{app.slot}</span>
+                  <span className="text-slate-300 dark:text-slate-600">•</span>
+                  <span className="truncate max-w-[130px]">{cleanName}</span>
+                  {isPracto && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/80 px-1.5 py-0.2 text-[8px] font-black text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/60 shrink-0">
+                      Practo
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Grid Container */}
       {loading ? (
@@ -1171,6 +1311,7 @@ export default function DaySnapshot() {
             return (
               <div
                 key={slot}
+                id={`slot-${slot.replace(/[^a-zA-Z0-9]/g, "-")}`}
                 onClick={(e) => handleSlotClick(e, slot)}
                 onContextMenu={(e) => handleContextMenu(e, slot)}
                 className={`group relative border rounded-[24px] p-4 sm:p-5 shadow-xs transition-all select-none duration-200 flex flex-col justify-between space-y-3.5 ${cardBorder}`}

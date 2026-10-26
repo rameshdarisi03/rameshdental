@@ -53,7 +53,9 @@ export function isPractoAppointment(app: any): boolean {
     !!app.practoEventId ||
     (typeof app.notes === "string" && /practo/i.test(app.notes)) ||
     (typeof app.source === "string" && /practo/i.test(app.source)) ||
-    (typeof app.actionedByName === "string" && /practo/i.test(app.actionedByName))
+    (typeof app.actionedByName === "string" && /practo/i.test(app.actionedByName)) ||
+    (typeof app.serviceId === "string" && /practo/i.test(app.serviceId)) ||
+    (typeof app.patientName === "string" && /\([^)]*(?:dr\.?|kinnera|doctor)[^)]*\)/i.test(app.patientName))
   );
 }
 
@@ -329,10 +331,7 @@ export async function syncPractoAppointments(params?: {
       // Retroactive cleanup: remove (Dr. ...) or (doctor) from patientName if previously synced
       const rawName = data.patientName || "";
       if (/\([^)]+\)/.test(rawName)) {
-        const cleaned = rawName
-          .replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "")
-          .replace(/\s*\([^)]*\)\s*$/i, "")
-          .trim();
+        const cleaned = cleanPatientName(rawName);
         if (cleaned && cleaned !== rawName) {
           updateDoc(docSnap.ref, { patientName: cleaned }).catch(() => {});
         }
