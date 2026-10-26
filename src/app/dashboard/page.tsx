@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
+import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
 
 const spaceGrotesk = Space_Grotesk({ 
   subsets: ["latin"],
@@ -678,8 +679,8 @@ export default function DashboardOverview() {
           {nextPatient ? (
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-brand-charcoal dark:text-white truncate max-w-[160px]">
-                  {nextPatient.patientName.replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "").replace(/\s*\([^)]*\)\s*$/i, "").trim() || nextPatient.patientName}
+                <span className="text-sm font-black text-brand-charcoal dark:text-white truncate max-w-[160px]" title={cleanPatientName(nextPatient.patientName)}>
+                  {cleanPatientName(nextPatient.patientName)}
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   nextPatient.isLiveNow 
@@ -1040,10 +1041,10 @@ export default function DashboardOverview() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                          {app.patientName.replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "").replace(/\s*\([^)]*\)\s*$/i, "").trim() || app.patientName}
+                        <span className="text-sm font-bold text-slate-900 dark:text-white truncate" title={cleanPatientName(app.patientName)}>
+                          {cleanPatientName(app.patientName)}
                         </span>
-                        {(app.type === "practo" || (app as any).practoEventId || (app.notes && app.notes.includes("Practo"))) ? (
+                        {isPractoAppointment(app) ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#6d28d9] dark:text-[#d8b4fe] border border-[#d8b4fe] dark:border-[#7c3aed]/50">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
                             Practo

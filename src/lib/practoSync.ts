@@ -26,6 +26,38 @@ export interface ParsedPractoEvent {
 }
 
 /**
+ * Clean patient name by removing doctor names in parentheses or iCal prefixes
+ * e.g. "Apurv Gupta (Ms. Dr.Madem Kinnera)" -> "Apurv Gupta"
+ * e.g. "Appointment with Ram (Dr. Kinnera)" -> "Ram"
+ */
+export function cleanPatientName(name?: string): string {
+  if (!name) return "Patient";
+  return (
+    name
+      .replace(/^appointment\s+(?:with|for)\s+/i, "")
+      .replace(/^practo\s*:\s*/i, "")
+      .replace(/\s*-\s*physiotherapy.*$/i, "")
+      .replace(/\s*\([^)]*\)/g, "") // Removes any parenthetical content like (Ms. Dr.Madem Kinnera) anywhere
+      .replace(/\s*-\s*(?:confirmed|booked|practo).*$/i, "")
+      .trim() || name
+  );
+}
+
+/**
+ * Check if an appointment is from Practo
+ */
+export function isPractoAppointment(app: any): boolean {
+  if (!app) return false;
+  return (
+    app.type === "practo" ||
+    !!app.practoEventId ||
+    (typeof app.notes === "string" && /practo/i.test(app.notes)) ||
+    (typeof app.source === "string" && /practo/i.test(app.source)) ||
+    (typeof app.actionedByName === "string" && /practo/i.test(app.actionedByName))
+  );
+}
+
+/**
  * Parses iCal date strings into a standard JavaScript Date object.
  * Handles formats:
  * - 20261024T093000Z (UTC)
@@ -162,15 +194,8 @@ export function parsePractoIcal(icalContent: string): ParsedPractoEvent[] {
             patientEmail = emailMatch[0];
           }
 
-          // Clean Patient Name from Summary: e.g. "Appointment with Ram (Dr. Kinnera)" -> "Ram"
-          let patientName = summary
-            .replace(/^appointment\s+(?:with|for)\s+/i, "")
-            .replace(/^practo\s*:\s*/i, "")
-            .replace(/\s*-\s*physiotherapy.*$/i, "")
-            .replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "")
-            .replace(/\s*\([^)]*\)\s*$/i, "")
-            .trim();
-
+          // Clean Patient Name from Summary: e.g. "Apurv Gupta (Ms. Dr.Madem Kinnera)" -> "Apurv Gupta"
+          let patientName = cleanPatientName(summary);
           if (!patientName) patientName = "Practo Patient";
 
           const status: "confirmed" | "cancelled" = (currentEvent["STATUS"] || "").toUpperCase() === "CANCELLED" 

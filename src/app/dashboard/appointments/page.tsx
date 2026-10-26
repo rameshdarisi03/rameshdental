@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { getPatients, Patient } from "@/lib/patientsDb";
 import RescheduleModal from "@/components/RescheduleModal";
+import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
 
 // Helper to get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -63,14 +64,6 @@ function getTodayDateString() {
   return `${year}-${month}-${day}`;
 }
 
-// Clean patient name by removing doctor names in parentheses (e.g. from Practo iCal summaries)
-function cleanPatientName(name?: string) {
-  if (!name) return "Patient";
-  return name
-    .replace(/\s*\([^)]*(?:dr\.?|doctor|treating)[^)]*\)\s*$/i, "")
-    .replace(/\s*\([^)]*\)\s*$/i, "")
-    .trim() || name;
-}
 
 interface UserProfile {
   uid: string;
@@ -1009,7 +1002,7 @@ export default function DashboardAppointments() {
                       Staff Manual
                     </span>
                   )}
-                  {(app.type === "practo" || app.practoEventId || (app.notes && app.notes.includes("Practo"))) && (
+                  {isPractoAppointment(app) && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#6d28d9] dark:text-[#d8b4fe] border border-[#d8b4fe] dark:border-[#7c3aed]/50 shadow-2xs">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
                       Practo

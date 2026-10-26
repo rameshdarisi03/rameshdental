@@ -33,6 +33,7 @@ import {
   Patient
 } from "@/lib/patientsDb";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
+import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
 import {
   Calendar,
   Clock,
@@ -248,6 +249,28 @@ export default function DaySnapshot() {
       }
     }
     loadPatients();
+
+    // 4. Continuous Background Practo Sync (Auto-syncs on mount, every 10 min, and on tab focus)
+    const autoSyncPractoSilently = async () => {
+      try {
+        const res = await fetch("/api/practo/sync", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data.importedCount > 0) {
+            fetchDayData();
+          }
+        }
+      } catch (e) {}
+    };
+    autoSyncPractoSilently();
+    const syncInterval = setInterval(autoSyncPractoSilently, 10 * 60 * 1000);
+    const handleWindowFocus = () => autoSyncPractoSilently();
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      clearInterval(syncInterval);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
   }, []);
 
   // Close context menu on click outside
@@ -589,7 +612,7 @@ export default function DaySnapshot() {
       if (pendingActionApp && pendingActionApp.id) {
         // Isolated single-patient rejection
         await handleSingleAppointmentStatus(pendingActionApp.id, "rejected", false, effectiveReason);
-        showToast(`Appointment rejected. WhatsApp & Email cancellation sent to ${pendingActionApp.patientName}!`);
+        showToast(`Appointment rejected. WhatsApp & Email cancellation sent to ${cleanPatientName(pendingActionApp.patientName)}!`);
         setPendingActionApp(null);
       } else if (pendingRejectionSlots.length > 0) {
         const targetApps = appointments.filter((app) => pendingRejectionSlots.includes(app.slot));
@@ -1219,9 +1242,17 @@ export default function DaySnapshot() {
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-black text-slate-900 dark:text-white truncate">
-                                {app.patientName}
-                              </p>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-black text-slate-900 dark:text-white truncate" title={cleanPatientName(app.patientName)}>
+                                  {cleanPatientName(app.patientName)}
+                                </span>
+                                {isPractoAppointment(app) && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/80 dark:border-[#7c3aed]/50 shadow-2xs shrink-0" title="Synced from Practo">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0 animate-pulse" />
+                                    Practo
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[10px] text-slate-500 truncate font-semibold">
                                 {app.serviceId}
                               </p>
@@ -1966,7 +1997,7 @@ export default function DaySnapshot() {
                 Confirm Appointment Approval
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
-                Are you sure you want to approve this appointment for <strong>{pendingActionApp.patientName || "the selected patient"}</strong>?
+                Are you sure you want to approve this appointment for <strong>{cleanPatientName(pendingActionApp.patientName) || "the selected patient"}</strong>?
               </p>
             </div>
 
@@ -2009,7 +2040,7 @@ export default function DaySnapshot() {
                   const appId = pendingActionApp.id!;
                   setNotificationModalOpen(false);
                   await handleSingleAppointmentStatus(appId, "approved", false);
-                  showToast(`Appointment approved! Automated WhatsApp & Email sent to ${pendingActionApp.patientName || "patient"}.`);
+                  showToast(`Appointment approved! Automated WhatsApp & Email sent to ${cleanPatientName(pendingActionApp.patientName) || "patient"}.`);
                   setPendingActionApp(null);
                   setPendingActionType(null);
                   setSelectedSlots([]);
@@ -2037,9 +2068,15 @@ export default function DaySnapshot() {
             <div className="p-5 sm:p-6 bg-slate-50/80 dark:bg-slate-950/80 border-b border-slate-200/70 dark:border-slate-800 flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white truncate">
-                    {activePatientApp.patientName}
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white truncate" title={cleanPatientName(activePatientApp.patientName)}>
+                    {cleanPatientName(activePatientApp.patientName)}
                   </h3>
+                  {isPractoAppointment(activePatientApp) && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/80 dark:border-[#7c3aed]/50 shadow-2xs shrink-0" title="Synced from Practo">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0 animate-pulse" />
+                      Practo
+                    </span>
+                  )}
                   {activePatientApp.status === "approved" && (
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-[10px] font-black text-emerald-700 dark:text-emerald-300">
                       Approved
@@ -2401,7 +2438,7 @@ export default function DaySnapshot() {
                         <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-900/60 text-[11px] text-slate-500 font-semibold space-y-1">
                           <p className="text-[10px] uppercase font-black text-purple-600">Auto-Prefilled Greeting:</p>
                           <p className="italic text-slate-700 dark:text-slate-300">
-                            Hi <strong>{activePatientApp.patientName}</strong>, regarding your appointment at Gait Physio Clinic:
+                            Hi <strong>{cleanPatientName(activePatientApp.patientName)}</strong>, regarding your appointment at Gait Physio Clinic:
                           </p>
                         </div>
 
@@ -2425,7 +2462,7 @@ export default function DaySnapshot() {
                             type="button"
                             disabled={!customWhatsAppMessage.trim() || sendingActionType === "custom"}
                             onClick={() => {
-                              const fullText = `Hi ${activePatientApp.patientName}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
+                              const fullText = `Hi ${cleanPatientName(activePatientApp.patientName)}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
                               sendWhatsAppWithTemplate(activePatientApp, "custom", fullText, "api");
                             }}
                             className="flex-1 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
@@ -2442,7 +2479,7 @@ export default function DaySnapshot() {
                             type="button"
                             disabled={!customWhatsAppMessage.trim()}
                             onClick={() => {
-                              const fullText = `Hi ${activePatientApp.patientName}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
+                              const fullText = `Hi ${cleanPatientName(activePatientApp.patientName)}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
                               sendWhatsAppWithTemplate(activePatientApp, "custom", fullText, "redirect");
                             }}
                             className="py-2 px-3 rounded-xl border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
