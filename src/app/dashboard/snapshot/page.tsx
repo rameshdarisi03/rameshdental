@@ -1178,7 +1178,7 @@ export default function DaySnapshot() {
 
       {/* 🚀 QUICK DAY APPOINTMENTS COUNTER & PREVIEW HUB */}
       {activeDayAppointments.length === 0 ? (
-        <div className="bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 animate-fade-in shadow-2xs">
+        <div className="md:hidden bg-slate-50/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 animate-fade-in shadow-2xs">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
               <CalendarCheck className="w-5 h-5" />
@@ -1204,7 +1204,7 @@ export default function DaySnapshot() {
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-emerald-500/10 via-brand-sand/40 to-emerald-500/5 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-brand-green/30 dark:border-emerald-800/50 p-3.5 sm:p-4 rounded-2xl space-y-2.5 animate-fade-in shadow-xs">
+        <div className="md:hidden bg-gradient-to-r from-emerald-500/10 via-brand-sand/40 to-emerald-500/5 dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-brand-green/30 dark:border-emerald-800/50 p-3.5 sm:p-4 rounded-2xl space-y-2.5 animate-fade-in shadow-xs">
           {/* Header row: Count & Badges */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2.5 min-w-0">
