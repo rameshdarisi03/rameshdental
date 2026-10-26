@@ -34,6 +34,7 @@ import {
 } from "@/lib/patientsDb";
 import { getCleanWhatsAppNumber } from "@/lib/phoneUtils";
 import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
+import PractoBadge from "@/components/PractoBadge";
 import {
   Calendar,
   CalendarCheck,
@@ -1241,9 +1242,10 @@ export default function DaySnapshot() {
                 </span>
               )}
               {practoDayCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 text-[10px] font-black text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/80 dark:border-[#7c3aed]/50">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
-                  {practoDayCount} Practo
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#263077] text-[10px] font-black text-white border border-[#3b4796] shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2cb0da] shrink-0" />
+                  <span>{practoDayCount} Practo</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2cb0da] shrink-0" />
                 </span>
               )}
             </div>
@@ -1269,11 +1271,7 @@ export default function DaySnapshot() {
                   <span className="text-brand-green font-black">{app.slot}</span>
                   <span className="text-slate-300 dark:text-slate-600">•</span>
                   <span className="truncate max-w-[130px]">{cleanName}</span>
-                  {isPracto && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/80 px-1.5 py-0.2 text-[8px] font-black text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/60 shrink-0">
-                      Practo
-                    </span>
-                  )}
+                  {isPracto && <PractoBadge size="xs" />}
                 </button>
               );
             })}
@@ -1387,12 +1385,7 @@ export default function DaySnapshot() {
                                 <span className="text-xs font-black text-slate-900 dark:text-white truncate" title={cleanPatientName(app.patientName)}>
                                   {cleanPatientName(app.patientName)}
                                 </span>
-                                {isPractoAppointment(app) && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/80 dark:border-[#7c3aed]/50 shadow-2xs shrink-0" title="Synced from Practo">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0 animate-pulse" />
-                                    Practo
-                                  </span>
-                                )}
+                                {isPractoAppointment(app) && <PractoBadge size="sm" />}
                               </div>
                               <p className="text-[10px] text-slate-500 truncate font-semibold">
                                 {app.serviceId}
@@ -2212,12 +2205,7 @@ export default function DaySnapshot() {
                   <h3 className="text-lg font-black text-slate-900 dark:text-white truncate" title={cleanPatientName(activePatientApp.patientName)}>
                     {cleanPatientName(activePatientApp.patientName)}
                   </h3>
-                  {isPractoAppointment(activePatientApp) && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2 py-0.5 text-[9.5px] font-black uppercase tracking-wider text-[#7c3aed] dark:text-[#d8b4fe] border border-[#d8b4fe]/80 dark:border-[#7c3aed]/50 shadow-2xs shrink-0" title="Synced from Practo">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0 animate-pulse" />
-                      Practo
-                    </span>
-                  )}
+                  {isPractoAppointment(activePatientApp) && <PractoBadge size="md" />}
                   {activePatientApp.status === "approved" && (
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-[10px] font-black text-emerald-700 dark:text-emerald-300">
                       Approved

@@ -43,6 +43,7 @@ import {
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import FastTrackPatientImportModal from "@/components/dashboard/FastTrackPatientImportModal";
 import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
+import PractoBadge from "@/components/PractoBadge";
 
 const spaceGrotesk = Space_Grotesk({ 
   subsets: ["latin"],
@@ -1045,10 +1046,7 @@ export default function DashboardOverview() {
                           {cleanPatientName(app.patientName)}
                         </span>
                         {isPractoAppointment(app) ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#6d28d9] dark:text-[#d8b4fe] border border-[#d8b4fe] dark:border-[#7c3aed]/50">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
-                            Practo
-                          </span>
+                          <PractoBadge size="sm" />
                         ) : (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                             {app.type === "manual" ? "Walk-in" : "Online"}

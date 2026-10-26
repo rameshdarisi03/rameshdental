@@ -54,6 +54,7 @@ import {
 import { getPatients, Patient } from "@/lib/patientsDb";
 import RescheduleModal from "@/components/RescheduleModal";
 import { cleanPatientName, isPractoAppointment } from "@/lib/practoSync";
+import PractoBadge from "@/components/PractoBadge";
 
 // Helper to get today's date formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -1002,12 +1003,7 @@ export default function DashboardAppointments() {
                       Staff Manual
                     </span>
                   )}
-                  {isPractoAppointment(app) && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f3e8ff] dark:bg-[#581c87]/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#6d28d9] dark:text-[#d8b4fe] border border-[#d8b4fe] dark:border-[#7c3aed]/50 shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#7c3aed] shrink-0" />
-                      Practo
-                    </span>
-                  )}
+                  {isPractoAppointment(app) && <PractoBadge size="sm" />}
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-xs text-slate-500 font-semibold">
