@@ -34,9 +34,9 @@ export interface SendEmailResult {
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
   const apiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || "appointments@gaitphysioclinic.com";
-  const senderName = process.env.BREVO_SENDER_NAME || "Gait Physio Clinic";
-  const defaultReplyTo = process.env.BREVO_REPLY_TO || "gaitphysiorehab@gmail.com";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "rameshdarisi01@gmail.com";
+  const senderName = process.env.BREVO_SENDER_NAME || "Ramesh Dental Clinic";
+  const defaultReplyTo = process.env.BREVO_REPLY_TO || "rameshdarisi01@gmail.com";
 
   if (!apiKey) {
     console.warn("[Email Engine] BREVO_API_KEY is not defined. Email dispatch simulated.");
@@ -79,7 +79,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         "api-key": apiKey,
         "Content-Type": "application/json",
         Accept: "application/json",
-        "User-Agent": "GaitPhysioClinic-Engine/1.0",
+        "User-Agent": "RameshDental-Engine/1.0",
       },
       body: JSON.stringify(payload),
     });
@@ -185,10 +185,10 @@ export async function sendAdminNewBookingAlertEmail(params: {
   slot: string;
   notes?: string;
 }): Promise<SendEmailResult> {
-  const adminEmail = process.env.CLINIC_DESK_EMAIL || "gaitphysiorehab@gmail.com";
+  const adminEmail = process.env.CLINIC_DESK_EMAIL || "rameshdarisi01@gmail.com";
   const { subject, html } = templates.renderAdminNewBookingAlertEmail(params);
   return sendEmail({
-    to: { email: adminEmail, name: "Gait Physio Front Desk" },
+    to: { email: adminEmail, name: "Ramesh Dental Front Desk" },
     subject,
     htmlContent: html,
     tags: ["admin-booking-alert"],
