@@ -905,7 +905,7 @@ export default function PatientsPage() {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search patient, ID (GPC-...), phone..."
+                placeholder="Search patient, ID (RD-...), phone..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -1288,7 +1288,7 @@ export default function PatientsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-white text-base">Register New Patient</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Creates clinical folder & Universal ID (GPC-XXXXX)</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Creates clinical folder & Universal ID (RD-XXXXX)</p>
                 </div>
               </div>
               <button 

@@ -66,11 +66,11 @@ export const CLINICAL_SERVICES_PRESETS = [
 const INVOICES_COLLECTION = "invoices";
 
 /**
- * Generate next invoice number e.g., GPC-INV-8821
+ * Generate next invoice number e.g., RD-INV-8821
  */
 export function generateInvoiceNumber(): string {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
-  return `GPC-INV-${randomNum}`;
+  return `RD-INV-${randomNum}`;
 }
 
 /**

@@ -10,7 +10,7 @@
  * 6. Click "Deploy". Done!
  */
 
-const SECRET_TOKEN = "gpc_clinical_serenity_secret_2026";
+const SECRET_TOKEN = "rd_dental_secret_2026";
 
 function doPost(e) {
   try {

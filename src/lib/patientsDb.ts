@@ -123,7 +123,7 @@ export function generateActivationCode(): string {
   return code;
 }
 
-// Generate a random, unique patient ID (e.g. GPC-12005)
+// Generate a random, unique patient ID (e.g. RD-12005)
 async function generateUniquePatientId(): Promise<string> {
   const patientsRef = collection(db, "patients");
   let isUnique = false;
@@ -131,7 +131,7 @@ async function generateUniquePatientId(): Promise<string> {
 
   while (!isUnique) {
     const randomNum = Math.floor(10000 + Math.random() * 90000);
-    patientId = `GPC-${randomNum}`;
+    patientId = `RD-${randomNum}`;
 
     const docRef = doc(patientsRef, patientId);
     const docSnap = await getDoc(docRef);
