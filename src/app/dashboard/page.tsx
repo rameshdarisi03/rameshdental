@@ -522,7 +522,7 @@ export default function DashboardOverview() {
     const cleanPhone = phone.replace(/[^0-9]/g, "");
     const formattedPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
     const text = encodeURIComponent(
-      `Hello ${name}, this is Gait Physio Clinic following up on your physiotherapy care plan. We noticed you haven't had a session in the past week. How is your recovery and mobility progressing? Please let us know if you would like to schedule your next session.`
+      `Hello ${name}, this is Ramesh Dental Clinic following up on your dental care plan. We noticed you haven't had a session in the past week. How is your recovery and mobility progressing? Please let us know if you would like to schedule your next session.`
     );
     window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
   };
@@ -692,7 +692,7 @@ export default function DashboardOverview() {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium truncate mt-1">
-                {nextPatient.serviceId || "Physiotherapy Session"}
+                {nextPatient.serviceId || "Dental Consultation"}
               </p>
             </div>
           ) : (
@@ -1061,7 +1061,7 @@ export default function DashboardOverview() {
 
                   <div className="flex items-center gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
                     <span className="text-xs font-semibold text-slate-500">
-                      {app.assignedTherapist || app.actionedByName || "Dr. Kinnera"}
+                      {app.assignedTherapist || app.actionedByName || "Dr. Ramesh Darisi"}
                     </span>
                     <Link
                       href="/dashboard/patients"

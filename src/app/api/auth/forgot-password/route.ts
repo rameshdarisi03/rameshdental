@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error:
-            "Google Authenticator is not yet set up for this account. Please ask the Clinic Admin (Dr. Madem Kinnera) to reset your password or configure your Authenticator QR code from the staff panel.",
+            "Google Authenticator is not yet set up for this account. Please ask the Clinic Admin (Dr. Ramesh Darisi) to reset your password or configure your Authenticator QR code from the staff panel.",
           notConfigured: true,
         },
         { status: 400 }

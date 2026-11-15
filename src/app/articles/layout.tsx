@@ -1,11 +1,11 @@
 ﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Clinical Articles, Health Guides & Research",
+  title: "Dental Articles, Oral Health Guides & Research",
   description:
-    "Evidence-based clinical physiotherapy articles, biomechanical research, injury rehabilitation guides, and recovery tips written by licensed clinicians at Gait Physio Clinic.",
+    "Evidence-based dental health articles, procedure guides on root canals, implants, aligners, and tooth care written by licensed dental specialists at Ramesh Dental Clinic.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/articles",
+    canonical: "https://rameshdental.vercel.app/articles",
   },
 };
 

@@ -92,7 +92,7 @@ export default function DashboardAppointments() {
     patientName: "",
     patientEmail: "",
     patientPhone: "",
-    serviceId: "General Physiotherapy Consultation",
+    serviceId: "General Dental Consultation & Checkup",
     date: "",
     slot: "",
     notes: "",
@@ -177,7 +177,7 @@ export default function DashboardAppointments() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Failed to send schedule.");
       }
-      setScheduleSentAlert(`Dispatched today's schedule (${data.count} bookings) to Dr. Kinnera's WhatsApp!`);
+      setScheduleSentAlert(`Dispatched today's schedule (${data.count} bookings) to Dr. Ramesh Darisi's WhatsApp!`);
       setTimeout(() => setScheduleSentAlert(null), 6000);
     } catch (err: any) {
       alert(err.message || "Could not dispatch schedule alert.");
@@ -209,20 +209,20 @@ export default function DashboardAppointments() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `GaitPhysio_Appointments_${getTodayDateString()}.csv`);
+    link.setAttribute("download", `RameshDental_Appointments_${getTodayDateString()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const servicesList = [
-    "General Physiotherapy Consultation",
-    "Gait & Biomechanical Analysis",
-    "Sports Injury Rehabilitation",
-    "Spine & Musculoskeletal Care",
-    "Post-Operative Orthopedic Care",
-    "Dry Needling & Myofascial Release",
-    "Custom Insoles & Orthotics Fitment",
+    "General Dental Consultation & Checkup",
+    "Dental Implants & 3D Imaging",
+    "Root Canal Treatment (RCT)",
+    "Invisible Aligners & Orthodontics",
+    "Teeth Whitening & Smile Makeover",
+    "Laser Gum Therapy & Scaling",
+    "Metal-Free Zirconia Crowns",
   ];
 
   // Dynamic slots generated according to Settings
@@ -550,7 +550,7 @@ export default function DashboardAppointments() {
       }
       
       const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
-      const title = encodeURIComponent(`Session at Gait Physio Clinic`);
+      const title = encodeURIComponent(`Session at Ramesh Dental Clinic`);
       
       return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}`;
     } catch (err) {
@@ -665,7 +665,7 @@ export default function DashboardAppointments() {
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
     const cleanName = cleanPatientName(app.patientName);
-    const fallbackMessage = `Hi ${cleanName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
+    const fallbackMessage = `Hi ${cleanName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
     const fallbackWhatsAppUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fallbackMessage)}`;
 
     setDeliveryModalData({
@@ -697,7 +697,7 @@ export default function DashboardAppointments() {
 
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-    const message = `Hi ${cleanName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
+    const message = `Hi ${cleanName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
     const encodedMessage = encodeURIComponent(message);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
@@ -792,7 +792,7 @@ export default function DashboardAppointments() {
         patientName: "",
         patientEmail: "",
         patientPhone: "",
-        serviceId: "General Physiotherapy Consultation",
+        serviceId: "General Dental Consultation & Checkup",
         date: "",
         slot: "",
         notes: "",
@@ -894,7 +894,7 @@ export default function DashboardAppointments() {
           <button
             onClick={handleSendDoctorSchedule}
             disabled={sendingDoctorSchedule}
-            title="Send today's schedule to Dr. Kinnera's WhatsApp (8904456243)"
+            title="Send today's schedule to Dr. Ramesh Darisi's WhatsApp (8971462949)"
             type="button"
             className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all focus:outline-none disabled:opacity-50"
           >
@@ -903,13 +903,13 @@ export default function DashboardAppointments() {
             ) : (
               <MessageSquare className="h-4 w-4" />
             )}
-            <span>Send Dr. Kinnera Schedule</span>
+            <span>Send Dr. Ramesh Darisi Schedule</span>
           </button>
 
           <button
             onClick={handleSyncPracto}
             disabled={syncingPracto}
-            title="Sync appointments with Dr. Kinnera's Practo Calendar Feed"
+            title="Sync appointments with Dr. Ramesh Darisi's Practo Calendar Feed"
             type="button"
             className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all focus:outline-none disabled:opacity-50 cursor-pointer"
           >

@@ -53,7 +53,7 @@ function BookingFormContent() {
     patientName: "",
     patientEmail: "",
     patientPhone: "",
-    serviceId: preselectedService || "General Physiotherapy Consultation",
+    serviceId: preselectedService || "General Dental Consultation & Checkup",
     date: getTodayDateString(),
     slot: "",
     notes: preselectedTherapist ? `Requested Specialist: ${preselectedTherapist}` : "",
@@ -71,13 +71,16 @@ function BookingFormContent() {
   const [blockedType, setBlockedType] = useState<"none" | "full" | "morning" | "evening">("none");
 
   const servicesList = [
-    "General Physiotherapy Consultation",
-    "Gait & Biomechanical Analysis",
-    "Sports Injury Rehabilitation",
-    "Spine & Musculoskeletal Care",
-    "Post-Operative Orthopedic Care",
-    "Dry Needling & Myofascial Release",
-    "Custom Insoles & Orthotics Fitment",
+    "General Dental Consultation & Checkup",
+    "Root Canal Treatment (RCT)",
+    "Dental Implants & Fixed Teeth",
+    "Invisible Aligners & Orthodontics",
+    "Teeth Whitening & Smile Makeover",
+    "Pediatric (Kids) Dentistry",
+    "Wisdom Tooth & Surgical Extraction",
+    "Laser Gum Therapy & Ultrasonic Scaling",
+    "Metal-Free Zirconia Crowns & Bridges",
+    "Emergency Toothache Relief",
   ];
 
   // Load clinic config
@@ -326,7 +329,7 @@ function BookingFormContent() {
             </div>
             <div className="space-y-3 pt-2">
               <a
-                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to schedule a physiotherapy appointment.")}`}
+                href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig.phone)}?text=${encodeURIComponent("Hello Ramesh Dental Clinic, I would like to schedule a dental appointment.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-green hover:bg-brand-green-hover text-white py-4 px-4 text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer"
@@ -352,7 +355,7 @@ function BookingFormContent() {
     <div className="flex flex-col w-full min-h-screen">
       <PageHeader
         title="Schedule an Appointment"
-        description="Book your physical therapy session or gait analysis. View real-time availability on the right and fill in your details to reserve your slot."
+        description="Book your dental consultation, root canal treatment, or clear aligner checkup. View real-time availability on the right and fill in your details to reserve your slot."
       />
 
       <section className="py-16 bg-brand-bg dark:bg-slate-900 flex-grow">
@@ -497,7 +500,7 @@ function BookingFormContent() {
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
-                    Select Physiotherapy Service *
+                    Select Dental Service / Treatment *
                   </label>
                   <select
                     name="serviceId"

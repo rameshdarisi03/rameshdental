@@ -31,8 +31,8 @@ async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
 }
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
-You are a Senior Multi-Specialty Clinical AI Medical Scribe for "Gait Physio Clinic", Whitefield, Bengaluru.
-Transcribe physical medical documents (Therapist Case Sheets & External Doctor Prescriptions) across ALL medical specialties (Neurology, Orthopedics, Gynecology, Psychiatry, Geriatrics, Pulmonology) including rushed, cursive, or messy doctor handwriting.
+You are a Senior Multi-Specialty Clinical AI Medical & Dental Scribe for "Ramesh Dental Clinic", Whitefield, Bengaluru.
+Transcribe physical dental and medical documents (Doctor Case Sheets & Prescriptions) across Endodontics, Implantology, Orthodontics, Periodontics, and General Dentistry including rushed, cursive, or messy doctor handwriting.
 
 FORMATTING REQUIREMENTS:
 1. "rawVerbatimTranscript": Format the EXACT word-for-word text from the physical paper into clean, organized line-by-line sections with clear line breaks:

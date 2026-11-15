@@ -7,9 +7,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Standard Doctor Contact
-const DR_KINNERA_PHONE = "8904456243";
-const DR_KINNERA_NAME = "Kinnera";
-const CLINIC_ALERT_EMAILS = ["kinnera@gaitphysio.com", "ramesh@gaitphysio.com", "rameshdarisi01@gmail.com"];
+const DR_RAMESH_PHONE = "8971462949";
+const DR_RAMESH_NAME = "Dr. Ramesh Darisi";
+const CLINIC_ALERT_EMAILS = ["rameshdarisi01@gmail.com"];
 
 function getTodayIST(): string {
   // Returns YYYY-MM-DD in Asia/Kolkata time
@@ -75,7 +75,7 @@ async function handleDailySchedule(req: NextRequest) {
     const altToday = today.includes("-") ? today.split("-").reverse().join("-") : today;
     const validDates = new Set([today, altToday]);
 
-    const targetPhone = searchParams.get("phone") || DR_KINNERA_PHONE;
+    const targetPhone = searchParams.get("phone") || DR_RAMESH_PHONE;
 
     console.log(`[Daily Schedule Cron] Fetching appointments for ${today} in IST...`);
 
@@ -94,15 +94,15 @@ async function handleDailySchedule(req: NextRequest) {
     const formattedList = todayAppointments.map((app) => ({
       slot: app.slot || "TBD",
       patientName: app.patientName || app.name || "Patient",
-      serviceName: app.serviceId || app.service || "Physiotherapy Session",
+      serviceName: app.serviceId || app.service || "Dental Consultation",
       phone: app.patientPhone || app.phone || "",
     }));
 
-    // 1. Dispatch WhatsApp Notification to Dr. Kinnera
-    console.log(`[Daily Schedule Cron] Dispatching WhatsApp to Dr. Kinnera at ${targetPhone}...`);
+    // 1. Dispatch WhatsApp Notification to Dr. Ramesh
+    console.log(`[Daily Schedule Cron] Dispatching WhatsApp to Dr. Ramesh at ${targetPhone}...`);
     const waResult = await sendWhatsAppDoctorDailySchedule({
       rawPhone: targetPhone,
-      doctorName: DR_KINNERA_NAME,
+      doctorName: DR_RAMESH_NAME,
       date: today,
       appointments: formattedList,
     });
@@ -113,7 +113,7 @@ async function handleDailySchedule(req: NextRequest) {
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
           <h2 style="color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 8px;">
-            🏥 Gait Physio Clinic — Daily Schedule for Dr. Kinnera
+            🏥 Ramesh Dental Clinic — Daily Schedule for Dr. Ramesh Darisi
           </h2>
           <p><strong>Date:</strong> ${today} &nbsp;|&nbsp; <strong>Total Patients:</strong> ${formattedList.length}</p>
           
@@ -150,14 +150,14 @@ async function handleDailySchedule(req: NextRequest) {
           
           <div style="margin-top: 24px; padding: 12px; background: #f8fafc; border-radius: 6px; font-size: 13px; color: #64748b;">
             Automated morning clinical backup dispatched at 08:00 AM IST.<br/>
-            Portal: <a href="https://www.gaitphysioclinic.com/dashboard/appointments" style="color: #0d9488;">https://www.gaitphysioclinic.com/dashboard/appointments</a>
+            Portal: <a href="https://rameshdental.vercel.app/dashboard/appointments" style="color: #0d9488;">https://rameshdental.vercel.app/dashboard/appointments</a>
           </div>
         </div>
       `;
 
       emailResult = await sendEmail({
         to: CLINIC_ALERT_EMAILS.map((email) => ({ email })),
-        subject: `📅 Daily Clinic Schedule (${today}) — Dr. Kinnera (${formattedList.length} Patients)`,
+        subject: `📅 Daily Clinic Schedule (${today}) — Dr. Ramesh Darisi (${formattedList.length} Patients)`,
         htmlContent: emailHtml,
         tags: ["daily-schedule-backup"],
       });

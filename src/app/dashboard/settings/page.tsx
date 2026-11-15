@@ -334,7 +334,7 @@ export const BUILTIN_HERO_PRESETS: HeroPresetOption[] = [
   {
     id: "panoramic_cover",
     title: "Panoramic Clinical Cover",
-    subtitle: "Cinematic wide overview of modern physiotherapy facility",
+    subtitle: "Cinematic wide overview of modern dental facility",
     url: "/images/hero_panoramic_cover.webp",
     tag: "Wide Studio",
   },
@@ -408,7 +408,7 @@ export default function DashboardSettings() {
 
   const handleTestPractoSync = async () => {
     if (!config.practoIcalUrl || !config.practoIcalUrl.trim()) {
-      alert("Please enter Dr. Kinnera's Practo iCal URL before testing the sync.");
+      alert("Please enter Dr. Ramesh Darisi's Practo iCal URL before testing the sync.");
       return;
     }
     setTestingPracto(true);
@@ -2414,12 +2414,12 @@ export default function DashboardSettings() {
                 <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
                   <div className="flex items-center gap-2 font-black text-slate-800 dark:text-slate-200">
                     <Info className="w-4 h-4 text-purple-600" />
-                    <span>How Dr. Kinnera gets her Practo Calendar link (3 steps):</span>
+                    <span>How Dr. Ramesh Darisi gets her Practo Calendar link (3 steps):</span>
                   </div>
                   <ol className="list-decimal list-inside space-y-1 text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed pl-1 font-medium">
                     <li>Log in to the <strong>Practo Ray</strong> account (desktop web portal or app).</li>
                     <li>Navigate to <strong>Settings &rarr; Calendar &rarr; Subscribe</strong>.</li>
-                    <li>Click <strong>Google Calendar Sync</strong> next to Dr. Kinnera's name and copy the link.</li>
+                    <li>Click <strong>Google Calendar Sync</strong> next to Dr. Ramesh Darisi's name and copy the link.</li>
                     <li>Paste the link into the box above and click <strong>Save</strong> at the top right.</li>
                   </ol>
                 </div>

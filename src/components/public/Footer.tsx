@@ -32,16 +32,16 @@ export default function Footer() {
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5 font-semibold group select-none">
               <img
-                src="/images/gait_physio_logo.png"
-                alt="Gait Physio Clinic Logo"
-                className="h-9 w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+                src="/images/dental-emblem.jpg"
+                alt="Ramesh Dental Clinic Logo"
+                className="h-9 w-9 rounded-full object-cover shrink-0 group-hover:scale-105 transition-transform duration-300 shadow-xs border border-teal-500/20"
               />
               <span className="text-xl font-black tracking-tight text-brand-green dark:text-white group-hover:opacity-90 transition-opacity">
-                Gait Physio Clinic
+                Ramesh Dental Clinic
               </span>
             </Link>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Specialized physiotherapy, biomechanical gait analysis, and sports rehabilitation clinic helping you move better, live pain-free, and perform at your highest potential in Whitefield, Bengaluru.
+              Advanced, painless, and gentle dental care specializing in root canals, dental implants, smile makeovers, and clear aligners with state-of-the-art digital dentistry in Bengaluru.
             </p>
           </div>
 
@@ -76,14 +76,14 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-brand-green shrink-0" />
-                <a href="tel:+918904456243" className="hover:text-brand-green transition-colors">
-                  +91 89044 56243
+                <a href="tel:+918971462949" className="hover:text-brand-green transition-colors">
+                  +91 89714 62949
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-brand-green shrink-0" />
-                <a href="mailto:info@gaitphysioclinic.com" className="hover:text-brand-green transition-colors">
-                  info@gaitphysioclinic.com
+                <a href="mailto:rameshdarisi01@gmail.com" className="hover:text-brand-green transition-colors">
+                  rameshdarisi01@gmail.com
                 </a>
               </li>
             </ul>
@@ -116,7 +116,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 border-t border-slate-200 dark:border-slate-850 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            &copy; {currentYear} Gait Physio Clinic. All rights reserved.
+            &copy; {currentYear} Ramesh Dental Clinic. All rights reserved.
           </p>
           <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400">
             <Link href="/privacy" className="hover:text-brand-green transition-colors">

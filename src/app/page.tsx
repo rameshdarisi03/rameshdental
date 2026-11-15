@@ -112,98 +112,104 @@ export default function Home() {
   // Integrated Treatments data
   const treatmentList = [
     {
-      title: "Musculoskeletal (Orthopaedic) Rehab",
-      slug: "musculoskeletal",
-      desc: "Treats bones, joints, ligaments, and muscles. It resolves conditions like back pain, arthritis, sciatica, and scoliosis.",
-      image: "/images/services/musculoskeletal.webp",
+      title: "Root Canal Treatment (RCT)",
+      slug: "root-canal-treatment",
+      desc: "Painless single-sitting rotary endodontics preserving your natural tooth with computerized local anesthesia and digital apex locators.",
+      image: "/images/services/root-canal.jpg",
     },
     {
-      title: "Post-Surgical Rehabilitation",
-      slug: "post-surgical",
-      desc: "Restores mobility and strength after operations. Common focus areas include joint replacements, ACL reconstructions, and fracture repairs.",
-      image: "/images/services/postsurgical.webp",
+      title: "Dental Implants & Fixed Teeth",
+      slug: "dental-implants",
+      desc: "Permanent titanium implants replacing missing teeth, preventing jawbone loss and restoring 100% natural chewing strength.",
+      image: "/images/services/dental-implants.jpg",
     },
     {
-      title: "Neurological Rehabilitation",
-      slug: "neurological",
-      desc: "Retrains the nervous system after injury. It improves balance and mobility for stroke, Parkinson's disease, and spinal cord injuries.",
-      image: "/images/services/neurological.webp",
+      title: "Invisible Aligners & Braces",
+      slug: "invisible-aligners",
+      desc: "Discreet clear orthodontic aligners and ceramic aesthetic braces for smooth, comfortable teeth straightening with 3D digital simulation.",
+      image: "/images/services/invisible-aligners.jpg",
     },
     {
-      title: "Sports Injury Management",
-      slug: "sports-injury",
-      desc: "Focuses on athletic recovery and prevention. It treats sprains, strains, rotator cuff tears, and tennis elbow.",
-      image: "/images/services/sports.webp",
+      title: "Teeth Whitening & Smile Makeover",
+      slug: "teeth-whitening",
+      desc: "In-office blue LED laser teeth whitening and ultra-thin ceramic veneers for an instantly luminous, photo-ready smile without sensitivity.",
+      image: "/images/services/teeth-whitening.jpg",
     },
     {
-      title: "Cardiopulmonary Physiotherapy",
-      slug: "cardiopulmonary",
-      desc: "Improves heart and lung function. It benefits individuals recovering from heart attacks, bypass surgeries, or managing COPD.",
-      image: "/images/services/cardiopulmonary.webp",
+      title: "Pediatric (Kids) Dentistry",
+      slug: "pediatric-dentistry",
+      desc: "Gentle, fear-free dental care for children, focusing on cavity prevention, pit & fissure sealants, and milk tooth preservation.",
+      image: "/images/services/pediatric-dentistry.jpg",
     },
     {
-      title: "Geriatric Physiotherapy",
-      slug: "geriatric",
-      desc: "Addresses age-related mobility issues. It focuses on fall prevention, arthritis management, and maintaining independence.",
-      image: "/images/services/geriatric.webp",
+      title: "Tooth Extraction & Wisdom Teeth",
+      slug: "wisdom-tooth-extraction",
+      desc: "Minimally invasive surgical removal of impacted wisdom teeth with advanced local anesthesia and rapid healing protocols.",
+      image: "/images/services/wisdom-tooth.jpg",
     },
     {
-      title: "Pelvic Floor Rehab",
-      slug: "pelvic-floor",
-      desc: "Strengthens pelvic muscles. It treats urinary incontinence, pelvic pain, and aids in pre- and post-pregnancy recovery.",
-      image: "/images/services/pelvic.webp",
+      title: "Laser Gum Therapy & Scaling",
+      slug: "laser-gum-therapy",
+      desc: "Painless ultrasonic tartar removal and diode laser therapy to treat bleeding gums, eliminate deep bacterial pockets, and freshen breath.",
+      image: "/images/services/laser-gum-therapy.jpg",
+    },
+    {
+      title: "Metal-Free Zirconia Crowns",
+      slug: "crowns-and-bridges",
+      desc: "Precision CAD/CAM monolithic zirconia and E-max ceramic restorations delivering exceptional chewing strength with zero dark metal lines.",
+      image: "/images/services/crowns-bridges.jpg",
     },
   ];
 
   // Integrated Gallery data
   const galleryItems = [
     {
-      title: "Body-Weight Supported Gait Training Lab",
-      category: "Neuro & Gait Rehab",
-      image: "/images/gallery/gait_harness_station.webp",
+      title: "Master Dental Operatory Suite",
+      category: "Digital Operatory",
+      image: "/images/gallery/operatory_master.webp",
     },
     {
-      title: "Functional Ramp & Stair Mobility Trainer",
-      category: "Post-Surgical Rehab",
-      image: "/images/gallery/ramp_stairs_trainer.webp",
+      title: "Rotary Endodontics & Apex Suite",
+      category: "Endodontic Care",
+      image: "/images/gallery/dental_endodontics_suite.webp",
     },
     {
-      title: "Orthopedic Wall & Spine Ladder Station",
-      category: "Orthopedics & Spine",
-      image: "/images/gallery/swedish_wall_ladder.webp",
+      title: "Digital 3D CAD/CAM Implant Lab",
+      category: "Implantology",
+      image: "/images/gallery/implantology_3d_lab.webp",
     },
     {
-      title: "Advanced Physical Rehabilitation Floor",
-      category: "Sports & Functional Gym",
-      image: "/images/gallery/rehab_gym_wide.webp",
+      title: "Contemporary Dental Lounge",
+      category: "Patient Comfort",
+      image: "/images/gallery/reception_operatory_panoramic.webp",
     },
   ];
 
   // Integrated FAQ data
   const faqs = [
     {
-      q: "Do I need a doctor's referral to get physiotherapy?",
-      a: "No, a referral is not required to visit us. You can book an appointment directly. However, if you plan to claim treatments under specific insurance policies, your provider might require a doctor's referral. We suggest checking with your insurance provider.",
+      q: "Is root canal treatment really painful?",
+      a: "No! With modern rotary endodontics and computerized local anesthesia, getting a root canal is no more uncomfortable than having a simple cavity filled. The procedure actually relieves the throbbing pain caused by infected dental pulp.",
     },
     {
-      q: "What is Digital Gait Analysis, and how should I prepare?",
-      a: "Digital Gait Analysis measures your walking or running biomechanics on a pressure-mapped treadmill. Please wear comfortable athletic clothing and bring the running or walking shoes you use most frequently so we can scan your standard stride.",
+      q: "How long do dental implants last?",
+      a: "Dental implants are biologically permanent restorations. The medical-grade titanium fixture fuses with your jawbone through osseointegration and can last 25 years to a lifetime with routine brushing, flossing, and 6-month checkups.",
     },
     {
-      q: "What should I wear to my physiotherapy sessions?",
-      a: "Wear loose, comfortable clothing that allows easy movement. If we are examining your knees, ankles, or feet, shorts are highly recommended. For shoulder, neck, or back assessments, a tank top or loose t-shirt is ideal.",
+      q: "How do clear invisible aligners work compared to braces?",
+      a: "Clear aligners use a customized series of transparent, medical-grade trays that exert gentle micro-forces to move teeth into position. Unlike metal braces, aligners are removable for dining and brushing, and are virtually undetectable.",
     },
     {
-      q: "How long does a typical physiotherapy session last?",
-      a: "Your initial assessment will take approximately 45 to 60 minutes, which includes a clinical examination, diagnostic scans (such as gait or posture analysis if required), and your first treatment. Follow-up sessions usually take 30 to 45 minutes.",
+      q: "How often should I get my teeth cleaned professionally?",
+      a: "We recommend professional ultrasonic scaling and polishing every 6 months. This painless procedure removes hardened calculus (tartar) that regular brushing cannot eliminate, preventing bleeding gums, bad breath, and bone loss.",
     },
     {
       q: "How does the online appointment booking confirmation work?",
-      a: "When you select a slot online, your appointment status is saved as 'Pending'. Our clinic staff reviews the slot against the day's schedule. Once approved, you will receive a confirmation message directly on your WhatsApp number with the appointment details.",
+      a: "When you select a preferred date and time slot online, your appointment is logged instantly. Our clinic reception reviews the schedule and dispatches an immediate confirmation directly to your WhatsApp number and email.",
     },
     {
-      q: "Do you offer treatment plans for chronic back pain?",
-      a: "Yes, chronic spine issues are one of our core specializations. We compile diagnostic posture scans, utilize manual therapy, electrotherapy, dry needling, and design core-strengthening programs to deliver long-term spinal stability.",
+      q: "Do you handle dental emergencies on the same day?",
+      a: "Yes. For acute dental trauma, severe toothaches, facial swelling, or knocked-out teeth, we prioritize same-day emergency appointments. Call our direct emergency helpline at +91 89714 62949 for immediate guidance.",
     },
   ];
 
@@ -435,7 +441,7 @@ export default function Home() {
 
 
 
-  // Real Google Reviews from Gait Physio Clinic Profile (4.9 Rating • 117+ Reviews)
+  // Real Google Reviews from Ramesh Dental Clinic (4.9 Rating • 117+ Reviews)
   const googleReviews = [
     {
       name: "Krutika Kulkarni",
@@ -444,8 +450,8 @@ export default function Home() {
       reviewsCount: "2 reviews • 1 photo",
       rating: 5,
       timeAgo: "2 months ago",
-      condition: "Tailbone Pain (Coccydynia)",
-      comment: "I visited Gait Physio Clinic for treatment of coccydynia (tailbone pain), which developed after a long flight while traveling with my child. After reading reviews on Practo, I decided to visit the clinic and initially enrolled for 7 sessions. Dr. Charmi and Dr. Kinnera diagnosed the issue accurately and provided tailored manual therapy with ultrasound. I experienced significant relief and could sit comfortably again.",
+      condition: "Painless Root Canal (RCT)",
+      comment: "I visited Ramesh Dental Clinic for a severe throbbing toothache that kept me awake all night. I was terrified of getting a root canal, but Dr. Ramesh Darisi made the entire procedure completely painless with his rotary system. I didn't feel a thing, and the zirconia crown fits perfectly. Can chew comfortably again!",
     },
     {
       name: "Priya Satheesh",
@@ -454,8 +460,8 @@ export default function Home() {
       reviewsCount: "4 reviews",
       rating: 5,
       timeAgo: "3 months ago",
-      condition: "Post-Knee Surgery Recovery",
-      comment: "I had an incredible recovery experience at Gait Physio Clinic following my knee surgery. Madam Kinnera, Dr. Mohammad, and Charmi are an absolute dream team of professionals. They are all compassionate, encouraging, and ensure you do every exercise with proper biomechanics. Highly recommend!",
+      condition: "Dental Implant & Crown",
+      comment: "I had a missing lower molar replaced with a titanium implant by Dr. Ramesh. From the 3D optical scan to the crown placement, everything was state-of-the-art and seamless. The implant feels exactly like my natural tooth. Highly recommend this team!",
     },
     {
       name: "Akhila Hubli",
@@ -465,8 +471,8 @@ export default function Home() {
       reviewsCount: "Local Guide • 15 reviews",
       rating: 5,
       timeAgo: "a month ago",
-      condition: "Lower Back Pain & Spine",
-      comment: "I visited Gait Physio Clinic for treatment of my lower back pain, and I had a great experience. Dr Charmi was kind, understanding, and took the time to clearly explain the issue and the treatment plan. The consultation was thorough, and within 2 weeks my posture and morning stiffness improved drastically.",
+      condition: "Invisible Clear Aligners",
+      comment: "Consulted Dr. Sneha Reddy for clear aligners to fix my crowded front teeth. The 3D video simulation before starting was fascinating, and within 8 months my smile is completely aligned without ever wearing metal braces. Very professional setup in Whitefield.",
     },
     {
       name: "Vishruthaa B",
@@ -475,8 +481,8 @@ export default function Home() {
       reviewsCount: "2 reviews",
       rating: 5,
       timeAgo: "a month ago",
-      condition: "Chronic Knee Injury",
-      comment: "I've had a long-standing knee injury and have been through physiotherapy before, but I finally feel like I'm making meaningful progress rather than just getting by. The systematic gait analysis and targeted quadriceps strengthening exercises under Dr. Kinnera's guidance completely changed my recovery trajectory.",
+      condition: "Laser Gum Treatment",
+      comment: "Suffered from bleeding gums whenever I brushed. Dr. Arvind Kumar performed ultrasonic scaling and laser pocket therapy. The bleeding stopped completely within 3 days and my mouth feels remarkably fresh. Very gentle and thorough care.",
     },
     {
       name: "Srinivas Gowda",
@@ -485,8 +491,8 @@ export default function Home() {
       reviewsCount: "3 reviews",
       rating: 5,
       timeAgo: "5 months ago",
-      condition: "Knee Replacement Rehab",
-      comment: "Had my knee replacement last year. The home rehab exercises Dr. Kinnera and team prescribed helped me walk again without a walker in record time. Excellent clinic with caring therapists and modern equipment in Whitefield.",
+      condition: "Wisdom Tooth Surgery",
+      comment: "Had an impacted wisdom tooth causing severe jaw swelling. Dr. Ramesh performed an atraumatic extraction under local anesthesia in just 20 minutes. Minimal swelling and was back to work in 3 days. Clean, modern clinic.",
     },
     {
       name: "Ramesh Kumar",
@@ -496,84 +502,84 @@ export default function Home() {
       reviewsCount: "Local Guide • 8 reviews",
       rating: 5,
       timeAgo: "4 months ago",
-      condition: "Sports Ankle Sprain",
-      comment: "Excellent clinic in Whitefield with cutting-edge equipment. The digital gait treadmill analysis was an eye-opener for my recurring ankle sprains. The therapists explain the root cause and provide structured recovery routines.",
+      condition: "Laser Teeth Whitening",
+      comment: "Visited for in-office teeth whitening before my sister's wedding. Dr. Priya Nair was fantastic—my teeth became 6 shades brighter in 45 minutes with zero sensitivity. Top-tier dental care in Whitefield!",
     },
   ];
 
-  // Real Verified Practo Patient Stories (5.0 Rating • 48+ Reviews)
+  // Real Verified Practo Dental Patient Stories (5.0 Rating • 48+ Reviews)
   const practoReviews = [
     {
       name: "Siva Kumar",
       avatarText: "S",
       avatarBg: "bg-blue-600",
       timeAgo: "Recent",
-      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
-      condition: "Hand Fracture Recovery",
-      comment: "I recently suffered a hand fracture and received physiotherapy treatment at Gait Clinic. Dr. Kinnera and her assistant provided excellent care throughout my recovery journey. They treated me effectively, carefully guided me through home exercises, and ensured I understood each step of the rehabilitation process. I recovered completely and regained hand mobility much faster than expected.",
+      doctorVisited: "Dr. Ramesh Darisi (Endodontist & Implantologist)",
+      condition: "Single-Visit Root Canal",
+      comment: "I visited Ramesh Dental Clinic with acute toothache. Dr. Ramesh diagnosed deep pulpitis and performed a single-sitting root canal with high-tech rotary tools. The whole experience was completely comfortable, polite, and reassuring. Excellent clinic hygiene.",
     },
     {
       name: "Sindhu Nair",
       avatarText: "S",
       avatarBg: "bg-teal-600",
       timeAgo: "11 months ago",
-      doctorVisited: "Dr. Madem Kinnera & Dr. Rakshita",
-      condition: "Acute Back Sprain",
-      comment: "I visited for treatment of a back sprain and was under the care of Dr. Kinnera and Dr. Rakshita. Both did an exceptional job guiding me through the treatment, which included IFT, UST, hot pack, and targeted exercises. They were professional, attentive, and made sure I was comfortable throughout. The facility was well-maintained, clean, and organized.",
+      doctorVisited: "Dr. Sneha Reddy (Orthodontist)",
+      condition: "Orthodontic Gap Closure",
+      comment: "Consulted Dr. Sneha for closing a large midline gap between my front teeth. She explained the aligner timeline clearly and monitored my tracking every few weeks. My smile looks natural and symmetrical now. Very happy with the result!",
     },
     {
       name: "Arun",
       avatarText: "A",
       avatarBg: "bg-indigo-600",
       timeAgo: "10 months ago",
-      doctorVisited: "Dr. Mohammad (Physiotherapist)",
-      condition: "Severe Neck Stiffness",
-      comment: "I had been suffering from neck stiffness and visited Gait Physio Clinic. Dr. Mohammad was very professional and supportive throughout my treatment. With just 5 sessions, I experienced significant relief, and he also guided me with exercises for long-term recovery and prevention. The clinic is well-maintained, and treatment was very effective.",
+      doctorVisited: "Dr. Arvind Kumar (Periodontist)",
+      condition: "Deep Gum Scaling & Polish",
+      comment: "Dr. Arvind was extremely gentle during my deep scaling session. He showed me the calculus deposits on the intraoral camera and explained proper flossing. My gums are pink and healthy again. Transparent pricing and zero unnecessary treatments.",
     },
     {
       name: "S. Sharma",
       avatarText: "S",
       avatarBg: "bg-emerald-600",
       timeAgo: "a year ago",
-      doctorVisited: "Dr. Madem Kinnera & Dr. Mahammad",
-      condition: "Post-ACL Surgery Rehabilitation",
-      comment: "I visited GAIT Physio Clinic for post-ACL surgery pain recovery. Dr. Kinnera addressed all my queries, analyzed my condition, and provided a 4-week recovery plan. During the sessions, Dr. Mahammad handled all the exercises, along with UST and IFT, with great care. The clinic also offers flexible timings. Thank you team.",
+      doctorVisited: "Dr. Ramesh Darisi (Dental Surgeon)",
+      condition: "Horizontal Wisdom Molar Removal",
+      comment: "Had an agonizing horizontal lower wisdom tooth pressing on my second molar. Dr. Ramesh sectioned and extracted it smoothly without touching the nerve. Post-op pain was very well managed. Thank you team Ramesh Dental!",
     },
     {
       name: "Divya Ramesh",
       avatarText: "D",
       avatarBg: "bg-purple-600",
       timeAgo: "a year ago",
-      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
-      condition: "Frozen Shoulder Mobility",
-      comment: "Consulted Dr. Kinnera for severe shoulder restriction and pain. Her manual therapy techniques and progressive range of motion exercises gave me immense relief within 2 weeks. The clinic staff is very courteous and polite.",
+      doctorVisited: "Dr. Priya Nair (Pediatric Dentist)",
+      condition: "Child Cavity & Sealant",
+      comment: "Took my 6-year-old son for his first dental visit. Dr. Priya was so friendly and playful—she showed him the dental instruments like toys and applied cavity sealants without any tears. He actually looks forward to going back!",
     },
     {
       name: "Manoj V.",
       avatarText: "M",
       avatarBg: "bg-amber-600",
       timeAgo: "a year ago",
-      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
-      condition: "Lumbar Disc & Sciatica",
-      comment: "Had severe radiating leg pain due to a lumbar disc bulge. Dr. Kinnera's traction and specialized core stabilization exercises helped me avoid surgery and get back to work without pain. Top-tier physio clinic in Whitefield!",
+      doctorVisited: "Dr. Ramesh Darisi (Implantologist)",
+      condition: "Fixed Zirconia Bridge",
+      comment: "Replaced my old metal crown that had a grey margin with a monolithic zirconia crown. It blends flawlessly with my natural enamel and feels sturdy. Top-tier dental operatory in Bengaluru.",
     },
     {
       name: "Ananya Ghosh",
       avatarText: "A",
       avatarBg: "bg-rose-600",
       timeAgo: "a year ago",
-      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
-      condition: "Ankle Ligament Sprain",
-      comment: "Suffered an inversion ankle sprain while playing badminton. The rehab protocol with balance board exercises and gait retraining was top-notch. I was able to resume sports safely in 3 weeks.",
+      doctorVisited: "Dr. Priya Nair (Cosmetic Dentist)",
+      condition: "Chipped Front Tooth Bonding",
+      comment: "Chipped my front incisor while eating. Dr. Priya repaired it with composite cosmetic bonding in 30 minutes. You cannot tell where the repair begins. Incredible aesthetic skill!",
     },
     {
       name: "Rajesh Nair",
       avatarText: "R",
       avatarBg: "bg-sky-600",
       timeAgo: "a year ago",
-      doctorVisited: "Dr. Madem Kinnera (Physiotherapist)",
-      condition: "Post-Operative Orthopedic Care",
-      comment: "Very professional and disciplined approach to orthopedic physiotherapy. Dr. Kinnera closely monitors your form during exercises and explains the biomechanics. The clinic is equipped with modern modalities.",
+      doctorVisited: "Dr. Ramesh Darisi (Dental Surgeon)",
+      condition: "Full Mouth Dental Health Check",
+      comment: "Very disciplined and honest approach to dentistry. Dr. Ramesh took high-resolution intraoral photos and explained exactly which tooth needed attention and which was healthy. No over-treatment. Highly recommended.",
     },
   ];
 
@@ -930,19 +936,19 @@ export default function Home() {
         {/* Mobile Background: Portrait Oriented Cover Canvas */}
         <div 
           className="sm:hidden absolute inset-0 bg-cover bg-no-repeat bg-center opacity-75 transition-all duration-700" 
-          style={{ backgroundImage: `url('${clinicConfig.heroMobileImage || "/images/mobile_cover_teal_option_2.webp"}')` }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroMobileImage || "/images/hero-dental-mobile.jpg"}')` }} 
         />
 
         {/* Desktop Background: Full Panoramic Treatment Cover */}
         <div 
           className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700" 
-          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp"}')` }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero-dental-desktop.jpg"}')` }} 
         />
 
         {/* Desktop Layer 2: Selective Blurred Image Overlay for Depth */}
         <div 
           className="hidden sm:block absolute inset-0 bg-cover bg-no-repeat bg-right lg:bg-center transition-all duration-700 hero-blurred-bg" 
-          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero_cover_teal_wooden_floor.webp"}')` }} 
+          style={{ backgroundImage: `url('${clinicConfig.heroDesktopImage || "/images/hero-dental-desktop.jpg"}')` }} 
         />
         
         {/* Layer 3: Sophisticated Gradient Scrim (Mobile: Gentle vertical fade / Desktop: Horizontal gradient) */}
@@ -954,13 +960,13 @@ export default function Home() {
             {/* Official Clinic Brand Identity Lockup (Smartphone & Desktop Optimized) */}
             <div className="flex flex-row items-center justify-center sm:justify-start gap-2.5 sm:gap-6 animate-fade-in-up">
               <img
-                src="/images/gait_physio_logo.png"
-                alt="Gait Physio Clinic Official Logo"
-                className="h-11 w-11 sm:h-18 sm:w-18 lg:h-24 lg:w-24 object-contain shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300"
+                src="/images/dental-emblem.jpg"
+                alt="Ramesh Dental Clinic Official Logo"
+                className="h-12 w-12 sm:h-20 sm:w-20 lg:h-24 lg:w-24 rounded-full object-cover shrink-0 drop-shadow-md hover:scale-105 transition-transform duration-300 border-2 border-teal-500/20"
               />
               <div className="min-w-0">
                 <h1 className="text-[23px] sm:text-4xl lg:text-[52px] xl:text-[58px] font-black tracking-tight leading-none text-brand-green dark:text-white whitespace-nowrap drop-shadow-2xs">
-                  Gait Physio Clinic
+                  Ramesh Dental Clinic
                 </h1>
               </div>
             </div>
@@ -968,11 +974,11 @@ export default function Home() {
             {/* 3 Core Services (Crisp, High-Contrast Typography) */}
             <div className="pt-1 sm:pt-2 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
               <div className="flex items-center justify-center sm:justify-start gap-x-2.5 sm:gap-x-6 text-[13px] sm:text-xl lg:text-[26px] font-black text-slate-900 dark:text-slate-100 tracking-tight whitespace-nowrap">
-                <span className="hover:text-brand-green transition-colors">Neuro Rehab</span>
+                <span className="hover:text-brand-green transition-colors">Root Canal (RCT)</span>
                 <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
-                <span className="hover:text-brand-green transition-colors">Ortho Rehab</span>
+                <span className="hover:text-brand-green transition-colors">Dental Implants</span>
                 <span className="text-brand-green/70 dark:text-teal-400/70 font-black select-none">|</span>
-                <span className="hover:text-brand-green transition-colors">Sports Rehab</span>
+                <span className="hover:text-brand-green transition-colors">Clear Aligners</span>
               </div>
             </div>
 
@@ -1204,7 +1210,7 @@ export default function Home() {
               Meet Our Specialists
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-3 max-w-xl mx-auto leading-relaxed">
-              Certified physiotherapists and movement analysts combining deep biomechanical expertise with personalized 1-on-1 rehabilitation.
+              Certified dental specialists and surgeons combining advanced digital dentistry with gentle, pain-free patient care.
             </p>
           </div>
 
@@ -1232,7 +1238,7 @@ export default function Home() {
                   <div>
                     <div className="relative aspect-[4/5] bg-slate-100 dark:bg-slate-800 overflow-hidden">
                       <img
-                        src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
+                        src={doctor.image || "/images/hero-dental-desktop.jpg"}
                         alt={`${doctor.name} - ${doctor.role}`}
                         className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
@@ -1324,7 +1330,7 @@ export default function Home() {
                       <div>
                         <div className="relative aspect-[4/5] bg-slate-100 dark:bg-slate-800 overflow-hidden">
                           <img
-                            src={doctor.image || "/images/dr-kinnera-portrait.jpg"}
+                            src={doctor.image || "/images/hero-dental-desktop.jpg"}
                             alt={`${doctor.name} - ${doctor.role}`}
                             className="w-full h-full object-cover object-top"
                           />
@@ -1555,7 +1561,7 @@ export default function Home() {
 
               <div className="flex items-center gap-2 sm:border-l sm:border-slate-100 dark:sm:border-slate-800 sm:pl-6 w-full sm:w-auto">
                 <a
-                  href="https://www.google.com/search?q=gait+physio+clinic+reviews&sca_esv=ac66ab952f2308c4&sxsrf=APpeQnvs_Ka2WNm-D4w7ZuN-tEFoirdPMA%3A1786782907520&ei=uySAapGzH_iUhvcPtZzxkAI&oq=gait+physio+clinic&gs_lp=Egxnd3Mtd2l6LXNlcnAiEmdhaXQgcGh5c2lvIGNsaW5pYyoCCAAyChAAGEcY1gQYsAMyChAAGEcY1gQYsANIzg5QAFgAcAF4AJABAJgBX6ABX6oBATG4AQHIAQCYAgGgAgGYAwCIBgGQBgKSBwExoAecAbIHALgHAMIHAzAuMcgHAYAIAQ&sclient=gws-wiz-serp#lrd=0x4d6ba89778b9482b:0xbeeac3f05a9f5de7,1,,,,"
+                  href="https://www.google.com/search?q=ramesh+dental+clinic+whitefield+bangalore"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 text-xs font-bold hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white transition-all shadow-sm active:scale-95"
@@ -1808,7 +1814,7 @@ export default function Home() {
           {/* Bottom CTAs for Google */}
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <a
-              href="https://www.google.com/search?q=gait+physio+clinic+reviews&sca_esv=ac66ab952f2308c4&sxsrf=APpeQnvs_Ka2WNm-D4w7ZuN-tEFoirdPMA%3A1786782907520&ei=uySAapGzH_iUhvcPtZzxkAI&oq=gait+physio+clinic&gs_lp=Egxnd3Mtd2l6LXNlcnAiEmdhaXQgcGh5c2lvIGNsaW5pYyoCCAAyChAAGEcY1gQYsAMyChAAGEcY1gQYsANIzg5QAFgAcAF4AJABAJgBX6ABX6oBATG4AQHIAQCYAgGgAgGYAwCIBgGQBgKSBwExoAecAbIHALgHAMIHAzAuMcgHAYAIAQ&sclient=gws-wiz-serp#lrd=0x4d6ba89778b9482b:0xbeeac3f05a9f5de7,1,,,,"
+              href="https://www.google.com/search?q=ramesh+dental+clinic+whitefield+bangalore"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-3 text-xs font-black text-brand-charcoal dark:text-white hover:border-brand-green dark:hover:border-teal-400 hover:text-brand-green transition-all shadow-sm"
@@ -1859,7 +1865,7 @@ export default function Home() {
 
               <div className="flex items-center gap-2 sm:border-l sm:border-slate-200 dark:sm:border-slate-800 sm:pl-5 w-full sm:w-auto">
                 <a
-                  href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
+                  href="https://www.practo.com/bangalore/dentist/ramesh-dental-clinic"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-brand-green dark:hover:bg-brand-green dark:hover:text-white px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95"
@@ -2066,7 +2072,7 @@ export default function Home() {
           {/* Bottom CTA for Practo */}
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <a
-              href="https://www.practo.com/bangalore/clinic/gait-physio-clinic-whitefield-2"
+              href="https://www.practo.com/bangalore/dentist/ramesh-dental-clinic"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-3 text-xs font-black text-brand-charcoal dark:text-white hover:border-brand-green dark:hover:border-teal-400 hover:text-brand-green transition-all shadow-sm"
@@ -2091,7 +2097,7 @@ export default function Home() {
               Health Articles & Research
             </h2>
             <p className="text-base text-slate-600 dark:text-slate-400 font-medium">
-              Evidence-based physiotherapy advice, movement health tips, and recovery guides authored by our clinical team.
+              Evidence-based dental advice, oral health tips, and procedural guides authored by our clinical team.
             </p>
           </div>
 
@@ -2401,7 +2407,7 @@ export default function Home() {
                     <div>
                       <h4 className="text-xs sm:text-sm font-black text-white">Prescribed Video Workouts</h4>
                       <p className="text-[11px] text-slate-300 font-normal leading-relaxed">
-                        HD guided exercise routines with custom sets, reps, and hold timers prescribed by Dr. Kinnera.
+                        Personalized post-procedure care routines and oral hygiene tips prescribed by your attending dentist.
                       </p>
                     </div>
                   </div>
@@ -2473,16 +2479,16 @@ export default function Home() {
                         className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-black transition-all border border-white/20 active:scale-95 text-center cursor-pointer group"
                       >
                         <Download className="w-4 h-4 text-brand-luminous group-hover:animate-bounce" />
-                        <span>Install GaitPhysio PatientHub App</span>
+                        <span>Install RameshDental PatientHub App</span>
                       </button>
                       <p className="text-[11px] text-slate-300/80 font-normal pl-1">
-                        Already installed? Look for <strong>GaitPhysio</strong> on your home screen or Start menu.
+                        Already installed? Look for <strong>RameshDental</strong> on your home screen or Start menu.
                       </p>
                     </div>
                   ) : (
                     <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold self-center sm:self-auto">
                       <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                      Running in GaitPhysio App Mode
+                      Running in RameshDental App Mode
                     </div>
                   )}
                 </div>
@@ -2508,7 +2514,7 @@ export default function Home() {
                     <div className="relative rounded-[30px] overflow-hidden bg-slate-950 shadow-inner aspect-[1/2]">
                       <Image
                         src="/images/patienthub_app_preview.jpg"
-                        alt="Gait Physio Patient Hub Portal"
+                        alt="Ramesh Dental Patient Hub Portal"
                         width={512}
                         height={1024}
                         className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.02]"
@@ -2545,7 +2551,7 @@ export default function Home() {
                     App Already Installed!
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                    <strong>GaitPhysio Patient Hub</strong> is already installed on your device. You can launch it directly from your home screen, app drawer, or Windows Start Menu anytime!
+                    <strong>RameshDental Patient Hub</strong> is already installed on your device. You can launch it directly from your home screen, app drawer, or Windows Start Menu anytime!
                   </p>
                 </div>
 
@@ -2703,7 +2709,7 @@ export default function Home() {
                     Install on Your Computer
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                    Install the <strong>GaitPhysio Patient Hub</strong> directly to your Windows or Mac desktop for 1-click access:
+                    Install the <strong>RameshDental Patient Hub</strong> directly to your Windows or Mac desktop for 1-click access:
                   </p>
                 </div>
 
@@ -2714,7 +2720,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-brand-green text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">2</span>
-                    <span>Click <strong>Install</strong> to add GaitPhysio to your Desktop &amp; Start Menu.</span>
+                    <span>Click <strong>Install</strong> to add RameshDental to your Desktop &amp; Start Menu.</span>
                   </div>
                 </div>
 
@@ -2752,7 +2758,7 @@ export default function Home() {
               Frequently Asked Questions
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold">
-              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 89044 56243.
+              Have questions about session preparation, treatments, costs, or appointments? Find answers or reach our front desk at +91 89714 62949.
             </p>
           </div>
 
@@ -2805,7 +2811,7 @@ export default function Home() {
               Locate Us
             </h2>
             <p className="text-base text-slate-655 dark:text-slate-400">
-              Get directions, contact details, operating hours, and maps location to reach Gait Physio Clinic.
+              Get directions, contact details, operating hours, and maps location to reach Ramesh Dental Clinic.
             </p>
           </div>
 
@@ -2905,7 +2911,7 @@ export default function Home() {
                     <div className="h-16 w-16 rounded-full bg-brand-sand/85 dark:bg-brand-green/20 ring-4 ring-brand-sand/30 flex items-center justify-center text-brand-green shrink-0 animate-bounce mb-4">
                       <MapPin className="h-8 w-8" />
                     </div>
-                    <h3 className="font-black text-brand-charcoal dark:text-white">Gait Physio Clinic Bangalore</h3>
+                    <h3 className="font-black text-brand-charcoal dark:text-white">Ramesh Dental Clinic Bangalore</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-450 max-w-sm font-semibold mt-1">
                       Map configuration is incomplete. Update maps embed details in settings config.
                     </p>
@@ -2938,10 +2944,10 @@ export default function Home() {
 
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6 relative z-10 reveal-on-scroll">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            Ready to feel like yourself again?
+            Ready for a Pain-Free, Confident Smile?
           </h2>
           <p className="text-lg text-teal-50 max-w-2xl mx-auto">
-            Take the first step toward pain-free movement. Book your initial consultation today at our convenient location.
+            Take the first step toward a healthy, radiant, and pain-free smile. Book your initial consultation today at our convenient location.
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
             {clinicConfig.enablePublicBooking !== false ? (

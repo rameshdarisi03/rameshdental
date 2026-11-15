@@ -561,7 +561,7 @@ export default function PatientsPage() {
             patientName: cleanName,
             patientPhone: `${dialCode} ${cleanPhone}`,
             patientEmail: formData.email ? formData.email.trim().toLowerCase() : "",
-            serviceId: formData.treatmentPlan || "General Physiotherapy Consultation",
+            serviceId: formData.treatmentPlan || "General Dental Consultation & Checkup",
             date: formattedBookingDate,
             slot: walkInSlot,
             notes: "Direct in-clinic walk-in registered at reception.",
@@ -653,7 +653,7 @@ export default function PatientsPage() {
     setResendingInviteId(targetPatient.id);
     setInviteSuccessMsg("");
     try {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.rameshdental.vercel.app");
       let waStatus = false;
       let emailStatus = false;
 

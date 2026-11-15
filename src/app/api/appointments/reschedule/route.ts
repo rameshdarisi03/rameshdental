@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
     let patientName = appData.patientName || appData.name || "Patient";
     let patientPhone = appData.patientPhone || appData.phone || "";
     let patientEmail = appData.patientEmail || appData.email || "";
-    const serviceId = appData.serviceId || "Physiotherapy Session";
-    const assignedTherapist = appData.assignedTherapist || "Dr. Kinnera";
+    const serviceId = appData.serviceId || "Dental Consultation";
+    const assignedTherapist = appData.assignedTherapist || "Dr. Ramesh Darisi";
 
     // If phone or email missing from appointment doc, try looking up linked patient profile
     if ((!patientPhone || !patientEmail) && appData.patientId) {
@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
             patientPhone,
             requestedDate: newDate,
             requestedSlot: newSlot,
-            serviceName: appData.serviceName || appData.serviceId || "Physiotherapy Session",
+            serviceName: appData.serviceName || appData.serviceId || "Dental Consultation",
           });
         } catch (waErr) {
           console.warn("[Reschedule Request WhatsApp Failed]:", waErr);
@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
             currentSlot: previousSlot,
             requestedDate: newDate,
             requestedSlot: newSlot,
-            serviceName: appData.serviceName || appData.serviceId || "Physiotherapy Session",
+            serviceName: appData.serviceName || appData.serviceId || "Dental Consultation",
           });
         } catch (emErr) {
           console.warn("[Reschedule Request Email Failed]:", emErr);
@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
           newDate,
           newSlot,
           therapistName: assignedTherapist,
-          serviceName: appData.serviceName || appData.serviceId || "Physiotherapy Session",
+          serviceName: appData.serviceName || appData.serviceId || "Dental Consultation",
           appointmentId: appointmentId,
         });
         if (!waRes.success) {

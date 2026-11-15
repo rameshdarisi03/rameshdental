@@ -3,76 +3,86 @@ import Link from "next/link";
 import PageHeader from "@/components/public/PageHeader";
 import { ArrowRight, CheckCircle2, Calendar, ShieldCheck, Sparkles, Activity } from "lucide-react";
 
-const servicesList = [
+export const dentalServicesList = [
   {
-    slug: "musculoskeletal",
-    title: "Musculoskeletal (Orthopaedic) Rehab",
-    subtitle: "Joint Alignment, Spine Decompression & Posture Correction",
-    desc: "Targeted therapy for chronic back pain, neck stiffness, knee osteoarthritis, and structural spinal imbalances through precision manual therapy and joint realignment.",
-    image: "/images/services/musculoskeletal.webp",
-    sessions: "8 to 12 Sessions",
-    timeline: "4 to 8 Weeks",
-    keyBenefits: ["Back & Neck Pain Relief", "Spine Decompression", "Joint Tracking", "Posture Realignment"]
+    slug: "root-canal-treatment",
+    title: "Root Canal Treatment (RCT)",
+    subtitle: "Painless Single-Sitting Rotary Endodontics",
+    desc: "Advanced motorized rotary endodontic therapy that preserves infected or broken teeth with pinpoint apex localization and computerized local anesthesia.",
+    image: "/images/services/root-canal.jpg",
+    sessions: "1 to 2 Sessions",
+    timeline: "1 to 7 Days",
+    keyBenefits: ["Instant Pain Relief", "Natural Tooth Saved", "Digital Apex Accuracy", "Single-Visit Convenience"]
   },
   {
-    slug: "sports-injury",
-    title: "Sports Injury Rehabilitation",
-    subtitle: "Athletic Return-to-Play, ACL Rehab & Muscle Recovery",
-    desc: "Comprehensive rehab protocols for runners, gym athletes, and weekend warriors recovering from ligament tears, meniscus injuries, shin splints, and tendonitis.",
-    image: "/images/services/sports_injury.webp",
-    sessions: "10 to 14 Sessions",
-    timeline: "6 to 12 Weeks",
-    keyBenefits: ["ACL & Meniscus Protocol", "Rotator Cuff Rehab", "Agility Conditioning", "Injury Prevention"]
+    slug: "dental-implants",
+    title: "Dental Implants & Fixed Teeth",
+    subtitle: "Permanent Titanium Implants & Full-Mouth Rehabilitation",
+    desc: "Bio-integrated titanium dental implants replicating natural tooth roots with precision CAD/CAM zirconia crowns, restoring 100% chewing function.",
+    image: "/images/services/dental-implants.jpg",
+    sessions: "2 to 3 Visits",
+    timeline: "2 to 3 Months",
+    keyBenefits: ["Lifetime Durability", "Prevents Bone Resorption", "Adjacent Teeth Untouched", "Natural Smile & Bite"]
   },
   {
-    slug: "post-surgical",
-    title: "Post-Surgical Rehabilitation",
-    subtitle: "Safe Joint Mobilization After Orthopedic Surgery",
-    desc: "Structured post-op care following knee/hip replacements, arthroscopic reconstructions, and spinal surgeries. We restore scar tissue mobility and joint flexibility.",
-    image: "/images/services/post_surgical.webp",
-    sessions: "12 to 16 Sessions",
-    timeline: "8 to 16 Weeks",
-    keyBenefits: ["Knee & Hip Replacement Care", "Scar Tissue Release", "Early Mobilization", "Safe Weight Bearing"]
+    slug: "invisible-aligners",
+    title: "Invisible Aligners & Braces",
+    subtitle: "Clear Orthodontic Trays & Ceramic Aesthetic Braces",
+    desc: "Discreet teeth straightening with customized, transparent orthodontic aligners. Correct crowding, gaps, and bite issues with predictable 3D simulation.",
+    image: "/images/services/invisible-aligners.jpg",
+    sessions: "Progress Checks (Every 6-8 Wks)",
+    timeline: "6 to 14 Months",
+    keyBenefits: ["Virtually Invisible", "Removable for Dining", "Zero Food Restrictions", "Predictable 3D Outcome"]
   },
   {
-    slug: "neurological",
-    title: "Neurological Physiotherapy",
-    subtitle: "Neuroplasticity, Balance Retraining & Gait Coordination",
-    desc: "Specialized rehabilitation for stroke recovery, Parkinson's disease, neuropathy, and balance disorders using advanced gait retraining and functional movement drills.",
-    image: "/images/services/neurological.webp",
-    sessions: "12 to 20 Sessions",
-    timeline: "12+ Weeks",
-    keyBenefits: ["Stroke Motor Recovery", "Parkinson's Gait Retraining", "Fall Prevention", "Balance Restoration"]
+    slug: "teeth-whitening",
+    title: "Teeth Whitening & Smile Makeover",
+    subtitle: "In-Office Laser Bleaching & Porcelain Veneers",
+    desc: "Transform your smile with blue LED accelerator teeth whitening and ultra-thin custom ceramic veneers for radiant brightness without enamel sensitivity.",
+    image: "/images/services/teeth-whitening.jpg",
+    sessions: "Single 45-Min Session",
+    timeline: "Immediate Results",
+    keyBenefits: ["Up to 8 Shades Lighter", "Enamel-Safe Formulation", "Gum Dam Protection", "Long-Lasting Radiance"]
   },
   {
-    slug: "geriatric",
-    title: "Geriatric Physiotherapy & Fall Prevention",
-    subtitle: "Independence, Joint Comfort & Senior Mobility",
-    desc: "Gentle, compassionate movement therapy tailored to seniors. Improves functional strength, stabilizes walking balance, and reduces fall risk for independent daily living.",
-    image: "/images/services/geriatric.webp",
-    sessions: "6 to 10 Sessions",
-    timeline: "4 to 6 Weeks",
-    keyBenefits: ["Fall Prevention Drills", "Arthritic Joint Care", "Stair Climbing Confidence", "Safe Independence"]
+    slug: "pediatric-dentistry",
+    title: "Pediatric (Kids) Dentistry",
+    subtitle: "Gentle Preventive Care, Fluoride & Cavity Sealants",
+    desc: "Child-friendly dental care in a warm, fear-free environment. Specializing in milk tooth preservation, pit & fissure sealants, and early habit correction.",
+    image: "/images/services/pediatric-dentistry.jpg",
+    sessions: "Routine Checks (Every 6 Mos)",
+    timeline: "Preventive Care",
+    keyBenefits: ["Zero Dental Anxiety", "Cavity-Proof Sealants", "Milk Tooth Preservation", "Gentle Experienced Staff"]
   },
   {
-    slug: "cardiopulmonary",
-    title: "Cardiopulmonary Rehabilitation",
-    subtitle: "Respiratory Endurance & Aerobic Capacity Building",
-    desc: "Supervised exercise conditioning to rebuild lung volume, breathing efficiency, and stamina following respiratory illnesses or cardiovascular events.",
-    image: "/images/services/cardiopulmonary.webp",
-    sessions: "8 to 12 Sessions",
-    timeline: "6 to 8 Weeks",
-    keyBenefits: ["Diaphragmatic Breathing", "Aerobic Stamina Rebuild", "Chest Mobility", "Post-Viral Fatigue Care"]
+    slug: "wisdom-tooth-extraction",
+    title: "Tooth Extraction & Wisdom Teeth",
+    subtitle: "Surgical & Atraumatic Impaction Removal",
+    desc: "Gentle removal of problematic, impacted wisdom teeth or non-restorable roots using minimally invasive piezo techniques and quick healing protocols.",
+    image: "/images/services/wisdom-tooth.jpg",
+    sessions: "1 Surgical Visit",
+    timeline: "3 to 5 Days Recovery",
+    keyBenefits: ["Painless Local Anesthesia", "Minimal Post-Op Swelling", "Rapid Socket Healing", "3D Nerve Mapping"]
   },
   {
-    slug: "pelvic-floor",
-    title: "Pelvic Floor Rehabilitation",
-    subtitle: "Core Stability, Pelvic Alignment & Postpartum Recovery",
-    desc: "Evidence-based, discreet rehabilitation to strengthen pelvic floor muscles, alleviate chronic pelvic tension, and restore core stability following childbirth or surgery.",
-    image: "/images/services/pelvic_floor.webp",
-    sessions: "6 to 8 Sessions",
-    timeline: "4 to 8 Weeks",
-    keyBenefits: ["Postpartum Core Recovery", "Pelvic Pain Alleviation", "Bladder Control", "Functional Core Strength"]
+    slug: "laser-gum-therapy",
+    title: "Laser Gum Therapy & Ultrasonic Scaling",
+    subtitle: "Deep Periodontal Disinfection & Tartar Removal",
+    desc: "Painless ultrasonic tartar removal and diode laser gum therapy to stop bleeding gums, treat gingivitis, and eliminate deep bacterial pockets.",
+    image: "/images/services/laser-gum-therapy.jpg",
+    sessions: "1 to 2 Sessions",
+    timeline: "1 to 2 Weeks",
+    keyBenefits: ["Eliminates Bleeding Gums", "Removes Stubborn Tartar", "Laser Tissue Sterilization", "Freshens Breath"]
+  },
+  {
+    slug: "crowns-and-bridges",
+    title: "Metal-Free Zirconia Crowns & Bridges",
+    subtitle: "CAD/CAM High-Translucency Aesthetic Restorations",
+    desc: "Precision-milled monolithic zirconia and E-max ceramic dental crowns. Exceptional natural translucency, superior fracture resistance, and zero black gum lines.",
+    image: "/images/services/crowns-bridges.jpg",
+    sessions: "2 Clinical Visits",
+    timeline: "3 to 5 Days",
+    keyBenefits: ["Zero Metal / Biocompatible", "Indistinguishable from Natural Teeth", "10-15 Year Warranty", "High Chewing Strength"]
   }
 ];
 
@@ -81,8 +91,8 @@ export default function ServicesPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter',sans-serif]">
       {/* Page Header */}
       <PageHeader
-        title="Specialized Clinical Services"
-        subtitle="Evidence-based physical therapy, biomechanical gait analysis, and personalized rehabilitation programs by certified specialists in Whitefield, Bengaluru."
+        title="Specialized Dental Services"
+        subtitle="Advanced, painless, and gentle dental procedures performed with digital intraoral scanning, rotary endodontics, and modern surgical techniques in Whitefield, Bengaluru."
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
@@ -91,13 +101,13 @@ export default function ServicesPage() {
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-green/10 text-brand-green text-xs font-black uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              Advanced Biomechanical Diagnosis
+              Advanced Digital Dentistry
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-              Targeted Care for Every Stage of Your Recovery
+              Comprehensive Dental Care for Every Generation
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-normal">
-              Every clinical journey at Gait Physio Clinic begins with a thorough biomechanical assessment. Our certified physical therapists design an individualized plan tailored to your anatomical requirements.
+              Every consultation at Ramesh Dental Clinic starts with high-resolution digital imaging and a transparent treatment plan. Our specialized doctors guarantee gentle, compassionate care with zero surprises.
             </p>
           </div>
 
@@ -106,103 +116,66 @@ export default function ServicesPage() {
             className="inline-flex items-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-sm transition-transform active:scale-95 shrink-0"
           >
             <Calendar className="w-4 h-4" />
-            <span>Book Initial Consultation</span>
+            <span>Book Consultation</span>
           </Link>
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {servicesList.map((service, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {dentalServicesList.map((service) => (
             <div
               key={service.slug}
               className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
             >
               <div>
-                {/* Image */}
-                <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                   <img
                     src={service.image}
                     alt={service.title}
-                    loading={index < 3 ? "eager" : "lazy"}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
-                    {service.timeline}
+                  <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-bold text-brand-green border border-slate-200/50 dark:border-slate-700/50">
+                    {service.sessions}
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-5 sm:p-6 space-y-4">
+                <div className="p-5 space-y-3">
                   <div>
-                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white group-hover:text-brand-green transition-colors leading-snug">
+                    <h3 className="text-base font-black text-slate-900 dark:text-white group-hover:text-brand-green transition-colors">
                       {service.title}
                     </h3>
-                    <p className="text-xs text-brand-green font-bold mt-1">
+                    <p className="text-xs font-semibold text-brand-green mt-0.5">
                       {service.subtitle}
                     </p>
                   </div>
 
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
                     {service.desc}
                   </p>
 
-                  {/* Bullet Benefits */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                    {service.keyBenefits.map((benefit) => (
-                      <div key={benefit} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                        <CheckCircle2 className="w-3 h-3 text-brand-green shrink-0" />
-                        <span className="truncate">{benefit}</span>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5">
+                    {service.keyBenefits.map((benefit, i) => (
+                      <div key={i} className="flex items-center gap-2 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-brand-green shrink-0" />
+                        <span>{benefit}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Card Footer Actions */}
-              <div className="px-5 sm:px-6 pb-5 pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 mt-2">
+              <div className="p-5 pt-0">
                 <Link
                   href={`/services/${service.slug}`}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-brand-green hover:underline"
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-brand-green hover:text-white text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-brand-green dark:hover:text-white text-xs font-bold transition-all duration-200 group-hover:bg-brand-green group-hover:text-white"
                 >
-                  <span>Full Treatment Protocol</span>
+                  <span>Explore Procedure</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-
-                <Link
-                  href="/book"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-brand-green hover:text-white text-slate-700 dark:text-slate-300 text-[11px] font-bold transition-colors"
-                >
-                  <span>Book</span>
                 </Link>
               </div>
             </div>
           ))}
         </div>
-
-        {/* Bottom Booking CTA Card */}
-        <section className="bg-gradient-to-br from-teal-900 to-slate-900 text-white rounded-3xl p-8 sm:p-12 text-center space-y-4 shadow-xl">
-          <h2 className="text-2xl sm:text-3xl font-black">
-            Not Sure Which Treatment Plan Fits Your Condition?
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Our clinical team performs comprehensive diagnostic assessments to map out the exact root cause of your discomfort before initiating any rehabilitation program.
-          </p>
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/book"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white font-bold text-xs sm:text-sm px-8 py-3.5 rounded-2xl shadow-lg transition-transform active:scale-95"
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Schedule Initial Assessment</span>
-            </Link>
-            <a
-              href="tel:+918904456243"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-8 py-3.5 rounded-2xl border border-white/20 transition-colors"
-            >
-              <span>Call +91 89044 56243</span>
-            </a>
-          </div>
-        </section>
       </main>
     </div>
   );

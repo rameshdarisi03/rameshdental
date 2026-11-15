@@ -7,32 +7,40 @@ import { ChevronDown, HelpCircle, Calendar, MessageSquare, Phone } from "lucide-
 
 const faqData = [
   {
-    question: "Do I need a doctor's referral to visit Gait Physio Clinic?",
-    answer: "No, a doctor's referral is not mandatory. You can walk in or book an appointment directly with our qualified physical therapists. However, if you have recent X-rays, MRI scans, or surgical discharge notes, please bring them along to assist our diagnostic review."
+    question: "Is root canal treatment (RCT) really painful?",
+    answer: "No! With modern computerized local anesthesia and motorized rotary endodontics, a root canal is virtually painless—no more uncomfortable than getting a routine dental filling. In fact, a root canal immediately relieves the agonizing throbbing pain caused by inflamed or infected dental pulp."
   },
   {
-    question: "What is biomechanical gait analysis and who needs it?",
-    answer: "Biomechanical gait analysis is a clinical evaluation of the way your body moves while walking or running. Using motion tracking, we analyze joint angles, foot strike patterns, and pelvic rotation to identify subtle imbalances causing recurrent knee pain, plantar fasciitis, shin splints, or lower back strain."
+    question: "How long do dental implants last and who is eligible?",
+    answer: "Dental implants are biologically permanent restorations. The titanium fixture fuses directly with your jawbone through osseointegration and can easily last 25+ years to a lifetime with routine brushing, flossing, and 6-month checkups. Most healthy adults with sufficient jawbone density are excellent candidates. Even with bone loss, modern bone grafting and sinus lifts make implants widely accessible."
   },
   {
-    question: "How long does a physiotherapy consultation session last?",
-    answer: "An initial comprehensive assessment typically takes 45 to 60 minutes, including subjective clinical history, motion testing, hands-on treatment, and home exercise guidance. Subsequent follow-up sessions usually take 40 to 50 minutes."
+    question: "How do invisible clear aligners compare to traditional metal braces?",
+    answer: "Clear aligners use custom series of medical-grade transparent thermoplastic trays that gently move teeth into position. Unlike metal braces, aligners are virtually invisible in photos and meetings, removable for meals, have zero dietary restrictions, and allow standard brushing and flossing without cumbersome wires."
   },
   {
-    question: "What should I wear to my physiotherapy session?",
-    answer: "We recommend comfortable, loose athletic clothing such as track pants, shorts, and a breathable t-shirt that allows your therapist to assess your spine, knee, or shoulder movements comfortably."
+    question: "Does teeth scaling loosen teeth or wear away enamel?",
+    answer: "This is a common myth. Professional ultrasonic scaling does not remove enamel or loosen teeth. Ultrasonic instruments use gentle high-frequency sound micro-vibrations paired with a cooling water mist to break away calcified bacterial tartar (calculus). Tartar is what actually destroys bone and loosens teeth—scaling saves teeth from gum disease."
   },
   {
-    question: "How many sessions will I need to experience pain relief?",
-    answer: "Many patients experience noticeable relief within 2 to 4 sessions. However, full mechanical correction and long-term joint stabilization typically involve a 6 to 12 session protocol depending on whether your condition is acute (e.g. recent ankle sprain) or chronic (e.g. years of lumbar stiffness)."
+    question: "Do all wisdom teeth have to be extracted?",
+    answer: "No. If a wisdom tooth emerges upright, properly aligned, and can be thoroughly cleaned during daily oral hygiene, it can remain safely in place. Extraction is only recommended if the tooth is impacted, growing sideways against adjacent molar roots, causing recurrent gum infection (pericoronitis), or harboring deep cavities."
   },
   {
-    question: "Do you offer treatment for tailbone pain (Coccydynia)?",
-    answer: "Yes, specialized tailbone pain relief is one of our key clinical specialties. We use gentle manual mobilization, pelvic core adjustments, and ultrasound electrotherapy to relieve coccygeal inflammation and restore pain-free sitting."
+    question: "At what age should a child have their first dental visit?",
+    answer: "The Indian Dental Association and pediatric dental academies recommend the 'First Tooth, First Birthday' rule: a child's first visit should happen when their first tooth erupts or by age one. Early visits ensure healthy jaw development, detect early childhood cavities, and help children associate the dental clinic with a fun, gentle experience."
   },
   {
-    question: "Can I claim insurance reimbursement for my sessions?",
-    answer: "Yes. After your session, we issue an official clinical invoice with complete diagnosis details, therapist registration number, and itemized billing breakdown that you can submit to your health insurance or corporate wellness provider for reimbursement."
+    question: "How long does professional in-office teeth whitening last?",
+    answer: "In-office blue LED laser teeth whitening can brighten teeth by up to 6 to 8 shades in a single 45-minute clinical appointment. Depending on your consumption of staining beverages (coffee, tea, red wine, turmeric) and oral hygiene habits, results typically last 1 to 2 years. Touch-up maintenance can extend the brightness indefinitely."
+  },
+  {
+    question: "What should I do in a dental emergency (knocked-out tooth or severe pain)?",
+    answer: "Call our emergency line (+91 89714 62949) immediately. For a knocked-out permanent tooth, handle it only by the crown, gently rinse it in cold water or milk for 5 seconds without scrubbing, place it in a cup of cold milk, and reach our clinic within 30 to 60 minutes for the highest re-implantation success rate."
+  },
+  {
+    question: "Can I claim insurance reimbursement for dental procedures?",
+    answer: "Yes. Many corporate wellness health policies and comprehensive health insurance covers include outpatient dental treatments (OPD dental riders) or surgical hospital extractions. After your consultation, we provide an itemized official clinical invoice with complete diagnostic codes and doctor registration numbers for insurance claim reimbursement."
   }
 ];
 
@@ -65,8 +73,8 @@ export default function FaqPage() {
       />
 
       <PageHeader
-        title="Frequently Asked Questions"
-        subtitle="Clear answers about physiotherapy consultations, gait analysis, costs, and clinical recovery protocols."
+        title="Frequently Asked Dental Questions"
+        subtitle="Clear clinical answers about root canals, dental implants, clear aligners, pediatric care, teeth whitening, and insurance coverage at Ramesh Dental Clinic."
       />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-10">
@@ -111,10 +119,10 @@ export default function FaqPage() {
           </div>
           <div className="space-y-1 max-w-md mx-auto">
             <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-              Have a Specific Clinical Question?
+              Have a Specific Dental Question?
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Our clinical desk is available to assist you with session guidelines, appointment timings, or personalized treatment inquiries.
+              Our clinical desk and doctors are available to assist you with treatment estimates, appointment scheduling, and emergency queries.
             </p>
           </div>
 
@@ -127,7 +135,7 @@ export default function FaqPage() {
               <span>Book Appointment</span>
             </Link>
             <a
-              href="https://wa.me/918904456243"
+              href="https://wa.me/918971462949?text=Hello%20Ramesh%20Dental%20Clinic,%20I%20have%20a%20question%20regarding%20a%20dental%20procedure."
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-xs px-6 py-3 rounded-xl border border-emerald-200 dark:border-emerald-800/60 transition-colors"

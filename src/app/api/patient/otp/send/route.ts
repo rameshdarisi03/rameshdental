@@ -91,10 +91,10 @@ export async function POST(request: Request) {
       try {
         await sendEmail({
           to: primaryPatient.email,
-          subject: `Your Gait Physio Clinic Verification Code: ${otp}`,
+          subject: `Your Ramesh Dental Clinic Verification Code: ${otp}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
-              <h2 style="color: #062e36; margin-bottom: 8px;">Gait Physio Clinic</h2>
+              <h2 style="color: #062e36; margin-bottom: 8px;">Ramesh Dental Clinic</h2>
               <p style="color: #475569; font-size: 14px;">Your Patient Hub verification code is:</p>
               <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #f9ab55; margin: 20px 0; background: #062e36; padding: 14px 20px; text-align: center; border-radius: 12px;">
                 ${otp}

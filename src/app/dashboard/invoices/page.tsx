@@ -348,7 +348,7 @@ export default function ClinicalBillingPage() {
   const handleDownloadPdf = (inv: Invoice) => {
     try {
       const pdf = buildInvoicePdf(inv);
-      pdf.save(`${inv.invoiceNumber}_GaitPhysio.pdf`);
+      pdf.save(`${inv.invoiceNumber}_RameshDental.pdf`);
       setActionSuccess(`Downloaded ${inv.invoiceNumber} PDF!`);
       setTimeout(() => setActionSuccess(""), 3000);
     } catch (err: any) {
@@ -544,18 +544,18 @@ export default function ClinicalBillingPage() {
 
     const message = `Hello ${inv.patientName || "Valued Patient"},
 
-Your official treatment invoice from Gait Physio Clinic is ready:
+Your official treatment invoice from Ramesh Dental Clinic is ready:
 
 📄 *Invoice #*: ${inv.invoiceNumber}
 📅 *Date*: ${inv.serviceDate}
-👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Kinnera"}
+👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Ramesh Darisi"}
 💳 *Total Amount*: ₹${(inv.totalAmount || 0).toLocaleString("en-IN")} (${(inv.status || "PAID").toUpperCase()})
 
-Thank you for choosing Gait Physio Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
+Thank you for choosing Ramesh Dental Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
 
 Warm regards,
-*Gait Physio Clinic, Bengaluru*
-📞 +91 89044 56243`;
+*Ramesh Dental Clinic, Bengaluru*
+📞 +91 89714 62949`;
 
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
@@ -851,7 +851,7 @@ Warm regards,
 
                       {/* Therapist */}
                       <td className="px-5 py-4 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        {inv.therapistName || "Dr. Kinnera"}
+                        {inv.therapistName || "Dr. Ramesh Darisi"}
                       </td>
 
                       {/* Payment Method */}

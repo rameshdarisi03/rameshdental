@@ -1,8 +1,8 @@
 {
-  "id": "gaitphysio-staff-management-portal",
-  "name": "Gait Physio Portal",
-  "short_name": "Gait Physio Portal",
-  "description": "Exclusive staff management portal, clinic appointments, patient clinical database, and billing operations for Gait Physio Clinic",
+  "id": "rameshdental-staff-management-portal",
+  "name": "Ramesh Dental Portal",
+  "short_name": "Ramesh Dental Portal",
+  "description": "Exclusive staff management portal, clinic appointments, patient dental database, and billing operations for Ramesh Dental Clinic",
   "start_url": "/dashboard",
   "scope": "/dashboard/",
   "display": "standalone",
@@ -13,27 +13,27 @@
   "categories": ["medical", "business", "productivity"],
   "icons": [
     {
-      "src": "/images/gait_pwa_icon_192.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/images/gait_pwa_splash.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/images/gait_pwa_icon_192.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "maskable"
     },
     {
-      "src": "/images/gait_pwa_splash.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "maskable"
     }
   ],
@@ -41,8 +41,7 @@
     {
       "platform": "webapp",
       "url": "/manifest-staff.json",
-      "id": "gaitphysio-staff-management-portal"
+      "id": "rameshdental-staff-management-portal"
     }
   ]
 }
-

@@ -19,8 +19,8 @@ export default function ArticlesPage() {
   return (
     <div className="flex flex-col w-full min-h-screen bg-brand-bg dark:bg-slate-955">
       <PageHeader
-        title="Articles & Health Insights"
-        description="Explore clinical research, practical guides, and expert advice from our physiotherapists to understand your body and move pain-free."
+        title="Dental Articles & Oral Health Insights"
+        description="Explore dental science, practical oral care guides, and expert advice from our dental specialists to maintain a healthy, pain-free smile."
       />
 
       <section className="py-16">

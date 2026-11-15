@@ -1,8 +1,8 @@
 {
-  "id": "gaitphysio-patient-hub-portal",
-  "name": "GaitPhysio Patient Hub",
+  "id": "rameshdental-patient-hub-portal",
+  "name": "Ramesh Dental Patient Hub",
   "short_name": "Patient Hub",
-  "description": "Patient recovery dashboard, exercise routines, and appointment manager for Gait Physio Clinic",
+  "description": "Patient dental records, treatment plans, and appointment manager for Ramesh Dental Clinic",
   "start_url": "/patienthub",
   "scope": "/",
   "display": "standalone",
@@ -12,27 +12,27 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/images/gait_pwa_icon_192.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/images/gait_pwa_splash.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/images/gait_pwa_icon_192.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "maskable"
     },
     {
-      "src": "/images/gait_pwa_splash.png",
+      "src": "/images/dental-emblem.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "maskable"
     }
   ],
@@ -40,8 +40,7 @@
     {
       "platform": "webapp",
       "url": "/manifest-patient.json",
-      "id": "gaitphysio-patient-hub-portal"
+      "id": "rameshdental-patient-hub-portal"
     }
   ]
 }
-

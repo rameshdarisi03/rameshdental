@@ -153,7 +153,7 @@ export default function DaySnapshot() {
     patientPhone: "",
     patientEmail: "",
     patientAddress: "",
-    serviceId: "General Physiotherapy Consultation",
+    serviceId: "General Dental Consultation & Checkup",
     notes: "",
   });
   const [submittingPatientForm, setSubmittingPatientForm] = useState(false);
@@ -168,13 +168,13 @@ export default function DaySnapshot() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const servicesList = [
-    "General Physiotherapy Consultation",
-    "Gait & Biomechanical Analysis",
-    "Sports Injury Rehabilitation",
-    "Spine & Musculoskeletal Care",
-    "Post-Operative Orthopedic Care",
-    "Dry Needling & Myofascial Release",
-    "Custom Insoles & Orthotics Fitment",
+    "General Dental Consultation & Checkup",
+    "Dental Implants & 3D Imaging",
+    "Root Canal Treatment (RCT)",
+    "Invisible Aligners & Orthodontics",
+    "Teeth Whitening & Smile Makeover",
+    "Laser Gum Therapy & Scaling",
+    "Metal-Free Zirconia Crowns",
   ];
 
   // Dynamic slots generated according to Settings configurations
@@ -736,7 +736,7 @@ export default function DaySnapshot() {
         patientPhone: "",
         patientEmail: "",
         patientAddress: "",
-        serviceId: "General Physiotherapy Consultation",
+        serviceId: "General Dental Consultation & Checkup",
         notes: "",
       });
 
@@ -909,7 +909,7 @@ export default function DaySnapshot() {
       }
       
       const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
-      const title = encodeURIComponent(`Session at Gait Physio Clinic`);
+      const title = encodeURIComponent(`Session at Ramesh Dental Clinic`);
       
       return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}`;
     } catch (err) {
@@ -940,13 +940,13 @@ export default function DaySnapshot() {
     if (templateType === "confirm") {
       const calendarUrl = generateGoogleCalendarUrl(app);
       const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-      message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${therapistText} on *${app.date}* at *${app.slot}* at Gait Physio Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
+      message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${therapistText} on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
     } else if (templateType === "delay") {
-      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes after your scheduled time*. Thank you for your kind understanding! - Gait Physio Clinic`;
+      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes after your scheduled time*. Thank you for your kind understanding! - Ramesh Dental Clinic`;
     } else if (templateType === "early") {
-      message = `Hi *${app.patientName}*, kindly arrive approximately *${earlyMinutes} minutes before your scheduled appointment at ${app.slot}* today for initial biometric preparation. See you soon! - Gait Physio Clinic`;
+      message = `Hi *${app.patientName}*, kindly arrive approximately *${earlyMinutes} minutes before your scheduled appointment at ${app.slot}* today for initial biometric preparation. See you soon! - Ramesh Dental Clinic`;
     } else if (templateType === "custom") {
-      message = customMsg || `Hi *${app.patientName}*, regarding your appointment on *${app.date}* at *${app.slot}* at Gait Physio Clinic...`;
+      message = customMsg || `Hi *${app.patientName}*, regarding your appointment on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic...`;
     }
 
     if (mode === "redirect") {
@@ -2150,7 +2150,7 @@ export default function DaySnapshot() {
             <div className="bg-slate-50 dark:bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-left text-xs space-y-1.5 animate-fade-in break-all max-h-48 overflow-y-auto overscroll-contain">
               <p className="font-bold text-slate-400 text-[10px] uppercase">Message Preview:</p>
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed italic bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 break-all whitespace-pre-line text-[11px] sm:text-xs">
-                Hi {pendingActionApp.patientName || "there"}, your appointment request for *{pendingActionApp.serviceId || "Physiotherapy Consultation"}* on *{pendingActionApp.date || selectedDate}* at *{pendingActionApp.slot}* at Gait Physio Clinic is APPROVED!{"\n\n"}
+                Hi {pendingActionApp.patientName || "there"}, your appointment request for *{pendingActionApp.serviceId || "Physiotherapy Consultation"}* on *{pendingActionApp.date || selectedDate}* at *{pendingActionApp.slot}* at Ramesh Dental Clinic is APPROVED!{"\n\n"}
                 Add to Google Calendar: {generateGoogleCalendarUrl(pendingActionApp)}{"\n\n"}
                 Looking forward to seeing you.
               </p>
@@ -2567,7 +2567,7 @@ export default function DaySnapshot() {
                         <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-900/60 text-[11px] text-slate-500 font-semibold space-y-1">
                           <p className="text-[10px] uppercase font-black text-purple-600">Auto-Prefilled Greeting:</p>
                           <p className="italic text-slate-700 dark:text-slate-300">
-                            Hi <strong>{cleanPatientName(activePatientApp.patientName)}</strong>, regarding your appointment at Gait Physio Clinic:
+                            Hi <strong>{cleanPatientName(activePatientApp.patientName)}</strong>, regarding your appointment at Ramesh Dental Clinic:
                           </p>
                         </div>
 
@@ -2591,7 +2591,7 @@ export default function DaySnapshot() {
                             type="button"
                             disabled={!customWhatsAppMessage.trim() || sendingActionType === "custom"}
                             onClick={() => {
-                              const fullText = `Hi ${cleanPatientName(activePatientApp.patientName)}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
+                              const fullText = `Hi ${cleanPatientName(activePatientApp.patientName)}, regarding your appointment at Ramesh Dental Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Ramesh Dental Clinic`;
                               sendWhatsAppWithTemplate(activePatientApp, "custom", fullText, "api");
                             }}
                             className="flex-1 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
@@ -2608,7 +2608,7 @@ export default function DaySnapshot() {
                             type="button"
                             disabled={!customWhatsAppMessage.trim()}
                             onClick={() => {
-                              const fullText = `Hi ${cleanPatientName(activePatientApp.patientName)}, regarding your appointment at Gait Physio Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Gait Physio Clinic`;
+                              const fullText = `Hi ${cleanPatientName(activePatientApp.patientName)}, regarding your appointment at Ramesh Dental Clinic:\n\n${customWhatsAppMessage.trim()}\n\n- Dr. ${activePatientApp.assignedTherapist || "Clinical Team"}, Ramesh Dental Clinic`;
                               sendWhatsAppWithTemplate(activePatientApp, "custom", fullText, "redirect");
                             }}
                             className="py-2 px-3 rounded-xl border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"

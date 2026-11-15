@@ -4,16 +4,7 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   
-  // If visited via the default Vercel domain alias, redirect to the official custom domain
-  if (host.includes("gait-physio-clinic-v1.vercel.app")) {
-    const url = request.nextUrl.clone();
-    url.host = "gaitphysioclinic.com";
-    url.protocol = "https";
-    url.port = "";
-    return NextResponse.redirect(url, 308);
-  }
-
-  // Strip trailing punctuation or closing parenthesis (e.g. from WhatsApp/SMS auto-link detection)
+  // If visited via an old domain alias, redirect or pass through cleanly
   const pathname = request.nextUrl.pathname;
   if (/[)\]>.,;]$/.test(pathname)) {
     const cleanedPath = pathname.replace(/[)\]>.,;]+$/, "");

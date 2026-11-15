@@ -1,11 +1,11 @@
 ﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Book Physiotherapy Appointment Online",
+  title: "Book Dental Appointment Online",
   description:
-    "Schedule your in-clinic physiotherapy consultation, biomechanical gait analysis, or rehabilitation session at Gait Physio Clinic. Instant confirmation available.",
+    "Schedule your in-clinic dental consultation, root canal treatment, dental implant, or clear aligner checkup at Ramesh Dental Clinic. Instant confirmation available.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/book",
+    canonical: "https://rameshdental.vercel.app/book",
   },
 };
 

@@ -124,8 +124,8 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
         <div className="text-center space-y-4 animate-fade-in flex flex-col items-center">
           <div className="relative">
             <img 
-              src="/images/gait_pwa_splash.png" 
-              alt="Gait Physio Clinic" 
+              src="/images/dental-emblem.jpg" 
+              alt="Ramesh Dental Clinic" 
               className="h-36 w-36 object-contain drop-shadow-sm animate-pulse"
             />
           </div>
@@ -147,13 +147,13 @@ function PatientHubContent({ children }: { children: React.ReactNode }) {
           {/* Brand Logo Link */}
           <Link href="/patienthub/dashboard" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
             <img 
-              src="/images/gait_physio_logo.png" 
-              alt="GaitPhysio" 
+              src="/images/dental-emblem.jpg" 
+              alt="RameshDental" 
               className="h-8 w-8 sm:h-9 sm:w-9 object-contain transition-transform group-hover:scale-105 shrink-0"
             />
             <div className="flex flex-col min-w-0">
               <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-brand-green dark:text-white leading-none whitespace-nowrap">
-                Gait Physio Clinic
+                Ramesh Dental Clinic
               </span>
               <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-widest text-[#8a5100] dark:text-[#f9ab55] mt-1">
                 Patient Hub

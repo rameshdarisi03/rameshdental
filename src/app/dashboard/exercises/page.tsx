@@ -247,7 +247,7 @@ export default function ExerciseLibraryAdminPage() {
             Exercise Video Library
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Manage the global repository of physiotherapy video demonstrations for home prescription.
+            Manage the global repository of dental video demonstrations for home prescription.
           </p>
         </div>
 

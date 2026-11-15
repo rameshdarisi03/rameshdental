@@ -95,7 +95,7 @@ function WalkInBookingContent() {
     patientEmail: "",
     patientPhone: "",
     patientAddress: "",
-    serviceId: "General Physiotherapy Consultation",
+    serviceId: "General Dental Consultation & Checkup",
     date: getTodayDateString(),
     slot: "",
     assignedTherapist: "",
@@ -126,13 +126,13 @@ function WalkInBookingContent() {
   const [blockedType, setBlockedType] = useState<"none" | "full" | "morning" | "evening">("none");
 
   const servicesList = [
-    "General Physiotherapy Consultation",
-    "Gait & Biomechanical Analysis",
-    "Sports Injury Rehabilitation",
-    "Spine & Musculoskeletal Care",
-    "Post-Operative Orthopedic Care",
-    "Dry Needling & Myofascial Release",
-    "Custom Insoles & Orthotics Fitment",
+    "General Dental Consultation & Checkup",
+    "Dental Implants & 3D Imaging",
+    "Root Canal Treatment (RCT)",
+    "Invisible Aligners & Orthodontics",
+    "Teeth Whitening & Smile Makeover",
+    "Laser Gum Therapy & Scaling",
+    "Metal-Free Zirconia Crowns",
   ];
 
   // Fetch current user from local storage
@@ -480,7 +480,7 @@ function WalkInBookingContent() {
       }
       
       const endTimeStr = `${cleanDate}T${pad(endHours)}${pad(endMinutes)}00`;
-      const title = encodeURIComponent(`Session at Gait Physio Clinic`);
+      const title = encodeURIComponent(`Session at Ramesh Dental Clinic`);
       
       return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTimeStr}/${endTimeStr}`;
     } catch (err) {
@@ -495,7 +495,7 @@ function WalkInBookingContent() {
 
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-    const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Gait Physio Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
+    const message = `Hi ${app.patientName}, your appointment request for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is APPROVED!${calendarMsg}\n\nLooking forward to seeing you.`;
     const encodedMessage = encodeURIComponent(message);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
 
@@ -630,7 +630,7 @@ function WalkInBookingContent() {
         patientEmail: "",
         patientPhone: "",
         patientAddress: "",
-        serviceId: "General Physiotherapy Consultation",
+        serviceId: "General Dental Consultation & Checkup",
         date: getTodayDateString(),
         slot: "",
         assignedTherapist: "",
@@ -1307,7 +1307,7 @@ function WalkInBookingContent() {
             setPatientActiveAppointment(updated);
             setSuccessBooking({
               patientName: updated.patientName || selectedPatient?.name || "Patient",
-              serviceId: updated.serviceId || "Physiotherapy Session",
+              serviceId: updated.serviceId || "Dental Consultation",
               date: updated.date,
               slot: updated.slot,
             });

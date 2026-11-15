@@ -1,14 +1,14 @@
 /**
- * Gait Physio Clinic - Responsive Transactional Email Templates
+ * Ramesh Dental Clinic - Responsive Transactional Email Templates
  * Designed for 100% deliverability across Gmail, Apple Mail, Outlook, iOS & Android.
  */
 
 import { CLINIC_BRAND } from "./clinicBranding";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
-const CLINIC_PHONE = "+91 89044 56243";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app";
+const CLINIC_PHONE = "+91 89714 62949";
 const CLINIC_ADDRESS = "Whitefield, Bengaluru, Karnataka 560066";
-const MAPS_URL = "https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru";
+const MAPS_URL = "https://maps.google.com/?q=Ramesh+Dental+Clinic+Whitefield+Bengaluru";
 
 // Shared Email Header & Wrapper
 function wrapEmail(title: string, contentHtml: string): string {
@@ -38,18 +38,18 @@ function wrapEmail(title: string, contentHtml: string): string {
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; text-align: center;">
             <tr>
               <td style="vertical-align: middle; padding-right: 14px; text-align: center;">
-                <img src="${BASE_URL}/images/gait_physio_emblem.png" width="48" height="48" alt="Gait Physio Clinic" style="width: 48px; height: 48px; border-radius: 12px; display: inline-block; vertical-align: middle; border: 0;" />
+                <img src="${BASE_URL}/images/dental-emblem.jpg" width="48" height="48" alt="Ramesh Dental Clinic" style="width: 48px; height: 48px; border-radius: 12px; display: inline-block; vertical-align: middle; border: 0;" />
               </td>
               <td style="vertical-align: middle; text-align: left;">
                 <span style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: #062e36; display: inline-block; line-height: 1.1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                  Gait Physio Clinic
+                  Ramesh Dental Clinic
                 </span>
               </td>
             </tr>
             <tr>
               <td colspan="2" style="padding-top: 8px; text-align: center;">
                 <span style="display: block; font-size: 11.5px; font-weight: 800; color: #0e5366; letter-spacing: 0.8px; text-transform: uppercase;">
-                  Neuro Rehab &nbsp;|&nbsp; Ortho Rehab &nbsp;|&nbsp; Sports Rehab
+                  Root Canal &nbsp;|&nbsp; Dental Implants &nbsp;|&nbsp; Clear Aligners
                 </span>
               </td>
             </tr>
@@ -74,7 +74,7 @@ function wrapEmail(title: string, contentHtml: string): string {
       <tr>
         <td style="padding: 28px 20px; text-align: center; font-size: 11px; color: #64748b; line-height: 1.6;">
           <p style="margin: 0 0 6px; font-weight: 800; color: #062e36; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-            Gait Physio Clinic • Neuro Rehab &nbsp;|&nbsp; Ortho Rehab &nbsp;|&nbsp; Sports Rehab
+            Ramesh Dental Clinic • Root Canal &nbsp;|&nbsp; Dental Implants &nbsp;|&nbsp; Clear Aligners
           </p>
           <p style="margin: 0 0 8px;">
             ${CLINIC_ADDRESS} • Call/WhatsApp: <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; text-decoration: none; font-weight: 700;">${CLINIC_PHONE}</a>
@@ -85,7 +85,7 @@ function wrapEmail(title: string, contentHtml: string): string {
             <a href="${MAPS_URL}" style="color: #059669; text-decoration: none; font-weight: 700;">Google Maps</a>
           </p>
           <p style="margin: 12px 0 0; font-size: 10px; color: #94a3b8;">
-            © ${new Date().getFullYear()} Gait Physio Clinic. All rights reserved.
+            © ${new Date().getFullYear()} Ramesh Dental Clinic. All rights reserved.
           </p>
         </td>
       </tr>
@@ -109,10 +109,10 @@ export function renderPatientOnboardingEmail(params: {
         Patient Portal Invitation
       </span>
       <h1 style="margin: 0 0 12px; font-size: 24px; font-weight: 900; color: #062e36; line-height: 1.2;">
-        Welcome to Gait Physio Clinic, ${params.patientName}!
+        Welcome to Ramesh Dental Clinic, ${params.patientName}!
       </h1>
       <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Your clinical profile has been established with our physiotherapy care team at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>. We have prepared your personal <strong>Patient Hub</strong> where you can access your customized rehab routines, consultation history, and manage appointments.
+        Your clinical profile has been established with our dental care team at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. We have prepared your personal <strong>Patient Hub</strong> where you can access your customized rehab routines, consultation history, and manage appointments.
       </p>
 
       <!-- Registered Email Notice -->
@@ -159,14 +159,14 @@ export function renderPatientOnboardingEmail(params: {
       </div>
 
       <p style="margin: 24px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
-        Need help activating your account? Simply reply to this email or WhatsApp our reception at <a href="https://wa.me/918904456243" style="color: #059669; font-weight: 700; text-decoration: none;">+91 89044 56243</a>.
+        Need help activating your account? Simply reply to this email or WhatsApp our reception at <a href="https://wa.me/918971462949" style="color: #059669; font-weight: 700; text-decoration: none;">+91 89714 62949</a>.
       </p>
     </div>
   `;
 
   return {
-    subject: `Welcome to Gait Physio Clinic - Your Portal Activation Code (${params.activationCode})`,
-    html: wrapEmail("Welcome to Gait Physio Clinic", body),
+    subject: `Welcome to Ramesh Dental Clinic - Your Portal Activation Code (${params.activationCode})`,
+    html: wrapEmail("Welcome to Ramesh Dental Clinic", body),
   };
 }
 
@@ -186,7 +186,7 @@ export function renderBookingRequestReceivedEmail(params: {
         Appointment Request Received
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, we have received your appointment request at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>. Our clinic desk is reviewing doctor availability and will send your official confirmation shortly.
+        Dear ${params.patientName}, we have received your appointment request at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. Our clinic desk is reviewing doctor availability and will send your official confirmation shortly.
       </p>
 
       <!-- Details Summary Card -->
@@ -210,7 +210,7 @@ export function renderBookingRequestReceivedEmail(params: {
       </table>
 
       <p style="margin: 20px 0 0; font-size: 13px; color: #475569; line-height: 1.6;">
-        No action is required right now. Once approved by our physiotherapist team, you will receive a confirmation email with a 1-click Google Calendar sync link.
+        No action is required right now. Once approved by our dental team, you will receive a confirmation email with a 1-click Google Calendar sync link.
       </p>
     </div>
   `;
@@ -242,7 +242,7 @@ export function renderAdminNewBookingAlertEmail(params: {
         New Online Appointment Request
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        A new appointment request has been submitted online for <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> and is waiting in the Appointments Queue.
+        A new appointment request has been submitted online for <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> and is waiting in the Appointments Queue.
       </p>
 
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -305,7 +305,7 @@ export function renderAppointmentApprovalEmail(params: {
         Your Session is Confirmed!
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your physiotherapy appointment at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> has been officially approved. Our team is ready to welcome you.
+        Dear ${params.patientName}, your dental appointment at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> has been officially approved. Our team is ready to welcome you.
       </p>
 
       <!-- Details Summary Card -->
@@ -324,7 +324,7 @@ export function renderAppointmentApprovalEmail(params: {
         </tr>
         <tr>
           <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Assigned Therapist</td>
-          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Clinical Physiotherapist"}</td>
+          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Attending Dental Surgeon"}</td>
         </tr>
         <tr>
           <td style="padding: 14px 18px; color: #64748b; font-weight: 600;">Location</td>
@@ -381,7 +381,7 @@ export function renderWalkinBookingConfirmationEmail(params: {
           Your Clinic Session is Scheduled
         </h1>
         <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          Dear ${params.patientName}, your session at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> has been scheduled by our front desk.
+          Dear ${params.patientName}, your session at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> has been scheduled by our front desk.
         </p>
 
         <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -434,7 +434,7 @@ export function renderAppointmentRejectionEmail(params: {
         Unable to Accommodate Requested Slot
       </h1>
       <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, we regret to inform you that we could not confirm your requested slot for <strong>${params.serviceId}</strong> at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> on <strong>${params.date} at ${params.slot}</strong>.
+        Dear ${params.patientName}, we regret to inform you that we could not confirm your requested slot for <strong>${params.serviceId}</strong> at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> on <strong>${params.date} at ${params.slot}</strong>.
       </p>
 
       ${params.reason ? `
@@ -484,7 +484,7 @@ export function renderAppointmentRescheduledEmail(params: {
         Your Appointment Has Been Rescheduled
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your session for <strong>${params.serviceId}</strong> at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> has been updated to a new time.
+        Dear ${params.patientName}, your session for <strong>${params.serviceId}</strong> at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> has been updated to a new time.
       </p>
 
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -544,7 +544,7 @@ export function renderPreSessionReminderEmail(params: {
         See You Tomorrow at ${params.slot}!
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, this is a friendly reminder of your upcoming physiotherapy session at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> tomorrow.
+        Dear ${params.patientName}, this is a friendly reminder of your upcoming dental consultation at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> tomorrow.
       </p>
 
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
@@ -575,7 +575,7 @@ export function renderPreSessionReminderEmail(params: {
   `;
 
   return {
-    subject: `Reminder: Your Appointment Tomorrow at ${params.slot} - Gait Physio Clinic`,
+    subject: `Reminder: Your Appointment Tomorrow at ${params.slot} - Ramesh Dental Clinic`,
     html: wrapEmail("Session Reminder", body),
   };
 }
@@ -607,8 +607,8 @@ export function renderInvoiceDeliveryEmail(params: {
   const badgeColor = isReplacement ? "#b45309" : isPaid ? "#059669" : "#d97706";
 
   const subject = isReplacement
-    ? `Updated Invoice ${cleanInv} (Replaces ${cleanReplaces}) - Gait Physio Clinic`
-    : `Invoice ${cleanInv} - Gait Physio Clinic`;
+    ? `Updated Invoice ${cleanInv} (Replaces ${cleanReplaces}) - Ramesh Dental Clinic`
+    : `Invoice ${cleanInv} - Ramesh Dental Clinic`;
 
   const body = `
     <div style="text-align: left;">
@@ -619,7 +619,7 @@ export function renderInvoiceDeliveryEmail(params: {
         ${isReplacement ? `Updated Invoice ${cleanInv}` : `Invoice ${cleanInv}`}
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, your official treatment invoice from <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong> is attached to this email as a PDF document.
+        Dear ${params.patientName}, your official treatment invoice from <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong> is attached to this email as a PDF document.
       </p>
 
       ${isReplacement ? `
@@ -719,7 +719,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
         Invoice ${cleanInv} Has Been Cancelled
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>${cleanInv}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our billing records at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>.
+        Dear ${params.patientName}, this is an official notification to inform you that invoice <strong>${cleanInv}</strong> issued on ${params.serviceDate} for ₹${(params.amount || 0).toLocaleString("en-IN")} has been marked as <strong>cancelled / voided</strong> in our billing records at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>.
       </p>
 
       <!-- Cancellation Details Box -->
@@ -773,7 +773,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
   `;
 
   return {
-    subject: `Notice: Cancellation of Invoice ${cleanInv} - Gait Physio Clinic`,
+    subject: `Notice: Cancellation of Invoice ${cleanInv} - Ramesh Dental Clinic`,
     html: wrapEmail("Invoice Cancellation Notice", body),
   };
 }
@@ -798,7 +798,7 @@ export function renderConsultationReportEmail(params: {
         Your Rehabilitation & Consultation Report
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, thank you for attending your physiotherapy session at <strong>Gait Physio Clinic (Neuro Rehab | Ortho Rehab | Sports Rehab)</strong>. Your official clinical case sheet and rehabilitation prescription is attached to this email.
+        Dear ${params.patientName}, thank you for attending your dental consultation at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. Your official clinical case sheet and rehabilitation prescription is attached to this email.
       </p>
 
       <!-- Consultation Meta Box -->
@@ -860,7 +860,7 @@ export function renderConsultationReportEmail(params: {
   `;
 
   return {
-    subject: `Clinical Consultation Summary & Rehabilitation Report - Gait Physio Clinic`,
+    subject: `Clinical Consultation Summary & Treatment Report - Ramesh Dental Clinic`,
     html: wrapEmail("Consultation & Prescription Report", body),
   };
 }
@@ -876,8 +876,8 @@ export function patientAuthOtpEmail(params: {
   const isSignup = params.purpose === "signup";
   const headline = isSignup ? "Verify Your Email & Activate Portal" : "Reset Your Portal Password";
   const subtext = isSignup
-    ? "Welcome to Gait Physio Clinic! Use the verification code below to set up your password and access your home exercises, recovery plans, and treatment invoices online."
-    : "We received a request to reset your password for the Gait Physio Clinic Patient Hub. Use the security code below to create a new password.";
+    ? "Welcome to Ramesh Dental Clinic! Use the verification code below to set up your password and access your home exercises, recovery plans, and treatment invoices online."
+    : "We received a request to reset your password for the Ramesh Dental Clinic Patient Hub. Use the security code below to create a new password.";
 
   const body = `
     <div>
@@ -912,8 +912,8 @@ export function patientAuthOtpEmail(params: {
 
   return {
     subject: isSignup
-      ? `Your Verification Code: ${params.otp} - Gait Physio Clinic`
-      : `Password Reset Code: ${params.otp} - Gait Physio Clinic`,
+      ? `Your Verification Code: ${params.otp} - Ramesh Dental Clinic`
+      : `Password Reset Code: ${params.otp} - Ramesh Dental Clinic`,
     html: wrapEmail(headline, body),
   };
 }

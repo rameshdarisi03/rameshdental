@@ -89,7 +89,7 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
               <span className="text-slate-355 dark:text-slate-700">•</span>
               <span className="flex items-center gap-1.5 text-brand-green dark:text-teal-400 font-black">
                 <UserCheck className="w-4 h-4" />
-                <span>{article.author ? `By ${article.author}` : "Reviewed by Physiotherapist"}</span>
+                <span>{article.author ? `By ${article.author}` : "Reviewed by Dental Specialist"}</span>
               </span>
             </div>
           </div>
@@ -250,10 +250,10 @@ export default function ArticleReaderPage({ params }: { params: Promise<{ slug: 
               <div className="bg-brand-sand/30 dark:bg-slate-950 border border-brand-muted/40 dark:border-slate-805 p-6 md:p-8 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="space-y-2 text-center md:text-left">
                   <h3 className="text-base font-black text-brand-charcoal dark:text-white">
-                    Ready to Get Back to Pain-Free Movement?
+                    Ready for a Pain-Free, Confident Smile?
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-450 font-semibold max-w-lg leading-relaxed">
-                    Our expert physiotherapy team provides comprehensive assessments to identify the root cause of your pain and create a personalized recovery program tailored to your lifestyle.
+                    Our specialized dental team provides comprehensive assessments to identify the root cause of tooth pain and create a personalized treatment program tailored to your needs.
                   </p>
                 </div>
                 <Link

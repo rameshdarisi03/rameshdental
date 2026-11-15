@@ -254,7 +254,7 @@ export default function DashboardPage() {
               Next Care Appointment
             </span>
             <h3 className="text-lg sm:text-xl font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">
-              {patient?.therapistName || "Dr. Kinnera (Lead Physiotherapist)"}
+              {patient?.therapistName || "Dr. Ramesh Darisi (Lead Physiotherapist)"}
             </h3>
             <p className="text-xs text-slate-300 font-medium mt-1 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-[#f9ab55]" />
@@ -319,7 +319,7 @@ export default function DashboardPage() {
         </Link>
 
         <a 
-          href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig?.phone)}?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to consult with the doctor regarding my therapy routine.")}`}
+          href={`https://wa.me/${getCleanWhatsAppNumber(clinicConfig?.phone)}?text=${encodeURIComponent("Hello Ramesh Dental Clinic, I would like to consult with the doctor regarding my therapy routine.")}`}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white dark:bg-[#121a1d] rounded-2xl p-4 sm:p-5 shadow-xs border border-[#21444D]/10 dark:border-slate-800 flex flex-col items-center justify-center gap-2.5 hover:border-[#f9ab55] hover:shadow-md transition-all group cursor-pointer"
@@ -382,7 +382,7 @@ export default function DashboardPage() {
                 No Care Protocol Prescribed Yet
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                Your doctor or physiotherapist will prescribe your personalized rehabilitation exercises and care routine during or after your clinical consultation. They will appear here with video guides.
+                Your doctor or dentist will prescribe your personalized rehabilitation exercises and care routine during or after your clinical consultation. They will appear here with video guides.
               </p>
             </div>
             <div className="pt-2">
@@ -506,7 +506,7 @@ export default function DashboardPage() {
             <Activity className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">Gait Physio Clinic • Whitefield</h3>
+            <h3 className="text-sm font-bold text-white font-['Plus_Jakarta_Sans',sans-serif]">Ramesh Dental Clinic • Whitefield</h3>
             <p className="text-xs text-slate-300 font-normal mt-0.5">Need assistance or wish to reschedule? We&apos;re here for you.</p>
           </div>
         </div>

@@ -57,13 +57,13 @@ function getMaxDateString() {
 }
 
 const SERVICES_LIST = [
-  "General Physiotherapy Consultation",
-  "Gait & Biomechanical Analysis",
-  "Sports Injury Rehabilitation",
-  "Spine & Musculoskeletal Care",
-  "Post-Operative Orthopedic Care",
-  "Dry Needling & Myofascial Release",
-  "Custom Insoles & Orthotics Fitment",
+  "General Dental Consultation & Checkup",
+  "Dental Implants & 3D Imaging",
+  "Root Canal Treatment (RCT)",
+  "Invisible Aligners & Orthodontics",
+  "Teeth Whitening & Smile Makeover",
+  "Laser Gum Therapy & Scaling",
+  "Metal-Free Zirconia Crowns",
 ];
 
 export default function AppointmentsPage() {
@@ -287,8 +287,8 @@ export default function AppointmentsPage() {
     setErrorMsg("");
   };
 
-  // Doctor's official phone number from clinic config (fallback +918904456243)
-  const doctorWhatsAppNumber = getCleanWhatsAppNumber(clinicConfig?.phone) || "918904456243";
+  // Doctor's official phone number from clinic config (fallback +918971462949)
+  const doctorWhatsAppNumber = getCleanWhatsAppNumber(clinicConfig?.phone) || "918971462949";
 
   // Handle form submission
   const handleBookSession = async (e: React.FormEvent) => {
@@ -802,7 +802,7 @@ export default function AppointmentsPage() {
             <div className="space-y-2.5 pt-1">
               <a
                 href={`https://wa.me/${doctorWhatsAppNumber}?text=${encodeURIComponent(
-                  `Hi Gait Physio Clinic, I have submitted an appointment request for *${submittedApp.service}* on *${submittedApp.date}* at *${submittedApp.slot}* via Patient Hub.`
+                  `Hi Ramesh Dental Clinic, I have submitted an appointment request for *${submittedApp.service}* on *${submittedApp.date}* at *${submittedApp.slot}* via Patient Hub.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

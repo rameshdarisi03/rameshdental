@@ -61,14 +61,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/images/dental-emblem.jpg", sizes: "192x192", type: "image/jpeg" },
       { url: "/favicon.ico" },
-      { url: "/images/gait_pwa_splash.png", sizes: "512x512", type: "image/png" }
+      { url: "/images/dental-emblem.jpg", sizes: "512x512", type: "image/jpeg" }
     ],
     shortcut: "/favicon.ico",
     apple: [
-      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
-      { url: "/images/gait_pwa_splash.png" }
+      { url: "/images/dental-emblem.jpg", sizes: "180x180", type: "image/jpeg" },
+      { url: "/images/dental-emblem.jpg" }
     ],
   },
   openGraph: {

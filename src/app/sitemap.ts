@@ -1,24 +1,31 @@
 import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://gaitphysioclinic.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app";
   const now = new Date();
 
-  // Public Service Slugs (7 active clinic services)
+  // Public Dental Service Slugs (8 active clinic procedures)
   const serviceSlugs = [
-    "musculoskeletal",
-    "post-surgical",
-    "neurological",
-    "sports-injury",
-    "cardiopulmonary",
-    "geriatric",
-    "pelvic-floor",
+    "root-canal-treatment",
+    "dental-implants",
+    "invisible-aligners",
+    "teeth-whitening",
+    "pediatric-dentistry",
+    "wisdom-tooth-extraction",
+    "laser-gum-therapy",
+    "crowns-and-bridges",
   ];
 
-  // Public Article Slugs
+  // Public Dental Article Slugs
   const articleSlugs = [
-    "knee-pain-stair-climbing",
-    "poor-posture-spine",
+    "root-canal-treatment-myth-vs-reality",
+    "dental-implants-vs-bridges-guide",
+    "invisible-aligners-vs-traditional-braces",
+    "bleeding-gums-causes-and-remedies",
+    "wisdom-teeth-when-to-extract",
+    "teeth-whitening-safe-effective-options",
+    "pediatric-dental-care-milestones",
+    "dental-emergencies-what-to-do",
   ];
 
   const staticRoutes: MetadataRoute.Sitemap = [

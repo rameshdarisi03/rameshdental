@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      verifiedName: pData.new_display_name || pData.verified_name || "Gait Physio Clinic",
+      verifiedName: pData.new_display_name || pData.verified_name || "Ramesh Dental Clinic",
       displayPhone: pData.display_phone_number || "+91 82178 52653",
       qualityRating: pData.quality_rating || "GREEN",
       status: pData.status || "CONNECTED",

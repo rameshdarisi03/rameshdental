@@ -82,8 +82,8 @@ export default function DashboardLayout({
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 gap-4">
         <img 
-          src="/images/gait_pwa_splash.png" 
-          alt="Gait Physio Clinic" 
+          src="/images/dental-emblem.jpg" 
+          alt="Ramesh Dental Clinic" 
           className="h-36 w-36 object-contain drop-shadow-sm animate-pulse"
         />
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
@@ -126,12 +126,12 @@ export default function DashboardLayout({
       <aside className="hidden md:flex md:w-64 md:flex-col border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex h-16 items-center gap-2.5 px-6 border-b border-slate-100 dark:border-slate-850 text-brand-green font-semibold">
           <img
-            src="/images/gait_physio_logo.png"
-            alt="Gait Physio Clinic"
+            src="/images/dental-emblem.jpg"
+            alt="Ramesh Dental Clinic"
             className="h-7 w-7 object-contain shrink-0"
           />
           <span className="text-base font-black tracking-tight text-brand-green">
-            Gait Physio Clinic
+            Ramesh Dental Clinic
           </span>
         </div>
 

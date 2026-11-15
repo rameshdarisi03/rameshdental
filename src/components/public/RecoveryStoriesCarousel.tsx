@@ -117,10 +117,10 @@ export default function RecoveryStoriesCarousel() {
               CLINICAL EVIDENCE & OUTCOMES
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-brand-charcoal dark:text-white tracking-tight font-['Plus_Jakarta_Sans',sans-serif]">
-              Patient Recovery Stories
+              Patient Smile Transformations
             </h2>
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-              Watch real recovery journeys, joint mobilization milestones, and functional independence restored under Dr. Kinnera&apos;s personalized care.
+              Explore real clinical transformations, pain-free root canals, dental implants, and smile makeovers restored under our specialized doctors&apos; care.
             </p>
           </div>
 

@@ -99,7 +99,7 @@ function LoginContent() {
 
   useEffect(() => {
     if (errorParam === "not_registered") {
-      setError(`Access Denied: The account "${emailParam || ""}" is not linked to any patient record in our system. Please contact our reception desk at +91 89044 56243.`);
+      setError(`Access Denied: The account "${emailParam || ""}" is not linked to any patient record in our system. Please contact our reception desk at +91 89714 62949.`);
     } else if (errorParam === "auth_failed") {
       setError("Authentication failed. Please try again.");
     }
@@ -180,7 +180,7 @@ function LoginContent() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        setError(data.error || "This email address has not been registered with the clinic. Please contact our reception desk at +91 89044 56243.");
+        setError(data.error || "This email address has not been registered with the clinic. Please contact our reception desk at +91 89714 62949.");
         setIsSubmitting(false);
         return;
       }
@@ -665,8 +665,8 @@ function LoginContent() {
             <div className="text-center flex flex-col items-center space-y-2 mb-6">
               <div className="relative">
                 <img 
-                  src="/images/gait_physio_logo.png" 
-                  alt="GaitPhysio Logo" 
+                  src="/images/dental-emblem.jpg" 
+                  alt="RameshDental Logo" 
                   className="h-14 w-14 object-contain drop-shadow-[0_4px_16px_rgba(249,171,85,0.25)]"
                 />
               </div>
@@ -830,8 +830,8 @@ function LoginContent() {
             <div className="text-center flex flex-col items-center space-y-2 mb-6">
               <div className="relative">
                 <img 
-                  src="/images/gait_physio_logo.png" 
-                  alt="GaitPhysio Logo" 
+                  src="/images/dental-emblem.jpg" 
+                  alt="RameshDental Logo" 
                   className="h-14 w-14 object-contain drop-shadow-[0_4px_16px_rgba(249,171,85,0.25)]"
                 />
               </div>
@@ -1346,8 +1346,8 @@ function LoginContent() {
             <div className="text-center flex flex-col items-center space-y-2 mb-6">
               <div className="relative">
                 <img 
-                  src="/images/gait_physio_logo.png" 
-                  alt="GaitPhysio Logo" 
+                  src="/images/dental-emblem.jpg" 
+                  alt="RameshDental Logo" 
                   className="h-14 w-14 object-contain drop-shadow-[0_4px_16px_rgba(249,171,85,0.25)]"
                 />
               </div>
@@ -1465,7 +1465,7 @@ function LoginContent() {
 
       {/* Footer Branding */}
       <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-        Gait Physio Clinic &bull; Bengaluru &bull; Need help? Contact +91 89044 56243
+        Ramesh Dental Clinic &bull; Bengaluru &bull; Need help? Contact +91 89714 62949
       </div>
     </div>
   );

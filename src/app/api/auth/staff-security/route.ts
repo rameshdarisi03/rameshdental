@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
     // ACTION 1: GENERATE / VIEW QR CODE FOR A STAFF MEMBER
     // ------------------------------------------------------------------------
     if (action === "GENERATE_QR") {
-      const emailClean = (email || "staff@gaitphysio.com").trim().toLowerCase();
+      const emailClean = (email || "staff@rameshdental.com").trim().toLowerCase();
       const secret = incomingSecret || generateTOTPSecret();
-      const otpauthUrl = getOtpAuthUrl(emailClean, secret, "Gait Physio Clinic");
+      const otpauthUrl = getOtpAuthUrl(emailClean, secret, "Ramesh Dental Clinic");
       const qrDataUrl = await generateQRCodeDataUrl(otpauthUrl);
       const formattedKey = formatSecretForDisplay(secret);
 

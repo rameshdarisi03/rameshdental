@@ -578,7 +578,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
   const handleSendPortalInvite = async () => {
     if (!patient || !patient.activationCode) return;
     const cleanPhone = getCleanWhatsAppNumber(patient.phone);
-    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login?code=${patient.activationCode}` : `https://www.gaitphysioclinic.com/patienthub/login?code=${patient.activationCode}`;
+    const portalUrl = typeof window !== "undefined" ? `${window.location.origin}/patienthub/login?code=${patient.activationCode}` : `https://www.rameshdental.vercel.app/patienthub/login?code=${patient.activationCode}`;
 
     setFormSuccess("Dispatching portal invitation to patient via WhatsApp & Email...");
     try {
@@ -1885,18 +1885,18 @@ PLAN:
 
     const message = `Hello ${inv.patientName || patient?.name || "Valued Patient"},
 
-Your official treatment invoice from Gait Physio Clinic is ready:
+Your official treatment invoice from Ramesh Dental Clinic is ready:
 
 📄 *Invoice #*: ${inv.invoiceNumber}
 📅 *Date*: ${inv.serviceDate}
-👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Kinnera"}
+👨‍⚕️ *Therapist*: ${inv.therapistName || "Dr. Ramesh Darisi"}
 💳 *Total Amount*: ₹${(inv.totalAmount || 0).toLocaleString("en-IN")} (${(inv.status || "PAID").toUpperCase()})
 
-Thank you for choosing Gait Physio Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
+Thank you for choosing Ramesh Dental Clinic! You can also view your complete billing and prescription history anytime in your Patient Hub.
 
 Warm regards,
-*Gait Physio Clinic, Bengaluru*
-📞 +91 89044 56243`;
+*Ramesh Dental Clinic, Bengaluru*
+📞 +91 89714 62949`;
 
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
@@ -3735,7 +3735,7 @@ Warm regards,
                           </p>
 
                           <div className="text-[11px] font-bold text-slate-400">
-                            Therapist: <span className="text-slate-600 dark:text-slate-200">{inv.therapistName || "Dr. Kinnera"}</span>
+                            Therapist: <span className="text-slate-600 dark:text-slate-200">{inv.therapistName || "Dr. Ramesh Darisi"}</span>
                           </div>
                         </div>
 
@@ -3857,7 +3857,7 @@ Warm regards,
           pid={patient.id}
           lastSeen={patient.lastVisit || "Today"}
           googleDriveFolderId={patient.googleDriveFolderId}
-          therapistName={patient.therapistName || defaultTherapist || "Dr. Kinnera"}
+          therapistName={patient.therapistName || defaultTherapist || "Dr. Ramesh Darisi"}
           diagnosis={patient.treatmentPlan}
           consultationSummary={consultations[0]?.summary}
           providerAlerts={patient.reminders}

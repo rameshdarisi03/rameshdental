@@ -190,12 +190,12 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 font-semibold group select-none shrink-0 mr-2 lg:mr-3 xl:mr-5">
           <img
-            src="/images/gait_physio_logo.png"
-            alt="Gait Physio Clinic Emblem Logo"
-            className="h-8 w-8 sm:h-9 sm:w-9 object-contain shrink-0 group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+            src="/images/dental-emblem.jpg"
+            alt="Ramesh Dental Clinic Emblem Logo"
+            className="h-9 w-9 rounded-full object-cover shrink-0 group-hover:scale-105 transition-transform duration-300 shadow-xs border border-teal-500/20"
           />
           <span className="text-sm sm:text-base lg:text-lg xl:text-xl font-black tracking-tight text-brand-green dark:text-white whitespace-nowrap group-hover:opacity-90 transition-opacity">
-            Gait Physio Clinic
+            Ramesh Dental Clinic
           </span>
         </Link>
 
@@ -328,7 +328,7 @@ export default function Navbar() {
                 <span className="xl:hidden">Call</span>
               </a>
               <a
-                href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
+                href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Ramesh Dental Clinic, I would like to inquire about booking a dental consultation.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-green px-3 py-1.5 xl:px-4.5 xl:py-2 text-xs xl:text-sm font-bold text-white shadow-xs hover:bg-brand-green-hover transition-all active:scale-95 whitespace-nowrap shrink-0"
@@ -351,7 +351,7 @@ export default function Navbar() {
               <Phone className="h-4 w-4" />
             </a>
             <a
-              href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`}
+              href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Ramesh Dental Clinic, I would like to inquire about booking a dental consultation.")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center h-9 w-9 rounded-full border border-slate-200 dark:border-slate-800 text-brand-green dark:text-teal-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
@@ -427,7 +427,7 @@ export default function Navbar() {
                   <Phone className="h-4 w-4" />
                   Call Clinic (+91 89714 62949)
                 </a>
-                <a href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Gait Physio Clinic, I would like to inquire about booking an appointment.")}`} target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-center text-sm font-bold text-white hover:bg-brand-green-hover transition-colors shadow-xs">
+                <a href={`https://wa.me/918971462949?text=${encodeURIComponent("Hello Ramesh Dental Clinic, I would like to inquire about booking a dental consultation.")}`} target="_blank" rel="noopener noreferrer" onClick={() => setIsOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-green py-3 text-center text-sm font-bold text-white hover:bg-brand-green-hover transition-colors shadow-xs">
                   <MessageSquare className="h-4 w-4" />
                   WhatsApp Us (+91 89714 62949)
                 </a>

@@ -17,12 +17,12 @@ function isAuthorizedAdminOrStaff(req: NextRequest): boolean {
   // 1. Same-Origin & Referer Domain Verification
   const isSameDomain =
     secFetchSite === "same-origin" ||
-    origin.includes("gaitphysioclinic.com") ||
+    origin.includes("rameshdental") ||
     origin.includes("localhost") ||
     origin.includes("127.0.0.1") ||
-    host.includes("gaitphysioclinic.com") ||
+    host.includes("rameshdental") ||
     host.includes("localhost") ||
-    referer.includes("gaitphysioclinic.com") ||
+    referer.includes("rameshdental") ||
     referer.includes("/dashboard");
 
   // 2. Session cookie check from staff dashboard (admins, receptionists, doctors)

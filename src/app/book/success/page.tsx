@@ -10,7 +10,7 @@ function SuccessCard() {
   const name = searchParams ? searchParams.get("name") || "Patient" : "Patient";
   const date = searchParams ? searchParams.get("date") || "" : "";
   const slot = searchParams ? searchParams.get("slot") || "" : "";
-  const service = searchParams ? searchParams.get("service") || "Physiotherapy Session" : "Physiotherapy Session";
+  const service = searchParams ? searchParams.get("service") || "Dental Consultation" : "Dental Consultation";
 
   // Helper to format date display (e.g. 2026-07-09 -> 09 Jul 2026)
   const formatDateDisplay = (dateStr: string) => {

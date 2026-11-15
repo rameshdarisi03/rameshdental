@@ -123,11 +123,11 @@ export async function POST(req: NextRequest) {
       const expandedImages = await expandMultiPagePdfs(images);
 
       const prompt = `
-You are Gait Physio Clinic's Specialist Clinical Document, Prescription & Register Ingestion AI.
+You are Ramesh Dental Clinic's Specialist Clinical Document, Prescription & Register Ingestion AI.
 The provided documents may be:
-1. Individual Doctor Prescription Slips / Hospital Referral Letters (one per photo/page).
+1. Individual Dental Prescription Slips / Referral Letters (one per photo/page).
 2. Handwritten OPD Registers, Appointment Books, or Reception Ledger Sheets (multiple entries per page).
-3. Patient Clinical Intake Forms, Assessment Sheets, or Discharge Summaries.
+3. Patient Clinical Intake Forms, Dental Charting Sheets, or Treatment Plans.
 
 Analyze the documents and extract EVERY patient into a structured JSON list for clinic registration.
 

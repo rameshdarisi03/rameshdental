@@ -6,9 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const FORTNIGHT_RECIPIENTS = [
-  { name: "Dr. Kinnera", phone: "8904456243", email: "kinnera@gaitphysio.com" },
-  { name: "Pavan Kumar", phone: "9164485469", email: "pavankadari@gaitphysio.com" },
-  { name: "Clinic Admin", phone: "9206651295", email: "rameshdarisi01@gmail.com" },
+  { name: "Dr. Ramesh Darisi", phone: "8971462949", email: "rameshdarisi01@gmail.com" },
 ];
 
 export async function GET(req: NextRequest) {
@@ -82,8 +80,8 @@ async function handleFortnightUsage(req: NextRequest) {
     );
     const pData = await pRes.json().catch(() => ({}));
 
-    const verifiedName = pData.verified_name || "Gait Physio Clinic";
-    const displayPhone = pData.display_phone_number || "+91 82178 52653";
+    const verifiedName = pData.verified_name || "Ramesh Dental Clinic";
+    const displayPhone = pData.display_phone_number || "+91 89714 62949";
     const qualityRating = pData.quality_rating || "GREEN";
     const estimatedCost14 = (total14Delivered * 0.115).toFixed(2);
 
@@ -98,7 +96,7 @@ async function handleFortnightUsage(req: NextRequest) {
     });
 
     const whatsappMessage = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🏥 *RAMESH DENTAL CLINIC*
 📊 *WhatsApp Fortnightly Consumption Digest*
 🗓️ *Period:* ${startDateStr} – ${endDateStr}
 
@@ -109,10 +107,10 @@ async function handleFortnightUsage(req: NextRequest) {
 
 🔋 *Account Health:* 🟢 ${qualityRating} (High Quality)
 📱 *Sender Phone:* ${displayPhone} (${verifiedName})
-🔗 *Live Dashboard:* https://www.gaitphysioclinic.com/dashboard/settings
+🔗 *Live Dashboard:* https://rameshdental.vercel.app/dashboard/settings
 
 ━━━━━━━━━━━━━━━━━━━━━
-_Automated fortnightly digest from Gait Physio Clinical Engine._`;
+_Automated fortnightly digest from Ramesh Dental Engine._`;
 
     // 3. Dispatch WhatsApp messages to recipients using official Meta template
     const whatsappResults = [];

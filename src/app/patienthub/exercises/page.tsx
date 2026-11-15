@@ -260,7 +260,7 @@ function ExercisesContent() {
               No Prescribed Exercises Yet
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              Your physiotherapist has not assigned any home exercises to your profile yet. Once prescribed during or after your clinical consultation, your personalized video routines, sets, reps, and hold targets will appear here.
+              Your dentist has not assigned any home exercises to your profile yet. Once prescribed during or after your clinical consultation, your personalized video routines, sets, reps, and hold targets will appear here.
             </p>
           </div>
           <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
@@ -271,7 +271,7 @@ function ExercisesContent() {
               <span>Back to Dashboard</span>
             </Link>
             <a
-              href="https://wa.me/918904456243"
+              href="https://wa.me/918971462949"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-5 py-2.5 rounded-full transition-all shadow-xs"

@@ -30,14 +30,14 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
   const [copied, setCopied] = useState(false);
   const data = initialData || {
     patientName: "Patient",
-    date: "2026-10-24",
+    date: "2026-11-20",
     slot: "10:30 AM",
-    therapistName: "Lead Physiotherapist",
-    serviceName: "Physiotherapy Consultation",
-    clinicAddress: "Gait Physio Clinic, Near Hope Farm Signal, Whitefield, Bengaluru",
+    therapistName: "Dr. Ramesh Darisi",
+    serviceName: "Dental Consultation",
+    clinicAddress: "Ramesh Dental Clinic, Near Hope Farm Signal, Whitefield, Bengaluru",
   };
 
-  const cleanDoctor = (data.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+  const cleanDoctor = (data.therapistName || "Dr. Ramesh Darisi").replace(/^Dr\.?\s*/i, "");
   const googleCalendarUrl = generateGoogleCalendarUrl({
     date: data.date,
     slot: data.slot,
@@ -46,7 +46,7 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
     therapistName: cleanDoctor,
   });
 
-  const mapsUrl = "https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru";
+  const mapsUrl = "https://maps.google.com/?q=Ramesh+Dental+Clinic+Whitefield+Bengaluru";
 
   const handleDownloadIcs = () => {
     try {
@@ -55,9 +55,9 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
       const end = parsed ? parsed.end : new Date(Date.now() + 45 * 60 * 1000);
 
       const icsString = generateIcsCalendarData({
-        title: `Physiotherapy Session - Dr. ${cleanDoctor} (Gait Physio Clinic)`,
-        description: `Appointment for ${data.patientName} at Gait Physio Clinic, Whitefield, Bengaluru.\nService: ${data.serviceName || "Physiotherapy"}\nDesk: +91 89044 56243`,
-        location: data.clinicAddress || "Gait Physio Clinic, Near Hope Farm Signal, Whitefield, Bengaluru",
+        title: `Dental Consultation - Dr. ${cleanDoctor} (Ramesh Dental Clinic)`,
+        description: `Appointment for ${data.patientName} at Ramesh Dental Clinic, Whitefield, Bengaluru.\nService: ${data.serviceName || "Dental"}\nDesk: +91 89714 62949`,
+        location: data.clinicAddress || "Ramesh Dental Clinic, Near Hope Farm Signal, Whitefield, Bengaluru",
         start,
         end,
       });
@@ -66,7 +66,7 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `gait_physio_appointment_${data.date.replace(/\D/g, "")}.ics`);
+      link.setAttribute("download", `ramesh_dental_appointment_${data.date.replace(/\D/g, "")}.ics`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -80,8 +80,8 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Physiotherapy Appointment - Gait Physio Clinic`,
-          text: `My appointment with Dr. ${cleanDoctor} at Gait Physio Clinic on ${data.date} at ${data.slot}.`,
+          title: `Dental Appointment - Ramesh Dental Clinic`,
+          text: `My appointment with Dr. ${cleanDoctor} at Ramesh Dental Clinic on ${data.date} at ${data.slot}.`,
           url: window.location.href,
         });
       } catch {}
@@ -101,9 +101,9 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
           <Link href="/" className="inline-block group">
             <h1 className="text-2xl font-black tracking-tight text-brand-charcoal dark:text-white flex items-center justify-center gap-2">
               <span className="h-8 w-8 rounded-xl bg-brand-green/10 flex items-center justify-center text-brand-green text-sm font-black border border-brand-green/20">
-                GP
+                RD
               </span>
-              <span>Gait Physio Clinic</span>
+              <span>Ramesh Dental Clinic</span>
             </h1>
           </Link>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] font-black text-emerald-700 dark:text-emerald-400">
@@ -158,7 +158,7 @@ export default function CalendarClient({ initialData, slug }: CalendarClientProp
             <MapPin className="w-4 h-4 text-brand-green shrink-0 mt-0.5" />
             <div>
               <p className="font-extrabold text-brand-charcoal dark:text-slate-200">
-                Gait Physio Clinic - Whitefield
+                Ramesh Dental Clinic - Whitefield
               </p>
               <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-[11px] leading-relaxed">
                 Near Hope Farm Signal, Whitefield, Bengaluru, Karnataka 560066

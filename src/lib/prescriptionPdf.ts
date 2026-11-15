@@ -357,7 +357,7 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
     if (params.modalitiesAdministered) notesParts.push(`Modalities Administered: ${params.modalitiesAdministered}`);
     if (params.generalNotes) notesParts.push(`Therapist Guidance: ${params.generalNotes}`);
 
-    const bodyText = notesParts.join("\n\n") || "Patient underwent clinical evaluation and comprehensive physiotherapy assessment.";
+    const bodyText = notesParts.join("\n\n") || "Patient underwent comprehensive dental clinical evaluation and diagnostic assessment.";
     const lines = doc.splitTextToSize(bodyText, pageWidth - 80);
     const boxHeight = lines.length * 12 + 16;
 
@@ -493,15 +493,15 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
     doc.text("TARGET REVIEW RE-ASSESSMENT:", 42, y + 20);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `Follow the prescribed ${duration}-day routine daily. Attending: ${params.therapistName || "Dr. Kinnera"}.`,
+      `Follow the prescribed ${duration}-day routine daily. Attending: ${params.therapistName || "Dr. Ramesh Darisi"}.`,
       225,
       y + 20
     );
   } else {
-    doc.text("ATTENDING PHYSIOTHERAPIST:", 42, y + 20);
+    doc.text("ATTENDING DENTAL SURGEON:", 42, y + 20);
     doc.setFont("helvetica", "normal");
     doc.text(
-      `Clinical evaluation recorded by ${params.therapistName || "Dr. Kinnera"}. Next review as scheduled.`,
+      `Clinical evaluation recorded by ${params.therapistName || "Dr. Ramesh Darisi"}. Next review as scheduled.`,
       210,
       y + 20
     );
@@ -512,7 +512,7 @@ export function buildUnifiedPrescriptionPdf(params: UnifiedPrescriptionParams): 
   doc.setFont("helvetica", "italic");
   doc.setFontSize(7.5);
   doc.text(
-    "Transcribed & Digitally Certified via GaitPhysio EMR Hub • Gait Physio Clinic, Whitefield, Bengaluru",
+    "Transcribed & Digitally Certified via RameshDental EMR Hub • Ramesh Dental Clinic, Whitefield, Bengaluru",
     35,
     pageHeight - 22
   );
@@ -663,7 +663,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setTextColor(slateDark[0], slateDark[1], slateDark[2]);
   doc.setFont("helvetica", "normal");
   doc.text(params.serviceDate || new Date().toISOString().split("T")[0], 240, y + 27);
-  doc.text(params.therapistName || "Dr. Kinnera", 240, y + 49);
+  doc.text(params.therapistName || "Dr. Ramesh Darisi", 240, y + 49);
 
   // Right: Payment Status & Method
   doc.setFontSize(7.5);
@@ -716,7 +716,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
 
   // 4. Line Items Rows
   const items = params.items && params.items.length > 0 ? params.items : [
-    { description: params.notes || "Physiotherapy Consultation & Treatment", quantity: 1, unitPrice: params.totalAmount || 0, amount: params.totalAmount || 0 }
+    { description: params.notes || "Dental Consultation & Treatment", quantity: 1, unitPrice: params.totalAmount || 0, amount: params.totalAmount || 0 }
   ];
 
   let calculatedSubtotal = 0;
@@ -872,7 +872,7 @@ export function buildUnifiedInvoicePdf(params: UnifiedInvoiceParams): jsPDF {
   doc.setFontSize(7.5);
   doc.setTextColor(slateMuted[0], slateMuted[1], slateMuted[2]);
   doc.text(
-    `This is an official computer-generated invoice for Gait Physio Clinic. Please quote ${(params.invoiceNumber || "GPC-INV-001").replace(/^#+/, "")} for insurance claims & tax filing.`,
+    `This is an official computer-generated invoice for Ramesh Dental Clinic. Please quote ${(params.invoiceNumber || "RD-INV-001").replace(/^#+/, "")} for insurance claims & tax filing.`,
     pageWidth / 2,
     footerY,
     { align: "center" }
