@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { db, auth } from "@/lib/firebase";
+import { app, db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
@@ -159,14 +159,8 @@ export default function DashboardStaff() {
     setSuccessMsg("");
 
     const emailClean = formData.email.trim().toLowerCase();
-    const firebaseConfig = {
-      apiKey: "AIzaSyCQr7HOAM0NnwWNew19VIs6L4rJ7VL0ML4",
-      authDomain: "gpc01-8d819.firebaseapp.com",
-      projectId: "gpc01-8d819",
-    };
-
     const tempAppName = `TempStaffApp_${Date.now()}`;
-    const tempApp = initializeApp(firebaseConfig, tempAppName);
+    const tempApp = initializeApp(app.options, tempAppName);
     const tempAuth = getAuth(tempApp);
 
     try {

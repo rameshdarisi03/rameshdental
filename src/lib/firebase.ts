@@ -5,13 +5,13 @@ import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQr7HOAM0NnwWNew19VIs6L4rJ7VL0ML4",
-  authDomain: "gpc01-8d819.firebaseapp.com",
-  projectId: "gpc01-8d819",
-  storageBucket: "gpc01-8d819.firebasestorage.app",
-  messagingSenderId: "1077120656605",
-  appId: "1:1077120656605:web:8fc3bb1a96fb07ecffa734",
-  measurementId: "G-ZW685QGBR6"
+  apiKey: "AIzaSyBGwChtJ1s8gZIleg26Bx-EnIm_F2nTr_8",
+  authDomain: "rameshdental-01.firebaseapp.com",
+  projectId: "rameshdental-01",
+  storageBucket: "rameshdental-01.firebasestorage.app",
+  messagingSenderId: "821605955964",
+  appId: "1:821605955964:web:09d3b932597fe0c0ca8cf9",
+  measurementId: "G-WZG446PYRR"
 };
 
 // Initialize Firebase (safeguard for server-side rendering in Next.js)
