@@ -46,8 +46,15 @@ async function handleFortnightUsage(req: NextRequest) {
       );
     }
     const token = process.env.WHATSAPP_ACCESS_TOKEN?.trim().replace(/^["']|["']$/g, "");
-    const wabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || "1139209992097469";
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID || "1347657255099510";
+    const wabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!token || !wabaId || !phoneId) {
+      return NextResponse.json(
+        { success: false, error: "WhatsApp Cloud API is not configured." },
+        { status: 500 }
+      );
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const fourteenDaysAgo = now - 14 * 24 * 3600;
