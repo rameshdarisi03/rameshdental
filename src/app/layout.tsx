@@ -30,30 +30,30 @@ const serifFont = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gaitphysioclinic.com"),
+  metadataBase: new URL("https://rameshdental.vercel.app"),
   title: {
-    default: "Gait Physio Clinic in Whitefield, Bengaluru",
-    template: "%s | Gait Physio Clinic",
+    default: "Ramesh Dental Clinic | Multispeciality Dental & Implant Centre",
+    template: "%s | Ramesh Dental Clinic",
   },
   description:
-    "Specialized physiotherapy, biomechanical gait analysis, posture correction, and sports rehabilitation by Dr. Madem Kinnera in Whitefield, Bengaluru. Book online today.",
+    "Advanced painless dental care, dental implants, single-visit root canal treatment (RCT), invisible clear aligners, teeth whitening, and pediatric dentistry by Dr. Ramesh Darisi in Whitefield, Bengaluru. Book your consultation online today.",
   keywords: [
-    "physiotherapy clinic Whitefield",
-    "physiotherapy clinic Bengaluru",
-    "Gait Physio Clinic Whitefield",
-    "physiotherapist near Hope Farm Whitefield",
-    "gait analysis Bangalore",
-    "sports injury rehabilitation ITPL",
-    "posture correction Whitefield",
-    "orthopedic physio Bangalore",
-    "ACL rehabilitation Whitefield",
-    "back pain physiotherapy ITPL Bangalore",
-    "Dr. Madem Kinnera physiotherapist",
-    "Dr. Kinnera Gait Physio Clinic",
+    "dental clinic Whitefield",
+    "dentist in Whitefield Bengaluru",
+    "Ramesh Dental Clinic",
+    "dental implants Bangalore",
+    "root canal treatment Whitefield",
+    "clear aligners Whitefield Bangalore",
+    "invisalign dentist ITPL",
+    "cosmetic dentistry Bangalore",
+    "teeth whitening Whitefield",
+    "pediatric dentist Whitefield",
+    "Dr. Ramesh Darisi dentist",
+    "best dental hospital Whitefield",
   ],
-  authors: [{ name: "Dr. Madem Kinnera", url: "https://gaitphysioclinic.com" }],
-  creator: "Gait Physio Clinic",
-  publisher: "Gait Physio Clinic",
+  authors: [{ name: "Dr. Ramesh Darisi", url: "https://rameshdental.vercel.app" }],
+  creator: "Ramesh Dental Clinic",
+  publisher: "Ramesh Dental Clinic",
   formatDetection: {
     email: false,
     address: false,
@@ -74,29 +74,29 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://gaitphysioclinic.com",
-    title: "Gait Physio Clinic in Whitefield, Bengaluru",
+    url: "https://rameshdental.vercel.app",
+    title: "Ramesh Dental Clinic | Multispeciality Dental & Implant Centre",
     description:
-      "Specialized physiotherapy, biomechanical gait analysis, sports rehabilitation, and orthopedic recovery by Dr. Madem Kinnera in Whitefield, Bengaluru.",
-    siteName: "Gait Physio Clinic",
+      "Advanced painless dental care, dental implants, root canal treatment, invisible clear aligners, and smile design by Dr. Ramesh Darisi in Whitefield, Bengaluru.",
+    siteName: "Ramesh Dental Clinic",
     images: [
       {
-        url: "/images/hero_physio_session.webp",
+        url: "/images/hero_dental_desktop.webp",
         width: 1200,
         height: 630,
-        alt: "Gait Physio Clinic - Specialized Physiotherapy & Biomechanical Gait Analysis in Whitefield, Bengaluru",
+        alt: "Ramesh Dental Clinic - Multispeciality Dental & Implant Centre in Whitefield, Bengaluru",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gait Physio Clinic in Whitefield, Bengaluru",
+    title: "Ramesh Dental Clinic | Multispeciality Dental & Implant Centre",
     description:
-      "Specialized physiotherapy, biomechanical gait analysis, and rehabilitation in Whitefield, Bengaluru. Book online today.",
-    images: ["/images/hero_physio_session.webp"],
+      "Advanced painless dental care, dental implants, and smile makeovers in Whitefield, Bengaluru. Book online today.",
+    images: ["/images/hero_dental_desktop.webp"],
   },
   alternates: {
-    canonical: "https://gaitphysioclinic.com",
+    canonical: "https://rameshdental.vercel.app",
   },
 };
 
@@ -104,21 +104,21 @@ const clinicStructuredData = {
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "PhysiotherapyClinic",
-      "@id": "https://gaitphysioclinic.com/#clinic",
-      name: "Gait Physio Clinic",
-      alternateName: ["Gait Physio & Rehab", "Gait Physio Clinic Whitefield"],
-      url: "https://gaitphysioclinic.com",
-      logo: "https://gaitphysioclinic.com/images/gait_physio_logo.png",
-      image: "https://gaitphysioclinic.com/images/hero_physio_session.webp",
+      "@type": "Dentist",
+      "@id": "https://rameshdental.vercel.app/#clinic",
+      name: "Ramesh Dental Clinic",
+      alternateName: ["Ramesh Multispeciality Dental & Implant Centre", "Ramesh Dental Whitefield"],
+      url: "https://rameshdental.vercel.app",
+      logo: "https://rameshdental.vercel.app/images/dental_logo.png",
+      image: "https://rameshdental.vercel.app/images/hero_dental_desktop.webp",
       description:
-        "Specialized physiotherapy, biomechanical gait analysis, sports injury rehabilitation, and post-operative orthopedic recovery at Gait Physio Clinic, Whitefield, Bengaluru.",
-      telephone: "+91 89044 56243",
+        "Modern dental care, painless root canal treatments, titanium dental implants, clear aligners, and cosmetic smile designing at Ramesh Dental Clinic, Whitefield, Bengaluru.",
+      telephone: "+91 98765 43210",
       priceRange: "₹₹",
       address: {
         "@type": "PostalAddress",
         streetAddress:
-          "Shop No. 26, 2nd Floor & Shop No. 06, 3rd Floor, ITPL Main Road, Prasanth Extension, Near Hope Farm Signal",
+          "Metro Pillar 142, ITPL Main Road, Prasanth Extension, Near Hope Farm Signal",
         addressLocality: "Whitefield",
         addressRegion: "Bangalore, Karnataka",
         postalCode: "560066",
@@ -140,11 +140,13 @@ const clinicStructuredData = {
         "Bengaluru",
       ],
       medicalSpecialty: [
-        "Physiotherapy",
-        "Orthopedic Rehabilitation",
-        "Sports Medicine",
-        "Neurological Rehabilitation",
-        "Biomechanical Gait Analysis",
+        "Dentistry",
+        "Implantology",
+        "Orthodontics",
+        "Endodontics",
+        "Pediatric Dentistry",
+        "Periodontics",
+        "Cosmetic Dentistry"
       ],
       openingHoursSpecification: [
         {
@@ -157,20 +159,20 @@ const clinicStructuredData = {
             "Friday",
             "Saturday",
           ],
-          opens: "09:00",
+          opens: "09:30",
           closes: "20:00",
         },
       ],
       founder: {
         "@type": "Person",
-        name: "Dr. Madem Kinnera",
-        jobTitle: "Lead Physiotherapist & Gait Specialist",
+        name: "Dr. Ramesh Darisi",
+        jobTitle: "Chief Dental Surgeon & Implantologist",
       },
       potentialAction: {
         "@type": "ReserveAction",
         target: {
           "@type": "EntryPoint",
-          urlTemplate: "https://gaitphysioclinic.com/book",
+          urlTemplate: "https://rameshdental.vercel.app/book",
           inLanguage: "en-US",
           actionPlatform: [
             "http://schema.org/DesktopWebPlatform",
@@ -179,61 +181,61 @@ const clinicStructuredData = {
         },
         result: {
           "@type": "MedicalReservation",
-          name: "Book Physiotherapy Consultation",
+          name: "Book Dental Consultation",
         },
       },
     },
     {
       "@type": "WebSite",
-      "@id": "https://gaitphysioclinic.com/#website",
-      url: "https://gaitphysioclinic.com",
-      name: "Gait Physio Clinic",
-      description: "Specialized Physiotherapy & Gait Analysis in Whitefield, Bengaluru",
+      "@id": "https://rameshdental.vercel.app/#website",
+      url: "https://rameshdental.vercel.app",
+      name: "Ramesh Dental Clinic",
+      description: "Multispeciality Dental & Implant Centre in Whitefield, Bengaluru",
       publisher: {
-        "@id": "https://gaitphysioclinic.com/#clinic"
+        "@id": "https://rameshdental.vercel.app/#clinic"
       },
       hasPart: [
         {
           "@type": "SiteNavigationElement",
-          name: "Our Services",
-          description: "Explore 7 specialized clinical treatments including sports rehab and biomechanical gait analysis",
-          url: "https://gaitphysioclinic.com/services"
+          name: "Dental Services",
+          description: "Explore advanced dental procedures including implants, root canals, and invisible aligners",
+          url: "https://rameshdental.vercel.app/services"
         },
         {
           "@type": "SiteNavigationElement",
           name: "Book Appointment",
-          description: "Schedule your consultation online with real-time slot selection",
-          url: "https://gaitphysioclinic.com/book"
+          description: "Schedule your dental consultation online with instant slot booking",
+          url: "https://rameshdental.vercel.app/book"
         },
         {
           "@type": "SiteNavigationElement",
           name: "Patient Hub",
           description: "Access your prescribed home exercise routines, recovery plans, and treatment invoices",
-          url: "https://gaitphysioclinic.com/patienthub/login"
+          url: "https://rameshdental.vercel.app/patienthub/login"
         },
         {
           "@type": "SiteNavigationElement",
-          name: "Our Team",
-          description: "Meet Dr. Madem Kinnera and the certified clinical physiotherapy specialists",
-          url: "https://gaitphysioclinic.com/team"
+          name: "Our Doctors",
+          description: "Meet Dr. Ramesh Darisi and our certified dental specialists",
+          url: "https://rameshdental.vercel.app/team"
         },
         {
           "@type": "SiteNavigationElement",
           name: "Patient Reviews",
-          description: "Read real 5-star patient recovery stories and verified Google testimonials",
-          url: "https://gaitphysioclinic.com/testimonials"
+          description: "Read real 5-star patient smile transformation stories and verified Google reviews",
+          url: "https://rameshdental.vercel.app/testimonials"
         },
         {
           "@type": "SiteNavigationElement",
           name: "Frequently Asked Questions",
-          description: "Common questions about physical therapy, gait analysis, and insurance",
-          url: "https://gaitphysioclinic.com/faq"
+          description: "Common questions about root canals, invisible aligners, dental implants, and pricing",
+          url: "https://rameshdental.vercel.app/faq"
         },
         {
           "@type": "SiteNavigationElement",
           name: "Locate Us",
-          description: "Clinic address near Hope Farm Signal Whitefield, map directions, and timings",
-          url: "https://gaitphysioclinic.com/locate-us"
+          description: "Clinic address near Hope Farm Signal Whitefield, Google map directions, and timings",
+          url: "https://rameshdental.vercel.app/locate-us"
         }
       ]
     }

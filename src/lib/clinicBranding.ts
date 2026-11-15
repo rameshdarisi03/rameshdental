@@ -4,17 +4,17 @@
  */
 
 export const CLINIC_BRAND = {
-  name: "Gait Physio Clinic",
-  nameUpper: "GAIT PHYSIO CLINIC",
-  servicesTagline: "Neuro Rehab  |  Ortho Rehab  |  Sports Rehab",
-  services: ["Neuro Rehab", "Ortho Rehab", "Sports Rehab"],
-  addressLine: "Shop No. 26 (2nd Flr) & Shop No. 06 (3rd Flr), ITPL Main Rd, Whitefield, Bengaluru - 560066",
-  phone: "+91 89044 56243",
-  website: "https://www.gaitphysioclinic.com",
-  email: "gaitphysiorehab@gmail.com",
-  logoPath: "/images/gait_physio_logo.png",
-  emblemPath: "/images/gait_physio_emblem.png",
-  headerLockupPath: "/images/gait_brand_header.png",
+  name: "Ramesh Dental Clinic",
+  nameUpper: "RAMESH DENTAL CLINIC",
+  servicesTagline: "Laser Dentistry  |  Painless RCT  |  Clear Aligners  |  Implants",
+  services: ["Root Canal Treatment", "Dental Implants", "Clear Aligners", "Teeth Whitening", "Pediatric Dentistry"],
+  addressLine: "Metro Pillar 142, ITPL Main Road, Whitefield, Bengaluru, Karnataka - 560066",
+  phone: "+91 98765 43210",
+  website: "https://rameshdental.vercel.app",
+  email: "rameshdarisi01@gmail.com",
+  logoPath: "/images/dental_logo.png",
+  emblemPath: "/images/dental_emblem.png",
+  headerLockupPath: "/images/dental_brand_header.png",
   /**
    * Optimized 220x220 PNG base64 for instant synchronous offline embedding in jsPDF (0 CORS lag)
    */
