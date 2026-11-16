@@ -328,7 +328,7 @@ function WalkInBookingContent() {
         const appointments = await getAppointmentsByDate(formData.date);
         const counts: Record<string, number> = {};
         appointments.forEach((app) => {
-          if (app.status === "approved") {
+          if (app.status === "approved" || app.status === "pending") {
             counts[app.slot] = (counts[app.slot] || 0) + 1;
           }
         });
