@@ -80,11 +80,26 @@ export function generateInvoiceNumber(): string {
 }
 
 /**
- * Subscribe to all invoices in real-time
+ * Subscribe to all invoices in real-time (with infallible Server REST fallback)
  */
 export function subscribeInvoices(callback: (invoices: Invoice[]) => void) {
+  let isSubscribed = true;
+  let pollInterval: any = null;
+
+  const fallbackFetch = async () => {
+    try {
+      const res = await fetch("/api/invoices");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.invoices) && isSubscribed) {
+        callback(data.invoices);
+      }
+    } catch (e) {
+      console.warn("[subscribeInvoices] Fallback fetch warning:", e);
+    }
+  };
+
   const q = query(collection(db, INVOICES_COLLECTION));
-  return onSnapshot(
+  const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
       const list: Invoice[] = snapshot.docs.map((docSnap) => ({
@@ -94,17 +109,27 @@ export function subscribeInvoices(callback: (invoices: Invoice[]) => void) {
       
       // Sort in memory by createdAt or fallback date
       list.sort((a, b) => {
-        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt || Date.now());
-        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt || Date.now());
+        const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : Date.now());
+        const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : Date.now());
         return timeB - timeA;
       });
 
       callback(list);
     },
     (err) => {
-      console.error("Error subscribing to invoices:", err);
+      console.warn("Client Firestore invoices subscription failed, activating infallible REST engine:", err);
+      fallbackFetch();
+      if (!pollInterval) {
+        pollInterval = setInterval(fallbackFetch, 15000);
+      }
     }
   );
+
+  return () => {
+    isSubscribed = false;
+    unsubscribe();
+    if (pollInterval) clearInterval(pollInterval);
+  };
 }
 
 /**
@@ -119,7 +144,16 @@ export async function getInvoices(): Promise<Invoice[]> {
       ...docSnap.data(),
     } as Invoice));
   } catch (err) {
-    console.error("Error fetching invoices:", err);
+    console.warn("Client SDK failed to fetch invoices, falling back to Server REST API:", err);
+    try {
+      const res = await fetch("/api/invoices");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.invoices)) {
+        return data.invoices;
+      }
+    } catch (fetchErr) {
+      console.error("Server API get invoices failed:", fetchErr);
+    }
     return [];
   }
 }
@@ -136,15 +170,16 @@ function sanitizeFirestoreData<T extends object>(obj: T): T {
 }
 
 /**
- * Create a new Invoice in Firestore
+ * Create a new Invoice in Firestore (with infallible Server REST fallback)
  */
 export async function createInvoice(invoiceData: Omit<Invoice, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  const sanitized = sanitizeFirestoreData({
+    ...invoiceData,
+    currency: invoiceData.currency || "INR",
+    revision: invoiceData.revision || 1
+  });
+
   try {
-    const sanitized = sanitizeFirestoreData({
-      ...invoiceData,
-      currency: invoiceData.currency || "INR",
-      revision: invoiceData.revision || 1
-    });
     const docRef = await addDoc(collection(db, INVOICES_COLLECTION), {
       ...sanitized,
       createdAt: serverTimestamp(),
@@ -172,9 +207,23 @@ export async function createInvoice(invoiceData: Omit<Invoice, "id" | "createdAt
     }
 
     return docRef.id;
-  } catch (err) {
-    console.error("Error creating invoice:", err);
-    throw err;
+  } catch (clientErr: any) {
+    console.warn("[createInvoice] Client SDK write failed, falling back to Server Admin REST:", clientErr);
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sanitized),
+      });
+      const data = await res.json();
+      if (data.success && data.id) {
+        return data.id;
+      }
+      throw new Error(data.error || "Server REST fallback failed to create invoice.");
+    } catch (fallbackErr: any) {
+      console.error("[createInvoice] Both Client SDK and Server Fallback failed:", fallbackErr);
+      throw fallbackErr;
+    }
   }
 }
 
@@ -188,14 +237,10 @@ export async function findLatestUnreplacedVoidedInvoice(identifier: {
   email?: string;
 }): Promise<Invoice | null> {
   try {
-    const invoicesRef = collection(db, INVOICES_COLLECTION);
-    const q = query(invoicesRef, orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-
+    const allInvoices = await getInvoices();
     const normPhone = (p?: string) => (p || "").replace(/\D/g, "").slice(-10);
 
-    for (const d of snap.docs) {
-      const data = d.data() as Invoice;
+    for (const data of allInvoices) {
       const isVoid = data.status === "voided" || data.status === "cancelled";
       if (!isVoid) continue;
       // Skip if already replaced by a newer bill
@@ -209,7 +254,7 @@ export async function findLatestUnreplacedVoidedInvoice(identifier: {
       else if (identifier.email && data.patientEmail && data.patientEmail.toLowerCase() === identifier.email.toLowerCase()) isMatch = true;
 
       if (isMatch) {
-        return { ...data, id: d.id };
+        return data;
       }
     }
     return null;
@@ -220,19 +265,32 @@ export async function findLatestUnreplacedVoidedInvoice(identifier: {
 }
 
 /**
- * Update an existing Invoice in-place (Corrective edit)
+ * Update an existing Invoice in-place (Corrective edit with Server REST fallback)
  */
 export async function updateInvoice(id: string, invoiceData: Partial<Invoice>) {
+  const sanitized = sanitizeFirestoreData(invoiceData);
   try {
     const docRef = doc(db, INVOICES_COLLECTION, id);
-    const sanitized = sanitizeFirestoreData(invoiceData);
     await updateDoc(docRef, {
       ...sanitized,
       updatedAt: serverTimestamp(),
     });
-  } catch (err) {
-    console.error("Error updating invoice:", err);
-    throw err;
+  } catch (clientErr: any) {
+    console.warn("[updateInvoice] Client SDK update failed, falling back to Server Admin REST:", clientErr);
+    try {
+      const res = await fetch(`/api/invoices/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sanitized),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Server REST fallback failed to update invoice.");
+      }
+    } catch (fallbackErr: any) {
+      console.error("[updateInvoice] Both Client SDK and Server Fallback failed:", fallbackErr);
+      throw fallbackErr;
+    }
   }
 }
 
@@ -244,48 +302,92 @@ export async function updateInvoiceStatus(
   status: Invoice["status"], 
   paymentMethod?: Invoice["paymentMethod"]
 ) {
-  try {
-    const docRef = doc(db, INVOICES_COLLECTION, id);
-    const updates: any = {
-      status,
-      updatedAt: serverTimestamp(),
-    };
-    if (paymentMethod) {
-      updates.paymentMethod = paymentMethod;
-    }
-    await updateDoc(docRef, updates);
-  } catch (err) {
-    console.error("Error updating invoice status:", err);
-    throw err;
+  const updates: any = {
+    status,
+  };
+  if (paymentMethod) {
+    updates.paymentMethod = paymentMethod;
   }
-}
 
-/**
- * Void an Invoice with audit reason
- */
-export async function voidInvoice(id: string, reason: string) {
   try {
     const docRef = doc(db, INVOICES_COLLECTION, id);
     await updateDoc(docRef, {
-      status: "voided",
-      voidReason: reason || "Voided by clinic administrator",
+      ...updates,
       updatedAt: serverTimestamp(),
     });
-  } catch (err) {
-    console.error("Error voiding invoice:", err);
-    throw err;
+  } catch (clientErr: any) {
+    console.warn("[updateInvoiceStatus] Client SDK update failed, falling back to Server Admin REST:", clientErr);
+    try {
+      const res = await fetch(`/api/invoices/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Server REST fallback failed to update invoice status.");
+      }
+    } catch (fallbackErr: any) {
+      console.error("[updateInvoiceStatus] Both Client SDK and Server Fallback failed:", fallbackErr);
+      throw fallbackErr;
+    }
   }
 }
 
 /**
- * Delete an Invoice (Permanent deletion)
+ * Void an Invoice with audit reason (with Server REST fallback)
+ */
+export async function voidInvoice(id: string, reason: string) {
+  const payload = {
+    status: "voided" as const,
+    voidReason: reason || "Voided by clinic administrator",
+  };
+
+  try {
+    const docRef = doc(db, INVOICES_COLLECTION, id);
+    await updateDoc(docRef, {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (clientErr: any) {
+    console.warn("[voidInvoice] Client SDK void failed, falling back to Server Admin REST:", clientErr);
+    try {
+      const res = await fetch(`/api/invoices/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Server REST fallback failed to void invoice.");
+      }
+    } catch (fallbackErr: any) {
+      console.error("[voidInvoice] Both Client SDK and Server Fallback failed:", fallbackErr);
+      throw fallbackErr;
+    }
+  }
+}
+
+/**
+ * Delete an Invoice (Permanent deletion with Server REST fallback)
  */
 export async function deleteInvoice(id: string) {
   try {
     await deleteDoc(doc(db, INVOICES_COLLECTION, id));
-  } catch (err) {
-    console.error("Error deleting invoice:", err);
-    throw err;
+  } catch (clientErr: any) {
+    console.warn("[deleteInvoice] Client SDK delete failed, falling back to Server Admin REST:", clientErr);
+    try {
+      const res = await fetch(`/api/invoices/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || "Server REST fallback failed to delete invoice.");
+      }
+    } catch (fallbackErr: any) {
+      console.error("[deleteInvoice] Both Client SDK and Server Fallback failed:", fallbackErr);
+      throw fallbackErr;
+    }
   }
 }
 

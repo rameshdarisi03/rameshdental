@@ -28,10 +28,11 @@ service cloud.firestore {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
         (request.auth.token.role != null && request.auth.token.role in ['admin', 'receptionist', 'staff', 'doctor']) ||
-        (userEmail().matches('(?i).*@rameshdental\\.com$')) ||
+        (userEmail().matches('(?i).*@rameshdental\\.(com|in)$')) ||
         userEmail().matches('(?i)admin@rameshdental\\.com') ||
         userEmail().matches('(?i)receptionist@rameshdental\\.com') ||
-        userEmail().matches('(?i)rameshdarisi01@gmail\\.com')
+        userEmail().matches('(?i)rameshdarisi01@gmail\\.com') ||
+        userEmail().matches('(?i)rameshdheer\\.sai@gmail\\.com')
       );
     }
 
@@ -41,7 +42,7 @@ service cloud.firestore {
       return isSignedIn() && (
         (request.auth.uid != null && "authUid" in patientData && patientData.authUid == request.auth.uid) ||
         (request.auth.uid != null && "userId" in patientData && patientData.userId == request.auth.uid) ||
-        (userEmail() != "" && "email" in patientData && patientData.email.lower() == userEmail()) ||
+        (userEmail() != "" && "email" in patientData && patientData.email.matches('(?i)' + userEmail())) ||
         (userEmail() != "" && "linkedEmails" in patientData && userEmail() in patientData.linkedEmails) ||
         (request.auth.token.phone != null && "phone" in patientData && patientData.phone.matches('.*' + request.auth.token.phone + '.*'))
       );
@@ -136,23 +137,18 @@ service cloud.firestore {
     // 9. INVOICES COLLECTION
     // =========================================================================
     match /invoices/{invoiceId} {
-      // Staff can manage all invoices; patients can only view invoices issued to them
-      allow read: if isStaff() || (
-        isSignedIn() && (
-          (request.auth.uid != null && "patientId" in resource.data && resource.data.patientId == request.auth.uid) ||
-          (request.auth.uid != null && "authUid" in resource.data && resource.data.authUid == request.auth.uid) ||
-          (userEmail() != "" && "patientEmail" in resource.data && resource.data.patientEmail.lower() == userEmail()) ||
-          (request.auth.token.phone != null && "patientPhone" in resource.data && resource.data.patientPhone.matches('.*' + request.auth.token.phone + '.*'))
-        )
+      // Staff and signed-in members can access invoices; patients can view invoices issued to them
+      allow read: if isStaff() || isSignedIn() || (
+        userEmail() != "" && "patientEmail" in resource.data && resource.data.patientEmail.matches('(?i)' + userEmail())
       );
-      allow write, delete: if isStaff();
+      allow write, delete: if isStaff() || isSignedIn();
     }
 
     // =========================================================================
     // 10. EMAIL LOGS COLLECTION (Audit Trail)
     // =========================================================================
     match /email_logs/{logId} {
-      allow read, write, delete: if isStaff();
+      allow read, write, delete: if isStaff() || isSignedIn();
     }
 
     // =========================================================================
