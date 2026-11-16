@@ -281,6 +281,32 @@ export default function Login() {
 
         router.replace("/dashboard");
       } else {
+        // Auto-heal / initialize staff user doc if authorized clinic user
+        if (targetEmail.endsWith("@rameshdental.com") || targetEmail === "admin@rameshdental.com") {
+          const defaultRole = targetEmail.startsWith("admin") ? ("admin" as const) : ("receptionist" as const);
+          const defaultName = targetEmail.startsWith("admin") ? "Dr. Ramesh Darisi (Admin)" : "Reception Desk";
+          const newProfile = {
+            uid: fbUser.uid,
+            email: targetEmail,
+            role: defaultRole,
+            name: defaultName,
+            createdAt: Timestamp.now(),
+          };
+          await setDoc(userDocRef, newProfile);
+
+          localStorage.setItem("gpc_user", JSON.stringify(newProfile));
+          document.cookie = `gpc_session=${defaultRole}; path=/`;
+
+          persistStaffProfile({
+            email: newProfile.email,
+            name: newProfile.name,
+            role: newProfile.role,
+          });
+
+          router.replace("/dashboard");
+          return;
+        }
+
         setError("Access Denied. Your profile was not found in the staff database.");
         setLoading(false);
       }
@@ -289,13 +315,15 @@ export default function Login() {
 
       // 3. Fallback Bootstrapping for Demo / Seed Accounts
       if (
+        (targetEmail === "admin@rameshdental.com" && password === "admin123") ||
+        (targetEmail === "receptionist@rameshdental.com" && password === "receptionist123") ||
         (targetEmail === "admin@gaitphysio.com" && password === "admin123") ||
         (targetEmail === "receptionist@gaitphysio.com" && password === "receptionist123")
       ) {
         try {
-          const isDefaultAdmin = targetEmail === "admin@gaitphysio.com";
+          const isDefaultAdmin = targetEmail.startsWith("admin");
           const defaultRole = isDefaultAdmin ? ("admin" as const) : ("receptionist" as const);
-          const defaultName = isDefaultAdmin ? "Administrator" : "Reception Desk";
+          const defaultName = isDefaultAdmin ? "Dr. Ramesh Darisi (Admin)" : "Reception Desk";
 
           const cred = await createUserWithEmailAndPassword(auth, targetEmail, password);
           const userDocRef = doc(db, "users", cred.user.uid);
@@ -657,7 +685,7 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="doctor@gaitphysio.com"
+                    placeholder="admin@rameshdental.com"
                     className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-11 pr-4 py-3 text-xs font-semibold outline-none focus:border-teal-400 transition-colors text-white"
                   />
                 </div>
@@ -792,7 +820,7 @@ export default function Login() {
                       required
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="doctor@gaitphysio.com"
+                      placeholder="admin@rameshdental.com"
                       className="w-full rounded-2xl border border-slate-700 bg-slate-950 pl-11 pr-4 py-2.5 text-xs font-semibold text-white outline-none focus:border-teal-400 transition-colors"
                     />
                   </div>

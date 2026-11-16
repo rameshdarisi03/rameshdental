@@ -751,7 +751,7 @@ export default function DashboardStaff() {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      placeholder="staff@gaitphysio.com"
+                      placeholder="staff@rameshdental.com"
                       className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 pl-10 pr-4 py-2.5 text-xs outline-none focus:border-brand-green text-slate-900 dark:text-white font-semibold"
                     />
                   </div>
