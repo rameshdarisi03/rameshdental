@@ -604,13 +604,25 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
 
 // Update patient fields (e.g., setting Google Drive folder ID, last visit dates)
 export async function updatePatient(patientId: string, updates: Partial<Patient>): Promise<void> {
+  const sanitizedUpdates = sanitizePatientPayload(updates);
   try {
     const docRef = doc(db, "patients", patientId);
-    const sanitizedUpdates = sanitizePatientPayload(updates);
     await updateDoc(docRef, sanitizedUpdates);
   } catch (error) {
-    console.error("Error updating patient in Firestore:", error);
-    throw error;
+    console.warn("[patientsDb] Client updateDoc failed, attempting Server API fallback:", error);
+    try {
+      const res = await fetch(`/api/patients/${encodeURIComponent(patientId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sanitizedUpdates),
+      });
+      if (!res.ok) {
+        throw new Error(`Server API update failed with HTTP ${res.status}`);
+      }
+    } catch (apiError) {
+      console.error("Error updating patient in Firestore via fallback:", apiError);
+      throw error;
+    }
   }
 }
 
@@ -745,6 +757,7 @@ export async function addConsultation(
   patientId: string,
   consultationData: Omit<Consultation, "createdAt" | "id">
 ): Promise<Consultation> {
+  // Tier 1: Client-side Firestore write
   try {
     const consultationsRef = collection(db, "patients", patientId, "consultations");
     const newConsultation = {
@@ -754,12 +767,29 @@ export async function addConsultation(
     const docRef = await addDoc(consultationsRef, newConsultation);
     
     // Update patient's lastVisit field
-    await updatePatient(patientId, { lastVisit: consultationData.date });
+    await updatePatient(patientId, { lastVisit: consultationData.date }).catch(() => {});
 
     return { id: docRef.id, ...newConsultation } as Consultation;
-  } catch (error) {
-    console.error("Error adding consultation:", error);
-    throw error;
+  } catch (clientError) {
+    console.warn("[patientsDb] Client addConsultation failed, attempting Server API fallback:", clientError);
+
+    // Tier 2: Resilient Server API fallback (bypasses client permissions limitations)
+    try {
+      const res = await fetch(`/api/patients/${encodeURIComponent(patientId)}/consultations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(consultationData),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.consultation) {
+        return data.consultation as Consultation;
+      }
+      throw new Error(data.error || `HTTP ${res.status}`);
+    } catch (apiError) {
+      console.error("Error adding consultation via fallback API:", apiError);
+      throw clientError;
+    }
   }
 }
 

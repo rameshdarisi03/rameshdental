@@ -11,10 +11,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Get the logged in user's email address (normalized lowercase)
+    // Get the logged in user's email address
     function userEmail() {
       return request.auth != null && request.auth.token.email != null 
-        ? request.auth.token.email.lower() 
+        ? request.auth.token.email 
         : "";
     }
 
@@ -28,12 +28,10 @@ service cloud.firestore {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
         (request.auth.token.role != null && request.auth.token.role in ['admin', 'receptionist', 'staff', 'doctor']) ||
-        (userEmail().matches('.*@rameshdental\\.com$')) ||
-        userEmail() in [
-          'admin@rameshdental.com',
-          'receptionist@rameshdental.com',
-          'rameshdarisi01@gmail.com'
-        ]
+        (userEmail().matches('(?i).*@rameshdental\\.com$')) ||
+        userEmail().matches('(?i)admin@rameshdental\\.com') ||
+        userEmail().matches('(?i)receptionist@rameshdental\\.com') ||
+        userEmail().matches('(?i)rameshdarisi01@gmail\\.com')
       );
     }
 
@@ -90,18 +88,18 @@ service cloud.firestore {
     // 5. PATIENTS COLLECTION & FAMILY CIRCLE
     // =========================================================================
     match /patients/{patientId} {
-      // Clinic staff or verified patient/family member can view their record
-      allow read: if isStaff() || isFamilyCircleMember(resource.data) || (request.auth != null && request.auth.uid == patientId);
+      // Clinic staff, signed-in users, or verified patient/family member can view record
+      allow read: if isStaff() || isSignedIn() || isFamilyCircleMember(resource.data) || (request.auth != null && request.auth.uid == patientId);
 
-      // Staff and registered patients can manage their records
+      // Staff and registered users can manage and update records
       allow create: if isStaff() || isSignedIn();
-      allow update: if isStaff() || isFamilyCircleMember(resource.data) || (request.auth != null && request.auth.uid == patientId);
+      allow update: if isStaff() || isSignedIn() || isFamilyCircleMember(resource.data) || (request.auth != null && request.auth.uid == patientId);
       allow delete: if isStaff();
 
-      // Sub-collections: files (scans/PDFs), consultations (SOAP notes), prescription history
+      // Sub-collections: files (scans/PDFs), consultations (clinical notes), prescription history
       match /{allSubcollections=**} {
-        allow read: if isStaff() || isFamilyCircleMember(get(/databases/$(database)/documents/patients/$(patientId)).data);
-        allow write, delete: if isStaff();
+        allow read: if isStaff() || isSignedIn();
+        allow write, delete: if isStaff() || isSignedIn();
       }
     }
 

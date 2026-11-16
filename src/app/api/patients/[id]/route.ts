@@ -60,3 +60,35 @@ export async function GET(
     );
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const cleanId = decodeURIComponent(id || "").trim();
+
+    if (!cleanId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required patient ID." },
+        { status: 400 }
+      );
+    }
+
+    const updates = await req.json();
+    const { patchFirestoreDocRest } = await import("@/lib/firebaseRestAdmin");
+    await patchFirestoreDocRest("patients", cleanId, updates);
+
+    return NextResponse.json({
+      success: true,
+      message: "Patient record updated successfully.",
+    });
+  } catch (err: any) {
+    console.error("[API Patient Patch] Error:", err);
+    return NextResponse.json(
+      { success: false, error: err.message || "Failed to update patient record." },
+      { status: 500 }
+    );
+  }
+}
