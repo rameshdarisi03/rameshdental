@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
   // 1. Staff session cookie from dashboard
-  const sessionCookie = req.cookies.get("gpc_session")?.value;
+  const sessionCookie = req.cookies.get("rdc_session")?.value || req.cookies.get("gpc_session")?.value;
   if (sessionCookie && ["admin", "receptionist", "doctor", "staff"].includes(sessionCookie)) {
     return true;
   }
