@@ -40,4 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 refernces/
-scripts/
+scripts/*
+!scripts/submit-whatsapp-templates.ts

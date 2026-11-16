@@ -1,5 +1,5 @@
 /**
- * Security & Input Sanitization Engine for Gait Physio Clinic
+ * Security & Input Sanitization Engine for Ramesh Dental Clinic
  * Compliant with OWASP Top 10 Application Security Standards.
  * Defends against XSS, NoSQL/Firestore Injection, HTML tag exploits, and malformed telecom inputs.
  */

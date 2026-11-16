@@ -1,5 +1,5 @@
 /**
- * Gait Physio Clinic FastTrack Patient Parser
+ * Ramesh Dental Clinic FastTrack Patient Parser
  * Highly optimized heuristic & pattern parser for clinic spreadsheets, CSVs, TSVs, WhatsApp lists, and clipboard paste.
  */
 
@@ -100,21 +100,21 @@ export function detectStatus(rawStatus: string | undefined): "active" | "complet
   return "active";
 }
 
-export const SAMPLE_PATIENT_CSV = `Patient Name,Age,Gender,Phone,Email,Chief Complaint / Treatment Plan,Assigned Therapist,Status
-Rahul Sharma,34,Male,9876543210,rahul.s@example.com,Cervical Spondylosis & Posture Rehab,Dr.Kinnera,Active
-Ananya Deshmukh,29,Female,9811223344,ananya.d@example.com,Post-op ACL Knee Rehabilitation,Dr.Ridha,Active
-Suresh Reddy,45,Male,9922334455,suresh.r@example.com,Frozen Shoulder (Adhesive Capsulitis),Dr.Ammulu John,Active
-Priya Verma,38,Female,9833445566,priya.v@example.com,Lower Back Lumbar Strain,Dr.Kinnera,Active
-Vikram Malhotra,52,Male,9744556677,,Total Knee Replacement Mobility Protocol,Dr.Rakshitha,Active
-Kiran Patel,24,Male,9855667788,kiran.p@example.com,Hamstring Pull & Sports Injury Rehab,Dr.Ridha,Pending
-Meera Iyer,61,Female,9866778899,,Cervical Radiculopathy & Neck Traction,Dr.Kinnera,Completed`;
+export const SAMPLE_PATIENT_CSV = `Patient Name,Age,Gender,Phone,Email,Chief Complaint / Treatment Plan,Assigned Dentist,Status
+Rahul Sharma,34,Male,9876543210,rahul.s@example.com,Root Canal Treatment & Ceramic Crown,Dr. Ramesh Darisi,Active
+Ananya Deshmukh,29,Female,9811223344,ananya.d@example.com,Clear Aligners Assessment,Dr. Ramesh Darisi,Active
+Suresh Reddy,45,Male,9922334455,suresh.r@example.com,Titanium Dental Implant Placement,Dr. Ramesh Darisi,Active
+Priya Verma,38,Female,9833445566,priya.v@example.com,Laser Teeth Whitening & Polishing,Dr. Ramesh Darisi,Active
+Vikram Malhotra,52,Male,9744556677,,Full Arch Zirconia Bridge,Dr. Ramesh Darisi,Active
+Kiran Patel,24,Male,9855667788,kiran.p@example.com,Wisdom Tooth Extraction Consultation,Dr. Ramesh Darisi,Pending
+Meera Iyer,61,Female,9866778899,,Periodontal Laser Therapy & Scaling,Dr. Ramesh Darisi,Completed`;
 
 /**
  * Parses raw text, CSV, TSV, or spreadsheet clipboard data
  */
 export function parsePatientSpreadsheetText(
   rawText: string,
-  enrolledTherapists: string[] = ["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]
+  enrolledTherapists: string[] = ["Dr. Ramesh Darisi"]
 ): FastTrackPatientParseResult {
   if (!rawText || !rawText.trim()) {
     return {
@@ -128,7 +128,7 @@ export function parsePatientSpreadsheetText(
     };
   }
 
-  const defaultTherapist = enrolledTherapists[0] || "Dr. Kinnera";
+  const defaultTherapist = enrolledTherapists[0] || "Dr. Ramesh Darisi";
 
   // Use PapaParse to handle tricky quotes, commas, and tabs
   const parsed = Papa.parse<string[]>(rawText.trim(), {

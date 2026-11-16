@@ -1,5 +1,5 @@
 /**
- * Gait Physio Clinic FastTrack Batch Ingest Engine
+ * Ramesh Dental Clinic FastTrack Batch Ingest Engine
  * Safely batches and persists migrated patient records into Firestore & auto-provisions Google Drive EMR folders.
  */
 
@@ -68,9 +68,9 @@ export async function executeFastTrackPatientBatchIngest(
         phone: row.phone.trim(),
         age: row.age ? String(row.age).trim() : "35",
         gender: row.gender || "Male",
-        treatmentPlan: row.treatmentPlan || "General Physiotherapy Consultation",
+        treatmentPlan: row.treatmentPlan || "General Dental Consultation",
         status: row.status || "active",
-        therapistName: row.therapistName || "Dr. Kinnera",
+        therapistName: row.therapistName || "Dr. Ramesh Darisi",
         upcoming: row.upcoming || "Pending Schedule",
         lastVisit: "N/A"
       });

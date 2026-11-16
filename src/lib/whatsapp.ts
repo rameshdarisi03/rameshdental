@@ -256,10 +256,10 @@ export async function sendWhatsAppPatientOnboarding(params: {
     ? `${patientId} • Activation Code: ${params.activationCode} • Portal: https://rameshdental.vercel.app/patienthub/login`
     : `${patientId}`;
 
-  // Primary: Use Meta-Approved Template (patient_welcome_gpc)
-  const templateRes = await sendWhatsAppTemplateMessage({
+  // Primary: Use Meta-Approved Template (patient_welcome_rdc, fallback patient_welcome_gpc)
+  let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: cleanPhone,
-    templateName: "patient_welcome_gpc",
+    templateName: "patient_welcome_rdc",
     components: [
       {
         type: "body",
@@ -270,6 +270,22 @@ export async function sendWhatsAppPatientOnboarding(params: {
       },
     ],
   });
+
+  if (!templateRes.success) {
+    templateRes = await sendWhatsAppTemplateMessage({
+      rawPhone: cleanPhone,
+      templateName: "patient_welcome_gpc",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: idAndPortalInfo },
+          ],
+        },
+      ],
+    });
+  }
 
   if (templateRes.success) return templateRes;
   console.warn("[WhatsApp Onboarding Template Failed, attempting text fallback]", templateRes.error);
@@ -285,7 +301,7 @@ Welcome to Ramesh Dental Clinic! Your clinical patient record has been created.
 🆔 *Patient ID:* ${patientId}
 ${params.patientEmail ? `📧 *Registered Email:* ${params.patientEmail}\n` : ""}🔑 *Portal Activation Code:* *${params.activationCode}*
 
-📲 *Activate your account in 30 seconds to access your prescribed home exercises, consultation history, and appointments:*
+📲 *Activate your account in 30 seconds to access your dental records, treatment plans, prescriptions, and appointments:*
 👉 ${portalUrl}
 
 _Please keep this code secure. If you did not request this, please contact our clinic at ${CLINIC_PHONE}._`;
@@ -304,59 +320,62 @@ export async function sendWhatsAppOtpCode(params: {
   otp: string;
 }): Promise<SendWhatsAppResult> {
   const cleanPhone = getCleanWhatsAppNumber(params.patientPhone);
-  const patientId = params.patientId || "GPC-PATIENT";
+  const patientId = params.patientId || "RDC-PATIENT";
 
-  // Tier 1: Dedicated official authentication template (patient_authcode_gpc)
+  // Tier 1: Dedicated official authentication template (patient_authcode_rdc, fallback patient_authcode_gpc)
   // Approved in "en" with native Copy Code button
-  try {
-    const authRes = await sendWhatsAppTemplateMessage({
-      rawPhone: cleanPhone,
-      templateName: "patient_authcode_gpc",
-      languageCode: "en",
-      components: [
-        {
-          type: "body",
-          parameters: [{ type: "text", text: params.otp }],
-        },
-        {
-          type: "button",
-          sub_type: "url",
-          index: "0",
-          parameters: [{ type: "text", text: params.otp }],
-        },
-      ],
-    });
-    if (authRes.success) {
-      console.log(`[WhatsApp OTP] Successfully dispatched patient_authcode_gpc to ${cleanPhone} (Msg ID: ${authRes.messageId})`);
-      return authRes;
+  for (const authTmpl of ["patient_authcode_rdc", "patient_authcode_gpc"]) {
+    try {
+      const authRes = await sendWhatsAppTemplateMessage({
+        rawPhone: cleanPhone,
+        templateName: authTmpl,
+        languageCode: "en",
+        components: [
+          {
+            type: "body",
+            parameters: [{ type: "text", text: params.otp }],
+          },
+          {
+            type: "button",
+            sub_type: "url",
+            index: "0",
+            parameters: [{ type: "text", text: params.otp }],
+          },
+        ],
+      });
+      if (authRes.success) {
+        console.log(`[WhatsApp OTP] Successfully dispatched ${authTmpl} to ${cleanPhone} (Msg ID: ${authRes.messageId})`);
+        return authRes;
+      }
+    } catch (err: any) {
+      console.warn(`[WhatsApp OTP] ${authTmpl} exception:`, err?.message);
     }
-    console.warn("[WhatsApp OTP] patient_authcode_gpc attempt notice:", authRes.error);
-  } catch (err: any) {
-    console.warn("[WhatsApp OTP] patient_authcode_gpc exception:", err?.message);
   }
 
-  // Tier 2: Use guaranteed approved Meta template (patient_welcome_gpc)
+  // Tier 2: Use guaranteed utility template fallback (patient_welcome_rdc or patient_welcome_gpc)
   // This delivers 100% reliably to any patient outside the 24h window
-  try {
-    const detail = `${patientId} • Login OTP: ${params.otp}`;
-    const welcomeRes = await sendWhatsAppTemplateMessage({
-      rawPhone: cleanPhone,
-      templateName: "patient_welcome_gpc",
-      languageCode: "en_US",
-      components: [
-        {
-          type: "body",
-          parameters: [
-            { type: "text", text: params.patientName },
-            { type: "text", text: detail },
-          ],
-        },
-      ],
-    });
+  for (const welcomeTmpl of ["patient_welcome_rdc", "patient_welcome_gpc"]) {
+    try {
+      const detail = `${patientId} • Login OTP: ${params.otp}`;
+      const welcomeRes = await sendWhatsAppTemplateMessage({
+        rawPhone: cleanPhone,
+        templateName: welcomeTmpl,
+        languageCode: "en",
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: params.patientName },
+              { type: "text", text: detail },
+            ],
+          },
+        ],
+      });
 
-    if (welcomeRes.success) return welcomeRes;
-  } catch (tmplErr) {
-    console.warn("[WhatsApp OTP] Template fallback attempt:", tmplErr);
+      if (welcomeRes.success) return welcomeRes;
+    } catch (tmplErr) {
+      console.warn(`[WhatsApp OTP] ${welcomeTmpl} fallback attempt failed:`, tmplErr);
+    }
   }
 
   // Tier 3: Direct text fallback
@@ -374,10 +393,10 @@ export async function sendWhatsAppBookingReceived(params: {
   slot: string;
   serviceName?: string;
 }): Promise<SendWhatsAppResult> {
-  // Primary: Use Meta-Approved Template (booking_request_received_gpc)
-  const templateRes = await sendWhatsAppTemplateMessage({
+  // Primary: Use Meta-Approved Template (booking_request_received_rdc, fallback booking_request_received_gpc)
+  let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "booking_request_received_gpc",
+    templateName: "booking_request_received_rdc",
     components: [
       {
         type: "body",
@@ -385,11 +404,29 @@ export async function sendWhatsAppBookingReceived(params: {
           { type: "text", text: params.patientName },
           { type: "text", text: params.date },
           { type: "text", text: params.slot },
-          { type: "text", text: params.serviceName || "General Consultation" },
+          { type: "text", text: params.serviceName || "Dental Consultation" },
         ],
       },
     ],
   });
+
+  if (!templateRes.success) {
+    templateRes = await sendWhatsAppTemplateMessage({
+      rawPhone: params.patientPhone,
+      templateName: "booking_request_received_gpc",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: params.patientName },
+            { type: "text", text: params.date },
+            { type: "text", text: params.slot },
+            { type: "text", text: params.serviceName || "Dental Consultation" },
+          ],
+        },
+      ],
+    });
+  }
 
   if (templateRes.success) return templateRes;
   console.warn("[WhatsApp Booking Received Template Failed, attempting text fallback]", templateRes.error);
@@ -405,7 +442,7 @@ We have received your appointment request. Our reception team is reviewing our s
 📋 *Booking Details:*
 • 📅 *Requested Date:* ${params.date}
 • ⏰ *Requested Slot:* ${params.slot}
-• 🩺 *Service / Department:* ${params.serviceName || "Physiotherapy Consultation"}
+• 🩺 *Service / Department:* ${params.serviceName || "Dental Consultation"}
 • 📍 *Location:* ${CLINIC_ADDRESS}
 
 ⏳ *Status:* Pending Clinic Approval
@@ -425,10 +462,10 @@ export async function sendWhatsAppRescheduleRequestReceived(params: {
   requestedSlot: string;
   serviceName?: string;
 }): Promise<SendWhatsAppResult> {
-  // 1. Primary: Attempt dedicated Meta-Approved Template (reschedule_request_received_gpc)
+  // 1. Primary: Attempt dedicated Meta-Approved Template (reschedule_request_received_rdc)
   let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "reschedule_request_received_gpc",
+    templateName: "reschedule_request_received_rdc",
     components: [
       {
         type: "body",
@@ -436,19 +473,19 @@ export async function sendWhatsAppRescheduleRequestReceived(params: {
           { type: "text", text: params.patientName },
           { type: "text", text: params.requestedDate },
           { type: "text", text: params.requestedSlot },
-          { type: "text", text: params.serviceName || "Physiotherapy Session" },
+          { type: "text", text: params.serviceName || "Dental Consultation" },
         ],
       },
     ],
   });
 
   if (templateRes.success) return templateRes;
-  console.warn("[WhatsApp Reschedule Request Template not active/approved yet, attempting booking_request_received_gpc fallback]:", templateRes.error);
+  console.warn("[WhatsApp Reschedule Request Template not active/approved yet, attempting booking_request_received_rdc fallback]:", templateRes.error);
 
-  // 2. Safe interim fallback: Use already approved booking_request_received_gpc template
+  // 2. Safe interim fallback: Use already approved booking_request_received_rdc template
   templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "booking_request_received_gpc",
+    templateName: "booking_request_received_rdc",
     components: [
       {
         type: "body",
@@ -456,7 +493,7 @@ export async function sendWhatsAppRescheduleRequestReceived(params: {
           { type: "text", text: params.patientName },
           { type: "text", text: params.requestedDate },
           { type: "text", text: params.requestedSlot },
-          { type: "text", text: `${params.serviceName || "Physiotherapy"} (Reschedule Request)` },
+          { type: "text", text: `${params.serviceName || "Dental Care"} (Reschedule Request)` },
         ],
       },
     ],
@@ -499,7 +536,7 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
   serviceName?: string;
   appointmentId?: string;
 }): Promise<SendWhatsAppResult> {
-  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+  const cleanTherapist = (params.therapistName || "Ramesh Darisi").replace(/^Dr\.?\s*/i, "");
 
   // Generate URL-safe slug for dynamic "Add to Calendar" button (Button 0)
   // Button 1 ("Get Location") is a static URL pre-configured in Meta WhatsApp Manager.
@@ -515,7 +552,7 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
   // Attempt 1: Dispatch with "Add to Calendar" dynamic button component
   let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "appointment_confirmation_gpc",
+    templateName: "appointment_confirmation_rdc",
     components: [
       {
         type: "body",
@@ -542,7 +579,7 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
     console.warn("[WhatsApp Confirmed with buttons note, attempting body-only]", templateRes.error);
     templateRes = await sendWhatsAppTemplateMessage({
       rawPhone: params.patientPhone,
-      templateName: "appointment_confirmation_gpc",
+      templateName: "appointment_confirmation_rdc",
       components: [
         {
           type: "body",
@@ -566,20 +603,20 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
 
 Hello ${params.patientName},
 
-Great news! Your physiotherapy appointment has been officially confirmed.
+Great news! Your dental appointment has been officially confirmed.
 
 📋 *Appointment Details:*
 • 📅 *Date:* ${params.date}
 • ⏰ *Time Slot:* ${params.slot}
-• 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
-• 🩺 *Session:* ${params.serviceName || "Clinical Physiotherapy"}
+• 👨‍⚕️ *Dentist:* Dr. ${cleanTherapist}
+• 🩺 *Treatment:* ${params.serviceName || "Dental Consultation"}
 • 📍 *Clinic Address:* ${CLINIC_ADDRESS}
 
 🧭 *Google Maps Location:*
 👉 ${MAPS_URL}
 
-💡 *Tips for your session:*
-Please arrive 5–10 minutes early in comfortable clothing suitable for physical movement.
+💡 *Tips for your visit:*
+Please arrive 5–10 minutes early. Brush your teeth before visiting for optimal examination.
 
 Need to reschedule? Call or WhatsApp our desk at ${CLINIC_PHONE}.`;
 
@@ -599,7 +636,7 @@ export async function sendWhatsAppWalkinConfirmed(params: {
   // Primary: Use Meta-Approved Template (walkin_confirmation_gpc)
   const templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "walkin_confirmation_gpc",
+    templateName: "walkin_confirmation_rdc",
     components: [
       {
         type: "body",
@@ -607,7 +644,7 @@ export async function sendWhatsAppWalkinConfirmed(params: {
           { type: "text", text: params.patientName },
           { type: "text", text: params.date },
           { type: "text", text: params.slot },
-          { type: "text", text: params.serviceName || "Physiotherapy Session" },
+          { type: "text", text: params.serviceName || "Dental Consultation" },
         ],
       },
     ],
@@ -627,8 +664,8 @@ Your walk-in appointment registration at Ramesh Dental Clinic has been successfu
 📋 *Session Details:*
 • 📅 *Date:* ${params.date}
 • ⏰ *Assigned Slot:* ${params.slot}
-• 🩺 *Service:* ${params.serviceName || "Clinical Consultation"}
-• 📍 *Consulting Room:* Main Therapy Hall
+• 🩺 *Service:* ${params.serviceName || "Dental Consultation"}
+• 📍 *Consulting Room:* Dental Operatory
 
 Our care team will call your token shortly. Thank you for visiting Ramesh Dental Clinic!`;
 
@@ -647,7 +684,7 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   serviceName?: string;
   appointmentId?: string;
 }): Promise<SendWhatsAppResult> {
-  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+  const cleanTherapist = (params.therapistName || "Ramesh Darisi").replace(/^Dr\.?\s*/i, "");
 
   // Generate URL-safe slug for dynamic "Add to Calendar" button (Button 0)
   // Button 1 ("Get Location") is a static URL pre-configured in Meta WhatsApp Manager.
@@ -663,7 +700,7 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   // Attempt 1: Use Meta-Approved Dedicated Rescheduled Template with buttons
   let templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "appointment_rescheduled_gpc",
+    templateName: "appointment_rescheduled_rdc",
     components: [
       {
         type: "body",
@@ -690,7 +727,7 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
     console.warn("[WhatsApp Reschedule with buttons note, attempting body-only]", templateRes.error);
     templateRes = await sendWhatsAppTemplateMessage({
       rawPhone: params.patientPhone,
-      templateName: "appointment_rescheduled_gpc",
+      templateName: "appointment_rescheduled_rdc",
       components: [
         {
           type: "body",
@@ -708,10 +745,10 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   if (templateRes.success) return templateRes;
   console.warn("[WhatsApp Reschedule Template Failed, attempting confirmation template fallback]", templateRes.error);
 
-  // Secondary fallback: appointment_confirmation_gpc
+  // Secondary fallback: appointment_confirmation_rdc
   const fallbackTmpl = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "appointment_confirmation_gpc",
+    templateName: "appointment_confirmation_rdc",
     components: [
       {
         type: "body",
@@ -737,7 +774,7 @@ Your appointment with Ramesh Dental Clinic has been rescheduled as requested.
 📋 *Updated Schedule:*
 • 📅 *New Date:* ${params.newDate}
 • ⏰ *New Time Slot:* ${params.newSlot}
-• 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
+• 👨‍⚕️ *Dentist:* Dr. ${cleanTherapist}
 • 📍 *Location:* ${CLINIC_ADDRESS}
 
 We look forward to seeing you at your updated slot. If you need any further adjustments, please contact us at ${CLINIC_PHONE}.`;
@@ -756,10 +793,10 @@ export async function sendWhatsAppAppointmentRejected(params: {
   serviceName?: string;
   reason?: string;
 }): Promise<SendWhatsAppResult> {
-  // Primary: Use Meta-Approved Template (appointment_cancellation_gpc)
+  // Primary: Use Meta-Approved Template (appointment_cancellation_rdc)
   const templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "appointment_cancellation_gpc",
+    templateName: "appointment_cancellation_rdc",
     components: [
       {
         type: "body",
@@ -805,12 +842,12 @@ export async function sendWhatsAppAppointmentReminder(params: {
   slot: string;
   therapistName?: string;
 }): Promise<SendWhatsAppResult> {
-  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+  const cleanTherapist = (params.therapistName || "Ramesh Darisi").replace(/^Dr\.?\s*/i, "");
 
-  // Primary: Use Meta-Approved Template (session_reminder_gpc)
+  // Primary: Use Meta-Approved Template (session_reminder_rdc)
   const templateRes = await sendWhatsAppTemplateMessage({
     rawPhone: params.patientPhone,
-    templateName: "session_reminder_gpc",
+    templateName: "session_reminder_rdc",
     components: [
       {
         type: "body",
@@ -832,14 +869,14 @@ export async function sendWhatsAppAppointmentReminder(params: {
 
 Hi ${params.patientName},
 
-This is a gentle reminder that your physiotherapy session is scheduled for *today at ${params.slot}*.
+This is a gentle reminder that your dental appointment is scheduled for *today at ${params.slot}*.
 
-📋 *Session Summary:*
+📋 *Appointment Summary:*
 • ⏰ *Time:* ${params.slot}
-• 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
+• 👨‍⚕️ *Dentist:* Dr. ${cleanTherapist}
 • 📍 *Clinic:* Ramesh Dental Clinic, Whitefield
 
-Please bring any recent MRI/X-ray reports or comfortable exercise clothing if needed.
+Please bring any previous dental X-rays or reports if available.
 
 Need directions? Tap here: ${MAPS_URL}`;
 
@@ -923,7 +960,7 @@ This updated invoice replaces your previous bill *${params.replacesInvoiceNumber
 🔄 *Replaces Cancelled Bill:* ${params.replacesInvoiceNumber}
 📅 *Date of Issue:* ${params.date}
 💰 *Total Amount:* ₹${params.amount}
-🩺 *Service Rendered:* ${params.serviceName || "Physiotherapy Treatment"}
+🩺 *Service Rendered:* ${params.serviceName || "Dental Treatment / Procedure"}
 💳 *Payment Status:* PAID (Complete)
 
 📎 *Your fresh, corrected Invoice PDF is attached above.*
@@ -939,12 +976,12 @@ Thank you for your payment. Here is the summary of your clinic bill:
 🧾 *Invoice Number:* ${params.invoiceNumber}
 📅 *Date of Issue:* ${params.date}
 💰 *Amount Paid:* ₹${params.amount}
-🩺 *Service Rendered:* ${params.serviceName || "Physiotherapy Consultation"}
+🩺 *Service Rendered:* ${params.serviceName || "Dental Consultation / Procedure"}
 💳 *Payment Status:* PAID (Complete)
 
 📎 *Your official Invoice PDF is attached above for your records.*
 
-_Thank you for choosing Ramesh Dental Clinic for your recovery journey!_`;
+_Thank you for choosing Ramesh Dental Clinic for your healthy smile!_`;
 
   if (params.pdfBase64 || params.pdfUrl) {
     return sendWhatsAppDocumentMessage({
@@ -994,6 +1031,7 @@ export async function sendWhatsAppConsultationReport(params: {
   patientName: string;
   patientPhone: string;
   date: string;
+  dentistName?: string;
   therapistName?: string;
   diagnosis?: string;
   summary?: string;
@@ -1003,7 +1041,8 @@ export async function sendWhatsAppConsultationReport(params: {
 }): Promise<SendWhatsAppResult> {
   const cleanDate = params.date ? params.date.replace(/[^a-zA-Z0-9]/g, "_") : "Report";
   const filename = `Prescription_${cleanDate}.pdf`;
-  const cleanTherapist = (params.therapistName || "Lead Physiotherapist").replace(/^Dr\.?\s*/i, "");
+  const rawDoctor = params.dentistName || params.therapistName || "Dr. Ramesh Darisi";
+  const cleanDoctor = rawDoctor.replace(/^Dr\.?\s*/i, "");
 
   let mediaId: string | null = null;
   if (params.pdfBase64) {
@@ -1039,7 +1078,7 @@ export async function sendWhatsAppConsultationReport(params: {
           parameters: [
             { type: "text", text: params.patientName },
             { type: "text", text: params.date },
-            { type: "text", text: cleanTherapist },
+            { type: "text", text: cleanDoctor },
           ],
         },
       ],
@@ -1052,20 +1091,20 @@ export async function sendWhatsAppConsultationReport(params: {
   // Fallback: direct document message or plain text
   const caption = 
 `🦷 *RAMESH DENTAL CLINIC*
-*Clinical Consultation & Exercise Routine*
+*Clinical Consultation & Treatment Prescription*
 
 Hello ${params.patientName},
 
-Your clinical consultation assessment and personalized rehabilitation plan for *${params.date}* has been finalized.
+Your clinical dental consultation assessment and treatment plan for *${params.date}* has been finalized.
 
-👨‍⚕️ *Attending Therapist:* Dr. ${cleanTherapist}
-📋 *Diagnosis / Focus:* ${params.diagnosis || "Physiotherapy Rehabilitation"}
-🏋️ *Prescribed Exercises:* ${params.exercisesCount || 0} Exercises
+👨‍⚕️ *Attending Dentist:* Dr. ${cleanDoctor}
+📋 *Diagnosis / Procedure:* ${params.diagnosis || "Dental Examination & Treatment"}
+🦷 *Care Protocol:* Comprehensive Oral Healthcare
 
 📎 *Your official Consultation & Prescription PDF is attached above for your records.*
 
-📲 *You can view step-by-step video demonstrations of your prescribed exercises in your Patient Hub:*
-👉 ${BASE_URL}/patienthub/exercises
+📲 *You can view your full treatment records and appointments in your Patient Hub:*
+👉 ${BASE_URL}/patienthub
 
 Need to ask a follow-up question? Simply reply to this chat or call our clinic desk at ${CLINIC_PHONE}.`;
 
@@ -1083,7 +1122,7 @@ Need to ask a follow-up question? Simply reply to this chat or call our clinic d
 }
 
 /**
- * 11. Daily Morning Clinical Schedule Alert to Doctor / Therapist
+ * 11. Daily Morning Clinical Schedule Alert to Doctor / Dentist
  */
 export async function sendWhatsAppDoctorDailySchedule(params: {
   rawPhone: string;
@@ -1096,7 +1135,7 @@ export async function sendWhatsAppDoctorDailySchedule(params: {
     phone?: string;
   }>;
 }): Promise<SendWhatsAppResult> {
-  const doctorName = params.doctorName || "Kinnera";
+  const doctorName = params.doctorName || "Ramesh Darisi";
   const cleanPhone = getCleanWhatsAppNumber(params.rawPhone);
   const count = params.appointments.length;
 
@@ -1107,7 +1146,7 @@ export async function sendWhatsAppDoctorDailySchedule(params: {
     scheduleListText = params.appointments
       .map(
         (a, i) =>
-          `*${i + 1}.* ⏰ *${a.slot}* — ${a.patientName}\n   🩺 ${a.serviceName || "Physiotherapy Session"}\n   📞 ${a.phone || "N/A"}`
+          `*${i + 1}.* ⏰ *${a.slot}* — ${a.patientName}\n   🩺 ${a.serviceName || "Dental Consultation"}\n   📞 ${a.phone || "N/A"}`
       )
       .join("\n\n");
   }

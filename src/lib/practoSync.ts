@@ -282,7 +282,7 @@ export async function syncPractoAppointments(params?: {
     console.log(`[Practo Sync] Fetching feed from: ${fetchUrl}`);
     const res = await fetch(fetchUrl, {
       headers: {
-        "User-Agent": "GaitPhysioClinic/1.0 CalendarSyncBot",
+        "User-Agent": "RameshDentalClinic/1.0 CalendarSyncBot",
       },
       next: { revalidate: 0 },
     });
@@ -343,7 +343,7 @@ export async function syncPractoAppointments(params?: {
 
     let importedCount = 0;
     let skippedCount = 0;
-    const defaultDoctor = params?.therapistName || "Dr.Kinnera";
+    const defaultDoctor = params?.therapistName || "Dr. Ramesh Darisi";
 
     for (const evt of activeEvents) {
       // Deduplication check: check UID or date+slot
