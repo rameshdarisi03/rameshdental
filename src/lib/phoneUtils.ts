@@ -1,15 +1,15 @@
-export const CLINIC_PRIMARY_WHATSAPP = "918904456243";
-export const CLINIC_PRIMARY_DIAL = "+918971462949";
+export const CLINIC_PRIMARY_WHATSAPP = "919876543210";
+export const CLINIC_PRIMARY_DIAL = "+919876543210";
 
 /**
  * Sanitizes phone numbers for WhatsApp wa.me links.
  * Handles:
- * - Single 10-digit numbers: '8904456243' -> '918904456243'
- * - Single 12-digit with 91: '+91 8904456243' or '918904456243' -> '918904456243' (avoids double 91)
- * - 11-digit numbers with leading 0: '08904456243' -> '918904456243'
- * - Multiple numbers in one string (e.g. '+91 8904456243 / +91 8971462949' or '8904456243, 8971462949')
- *   -> Extracts the primary (first) number and cleans it to '918904456243'.
- * - Fallback default: '918904456243'
+ * - Single 10-digit numbers: '9876543210' -> '919876543210'
+ * - Single 12-digit with 91: '+91 9876543210' or '919876543210' -> '919876543210' (avoids double 91)
+ * - 11-digit numbers with leading 0: '09876543210' -> '919876543210'
+ * - Multiple numbers in one string (e.g. '+91 9876543210 / +91 8971462949' or '9876543210, 8971462949')
+ *   -> Extracts the primary (first) number and cleans it to '919876543210'.
+ * - Fallback default: '919876543210'
  */
 export function getCleanWhatsAppNumber(rawPhone?: string | null, fallbackToClinic: boolean = true): string {
   if (!rawPhone || !rawPhone.trim()) {
@@ -40,8 +40,8 @@ export function getCleanWhatsAppNumber(rawPhone?: string | null, fallbackToClini
     return fallbackToClinic ? CLINIC_PRIMARY_WHATSAPP : "";
   }
 
-  // 4. Safety: If the input already contains the clinic's primary number '8904456243', ensure exact match
-  if (digits.includes("8904456243")) {
+  // 4. Safety: If the input already contains the clinic's primary number '9876543210', ensure exact match
+  if (digits.includes("9876543210")) {
     return CLINIC_PRIMARY_WHATSAPP;
   }
 
@@ -62,7 +62,7 @@ export function getCleanWhatsAppNumber(rawPhone?: string | null, fallbackToClini
     return digits;
   }
 
-  // If starts with 0 and has 11 digits (e.g. 08904456243), strip 0 and prepend 91
+  // If starts with 0 and has 11 digits (e.g. 09876543210), strip 0 and prepend 91
   if (digits.startsWith("0") && digits.length === 11) {
     return `91${digits.slice(1)}`;
   }
@@ -82,7 +82,7 @@ export function getCleanWhatsAppNumber(rawPhone?: string | null, fallbackToClini
 }
 
 /**
- * Sanitizes phone numbers for tel: links (e.g. tel:+918904456243).
+ * Sanitizes phone numbers for tel: links (e.g. tel:+919876543210).
  * Extracts the first primary phone number and formats as RFC 3966 (+ followed by digits).
  */
 export function getPrimaryDialNumber(rawPhone?: string | null, fallbackToClinic: boolean = true): string {
@@ -109,7 +109,7 @@ export function getPrimaryDialNumber(rawPhone?: string | null, fallbackToClinic:
     return fallbackToClinic ? CLINIC_PRIMARY_DIAL : "";
   }
 
-  if (digits.includes("8904456243")) {
+  if (digits.includes("9876543210")) {
     return CLINIC_PRIMARY_DIAL;
   }
 
@@ -137,13 +137,13 @@ export function getPrimaryDialNumber(rawPhone?: string | null, fallbackToClinic:
 }
 
 /**
- * Parses multiple phone numbers from a combined string (e.g. '+91 8904456243 / +91 8971462949')
+ * Parses multiple phone numbers from a combined string (e.g. '+91 9876543210 / +91 8971462949')
  */
 export function splitPhoneNumbers(rawPhone?: string | null): Array<{ display: string; dial: string; whatsapp: string }> {
   if (!rawPhone || !rawPhone.trim()) {
     return [
       {
-        display: "+91 89044 56243",
+        display: "+91 98765 43210",
         dial: CLINIC_PRIMARY_DIAL,
         whatsapp: CLINIC_PRIMARY_WHATSAPP,
       },
@@ -158,7 +158,7 @@ export function splitPhoneNumbers(rawPhone?: string | null): Array<{ display: st
   if (segments.length === 0) {
     return [
       {
-        display: rawPhone.trim() || "+91 89044 56243",
+        display: rawPhone.trim() || "+91 98765 43210",
         dial: getPrimaryDialNumber(rawPhone),
         whatsapp: getCleanWhatsAppNumber(rawPhone),
       },

@@ -1,6 +1,7 @@
 import { db } from "./firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import * as templates from "./emailTemplates";
+import { CLINIC_BRAND } from "./clinicBranding";
 
 export interface EmailRecipient {
   email: string;
@@ -281,29 +282,29 @@ export async function sendAppointmentRescheduleRequestEmail(params: {
   requestedSlot: string;
   serviceName?: string;
 }): Promise<SendEmailResult> {
-  const subject = `Reschedule Request Received: ${params.patientName} - Gait Physio Clinic`;
+  const subject = `Reschedule Request Received: ${params.patientName} - Ramesh Dental Clinic`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="color: #062e36; margin: 0;">Gait Physio Clinic</h2>
-        <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0;">Specialized Physiotherapy & Rehabilitation</p>
+        <h2 style="color: #062e36; margin: 0;">Ramesh Dental Clinic</h2>
+        <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0;">Root Canal | Dental Implants | Clear Aligners</p>
       </div>
       <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
         <h3 style="color: #062e36; margin-top: 0;">Appointment Reschedule Request Received</h3>
         <p style="color: #334155; font-size: 14px; line-height: 1.5;">
           Hello <strong>${params.patientName}</strong>,<br/>
-          We have received your request to reschedule your therapy session. Our clinical desk is reviewing therapist availability and will confirm your slot shortly.
+          We have received your request to reschedule your dental appointment. Our clinical desk is reviewing dentist availability and will confirm your slot shortly.
         </p>
         <table style="width: 100%; font-size: 14px; color: #334155; margin-top: 16px; border-collapse: collapse;">
           ${params.currentDate ? `<tr><td style="padding: 6px 0; color: #64748b;">Current Appointment:</td><td style="padding: 6px 0; font-weight: bold;">${params.currentDate} (${params.currentSlot || ""})</td></tr>` : ""}
           <tr><td style="padding: 6px 0; color: #64748b;">Requested New Date:</td><td style="padding: 6px 0; font-weight: bold; color: #0284c7;">${params.requestedDate}</td></tr>
           <tr><td style="padding: 6px 0; color: #64748b;">Requested Time Slot:</td><td style="padding: 6px 0; font-weight: bold; color: #0284c7;">${params.requestedSlot}</td></tr>
-          <tr><td style="padding: 6px 0; color: #64748b;">Service:</td><td style="padding: 6px 0; font-weight: bold;">${params.serviceName || "Physiotherapy Consultation"}</td></tr>
+          <tr><td style="padding: 6px 0; color: #64748b;">Service:</td><td style="padding: 6px 0; font-weight: bold;">${params.serviceName || "Dental Consultation"}</td></tr>
           <tr><td style="padding: 6px 0; color: #64748b;">Status:</td><td style="padding: 6px 0; font-weight: bold; color: #d97706;">Pending Clinic Approval</td></tr>
         </table>
       </div>
       <p style="color: #64748b; font-size: 12px; text-align: center;">
-        Need immediate help? Call reception at <a href="tel:+918971462949" style="color: #0d9488;">+91 89714 62949</a>
+        Need immediate help? Call reception at <a href="tel:${CLINIC_BRAND.phone.replace(/\s+/g, '')}" style="color: #0d9488;">${CLINIC_BRAND.phone}</a>
       </p>
     </div>
   `;

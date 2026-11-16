@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Validates whether an email belongs to a registered patient at Gait Physio Clinic
+ * Validates whether an email belongs to a registered patient at Ramesh Dental Clinic
  * and determines if they already have an existing password or need first-time signup.
  */
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         {
           success: false,
           error:
-            "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 89044 56243.",
+            "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 98765 43210.",
         },
         { status: 404 }
       );

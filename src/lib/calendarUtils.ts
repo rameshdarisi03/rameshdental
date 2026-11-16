@@ -1,7 +1,9 @@
 /**
- * Calendar Link & Event Generation Utilities for Gait Physio Clinic
+ * Calendar Link & Event Generation Utilities for Ramesh Dental Clinic
  * Supports Google Calendar direct deep-links, Apple Calendar / Outlook (.ics), and compact slug encoding.
  */
+
+import { CLINIC_BRAND } from "./clinicBranding";
 
 export interface CalendarEventData {
   appointmentId?: string;
@@ -13,9 +15,9 @@ export interface CalendarEventData {
   clinicAddress?: string;
 }
 
-const CLINIC_NAME = "Gait Physio Clinic";
-const CLINIC_ADDRESS = "Gait Physio Clinic, Near Hope Farm Signal, Whitefield, Bengaluru";
-const CLINIC_PHONE = "+91 89044 56243";
+const CLINIC_NAME = CLINIC_BRAND.name;
+const CLINIC_ADDRESS = CLINIC_BRAND.addressLine;
+const CLINIC_PHONE = CLINIC_BRAND.phone;
 
 /**
  * Normalizes appointment date and slot strings into standard Date objects.
@@ -200,7 +202,7 @@ export function generateIcsCalendarData(event: {
   const dtStart = toIcsDate(event.start);
   const dtEnd = toIcsDate(event.end);
   const dtStamp = toIcsDate(new Date());
-  const uid = `gpc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}@gaitphysioclinic.com`;
+  const uid = `rdc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}@rameshdental.com`;
 
   // Escape special iCal characters
   const cleanSummary = event.title.replace(/[\\;,]/g, " ");
@@ -210,7 +212,7 @@ export function generateIcsCalendarData(event: {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Gait Physio Clinic//Appointment Calendar//EN",
+    "PRODID:-//Ramesh Dental Clinic//Appointment Calendar//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
@@ -225,7 +227,7 @@ export function generateIcsCalendarData(event: {
     "BEGIN:VALARM",
     "TRIGGER:-PT2H",
     "ACTION:DISPLAY",
-    "DESCRIPTION:Physiotherapy session reminder",
+    "DESCRIPTION:Dental appointment reminder",
     "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",

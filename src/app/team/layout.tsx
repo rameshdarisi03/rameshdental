@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Clinical Specialists & Physiotherapy Team",
+  title: "Clinical Specialists & Dental Team | Ramesh Dental Clinic",
   description:
-    "Meet Dr. Madem Kinnera and the certified clinical physiotherapy team at Gait Physio Clinic, Whitefield, Bengaluru. Evidence-based care and sports rehabilitation.",
+    "Meet Dr. Ramesh Darisi and the specialist dental team at Ramesh Dental Clinic, Whitefield, Bengaluru. Advanced painless dentistry, orthodontics, and implantology.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/team",
+    canonical: "https://rameshdental.vercel.app/team",
   },
   openGraph: {
-    title: "Our Clinical Team | Gait Physio Clinic Whitefield",
+    title: "Our Clinical Team | Ramesh Dental Clinic Whitefield",
     description:
-      "Expert physical therapists specializing in biomechanical gait analysis, sports medicine, orthopedic rehab, and posture correction.",
-    url: "https://gaitphysioclinic.com/team",
+      "Expert dental surgeons specializing in Painless RCT, Dental Implants, Clear Aligners, and Cosmetic Smile Design led by Dr. Ramesh Darisi.",
+    url: "https://rameshdental.vercel.app/team",
   },
 };
 

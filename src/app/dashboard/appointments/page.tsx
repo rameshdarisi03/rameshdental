@@ -665,7 +665,7 @@ export default function DashboardAppointments() {
     const calendarUrl = generateGoogleCalendarUrl(app);
     const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
     const cleanName = cleanPatientName(app.patientName);
-    const fallbackMessage = `Hi ${cleanName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
+    const fallbackMessage = `Hi ${cleanName}, your appointment for *${app.serviceId}* on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is CONFIRMED!${calendarMsg}\n\nLocation: https://maps.google.com/?q=Ramesh+Dental+Clinic+Whitefield+Bengaluru\n\nLooking forward to seeing you.`;
     const fallbackWhatsAppUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fallbackMessage)}`;
 
     setDeliveryModalData({

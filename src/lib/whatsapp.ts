@@ -1,5 +1,5 @@
 /**
- * Gait Physio Clinic - Meta WhatsApp Business Cloud API Integration
+ * Ramesh Dental Clinic - Meta WhatsApp Business Cloud API Integration
  * 
  * Supports:
  * - Transactional patient notifications (Onboarding, Appointments, Reminders)
@@ -11,11 +11,12 @@
 
 import { getCleanWhatsAppNumber } from "./phoneUtils";
 import { encodeCalendarToken } from "./calendarUtils";
+import { CLINIC_BRAND } from "./clinicBranding";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com";
-const CLINIC_PHONE = "+91 89044 56243";
-const CLINIC_ADDRESS = "Whitefield, Bengaluru (Near Hopefarm)";
-const MAPS_URL = "https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bengaluru";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app";
+const CLINIC_PHONE = CLINIC_BRAND.phone;
+const CLINIC_ADDRESS = CLINIC_BRAND.addressLine;
+const MAPS_URL = "https://maps.google.com/?q=Ramesh+Dental+Clinic+Whitefield+Bengaluru";
 
 interface WhatsAppSendResponse {
   messaging_product: "whatsapp";
@@ -246,13 +247,13 @@ export async function sendWhatsAppPatientOnboarding(params: {
   const patientId = params.patientId || "GPC-PATIENT";
 
   // In the Meta-Approved Template (patient_welcome_gpc):
-  // Header: Welcome to Gait Physio Clinic
-  // Body: Hello {{1}}, Welcome to Gait Physio Clinic. Your clinical patient record has been registered with ID {{2}}.
+  // Header: Welcome to Ramesh Dental Clinic
+  // Body: Hello {{1}}, Welcome to Ramesh Dental Clinic. Your clinical patient record has been registered with ID {{2}}.
   //
   // Meta Cloud API strictly forbids new-line/tab characters inside template parameters.
   // We format parameter {{2}} cleanly on a single line with the canonical URL at the end without trailing punctuation:
   const idAndPortalInfo = params.activationCode
-    ? `${patientId} • Activation Code: ${params.activationCode} • Portal: https://www.gaitphysioclinic.com/patienthub/login`
+    ? `${patientId} • Activation Code: ${params.activationCode} • Portal: https://rameshdental.vercel.app/patienthub/login`
     : `${patientId}`;
 
   // Primary: Use Meta-Approved Template (patient_welcome_gpc)
@@ -274,12 +275,12 @@ export async function sendWhatsAppPatientOnboarding(params: {
   console.warn("[WhatsApp Onboarding Template Failed, attempting text fallback]", templateRes.error);
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Welcome to Your Care Portal*
 
 Hello ${params.patientName},
 
-Welcome to Gait Physio Clinic! Your clinical patient record has been created.
+Welcome to Ramesh Dental Clinic! Your clinical patient record has been created.
 
 🆔 *Patient ID:* ${patientId}
 ${params.patientEmail ? `📧 *Registered Email:* ${params.patientEmail}\n` : ""}🔑 *Portal Activation Code:* *${params.activationCode}*
@@ -359,7 +360,7 @@ export async function sendWhatsAppOtpCode(params: {
   }
 
   // Tier 3: Direct text fallback
-  const message = `🏥 *GAIT PHYSIO CLINIC*\n*Patient Hub Verification Code*\n\nHello ${params.patientName},\n\nYour 6-digit login verification code is: *${params.otp}*\n\n⏱️ _Valid for 5 minutes. Do not share this code with anyone._`;
+  const message = `🦷 *RAMESH DENTAL CLINIC*\n*Patient Hub Verification Code*\n\nHello ${params.patientName},\n\nYour 6-digit login verification code is: *${params.otp}*\n\n⏱️ _Valid for 5 minutes. Do not share this code with anyone._`;
   return sendWhatsAppTextMessage(cleanPhone, message);
 }
 
@@ -394,7 +395,7 @@ export async function sendWhatsAppBookingReceived(params: {
   console.warn("[WhatsApp Booking Received Template Failed, attempting text fallback]", templateRes.error);
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Appointment Request Received*
 
 Hello ${params.patientName},
@@ -465,23 +466,23 @@ export async function sendWhatsAppRescheduleRequestReceived(params: {
 
   // 3. Fallback to direct text message
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Reschedule Request Received*
 
 Hello ${params.patientName},
 
-We have received your request to reschedule your therapy session.
+We have received your request to reschedule your dental appointment.
 
 📋 *Requested New Timing:*
 • 📅 *New Date:* ${params.requestedDate}
 • ⏰ *New Time Slot:* ${params.requestedSlot}
-• 🩺 *Service:* ${params.serviceName || "Physiotherapy Session"}
+• 🩺 *Service:* ${params.serviceName || "Dental Consultation"}
 • 📍 *Clinic Location:* ${CLINIC_ADDRESS}
 
 ⏳ *Status:* Pending Clinic Approval
 
-Our team is reviewing the therapist schedule and will confirm your updated slot shortly.
-Need immediate assistance? Call us directly at +91 8971462949.`;
+Our team is reviewing dentist availability and will confirm your updated slot shortly.
+Need immediate assistance? Call us directly at ${CLINIC_PHONE}.`;
 
   return sendWhatsAppTextMessage(params.patientPhone, text);
 }
@@ -560,7 +561,7 @@ export async function sendWhatsAppAppointmentConfirmed(params: {
   console.warn("[WhatsApp Appointment Confirmed Template Failed, attempting text fallback]", templateRes.error);
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Appointment Confirmed*
 
 Hello ${params.patientName},
@@ -616,12 +617,12 @@ export async function sendWhatsAppWalkinConfirmed(params: {
   console.warn("[WhatsApp Walkin Template Failed, attempting text fallback]", templateRes.error);
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Walk-in Registration Confirmed*
 
 Hello ${params.patientName},
 
-Your walk-in appointment registration at Gait Physio Clinic has been successfully confirmed.
+Your walk-in appointment registration at Ramesh Dental Clinic has been successfully confirmed.
 
 📋 *Session Details:*
 • 📅 *Date:* ${params.date}
@@ -629,7 +630,7 @@ Your walk-in appointment registration at Gait Physio Clinic has been successfull
 • 🩺 *Service:* ${params.serviceName || "Clinical Consultation"}
 • 📍 *Consulting Room:* Main Therapy Hall
 
-Our care team will call your token shortly. Thank you for visiting Gait Physio Clinic!`;
+Our care team will call your token shortly. Thank you for visiting Ramesh Dental Clinic!`;
 
   return sendWhatsAppTextMessage(params.patientPhone, text);
 }
@@ -726,12 +727,12 @@ export async function sendWhatsAppAppointmentRescheduled(params: {
   if (fallbackTmpl.success) return fallbackTmpl;
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Appointment Schedule Update*
 
 Hello ${params.patientName},
 
-Your appointment with Gait Physio Clinic has been rescheduled as requested.
+Your appointment with Ramesh Dental Clinic has been rescheduled as requested.
 
 📋 *Updated Schedule:*
 • 📅 *New Date:* ${params.newDate}
@@ -776,12 +777,12 @@ export async function sendWhatsAppAppointmentRejected(params: {
   console.warn("[WhatsApp Cancellation Template Failed, attempting text fallback]", templateRes.error);
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Appointment Cancellation Notice*
 
 Hello ${params.patientName},
 
-We regret to inform you that your appointment request at Gait Physio Clinic for *${params.date} at ${params.slot}* has been cancelled.
+We regret to inform you that your appointment request at Ramesh Dental Clinic for *${params.date} at ${params.slot}* has been cancelled.
 
 📋 *Reason:* ${params.reason || "Schedule conflict or clinic slot capacity limits."}
 
@@ -790,7 +791,7 @@ We sincerely apologize for any inconvenience. If you would like to reschedule fo
 📞 *Call or WhatsApp:* ${CLINIC_PHONE}
 🌐 *Book Online:* ${BASE_URL}/book
 
-_Thank you for choosing Gait Physio Clinic!_`;
+_Thank you for choosing Ramesh Dental Clinic!_`;
 
   return sendWhatsAppTextMessage(params.patientPhone, text);
 }
@@ -826,7 +827,7 @@ export async function sendWhatsAppAppointmentReminder(params: {
   console.warn("[WhatsApp Reminder Template Failed, attempting text fallback]", templateRes.error);
 
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Upcoming Session Reminder*
 
 Hi ${params.patientName},
@@ -836,7 +837,7 @@ This is a gentle reminder that your physiotherapy session is scheduled for *toda
 📋 *Session Summary:*
 • ⏰ *Time:* ${params.slot}
 • 👨‍⚕️ *Therapist:* Dr. ${cleanTherapist}
-• 📍 *Clinic:* Gait Physio Clinic, Whitefield
+• 📍 *Clinic:* Ramesh Dental Clinic, Whitefield
 
 Please bring any recent MRI/X-ray reports or comfortable exercise clothing if needed.
 
@@ -910,7 +911,7 @@ export async function sendWhatsAppInvoiceDelivery(params: {
   // Fallback: direct document message or plain text
   const isReplacement = Boolean(params.replacesInvoiceNumber);
   const caption = isReplacement
-    ? `🏥 *GAIT PHYSIO CLINIC*
+    ? `🦷 *RAMESH DENTAL CLINIC*
 *Updated Payment Receipt & Invoice*
 
 Hello ${params.patientName},
@@ -927,8 +928,8 @@ This updated invoice replaces your previous bill *${params.replacesInvoiceNumber
 
 📎 *Your fresh, corrected Invoice PDF is attached above.*
 
-_Thank you for choosing Gait Physio Clinic!_`
-    : `🏥 *GAIT PHYSIO CLINIC*
+_Thank you for choosing Ramesh Dental Clinic!_`
+    : `🦷 *RAMESH DENTAL CLINIC*
 *Payment Receipt & Invoice*
 
 Hello ${params.patientName},
@@ -943,7 +944,7 @@ Thank you for your payment. Here is the summary of your clinic bill:
 
 📎 *Your official Invoice PDF is attached above for your records.*
 
-_Thank you for choosing Gait Physio Clinic for your recovery journey!_`;
+_Thank you for choosing Ramesh Dental Clinic for your recovery journey!_`;
 
   if (params.pdfBase64 || params.pdfUrl) {
     return sendWhatsAppDocumentMessage({
@@ -970,7 +971,7 @@ export async function sendWhatsAppInvoiceVoidNotice(params: {
   voidReason?: string;
 }): Promise<SendWhatsAppResult> {
   const text = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Billing Notice — Invoice Cancelled*
 
 Hello ${params.patientName},
@@ -1050,7 +1051,7 @@ export async function sendWhatsAppConsultationReport(params: {
 
   // Fallback: direct document message or plain text
   const caption = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 *Clinical Consultation & Exercise Routine*
 
 Hello ${params.patientName},
@@ -1112,7 +1113,7 @@ export async function sendWhatsAppDoctorDailySchedule(params: {
   }
 
   const message = 
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 📅 *Daily Schedule — Dr. ${doctorName}*
 🗓️ *Date:* ${params.date}
 👥 *Total Booked Patients:* ${count}
@@ -1120,8 +1121,8 @@ export async function sendWhatsAppDoctorDailySchedule(params: {
 ${scheduleListText}
 
 ━━━━━━━━━━━━━━━━━━━━━
-_Sent automatically from Gait Physio Clinical Engine at 08:00 AM IST._
-🔗 Dashboard: https://www.gaitphysioclinic.com/dashboard/appointments`;
+_Sent automatically from Ramesh Dental Clinical Engine at 08:00 AM IST._
+🔗 Dashboard: https://rameshdental.vercel.app/dashboard/appointments`;
 
   // Clean list formatting for legacy single-variable template (avoids \u2028 which produces black diamond glyphs)
   const cleanListFormattedAppointments = count === 0
@@ -1235,7 +1236,7 @@ export async function sendWhatsAppFortnightUsageReport(params: {
 
   // Tier 2: Fallback rich text
   const text =
-`🏥 *GAIT PHYSIO CLINIC*
+`🦷 *RAMESH DENTAL CLINIC*
 📊 *WhatsApp Fortnightly Consumption Digest*
 🗓️ *Period:* ${params.period}
 
@@ -1244,7 +1245,7 @@ export async function sendWhatsAppFortnightUsageReport(params: {
 • *Estimated Cost:* ₹${params.estimatedCostINR} INR
 • *Account Quality:* ${quality}
 
-🔗 Dashboard: https://www.gaitphysioclinic.com/dashboard/settings`;
+🔗 Dashboard: https://rameshdental.vercel.app/dashboard/settings`;
 
   return sendWhatsAppTextMessage(cleanPhone, text);
 }

@@ -89,18 +89,18 @@ export default function ViewInvoiceModal({
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-white p-1 shadow-2xs">
                 <img
-                  src="/images/gait_physio_emblem.png"
-                  alt="Gait Physio Clinic"
+                  src="/images/dental_emblem.png"
+                  alt="Ramesh Dental Clinic"
                   className="w-full h-full object-contain"
                 />
               </div>
               <div>
-                <h4 className="font-black text-brand-green text-base tracking-tight leading-none">Gait Physio Clinic</h4>
+                <h4 className="font-black text-brand-green text-base tracking-tight leading-none">Ramesh Dental Clinic</h4>
                 <p className="text-[10px] font-black text-teal-700 dark:text-teal-400 tracking-wider uppercase mt-1">
-                  Neuro Rehab &nbsp;|&nbsp; Ortho Rehab &nbsp;|&nbsp; Sports Rehab
+                  Laser Dentistry &nbsp;|&nbsp; Painless RCT &nbsp;|&nbsp; Clear Aligners &nbsp;|&nbsp; Implants
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium leading-relaxed mt-0.5">
-                  Shop No. 26 (2nd Flr) & Shop No. 06 (3rd Flr), ITPL Main Rd, Whitefield, Bengaluru - 560066 • +91 89044 56243
+                  Metro Pillar 142, ITPL Main Road, Whitefield, Bengaluru - 560066 • +91 98765 43210
                 </p>
               </div>
             </div>

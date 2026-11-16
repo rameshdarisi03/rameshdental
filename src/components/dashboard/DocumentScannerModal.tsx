@@ -260,10 +260,10 @@ export default function DocumentScannerModal({
       if (!soapText || soapText.trim() === "") {
         if (isPrescriptionMode) {
           const rx = result as DoctorPrescriptionResult;
-          soapText = `Subjective: Patient referred by ${rx.doctorName || "Doctor"} (${rx.hospitalOrClinic || "Hospital"}) for ${rx.diagnosis || "clinical rehabilitation"}.\n\nObjective: Medical prescription review completed. Medications: ${rx.medicationsList || "None recorded"}.\n\nAssessment: ${rx.diagnosis || "Physical therapy referral"}.\n\nPlan: Prescribed therapies: ${rx.prescribedTherapies || "Rehabilitation protocol"}. Precautions: ${rx.precautionsAndRestrictions || "Standard precautions"}.`;
+          soapText = `Subjective: Patient referred by ${rx.doctorName || "Doctor"} (${rx.hospitalOrClinic || "Clinic"}) for ${rx.diagnosis || "dental condition"}.\n\nObjective: Medical/dental prescription review completed. Medications: ${rx.medicationsList || "None recorded"}.\n\nAssessment: ${rx.diagnosis || "Dental consultation & evaluation"}.\n\nPlan: Prescribed procedures: ${rx.prescribedTherapies || "Dental treatment protocol"}. Precautions: ${rx.precautionsAndRestrictions || "Post-op dental precautions"}.`;
         } else {
           const clin = result as ClinicalAssessmentResult;
-          soapText = `Subjective: ${clin.subjectiveComplaints || "Clinical findings recorded"}\n\nObjective: ${clin.objectiveFindings?.specialTests || clin.objectiveFindings?.postureGait || "Physical examination completed"}\n\nAssessment: Physiotherapy Clinical Evaluation\n\nPlan: Modalities: ${clin.modalitiesAdministered || "Physical therapy modalities"}. Exercises: ${clin.exercisePrescriptions || "Active exercise protocol"}.`;
+          soapText = `Subjective: ${clin.subjectiveComplaints || "Clinical findings recorded"}\n\nObjective: ${clin.objectiveFindings?.specialTests || clin.objectiveFindings?.postureGait || "Intraoral examination completed"}\n\nAssessment: Dental Clinical Evaluation\n\nPlan: Treatment: ${clin.modalitiesAdministered || "Clinical dental procedure"}. Post-Op Care: ${clin.exercisePrescriptions || "Oral care instructions"}.`;
         }
       }
       setEditedSoapNote(soapText);

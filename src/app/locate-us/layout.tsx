@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Locate Us & Clinic Address | Whitefield, Bengaluru",
+  title: "Locate Us & Clinic Address | Ramesh Dental Clinic Whitefield",
   description:
-    "Visit Gait Physio Clinic on ITPL Main Road, near Hope Farm Signal, Whitefield, Bengaluru. Get clinic directions, contact numbers, and operating hours.",
+    "Visit Ramesh Dental Clinic at Metro Pillar 142, ITPL Main Road, Whitefield, Bengaluru. Get clinic directions, contact numbers, and working hours.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/locate-us",
+    canonical: "https://rameshdental.vercel.app/locate-us",
   },
   openGraph: {
-    title: "Locate Gait Physio Clinic | Whitefield, Bengaluru",
+    title: "Locate Ramesh Dental Clinic | Whitefield, Bengaluru",
     description:
-      "Clinic address, landmark near Hope Farm Signal, parking availability, metro connectivity, and working hours.",
-    url: "https://gaitphysioclinic.com/locate-us",
+      "Clinic address, landmark at Metro Pillar 142, parking availability, metro connectivity, and dental consultation hours.",
+    url: "https://rameshdental.vercel.app/locate-us",
   },
 };
 

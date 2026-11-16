@@ -68,7 +68,7 @@ export function formatSecretForDisplay(secret: string): string {
 export function getOtpAuthUrl(
   email: string,
   secret: string,
-  issuer: string = "Gait Physio Clinic"
+  issuer: string = "Ramesh Dental Clinic"
 ): string {
   const cleanSecret = secret.replace(/[\s=-]/g, "").toUpperCase();
   const encodedIssuer = encodeURIComponent(issuer);

@@ -186,10 +186,10 @@ export default function InstallManagementAppButton() {
         type="button"
         onClick={handleInstallClick}
         className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-brand-green hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black shadow-md shadow-emerald-950/20 hover:shadow-lg hover:scale-102 active:scale-98 transition-all cursor-pointer border border-emerald-400/30 group"
-        title="Direct 1-Tap Install Gait Physio Portal App"
+        title="Direct 1-Tap Install Ramesh Dental Portal App"
       >
         <Download className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
-        <span>Gait Physio Portal App</span>
+        <span>Ramesh Dental Portal App</span>
         <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow opacity-80" />
       </button>
 
@@ -214,7 +214,7 @@ export default function InstallManagementAppButton() {
                 App Already Installed!
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                <strong>Gait Physio Portal</strong> is already installed on your device. You can launch it directly from your Windows Desktop, Start Menu, or mobile home screen anytime!
+                <strong>Ramesh Dental Portal</strong> is already installed on your device. You can launch it directly from your Windows Desktop, Start Menu, or mobile home screen anytime!
               </p>
             </div>
 
@@ -272,7 +272,7 @@ export default function InstallManagementAppButton() {
                 Install Portal on iPhone / iPad
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                To install the Gait Physio Portal app on iOS:
+                To install the Ramesh Dental Portal app on iOS:
               </p>
             </div>
 
@@ -319,7 +319,7 @@ export default function InstallManagementAppButton() {
                 Install Portal on Android
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1 leading-relaxed">
-                To install the Gait Physio Portal app directly on your browser:
+                To install the Ramesh Dental Portal app directly on your browser:
               </p>
             </div>
 

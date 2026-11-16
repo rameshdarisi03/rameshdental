@@ -6,8 +6,8 @@
 import { CLINIC_BRAND } from "./clinicBranding";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app";
-const CLINIC_PHONE = "+91 89714 62949";
-const CLINIC_ADDRESS = "Whitefield, Bengaluru, Karnataka 560066";
+const CLINIC_PHONE = CLINIC_BRAND.phone;
+const CLINIC_ADDRESS = CLINIC_BRAND.addressLine;
 const MAPS_URL = "https://maps.google.com/?q=Ramesh+Dental+Clinic+Whitefield+Bengaluru";
 
 // Shared Email Header & Wrapper
@@ -112,7 +112,7 @@ export function renderPatientOnboardingEmail(params: {
         Welcome to Ramesh Dental Clinic, ${params.patientName}!
       </h1>
       <p style="margin: 0 0 18px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Your clinical profile has been established with our dental care team at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. We have prepared your personal <strong>Patient Hub</strong> where you can access your customized rehab routines, consultation history, and manage appointments.
+        Your clinical profile has been established with our dental care team at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. We have prepared your personal <strong>Patient Hub</strong> where you can access your customized oral care routines, treatment plans, consultation history, and manage appointments.
       </p>
 
       <!-- Registered Email Notice -->
@@ -151,15 +151,15 @@ export function renderPatientOnboardingEmail(params: {
           What you can access inside Patient Hub:
         </p>
         <table role="presentation" width="100%" style="font-size: 13px; color: #475569; line-height: 1.7;">
-          <tr><td style="padding: 2px 0;">✓ <strong>Personalized Home Exercises:</strong> View prescribed routines with video tutorials, sets, and rep targets.</td></tr>
-          <tr><td style="padding: 2px 0;">✓ <strong>Consultation Notes:</strong> Review recovery roadmaps and assessment summaries.</td></tr>
+          <tr><td style="padding: 2px 0;">✓ <strong>Personalized Oral Care & Protocols:</strong> View prescribed post-op care routines, recovery steps, and oral hygiene instructions.</td></tr>
+          <tr><td style="padding: 2px 0;">✓ <strong>Consultation Notes:</strong> Review dental treatment roadmaps, tooth chart findings, and examination summaries.</td></tr>
           <tr><td style="padding: 2px 0;">✓ <strong>Live Scheduling:</strong> Book appointments with realtime slot availability.</td></tr>
           <tr><td style="padding: 2px 0;">✓ <strong>Receipts & Invoices:</strong> Download official clinic bills and payment receipts anytime.</td></tr>
         </table>
       </div>
 
       <p style="margin: 24px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
-        Need help activating your account? Simply reply to this email or WhatsApp our reception at <a href="https://wa.me/918971462949" style="color: #059669; font-weight: 700; text-decoration: none;">+91 89714 62949</a>.
+        Need help activating your account? Simply reply to this email or WhatsApp our reception at <a href="https://wa.me/${CLINIC_PHONE.replace(/[^0-9]/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a>.
       </p>
     </div>
   `;
@@ -311,7 +311,7 @@ export function renderAppointmentApprovalEmail(params: {
       <!-- Details Summary Card -->
       <table role="presentation" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin: 18px 0; font-size: 13px;">
         <tr>
-          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Therapy Program</td>
+          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600; width: 40%;">Dental Service</td>
           <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: 800;">${params.serviceId}</td>
         </tr>
         <tr>
@@ -323,8 +323,8 @@ export function renderAppointmentApprovalEmail(params: {
           <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.slot}</td>
         </tr>
         <tr>
-          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Assigned Therapist</td>
-          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Attending Dental Surgeon"}</td>
+          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Attending Dentist</td>
+          <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Dr. Ramesh Darisi"}</td>
         </tr>
         <tr>
           <td style="padding: 14px 18px; color: #64748b; font-weight: 600;">Location</td>
@@ -343,10 +343,10 @@ export function renderAppointmentApprovalEmail(params: {
 
       <!-- Preparation Instructions -->
       <div style="background-color: #f1f5f9; border-radius: 12px; padding: 16px 20px; margin: 22px 0; font-size: 12px; color: #475569; line-height: 1.6;">
-        <p style="margin: 0 0 6px; font-weight: 800; color: #062e36; text-transform: uppercase; letter-spacing: 0.5px;">Session Preparation Tips:</p>
+        <p style="margin: 0 0 6px; font-weight: 800; color: #062e36; text-transform: uppercase; letter-spacing: 0.5px;">Appointment Preparation Tips:</p>
         <p style="margin: 0 0 4px;">• Please arrive <strong>10 minutes before</strong> your slot time for check-in.</p>
-        <p style="margin: 0 0 4px;">• Wear loose, comfortable athletic clothing allowing free joint mobility.</p>
-        <p style="margin: 0;">• Bring any previous diagnostic scans (MRI, X-Rays) or medical reports if applicable.</p>
+        <p style="margin: 0 0 4px;">• Brush your teeth prior to your visit. Avoid consuming heavily staining foods or beverages right before treatment.</p>
+        <p style="margin: 0;">• Bring any previous dental radiographs (IOPAR, OPG, CBCT) or doctor notes if applicable.</p>
       </div>
 
       <p style="margin: 20px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
@@ -394,8 +394,8 @@ export function renderWalkinBookingConfirmationEmail(params: {
             <td style="padding: 14px 18px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.date} at ${params.slot}</td>
           </tr>
           <tr>
-            <td style="padding: 14px 18px; color: #64748b; font-weight: 600;">Therapist</td>
-            <td style="padding: 14px 18px; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Clinical Team"}</td>
+            <td style="padding: 14px 18px; color: #64748b; font-weight: 600;">Attending Dentist</td>
+            <td style="padding: 14px 18px; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Dr. Ramesh Darisi"}</td>
           </tr>
         </table>
 
@@ -444,7 +444,7 @@ export function renderAppointmentRejectionEmail(params: {
       ` : ''}
 
       <p style="margin: 18px 0 24px; font-size: 14px; color: #475569; line-height: 1.6;">
-        We apologize for any inconvenience. Your recovery is important to us — please select an alternative time that suits your schedule:
+        We apologize for any inconvenience. Your oral health and comfort are important to us — please select an alternative time that suits your schedule:
       </p>
 
       <div style="text-align: center; margin: 26px 0;">
@@ -501,8 +501,8 @@ export function renderAppointmentRescheduledEmail(params: {
           <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 900; font-size: 14px;">${params.newSlot}</td>
         </tr>
         <tr>
-          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Therapist</td>
-          <td style="padding: 12px 16px; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Clinical Team"}</td>
+          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Attending Dentist</td>
+          <td style="padding: 12px 16px; color: #062e36; font-weight: 800;">${params.assignedTherapist || "Dr. Ramesh Darisi"}</td>
         </tr>
       </table>
 
@@ -782,6 +782,7 @@ export function renderInvoiceVoidNoticeEmail(params: {
 export function renderConsultationReportEmail(params: {
   patientName: string;
   date: string;
+  dentistName?: string;
   therapistName?: string;
   diagnosis?: string;
   summary?: string;
@@ -795,10 +796,10 @@ export function renderConsultationReportEmail(params: {
         Clinical Session Summary
       </span>
       <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 900; color: #062e36; line-height: 1.2;">
-        Your Rehabilitation & Consultation Report
+        Your Dental Consultation & Treatment Report
       </h1>
       <p style="margin: 0 0 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-        Dear ${params.patientName}, thank you for attending your dental consultation at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. Your official clinical case sheet and rehabilitation prescription is attached to this email.
+        Dear ${params.patientName}, thank you for attending your dental consultation at <strong>Ramesh Dental Clinic (Root Canal | Dental Implants | Clear Aligners)</strong>. Your official clinical case sheet and dental treatment plan is attached to this email.
       </p>
 
       <!-- Consultation Meta Box -->
@@ -808,8 +809,8 @@ export function renderConsultationReportEmail(params: {
           <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #062e36; font-weight: 800;">${params.date}</td>
         </tr>
         <tr>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Attending Therapist</td>
-          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: 800;">${params.therapistName || 'Dr. Kinnera'}</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 600;">Attending Dentist</td>
+          <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; color: #059669; font-weight: 800;">${params.dentistName || params.therapistName || 'Dr. Ramesh Darisi'}</td>
         </tr>
         ${params.diagnosis ? `
         <tr>
@@ -819,17 +820,17 @@ export function renderConsultationReportEmail(params: {
         ` : ''}
         ${params.exercisesCount !== undefined && params.exercisesCount > 0 ? `
         <tr>
-          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Prescribed Exercises</td>
-          <td style="padding: 12px 16px; color: #059669; font-weight: 800;">${params.exercisesCount} Home Exercises Prescribed</td>
+          <td style="padding: 12px 16px; color: #64748b; font-weight: 600;">Prescribed Oral Care / Protocols</td>
+          <td style="padding: 12px 16px; color: #059669; font-weight: 800;">${params.exercisesCount} Oral Care Protocols Prescribed</td>
         </tr>
         ` : ''}
       </table>
 
       ${params.summary ? `
-      <!-- Therapist Notes Snippet -->
+      <!-- Dentist Notes Snippet -->
       <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid #059669; border-radius: 8px; padding: 14px 18px; margin: 18px 0;">
         <p style="margin: 0 0 4px; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">
-          Therapist Session Notes
+          Dentist Clinical Notes
         </p>
         <p style="margin: 0; font-size: 13px; color: #1e293b; line-height: 1.6; white-space: pre-line;">
           ${params.summary}
@@ -840,28 +841,28 @@ export function renderConsultationReportEmail(params: {
       <!-- Attachment Notice Callout -->
       <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; margin: 20px 0;">
         <p style="margin: 0; font-size: 13px; color: #166534; font-weight: 700;">
-          📎 Attached: <span style="font-weight: 800;">Consultation_Prescription_Report.pdf</span>
+          📎 Attached: <span style="font-weight: 800;">Dental_Consultation_Report.pdf</span>
         </p>
         <p style="margin: 4px 0 0; font-size: 12px; color: #15803d;">
-          Contains your complete clinical evaluation, precautions, therapeutic targets, and personalized home exercise prescription.
+          Contains your complete dental evaluation, tooth chart observations, clinical precautions, and personalized oral care guidance.
         </p>
       </div>
 
       <div style="text-align: center; margin: 28px 0;">
         <a href="${portalUrl}" class="mobile-button" style="display: inline-block; background-color: #062e36; color: #ffffff; font-size: 13px; font-weight: 800; padding: 14px 32px; border-radius: 50px; text-decoration: none; box-shadow: 0 4px 12px rgba(6, 46, 54, 0.25);">
-          🏃 Access Your Video Exercises in Patient Hub
+          🦷 Access Your Care Protocols in Patient Hub
         </a>
       </div>
 
       <p style="margin: 20px 0 0; font-size: 12px; color: #64748b; line-height: 1.5;">
-        Have questions about your exercises or experiencing discomfort? Contact your therapist at <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a>.
+        Have questions about your treatment or experiencing discomfort? Contact our dental team at <a href="tel:${CLINIC_PHONE.replace(/\s+/g, '')}" style="color: #059669; font-weight: 700; text-decoration: none;">${CLINIC_PHONE}</a>.
       </p>
     </div>
   `;
 
   return {
     subject: `Clinical Consultation Summary & Treatment Report - Ramesh Dental Clinic`,
-    html: wrapEmail("Consultation & Prescription Report", body),
+    html: wrapEmail("Consultation & Treatment Report", body),
   };
 }
 
@@ -876,7 +877,7 @@ export function patientAuthOtpEmail(params: {
   const isSignup = params.purpose === "signup";
   const headline = isSignup ? "Verify Your Email & Activate Portal" : "Reset Your Portal Password";
   const subtext = isSignup
-    ? "Welcome to Ramesh Dental Clinic! Use the verification code below to set up your password and access your home exercises, recovery plans, and treatment invoices online."
+    ? "Welcome to Ramesh Dental Clinic! Use the verification code below to set up your password and access your oral care protocols, recovery plans, and dental invoices online."
     : "We received a request to reset your password for the Ramesh Dental Clinic Patient Hub. Use the security code below to create a new password.";
 
   const body = `

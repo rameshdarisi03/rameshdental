@@ -520,7 +520,7 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
 
     // 2. Auto-create & Link Google Drive Folder for the new patient
     try {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app");
       const idToken = (typeof window !== "undefined" && auth.currentUser) ? await auth.currentUser.getIdToken().catch(() => "") : "";
       const driveRes = await fetch(`${baseUrl}/api/drive/create-folder`, {
         method: "POST",
@@ -550,7 +550,7 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     // Auto-trigger Patient Onboarding & Portal Activation Email
     if (newPatient.email && newPatient.activationCode) {
       try {
-        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app");
         fetch(`${baseUrl}/api/email/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -573,7 +573,7 @@ export async function createPatient(patientData: Omit<Patient, "createdAt" | "id
     // Auto-trigger WhatsApp Onboarding & Portal Activation
     if (newPatient.phone && (newPatient.activationCode || newPatient.id)) {
       try {
-        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app");
         fetch(`${baseUrl}/api/whatsapp/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

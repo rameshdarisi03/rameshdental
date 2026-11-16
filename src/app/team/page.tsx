@@ -45,7 +45,7 @@ export default async function TeamPage() {
             <div>
               <h3 className="text-sm font-black text-slate-900 dark:text-white">Root-Cause Diagnosis</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                We reject superficial symptom masking in favor of precision biomechanical gait and kinetic analysis.
+                We reject superficial symptom masking in favor of precision digital radiography and comprehensive clinical evaluation.
               </p>
             </div>
           </div>
@@ -57,7 +57,7 @@ export default async function TeamPage() {
             <div>
               <h3 className="text-sm font-black text-slate-900 dark:text-white">1-on-1 Dedicated Time</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Every session provides uninterrupted attention and hands-on guidance from your primary attending therapist.
+                Every appointment provides uninterrupted attention and gentle, painless treatment from Dr. Ramesh Darisi.
               </p>
             </div>
           </div>

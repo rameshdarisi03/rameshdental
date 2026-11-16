@@ -361,7 +361,7 @@ export default function DashboardStaff() {
     try {
       // 1. Secret: reuse existing or generate new Base32 secret
       const secret = member.totpSecret || generateClientSecret();
-      const otpauthUrl = `otpauth://totp/Gait%20Physio%20Clinic:${encodeURIComponent(member.email)}?secret=${secret}&issuer=Gait%20Physio%20Clinic&algorithm=SHA1&digits=6&period=30`;
+      const otpauthUrl = `otpauth://totp/Ramesh%20Dental%20Clinic:${encodeURIComponent(member.email)}?secret=${secret}&issuer=Ramesh%20Dental%20Clinic&algorithm=SHA1&digits=6&period=30`;
       
       // 2. Generate high-contrast QR Data URL instantly
       const qrUrl = await QRCode.toDataURL(otpauthUrl, {
@@ -470,7 +470,7 @@ export default function DashboardStaff() {
 
     try {
       const newSecret = generateClientSecret();
-      const otpauthUrl = `otpauth://totp/Gait%20Physio%20Clinic:${encodeURIComponent(qrStaff.email)}?secret=${newSecret}&issuer=Gait%20Physio%20Clinic&algorithm=SHA1&digits=6&period=30`;
+      const otpauthUrl = `otpauth://totp/Ramesh%20Dental%20Clinic:${encodeURIComponent(qrStaff.email)}?secret=${newSecret}&issuer=Ramesh%20Dental%20Clinic&algorithm=SHA1&digits=6&period=30`;
       const qrUrl = await QRCode.toDataURL(otpauthUrl, {
         width: 280,
         margin: 2,

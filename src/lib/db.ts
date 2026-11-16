@@ -733,7 +733,7 @@ export async function submitBookingRequest(
 
     // 4. Trigger Automated Email Notifications (Patient Acknowledgement + Clinic Desk Alert)
     try {
-      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app");
       fetch(`${baseUrl}/api/email/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -760,7 +760,7 @@ export async function submitBookingRequest(
     // 5. Trigger Automated WhatsApp Notification to Patient
     if (sanitizedBooking.patientPhone) {
       try {
-        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://www.gaitphysioclinic.com");
+        const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_APP_URL || "https://rameshdental.vercel.app");
         fetch(`${baseUrl}/api/whatsapp/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

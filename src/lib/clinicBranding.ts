@@ -1,5 +1,5 @@
 /**
- * Official Gait Physio Clinic Branding Constants & Assets
+ * Official Ramesh Dental Clinic Branding Constants & Assets
  * Single Source of Truth (SSOT) across PDFs, Invoices, Transactional Emails, and UI Letterheads.
  */
 

@@ -375,13 +375,13 @@ export default function Login() {
       <div className="absolute top-6 left-6 sm:top-8 sm:left-10 flex items-center gap-2.5 z-20">
         <div className="w-8 h-8 rounded-xl bg-teal-900/40 border border-teal-500/30 p-1 flex items-center justify-center shadow-lg">
           <img
-            src="/images/gait_physio_emblem.png"
-            alt="Gait Physio Clinic"
+            src="/images/dental_emblem.png"
+            alt="Ramesh Dental Clinic"
             className="w-full h-full object-contain"
           />
         </div>
         <span className="text-xs sm:text-sm font-black tracking-wider uppercase text-teal-300 hidden sm:inline">
-          Gait Physio Portal
+          Ramesh Dental Portal
         </span>
       </div>
 
@@ -850,7 +850,7 @@ export default function Login() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Open Google Authenticator, Microsoft Authenticator, or Apple Passwords and enter the current code for Gait Physio Clinic.
+                    Open Google Authenticator, Microsoft Authenticator, or Apple Passwords and enter the current code for Ramesh Dental Clinic.
                   </p>
                 </div>
 

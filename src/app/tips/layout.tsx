@@ -1,11 +1,11 @@
 ﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Physiotherapy & Ergonomic Wellness Tips",
+  title: "Oral Health & Dental Care Tips | Ramesh Dental Clinic",
   description:
-    "Expert physiotherapy advice on daily posture correction, desk ergonomics, joint pain relief, and dynamic stretching routines from Gait Physio Clinic specialists.",
+    "Expert dental advice on brushing techniques, clear aligner care, post-op extraction protocols, enamel protection, and gum hygiene from Ramesh Dental Clinic specialists.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/tips",
+    canonical: "https://rameshdental.vercel.app/tips",
   },
 };
 

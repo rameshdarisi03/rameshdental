@@ -5,40 +5,40 @@ import { Sparkles, Calendar, MapPin, ShieldCheck, CheckCircle2 } from "lucide-re
 
 const galleryImages = [
   {
-    title: "Main Physical Therapy & Exercise Bay",
-    category: "Active Rehabilitation Gym",
-    image: "/images/hero_physio_session.webp",
-    description: "Equipped with posture grids, therapeutic bands, and progressive resistance tools for kinetic recovery."
+    title: "Master Dental Operatory & Microscopic RCT Suite",
+    category: "Painless Endodontics",
+    image: "/images/gallery/operatory_master.webp",
+    description: "Equipped with motorized dental chairs, rotary endodontic motors, and shadowless LED operatory lighting."
   },
   {
-    title: "Spinal Mobilization & Manual Therapy Room",
-    category: "Private Treatment Suite",
-    image: "/images/hero_cover_option_1_spine.webp",
-    description: "Dedicated ergonomic adjustment beds for safe spinal decompression and passive manual therapies."
+    title: "Digital Implantology & Radiography Suite",
+    category: "Implantology & Surgery",
+    image: "/images/gallery/implantology_3d_lab.webp",
+    description: "Dedicated sterile surgical operatory for precision guided implant placement and bone grafting."
   },
   {
-    title: "Clinical Consultation & Biomechanical Diagnostic Suite",
-    category: "Clinical Assessment",
-    image: "/images/mobile_cover_teal_option_2.webp",
-    description: "High-precision analysis cameras and dynamic motion tracking tools for digital gait evaluation."
+    title: "Laser Dentistry & Cosmetic Suite",
+    category: "Cosmetic & Gum Care",
+    image: "/images/gallery/dental_endodontics_suite.webp",
+    description: "Soft-tissue diode lasers, ultrasonic scaling, and ZOOM in-office teeth whitening systems."
   },
   {
-    title: "Orthopedic & Joint Mobilization Zone",
-    category: "Musculoskeletal Zone",
-    image: "/images/services/musculoskeletal.webp",
-    description: "Designed for guided joint mobilization and targeted spinal core strengthening."
+    title: "Clear Aligner & Orthodontic Consultation Bay",
+    category: "Orthodontics",
+    image: "/images/services/invisible-aligners.webp",
+    description: "Digital intraoral 3D scanning station for custom clear aligner planning and smile simulations."
   },
   {
-    title: "Sports Agility & Return-to-Play Area",
-    category: "Sports Performance",
-    image: "/images/services/sports_injury.webp",
-    description: "Floor drills, plyometrics, and neuromuscular coordination mats for athletes."
+    title: "Pediatric & Gentle Dental Operatory",
+    category: "Pediatric Dentistry",
+    image: "/images/services/pediatric-dentistry.webp",
+    description: "Child-friendly operatory designed to keep young patients calm, relaxed, and anxiety-free."
   },
   {
-    title: "Gentle Mobility & Senior Rehabilitation Bay",
-    category: "Senior Mobility",
-    image: "/images/services/geriatric.webp",
-    description: "Low-impact balance bars and fall-prevention parallel rails for senior rehabilitation."
+    title: "Welcome Lounge & Consultation Suite",
+    category: "Reception & Lounge",
+    image: "/images/gallery/reception_operatory_panoramic.webp",
+    description: "Spacious, soothing waiting lounge with air filtration, sanitized beverage bar, and consultation desks."
   }
 ];
 
@@ -46,24 +46,24 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter',sans-serif]">
       <PageHeader
-        title="Clinic Facility & Gallery"
-        subtitle="Take a visual tour of our modern, sanitized physiotherapy clinic, private treatment suites, and active rehabilitation gym."
+        title="Clinic Facility & Operatory Gallery"
+        subtitle="Take a visual tour of our modern dental operatories, digital radiography suites, and hospital-grade sterilization protocols."
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
         {/* Hygiene & Amenities Header */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-1 shadow-xs">
-            <p className="text-sm font-black text-brand-green">100% Sanitized</p>
-            <p className="text-[11px] text-slate-400">Hospital-Grade Disinfection</p>
+            <p className="text-sm font-black text-brand-green">Class-B Autoclave</p>
+            <p className="text-[11px] text-slate-400">100% Sterile Instruments</p>
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-1 shadow-xs">
-            <p className="text-sm font-black text-brand-green">Private Bays</p>
-            <p className="text-[11px] text-slate-400">Complete Patient Privacy</p>
+            <p className="text-sm font-black text-brand-green">Private Operatories</p>
+            <p className="text-[11px] text-slate-400">Quiet, Anxiety-Free Care</p>
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-1 shadow-xs">
-            <p className="text-sm font-black text-brand-green">Electrotherapy</p>
-            <p className="text-[11px] text-slate-400">Laser, IFT, Ultrasound</p>
+            <p className="text-sm font-black text-brand-green">Digital Radiography</p>
+            <p className="text-[11px] text-slate-400">Low-Dose RVG / IOPAR</p>
           </div>
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center space-y-1 shadow-xs">
             <p className="text-sm font-black text-brand-green">Lift & Wheelchair</p>

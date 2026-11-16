@@ -140,7 +140,7 @@ _Automated fortnightly digest from Ramesh Dental Engine._`;
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
           <h2 style="color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 8px;">
-            🏥 Gait Physio Clinic — WhatsApp Fortnightly Digest
+            🦷 Ramesh Dental Clinic — WhatsApp Fortnightly Digest
           </h2>
           <p><strong>Reporting Period:</strong> ${startDateStr} – ${endDateStr}</p>
           
@@ -153,7 +153,7 @@ _Automated fortnightly digest from Ramesh Dental Engine._`;
           </div>
 
           <div style="margin-top: 24px; padding: 12px; background: #f1f5f9; border-radius: 6px; font-size: 13px; color: #64748b;">
-            Live Settings & Management: <a href="https://www.gaitphysioclinic.com/dashboard/settings" style="color: #0d9488;">https://www.gaitphysioclinic.com/dashboard/settings</a>
+            Live Settings & Management: <a href="https://rameshdental.vercel.app/dashboard/settings" style="color: #0d9488;">https://rameshdental.vercel.app/dashboard/settings</a>
           </div>
         </div>
       `;

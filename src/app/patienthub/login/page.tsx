@@ -672,7 +672,7 @@ function LoginContent() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
-                  <span>Gait</span> <span className="text-brand-green dark:text-teal-400">Physio</span>
+                  <span>Ramesh</span> <span className="text-brand-green dark:text-teal-400">Dental</span>
                 </h1>
                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-[0.2em] mt-0.5 flex items-center justify-center gap-1">
                   <Smartphone className="w-3 h-3" /> WhatsApp OTP Sign In
@@ -837,7 +837,7 @@ function LoginContent() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
-                  <span>Gait</span> <span className="text-brand-green dark:text-teal-400">Physio</span>
+                  <span>Ramesh</span> <span className="text-brand-green dark:text-teal-400">Dental</span>
                 </h1>
                 <p className="text-[10px] text-teal-700 dark:text-teal-300 font-extrabold uppercase tracking-[0.2em] mt-0.5 flex items-center justify-center gap-1">
                   <Mail className="w-3 h-3" /> Email Portal Access
@@ -1353,7 +1353,7 @@ function LoginContent() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center justify-center gap-1.5 font-['Plus_Jakarta_Sans',sans-serif]">
-                  <span>Gait</span> <span className="text-brand-green dark:text-teal-400">Physio</span>
+                  <span>Ramesh</span> <span className="text-brand-green dark:text-teal-400">Dental</span>
                 </h1>
                 <p className="text-[10px] text-[#8a5100] dark:text-[#f9ab55] font-extrabold uppercase tracking-[0.2em] mt-0.5">
                   Patient Hub

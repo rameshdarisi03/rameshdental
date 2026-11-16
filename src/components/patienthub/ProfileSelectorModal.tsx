@@ -56,7 +56,7 @@ export default function ProfileSelectorModal() {
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-brand-green animate-pulse" />
             <span className="text-[11px] font-black uppercase tracking-wider text-brand-green">
-              Gait Physio Patient Hub
+              Ramesh Dental Patient Hub
             </span>
           </div>
 

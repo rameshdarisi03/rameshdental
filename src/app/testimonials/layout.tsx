@@ -1,11 +1,11 @@
 ﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Patient Recovery Stories & Testimonials",
+  title: "Patient Smile Stories & Testimonials | Ramesh Dental Clinic",
   description:
-    "Read real patient reviews and recovery stories from individuals who transformed their mobility, cured chronic pain, and regained strength at Gait Physio Clinic.",
+    "Read real patient reviews and smile transformation stories from individuals who completed root canals, dental implants, aligners, and cosmetic dentistry at Ramesh Dental Clinic.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/testimonials",
+    canonical: "https://rameshdental.vercel.app/testimonials",
   },
 };
 

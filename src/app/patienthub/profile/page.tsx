@@ -196,7 +196,7 @@ export default function ProfilePage() {
             Family members are registered and linked by clinic reception.
           </span>
           <a
-            href="https://wa.me/918971462949?text=Hello%20Gait%20Physio%20Clinic,%20I%20would%20like%20to%20add/link%20a%20family%20member%20to%20my%20Patient%20Hub%20account."
+            href="https://wa.me/919876543210?text=Hello%20Ramesh%20Dental%20Clinic,%20I%20would%20like%20to%20add/link%20a%20family%20member%20to%20my%20Patient%20Hub%20account."
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-green hover:underline cursor-pointer"

@@ -120,7 +120,7 @@ export default function PWAUpdatePrompt() {
             </span>
           </h4>
           <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
-            A new version of Gait Physio Clinic is ready with the latest performance and clinical improvements.
+            A new version of Ramesh Dental Clinic is ready with the latest performance and clinical improvements.
           </p>
 
           <div className="mt-3 flex items-center gap-2">

@@ -189,7 +189,7 @@ export default function DashboardPage() {
   }
 
   const patientName = patient?.name?.split(" ")[0] || "Guest";
-  const planName = patient?.treatmentPlan || "Rehabilitation & Gait Therapy";
+  const planName = patient?.treatmentPlan || "Dental Care & Hygiene Protocol";
   const upcomingDate = patient?.upcoming || "No session scheduled";
 
   // Program timeline metrics

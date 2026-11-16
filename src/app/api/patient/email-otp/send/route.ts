@@ -36,7 +36,7 @@ export async function POST(request: Request) {
         {
           success: false,
           error:
-            "This email address has not been registered with the clinic. Please contact our reception desk at +91 89044 56243.",
+            "This email address has not been registered with the clinic. Please contact our reception desk at +91 98765 43210.",
         },
         { status: 404 }
       );

@@ -320,7 +320,7 @@ export default function FastTrackPatientImportModal({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", "Gait_Physio_Sample_Patients_Template.csv");
+    link.setAttribute("download", "Ramesh_Dental_Sample_Patients_Template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

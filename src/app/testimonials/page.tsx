@@ -6,46 +6,46 @@ export default function Testimonials() {
   const reviews = [
     {
       name: "Rajesh Kumar",
-      type: "Marathon Runner",
-      service: "Gait Analysis & Custom Insoles",
+      type: "Tech Lead, Whitefield",
+      service: "Painless Root Canal & Zirconia Crown",
       rating: 5,
-      comment: "I suffered from chronic shin splints for over a year. The gait scan showed I was severely overpronating on my left heel. The custom insoles and exercise plan they provided solved it in six weeks. Back to running my standard 20k!",
+      comment: "I was terrified of root canals due to past painful experiences elsewhere. Dr. Ramesh Darisi did single-visit painless RCT using rotary endo. Absolutely zero pain during or after the procedure. The crown fits naturally!",
     },
     {
       name: "Priya Menon",
       type: "IT Consultant",
-      service: "Spine & Neck Care",
+      service: "Clear Aligners (Invisible Braces)",
       rating: 5,
-      comment: "Working on a desk for 9 hours daily gave me intense cervical pain. Dr. Kinnera guided me through targeted neck exercises and ergonomic posture corrections. The relief has been absolute. Very professional!",
+      comment: "Completed my smile transformation with invisible aligners at Ramesh Dental Clinic. The digital 3D intraoral scans made the planning effortless. My teeth alignment was perfected in just 7 months!",
     },
     {
       name: "Abhishek Das",
-      type: "Athlete",
-      service: "Sports Rehabilitation (ACL)",
+      type: "Architect",
+      service: "Dental Implants & Bone Grafting",
       rating: 5,
-      comment: "Following my knee ligament reconstruction, I did my full rehab here under Dr. Ananya. The kinetic gym facility is excellent. She pushed me at the correct level, and my knee feels solid and fully mobile now.",
+      comment: "Replaced two missing lower molars with titanium implants. Dr. Ramesh explained every surgical step patiently and the implant integration was completely painless. I can chew normally again!",
     },
     {
       name: "Srinivas Gowda",
-      type: "Retiree",
-      service: "Orthopedic Post-op Care",
+      type: "Retired Executive",
+      service: "Full Mouth Rehabilitation & Laser Gum Therapy",
       rating: 5,
-      comment: "Had my knee replacement last year. The home rehab exercises Dr. Vikram prescribed helped me walk again without a walker in record time. Excellent clinic with caring therapists.",
+      comment: "Dr. Ramesh treated my chronic gum bleeding and tooth mobility with laser therapy and crown restorations. Very hygienic clinic, gentle bedside manner, and state-of-the-art facilities.",
     },
     {
       name: "Nisha Sen",
-      type: "Yoga Practitioner",
-      service: "Dry Needling & Joint Mobilization",
+      type: "School Teacher",
+      service: "ZOOM Teeth Whitening & Smile Design",
       rating: 5,
-      comment: "Had deep muscle knots in my shoulder blades that prevented me from stretching. The dry needling therapy resolved the muscle trigger points in just two sessions. The relief was immediate.",
+      comment: "Got in-office laser teeth whitening before my wedding. In just one 45-minute session, my teeth brightened by 5 shades with no sensitivity at all. Wonderful clinical care!",
     },
   ];
 
   return (
     <div className="flex flex-col w-full">
       <PageHeader
-        title="Patient Testimonials"
-        description="Read real recovery stories from our patients who restored their mobility and returned to pain-free daily living."
+        title="Patient Smile Stories & Testimonials"
+        description="Read real stories from our patients who restored their smiles, tooth health, and chewing confidence at Ramesh Dental Clinic."
       />
 
       <section className="py-20 bg-brand-bg dark:bg-slate-950">

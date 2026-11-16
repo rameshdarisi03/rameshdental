@@ -31,7 +31,7 @@ export default function Terms() {
 
           <h3 className="text-lg font-bold text-slate-900 dark:text-white pt-4">4. Liability Limitation</h3>
           <p className="text-sm text-slate-655 dark:text-slate-350 leading-relaxed">
-            Gait Physio Clinic is not responsible for any issues resulting from technical failures of third-party networks (e.g. mobile networks or WhatsApp messaging services) that prevent the delivery of confirmation alerts.
+            Ramesh Dental Clinic is not responsible for any issues resulting from technical failures of third-party networks (e.g. mobile networks or WhatsApp messaging services) that prevent the delivery of confirmation alerts.
           </p>
         </div>
       </section>

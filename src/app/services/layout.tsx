@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Specialized Physiotherapy & Rehabilitation Services",
+  title: "Specialized Dental Treatments & Services | Ramesh Dental Clinic",
   description:
-    "Explore 7 specialized clinical treatments including biomechanical gait analysis, sports injury rehabilitation, post-surgical recovery, and orthopedic care at Gait Physio Clinic, Whitefield, Bengaluru.",
+    "Explore advanced dental treatments including Painless Root Canal, Dental Implants, Clear Aligners, Laser Gum Therapy, Teeth Whitening, and Pediatric Dentistry at Ramesh Dental Clinic, Whitefield, Bengaluru.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/services",
+    canonical: "https://rameshdental.vercel.app/services",
   },
   openGraph: {
-    title: "Clinical Physiotherapy Services | Gait Physio Clinic Whitefield",
+    title: "Clinical Dental Services | Ramesh Dental Clinic Whitefield",
     description:
-      "Targeted rehabilitation for sports injuries, orthopedic recovery, gait correction, and chronic pain by Dr. Madem Kinnera.",
-    url: "https://gaitphysioclinic.com/services",
+      "Advanced dental care including Painless RCT, Dental Implants, Clear Aligners, and Cosmetic Dentistry led by Dr. Ramesh Darisi.",
+    url: "https://rameshdental.vercel.app/services",
   },
 };
 

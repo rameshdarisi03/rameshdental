@@ -107,8 +107,8 @@ export default function LocateUsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-['Inter',sans-serif]">
       <PageHeader
-        title="Locate Gait Physio Clinic"
-        subtitle="Conveniently situated on ITPL Main Road near Hope Farm Signal in Whitefield, Bengaluru with dedicated patient parking and lift access."
+        title="Locate Ramesh Dental Clinic"
+        subtitle="Conveniently situated on ITPL Main Road at Metro Pillar 142 in Whitefield, Bengaluru with dedicated patient parking and lift access."
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
@@ -128,16 +128,15 @@ export default function LocateUsPage() {
               </div>
 
               <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal space-y-1">
-                <p className="font-bold text-slate-900 dark:text-white">Gait Physio Clinic</p>
-                <p>Shop No. 26 (2nd Floor) & Shop No. 06 (3rd Floor)</p>
-                <p>ITPL Main Road, Prasanth Extension</p>
-                <p>Near Hope Farm Signal, Whitefield</p>
-                <p>Bengaluru, Karnataka - 560066</p>
+                <p className="font-bold text-slate-900 dark:text-white">Ramesh Dental Clinic</p>
+                <p>Metro Pillar 142, ITPL Main Road</p>
+                <p>Whitefield, Bengaluru</p>
+                <p>Karnataka - 560066</p>
               </div>
 
               <div className="pt-2">
                 <a
-                  href="https://maps.google.com/?q=Gait+Physio+Clinic+Whitefield+Bangalore"
+                  href="https://maps.google.com/?q=Ramesh+Dental+Clinic+Whitefield+Bangalore"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-transform active:scale-95"
@@ -276,7 +275,7 @@ export default function LocateUsPage() {
               </div>
               <div className="w-full h-[380px] sm:h-[440px] bg-slate-100 dark:bg-slate-800 relative">
                 <iframe
-                  title="Gait Physio Clinic Location Map"
+                  title="Ramesh Dental Clinic Location Map"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3887.8967814402685!2d77.75011131482205!3d12.984700090847253!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae0fb5b6574f2b%3A0xbcf2a8ee0322b75f!2sGait%20Physio%20Clinic!5e0!3m2!1sen!2sin!4v1691234567890!5m2!1sen!2sin"
                   width="100%"
                   height="100%"

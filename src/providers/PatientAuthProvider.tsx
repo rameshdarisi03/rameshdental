@@ -534,7 +534,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       const valData = await valRes.json().catch(() => ({}));
       if (!valRes.ok || !valData.success) {
         setLoading(false);
-        const msg = valData.error || "This Google account has not been registered with the clinic. Please use the email provided during clinic registration or contact our front desk at +91 89044 56243.";
+        const msg = valData.error || "This Google account has not been registered with the clinic. Please use the email provided during clinic registration or contact our front desk at +91 98765 43210.";
         setError(msg);
         return { success: false, error: msg };
       }
@@ -644,7 +644,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       if (profiles.length === 0) {
         await signOut(auth);
         setLoading(false);
-        const msg = "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 89044 56243.";
+        const msg = "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 98765 43210.";
         setError(msg);
         return { success: false, error: msg };
       }
@@ -739,7 +739,7 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       const valData = await valRes.json().catch(() => ({}));
       if (!valRes.ok || !valData.success) {
         setLoading(false);
-        const msg = valData.error || "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 89044 56243.";
+        const msg = valData.error || "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 98765 43210.";
         setError(msg);
         return { success: false, error: msg };
       }

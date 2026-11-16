@@ -90,7 +90,7 @@ export default function FloatingSocials() {
           <FacebookIcon className="w-5 h-5" />
         </Link>
         <Link
-          href="https://www.instagram.com/gaitphysioclinic?igsh=MXRqMWxndHpybWN5bA=="
+          href="https://www.instagram.com/rameshdentalclinic"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"
@@ -108,7 +108,7 @@ export default function FloatingSocials() {
           <LinkedinIcon className="w-5 h-5" />
         </Link>
         <Link
-          href="https://www.youtube.com/@gaitphysioclinic01"
+          href="https://www.youtube.com/@rameshdentalclinic"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white hover:text-brand-sand hover:scale-110 transition-transform p-1"

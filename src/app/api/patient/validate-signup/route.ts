@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 89044 56243.",
+          error: "This email address has not been registered with the clinic. Please use the email provided during your clinic registration or contact our front desk at +91 98765 43210.",
         },
         { status: 404 }
       );
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "The activation code does not match the clinic registration records for this email address. Please check your details or contact clinic reception at +91 89044 56243.",
+          error: "The activation code does not match the clinic registration records for this email address. Please check your details or contact clinic reception at +91 98765 43210.",
         },
         { status: 400 }
       );

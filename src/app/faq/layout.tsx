@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Frequently Asked Questions (FAQ) | Physiotherapy Care",
+  title: "Frequently Asked Questions (FAQ) | Dental Care | Ramesh Dental Clinic",
   description:
-    "Find answers to common questions about physical therapy sessions, gait analysis, session costs, doctor referrals, and insurance claims at Gait Physio Clinic, Whitefield.",
+    "Find answers to common questions about root canals, dental implants, clear aligners, teeth whitening, emergency treatments, and pricing at Ramesh Dental Clinic, Whitefield.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/faq",
+    canonical: "https://rameshdental.vercel.app/faq",
   },
   openGraph: {
-    title: "Patient FAQs | Gait Physio Clinic Whitefield, Bengaluru",
+    title: "Patient FAQs | Ramesh Dental Clinic Whitefield, Bengaluru",
     description:
-      "All your questions answered: session duration, what to wear, doctor referrals, tailbone treatment, and biomechanical gait testing.",
-    url: "https://gaitphysioclinic.com/faq",
+      "All your questions answered: RCT duration, implant healing times, aligner costs, insurance coverage, and painless laser dentistry.",
+    url: "https://rameshdental.vercel.app/faq",
   },
 };
 

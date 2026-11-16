@@ -1,11 +1,11 @@
 ﻿import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Emergency & Urgent Physiotherapy Care",
+  title: "Emergency & Urgent Dental Care | Ramesh Dental Clinic",
   description:
-    "Immediate clinical guidance and urgent physiotherapy care for acute sports sprains, sudden muscle spasms, and severe neck or back pain at Gait Physio Clinic.",
+    "Immediate dental guidance and urgent care for acute toothaches, dental trauma, knocked-out teeth, and facial swelling at Ramesh Dental Clinic, Whitefield.",
   alternates: {
-    canonical: "https://gaitphysioclinic.com/emergency",
+    canonical: "https://rameshdental.vercel.app/emergency",
   },
 };
 
