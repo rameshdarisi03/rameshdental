@@ -816,7 +816,7 @@ export default function CreateEditInvoiceModal({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g., M54.5 Low Back Pain Protocol, Gait Biomechanical Assessment completed..."
+              placeholder="e.g., K02.9 Dental Caries, Root Canal Treatment #16 completed, Post & Core done..."
               className="w-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none resize-none"
             />
           </div>

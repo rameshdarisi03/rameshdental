@@ -316,9 +316,7 @@ export default function Login() {
       // 3. Fallback Bootstrapping for Demo / Seed Accounts
       if (
         (targetEmail === "admin@rameshdental.com" && password === "admin123") ||
-        (targetEmail === "receptionist@rameshdental.com" && password === "receptionist123") ||
-        (targetEmail === "admin@gaitphysio.com" && password === "admin123") ||
-        (targetEmail === "receptionist@gaitphysio.com" && password === "receptionist123")
+        (targetEmail === "receptionist@rameshdental.com" && password === "receptionist123")
       ) {
         try {
           const isDefaultAdmin = targetEmail.startsWith("admin");

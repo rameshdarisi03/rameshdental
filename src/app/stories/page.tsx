@@ -19,11 +19,11 @@ import {
 
 const CATEGORIES = [
   "All Stories",
-  "Orthopedic Rehab",
-  "Spine & Posture",
-  "Neuro & Gait",
-  "Hand & Upper Limb",
-  "Geriatric Mobility",
+  "Smile Makeover & Veneers",
+  "Full Mouth Dental Implants",
+  "Clear Aligners (Invisalign)",
+  "Rotary Endodontics (RCT)",
+  "Laser Gum Aesthetics",
 ] as const;
 
 export default function RecoveryStoriesPage() {

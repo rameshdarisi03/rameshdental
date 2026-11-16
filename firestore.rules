@@ -22,21 +22,17 @@ service cloud.firestore {
     // Resilient multi-tier verification:
     // 1. Has active profile in /users/{uid}
     // 2. Or has staff role in custom auth claims
-    // 3. Or email domain belongs to official clinic domains (@rameshdental.com, @gaitphysio.com)
+    // 3. Or email domain belongs to official clinic domain (@rameshdental.com)
     // 4. Or matches authorized clinic administrator emails
     function isStaff() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
         (request.auth.token.role != null && request.auth.token.role in ['admin', 'receptionist', 'staff', 'doctor']) ||
-        (userEmail().matches('.*@rameshdental\\.com$') || userEmail().matches('.*@gaitphysio\\.com$') || userEmail().matches('.*@gaitphysioclinic\\.com$')) ||
+        (userEmail().matches('.*@rameshdental\\.com$')) ||
         userEmail() in [
           'admin@rameshdental.com',
           'receptionist@rameshdental.com',
-          'rameshdarisi01@gmail.com',
-          'admin@gaitphysio.com',
-          'receptionist@gaitphysio.com',
-          'info@gaitphysioclinic.com',
-          'gaitphysioclinic@gmail.com'
+          'rameshdarisi01@gmail.com'
         ]
       );
     }

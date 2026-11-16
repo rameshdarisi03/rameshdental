@@ -446,7 +446,7 @@ export default function DashboardAnalytics() {
     setAcquisitionChannels({ online, walkin });
 
     // 9. Generate dynamic insight messages
-    const topSvc = serviceList[0]?.name || "Gait & Biomechanical";
+    const topSvc = serviceList[0]?.name || "Root Canal Treatment";
     const topSvcCount = serviceList[0]?.count || 0;
     setInsights({
       growingService: `${topSvc} bookings are at ${topSvcCount} this week — your fastest-growing service line.`,
@@ -587,14 +587,14 @@ export default function DashboardAnalytics() {
           --green-soft: #E4F3EB;
         }
 
-        .gait-rule {
+        .clinic-rule {
           display: flex;
           align-items: center;
           gap: 6px;
           height: 6px;
           margin: 16px 0 0;
         }
-        .gait-rule span {
+        .clinic-rule span {
           display: block;
           width: 6px;
           height: 6px;
@@ -602,11 +602,11 @@ export default function DashboardAnalytics() {
           background: var(--amber);
           opacity: 0.55;
         }
-        .gait-rule span:nth-child(3n) {
+        .clinic-rule span:nth-child(3n) {
           transform: translateY(-3px);
           opacity: 0.9;
         }
-        .gait-rule span:nth-child(5n) {
+        .clinic-rule span:nth-child(5n) {
           background: var(--teal);
           opacity: 0.7;
         }
@@ -646,8 +646,8 @@ export default function DashboardAnalytics() {
             Real-time summaries of clinic traffic, revenue, patient mix and care quality.
           </p>
           
-          {/* Decorative Gait Rule */}
-          <div className="gait-rule">
+          {/* Decorative Clinic Rule */}
+          <div className="clinic-rule">
             {Array.from({ length: 22 }).map((_, i) => (
               <span key={i} />
             ))}

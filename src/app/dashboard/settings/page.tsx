@@ -3370,7 +3370,7 @@ export default function DashboardSettings() {
                     required
                     value={formDocRole}
                     onChange={(e) => setFormDocRole(e.target.value)}
-                    placeholder="e.g. Lead Physiotherapist & Gait Specialist"
+                    placeholder="e.g. Chief Dental Surgeon & Implantologist"
                     className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-800 dark:text-slate-100 font-bold outline-none focus:border-brand-green"
                   />
                 </div>
@@ -3386,7 +3386,7 @@ export default function DashboardSettings() {
                     type="text"
                     value={formDocQualifications}
                     onChange={(e) => setFormDocQualifications(e.target.value)}
-                    placeholder="e.g. MPT (Orthopaedics), Certified Gait Analyst, MIAP"
+                    placeholder="e.g. BDS, MDS (Prosthodontics & Implantology), FICOI"
                     className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green"
                   />
                 </div>
@@ -3399,7 +3399,7 @@ export default function DashboardSettings() {
                     type="text"
                     value={formDocExperience}
                     onChange={(e) => setFormDocExperience(e.target.value)}
-                    placeholder="e.g. 10+ Years Clinical Practice"
+                    placeholder="e.g. 15+ Years Clinical Experience"
                     className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green"
                   />
                 </div>
@@ -3414,7 +3414,7 @@ export default function DashboardSettings() {
                   type="text"
                   value={formDocSpecialties}
                   onChange={(e) => setFormDocSpecialties(e.target.value)}
-                  placeholder="e.g. Biomechanical Gait Analysis, Spine & Disc Decompression, Sports Rehab"
+                  placeholder="e.g. Dental Implants, Root Canal Therapy, Digital Smile Design, Clear Aligners"
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium outline-none focus:border-brand-green"
                 />
                 <p className="text-[9.5px] text-slate-400">

@@ -449,19 +449,19 @@ export default function DashboardStoriesPage() {
                   type="text"
                   value={editingStory.subtitle || ""}
                   onChange={(e) => setEditingStory({ ...editingStory, subtitle: e.target.value })}
-                  placeholder="e.g. Post-ORIF internal fixation restoring full unassisted gait."
+                  placeholder="e.g. Immediate post-extraction implant placement restoring complete smile aesthetics."
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-brand-green"
                 />
               </div>
 
-              {/* Therapy Category & Orientation (Side by Side) */}
+              {/* Procedure Category & Orientation (Side by Side) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-black text-slate-700 dark:text-slate-200 block mb-1">
-                    Therapy Category
+                    Procedure Category
                   </label>
                   <select
-                    value={editingStory.category || "Orthopedic Rehab"}
+                    value={editingStory.category || "Smile Makeover & Veneers"}
                     onChange={(e) => setEditingStory({ ...editingStory, category: e.target.value as any })}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-brand-green"
                   >
