@@ -20,7 +20,9 @@ import {
   PlusCircle,
   Dumbbell,
   Receipt,
-  Video
+  Video,
+  Sparkles,
+  Smile
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
 import InstallManagementAppButton from "@/components/dashboard/InstallManagementAppButton";
@@ -101,8 +103,8 @@ export default function DashboardLayout({
     { name: "Walk-in Bookings", href: "/dashboard/walkin", icon: PlusCircle, role: "all" },
     { name: "Patients Database", href: "/dashboard/patients", icon: Users, role: "all" },
     { name: "Schedule Blocks", href: "/dashboard/blocks", icon: Clock, role: "all" },
-    { name: "Exercise Library", href: "/dashboard/exercises", icon: Dumbbell, role: "all" },
-    { name: "Recovery Stories", href: "/dashboard/stories", icon: Video, role: "all" },
+    { name: "Post-Op Protocols", href: "/dashboard/exercises", icon: Sparkles, role: "all" },
+    { name: "Smile Transformations", href: "/dashboard/stories", icon: Smile, role: "all" },
     ...(FEATURES.enableModularInvoicing
       ? [{ name: "Invoices & Billing", href: "/dashboard/invoices", icon: Receipt, role: "admin" }]
       : []),

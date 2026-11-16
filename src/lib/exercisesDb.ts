@@ -112,107 +112,87 @@ export function extractYoutubeId(url: string): string {
   return cleanUrl;
 }
 
-// Seed default exercises if collection is empty
+// Dental Post-Op Protocols & Patient Oral Hygiene Care Instructions
 const INITIAL_EXERCISES: Omit<ExerciseItem, "id">[] = [
   {
-    title: "Wall Slides with Foam Roller",
-    youtubeUrl: "https://www.youtube.com/watch?v=wD7V2F3eRns",
-    youtubeId: "wD7V2F3eRns",
-    duration: "0:45",
-    category: "Shoulder",
-    tags: ["SHOULDER", "MOBILITY"],
-    defaultSets: 3,
-    defaultReps: "10"
+    title: "Post-Tooth Extraction Care & Blood Clot Protection",
+    youtubeUrl: "https://www.youtube.com/watch?v=1oW_sDvhD8M",
+    youtubeId: "1oW_sDvhD8M",
+    duration: "1:45",
+    category: "Post-Extraction & Surgery",
+    tags: ["SURGERY", "EXTRACTION", "POST_OP"],
+    defaultSets: 1,
+    defaultReps: "24-48 Hours"
   },
   {
-    title: "Dead Bug (Level 1)",
-    youtubeUrl: "https://www.youtube.com/watch?v=g_BYB0R-4Ws",
-    youtubeId: "g_BYB0R-4Ws",
-    duration: "1:12",
-    category: "Core Stability",
-    tags: ["CORE", "LUMBAR"],
-    defaultSets: 3,
-    defaultReps: "10"
-  },
-  {
-    title: "Single Leg Bridge",
-    youtubeUrl: "https://www.youtube.com/watch?v=0k5G6F0mY7g",
-    youtubeId: "0k5G6F0mY7g",
-    duration: "0:30",
-    category: "Hip",
-    tags: ["HIP", "STRENGTH"],
-    defaultSets: 3,
-    defaultReps: "10"
-  },
-  {
-    title: "Banded Monster Walk",
-    youtubeUrl: "https://www.youtube.com/watch?v=0k5G6F0mY7g",
-    youtubeId: "0k5G6F0mY7g",
-    duration: "0:55",
-    category: "Hip",
-    tags: ["HIP", "RESISTANCE"],
-    defaultSets: 3,
-    defaultReps: "12"
-  },
-  {
-    title: "Eccentric Calf Raise",
-    youtubeUrl: "https://www.youtube.com/watch?v=L8V8yW1cM8g",
-    youtubeId: "L8V8yW1cM8g",
-    duration: "1:05",
-    category: "Ankle & Foot",
-    tags: ["ANKLE", "ECCENTRIC"],
-    defaultSets: 3,
-    defaultReps: "15"
-  },
-  {
-    title: "Chin Tucks (Supine)",
-    youtubeUrl: "https://www.youtube.com/watch?v=3R1tA4S0y4k",
-    youtubeId: "3R1tA4S0y4k",
-    duration: "0:38",
-    category: "Cervical (Neck)",
-    tags: ["CERVICAL", "POSTURE"],
-    defaultSets: 3,
-    defaultReps: "10"
-  },
-  {
-    title: "Scapular Retractions",
-    youtubeUrl: "https://www.youtube.com/watch?v=4Yv-pQ2m1Wk",
-    youtubeId: "4Yv-pQ2m1Wk",
-    duration: "0:42",
-    category: "Upper Back",
-    tags: ["UPPER BACK", "POSTURE"],
-    defaultSets: 3,
-    defaultReps: "10"
-  },
-  {
-    title: "Isometric Cervical Flexion",
-    youtubeUrl: "https://www.youtube.com/watch?v=5V9xW2m9P7k",
-    youtubeId: "5V9xW2m9P7k",
-    duration: "0:50",
-    category: "Cervical (Neck)",
-    tags: ["CERVICAL", "ISOMETRIC"],
-    defaultSets: 3,
-    defaultReps: "10"
-  },
-  {
-    title: "Biceps Curl Stretch & Control",
-    youtubeUrl: "https://www.youtube.com/watch?v=ykJmrZ5v0Oo",
-    youtubeId: "ykJmrZ5v0Oo",
-    duration: "1:00",
-    category: "Biceps",
-    tags: ["BICEPS", "STRENGTH"],
-    defaultSets: 3,
-    defaultReps: "12"
-  },
-  {
-    title: "Hamstring Wall Stretch",
-    youtubeUrl: "https://www.youtube.com/watch?v=2L24Z8V1vWg",
-    youtubeId: "2L24Z8V1vWg",
+    title: "Warm Salt Water Rinse Technique (After 24 Hours)",
+    youtubeUrl: "https://www.youtube.com/watch?v=kYjYmS8F1xY",
+    youtubeId: "kYjYmS8F1xY",
     duration: "1:15",
-    category: "Hamstrings",
-    tags: ["HAMSTRINGS", "FLEXIBILITY"],
+    category: "Gums & Periodontal Care",
+    tags: ["HEALING", "PERIODONTICS", "SALT_WATER"],
     defaultSets: 3,
-    defaultReps: "10"
+    defaultReps: "3 Times Daily"
+  },
+  {
+    title: "Root Canal Treatment (RCT) Post-Care & Diet Precautions",
+    youtubeUrl: "https://www.youtube.com/watch?v=mC1oY4uX8qA",
+    youtubeId: "mC1oY4uX8qA",
+    duration: "2:00",
+    category: "Root Canal (RCT) Care",
+    tags: ["RCT", "ENDODONTICS", "CROWN_PRECAUTION"],
+    defaultSets: 1,
+    defaultReps: "Until Crown Placed"
+  },
+  {
+    title: "Dental Implant Site Hygiene & Chlorhexidine Protocol",
+    youtubeUrl: "https://www.youtube.com/watch?v=7_h3V9nFmR0",
+    youtubeId: "7_h3V9nFmR0",
+    duration: "1:30",
+    category: "Dental Implants Care",
+    tags: ["IMPLANTS", "HYGIENE", "OSSEOINTEGRATION"],
+    defaultSets: 2,
+    defaultReps: "Morning & Night"
+  },
+  {
+    title: "Clear Aligner (Invisalign) Insertion, Removal & Chewies Guide",
+    youtubeUrl: "https://www.youtube.com/watch?v=aG3p9vX1mYg",
+    youtubeId: "aG3p9vX1mYg",
+    duration: "2:10",
+    category: "Clear Aligners & Ortho",
+    tags: ["ALIGNERS", "ORTHODONTICS", "CHEWIES"],
+    defaultSets: 1,
+    defaultReps: "22 Hours Daily"
+  },
+  {
+    title: "Modified Bass Brushing Technique (45° Angle)",
+    youtubeUrl: "https://www.youtube.com/watch?v=4iWT3285_0w",
+    youtubeId: "4iWT3285_0w",
+    duration: "1:50",
+    category: "Gums & Periodontal Care",
+    tags: ["BRUSHING", "PREVENTIVE", "GUM_HEALTH"],
+    defaultSets: 2,
+    defaultReps: "2 Mins (2x Daily)"
+  },
+  {
+    title: "Interdental Brushing & Flossing for Crowns and Bridges",
+    youtubeUrl: "https://www.youtube.com/watch?v=O1B8sDvhD8M",
+    youtubeId: "O1B8sDvhD8M",
+    duration: "1:40",
+    category: "Crowns & Bridges Care",
+    tags: ["CROWNS", "BRIDGES", "SUPERFLOSS"],
+    defaultSets: 1,
+    defaultReps: "Once Daily at Bedtime"
+  },
+  {
+    title: "TMJ Jaw Pain Relief & Clenching Relaxation Exercises",
+    youtubeUrl: "https://www.youtube.com/watch?v=3g_BYB0R-4Ws",
+    youtubeId: "3g_BYB0R-4Ws",
+    duration: "2:30",
+    category: "TMJ & Jaw Relaxation",
+    tags: ["TMJ", "BRUXISM", "JAW_PAIN"],
+    defaultSets: 3,
+    defaultReps: "5 Reps (Gently)"
   }
 ];
 

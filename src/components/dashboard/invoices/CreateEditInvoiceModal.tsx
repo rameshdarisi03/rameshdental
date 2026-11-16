@@ -101,7 +101,7 @@ export default function CreateEditInvoiceModal({
   
   const [items, setItems] = useState<InvoiceItem[]>(
     initialInvoice?.items || [
-      { id: "1", description: "Initial Physiotherapy Assessment", quantity: 1, unitPrice: 600, amount: 600 }
+      { id: "1", description: "Comprehensive Dental Examination & Digital IOPAR", toothNumber: "Full Mouth", quantity: 1, unitPrice: 500, amount: 500 }
     ]
   );
 
@@ -247,6 +247,7 @@ export default function CreateEditInvoiceModal({
     const newItem: InvoiceItem = {
       id: Date.now().toString(),
       description: preset ? preset.description : "",
+      toothNumber: "",
       quantity: 1,
       unitPrice: preset ? preset.price : 0,
       amount: preset ? preset.price : 0,
@@ -290,12 +291,13 @@ export default function CreateEditInvoiceModal({
       const sanitizedItems = items.map((item) => ({
         ...item,
         description: sanitizeText(item.description, 200),
+        toothNumber: item.toothNumber ? sanitizeText(item.toothNumber, 30) : undefined,
         amount: Math.max(0, Number(item.amount) || 0),
         quantity: Math.max(1, Number(item.quantity) || 1),
         rate: Math.max(0, Number(item.rate) || 0)
       }));
 
-      const cleanFinalPid = (patientPid || selectedPatientId || "GPC-GUEST").trim().toUpperCase();
+      const cleanFinalPid = (patientPid || selectedPatientId || "RD-GUEST").trim().toUpperCase();
       const invoicePayload = {
         invoiceNumber: currentInvNumber,
         patientId: cleanFinalPid,
@@ -705,16 +707,26 @@ export default function CreateEditInvoiceModal({
             <div className="space-y-2">
               {items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-slate-50/60 dark:bg-slate-950/40 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-850">
-                  <div className="col-span-8">
+                  <div className="col-span-6 sm:col-span-7">
                     <input
                       type="text"
                       value={item.description}
                       onChange={(e) => handleUpdateItem(item.id, "description", e.target.value)}
-                      placeholder="Treatment or Service Description..."
+                      placeholder="Treatment / Dental Procedure..."
                       className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none"
                     />
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-2">
+                    <input
+                      type="text"
+                      value={item.toothNumber || ""}
+                      onChange={(e) => handleUpdateItem(item.id, "toothNumber", e.target.value)}
+                      placeholder="Tooth #"
+                      title="Tooth Number (e.g. 16, 21, All)"
+                      className="w-full text-center rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1.5 text-xs font-bold text-brand-green dark:text-emerald-400 outline-none font-mono"
+                    />
+                  </div>
+                  <div className="col-span-3 sm:col-span-2">
                     <input
                       type="number"
                       min="0"

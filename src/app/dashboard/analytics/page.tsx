@@ -53,10 +53,10 @@ export default function DashboardAnalytics() {
   const [refreshing, setRefreshing] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [therapistsList, setTherapistsList] = useState<string[]>(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
+  const [therapistsList, setTherapistsList] = useState<string[]>(["Dr. Ramesh Darisi", "Dr. Sneha Reddy", "Dr. Arvind Kumar", "Dr. Priya Nair"]);
 
   // Toolbar Filters
-  const [selectedTherapist, setSelectedTherapist] = useState<string>("All Therapists");
+  const [selectedTherapist, setSelectedTherapist] = useState<string>("All Doctors");
   const [selectedService, setSelectedService] = useState<string>("All Services");
   const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("week");
   const [compareOn, setCompareOn] = useState(true);
@@ -82,9 +82,9 @@ export default function DashboardAnalytics() {
 
   // Dynamic Insight Cards Strip
   const [insights, setInsights] = useState({
-    growingService: "Musculoskeletal Rehab bookings are steady this week.",
-    cancellationDetails: "Cancellation rate is steady at 3%, comfortably under your 8% threshold.",
-    busiestSlot: "Mondays 09:30 AM carry your heaviest load — consider an extra slot there.",
+    growingService: "Root Canal Treatments (RCT) & Zirconia Crowns are trending highest this week.",
+    cancellationDetails: "Cancellation rate is steady at 2.4%, comfortably within your clinic benchmark.",
+    busiestSlot: "Morning 10:30 AM operatory slots carry your highest load — optimal for major surgical procedures.",
   });
 
   // Dynamic Lists and Charts data

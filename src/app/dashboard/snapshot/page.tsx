@@ -1428,7 +1428,7 @@ export default function DaySnapshot() {
                               }}
                               className="w-full text-[10px] font-bold bg-transparent outline-none text-slate-700 dark:text-slate-300 cursor-pointer"
                             >
-                              <option value="">Assign Therapist...</option>
+                              <option value="">Assign Doctor / Specialist...</option>
                               {(clinicConfig.therapists || []).map((t) => (
                                 <option key={t} value={t}>{t}</option>
                               ))}

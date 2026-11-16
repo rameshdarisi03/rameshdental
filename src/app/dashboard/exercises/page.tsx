@@ -26,18 +26,14 @@ import {
 } from "@/lib/exercisesDb";
 
 const CATEGORIES = [
-  "Cervical (Neck)",
-  "Shoulder",
-  "Lumbar (Low Back)",
-  "Hip",
-  "Knee",
-  "Ankle & Foot",
-  "Core Stability",
-  "Biceps",
-  "Triceps",
-  "Hamstrings",
-  "Calf",
-  "Upper Back"
+  "Post-Extraction & Surgery",
+  "Root Canal (RCT) Care",
+  "Dental Implants Care",
+  "Clear Aligners & Ortho",
+  "Gums & Periodontal Care",
+  "Crowns & Bridges Care",
+  "TMJ & Jaw Relaxation",
+  "Pediatric & Preventive",
 ];
 
 export default function ExerciseLibraryAdminPage() {
@@ -241,23 +237,23 @@ export default function ExerciseLibraryAdminPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-[10px] font-black tracking-widest text-brand-green dark:text-teal-400 uppercase">
-            CLINICAL EXERCISE MANAGEMENT
+            PATIENT EDUCATION & RECOVERY PROTOCOLS
           </span>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white mt-1">
-            Exercise Video Library
+            Dental Post-Op & Oral Care Protocols
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Manage the global repository of dental video demonstrations for home prescription.
+            Manage instructional protocols for post-extraction, root canal recovery, dental implants, and aligner hygiene.
           </p>
         </div>
 
-        {/* Top Right + Add Exercise Button */}
+        {/* Top Right + Add Button */}
         <button
           onClick={() => setIsAddModalOpen(true)}
           className="inline-flex items-center gap-2 bg-brand-green hover:bg-brand-green-hover text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="h-4 w-4 stroke-[3]" />
-          Add New Exercise
+          Add Dental Protocol
         </button>
       </div>
 

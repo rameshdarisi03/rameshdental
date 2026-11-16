@@ -155,7 +155,7 @@ export default function ViewInvoiceModal({
             <div className="space-y-1 sm:text-right">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Consultation Details:</p>
               <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Therapist: <span className="font-black text-brand-green">{invoice.therapistName || "Dr. Kinnera"}</span>
+                Doctor: <span className="font-black text-brand-green">{invoice.therapistName || "Dr. Ramesh Darisi"}</span>
               </p>
               <p className="text-[10px] font-bold text-slate-500">
                 Method: <span className="text-slate-800 dark:text-slate-200">{invoice.paymentMethod || "UPI"}</span>
@@ -173,7 +173,7 @@ export default function ViewInvoiceModal({
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-brand-green text-[10px] font-black uppercase text-slate-500">
-                  <th className="py-2">Service Description</th>
+                  <th className="py-2">Procedure / Service</th>
                   <th className="py-2 text-center">Qty</th>
                   <th className="py-2 text-right">Amount (₹)</th>
                 </tr>
@@ -181,7 +181,14 @@ export default function ViewInvoiceModal({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {(invoice.items || []).map((item, idx) => (
                   <tr key={idx}>
-                    <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">{item.description}</td>
+                    <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">
+                      <span>{item.description}</span>
+                      {item.toothNumber && (
+                        <span className="ml-2 inline-flex items-center text-[10px] font-black text-brand-green bg-brand-green/10 dark:bg-emerald-950/60 dark:text-emerald-300 px-1.5 py-0.5 rounded-md font-mono">
+                          Tooth #{item.toothNumber}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 text-center font-bold text-slate-500">{item.quantity || 1}</td>
                     <td className="py-2.5 text-right font-black text-slate-900 dark:text-white">
                       ₹{(item.amount || 0).toLocaleString("en-IN")}

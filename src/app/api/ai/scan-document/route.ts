@@ -31,38 +31,58 @@ async function isAuthorizedStaff(req: NextRequest): Promise<boolean> {
 }
 
 const SYSTEM_INSTRUCTION_CLINICAL = `
-You are a Senior Multi-Specialty Clinical AI Medical & Dental Scribe for "Ramesh Dental Clinic", Whitefield, Bengaluru.
-Transcribe physical dental and medical documents (Doctor Case Sheets & Prescriptions) across Endodontics, Implantology, Orthodontics, Periodontics, and General Dentistry including rushed, cursive, or messy doctor handwriting.
+You are a Senior Multi-Specialty Dental & Oral-Maxillofacial Clinical AI Scribe and Radiographic Assistant for "Ramesh Dental Clinic", Whitefield, Bengaluru.
+Your specialty is reading and deciphering physical dental case sheets, doctor prescriptions (Rx), IOPAR / OPG / CBCT radiographic reports, dental lab work slips, and cursive handwriting.
+
+CRITICAL DENTAL CLINICAL RULES:
+1. TOOTH NOTATION: Recognize tooth numbers in FDI 2-digit format (11 to 48), Palmer grid notation (⏌, ⎿), or Universal format (1 to 32).
+   Always normalize to standard format, identifying tooth positions (e.g. Tooth #36: Mandibular Left First Molar).
+2. SURFACES: Interpret tooth surface notation: M (Mesial), O (Occlusal), D (Distal), B/F (Buccal/Facial), L/P (Lingual/Palatal), MOD, DO, MO.
+3. DIAGNOSES & PATHOLOGY: Identify dental conditions:
+   - Deep dentinal caries, acute/chronic irreversible pulpitis, apical periodontitis, pulp necrosis.
+   - Chronic marginal gingivitis, generalized/localized periodontitis (Stage I-IV), furcation involvement, tooth mobility (Grade I/II/III).
+   - Impacted third molars (mesioangular, horizontal, distoangular, vertical).
+   - Non-carious cervical lesions (NCCL), attrition, erosion, cracked tooth syndrome.
+4. PROCEDURES & PROTOCOLS:
+   - Root Canal Therapy (RCT): Access cavity, working length, biomechanical preparation (BMP), canal irrigation (NaOCl/EDTA), Ca(OH)2 dressing, gutta-percha obturation.
+   - Prosthodontics: Crown preparation (chamfer/shoulder), Zirconia / PFM / E-Max crown, shade (A1, A2, B2), post & core.
+   - Implants & Surgery: Titanium implant placement, sinus lift, bone grafting, surgical exodontia.
+   - Periodontics & Hygiene: Full mouth ultrasonic scaling, subgingival curettage, root planing.
+5. MEDICATIONS & PHARMACOLOGY: Recognize standard dental prescriptions:
+   - Antibiotics: Augmentin 625mg (Amox-Clav), Flagyl 400mg (Metronidazole), Cefixime 200mg, Clindamycin 300mg.
+   - Analgesics: Zerodol-SP (Aceclo-Para-Serratio), Ketorol-DT, Ultracet, Enzoflam, Dolo 650.
+   - Mouthwashes & Topicals: Chlorhexidine 0.2% mouthwash (Hexidine), Metrogyl DG gel, Sensodyne.
 
 FORMATTING REQUIREMENTS:
-1. "rawVerbatimTranscript": Format the EXACT word-for-word text from the physical paper into clean, organized line-by-line sections with clear line breaks:
+1. "rawVerbatimTranscript": Format the EXACT word-for-word text from the physical document line-by-line:
    Doctor: [Doctor Name & Specialty]
-   Hospital: [Hospital/Clinic Name]
+   Hospital/Clinic: [Clinic Name]
    Date: [Date]
+   Patient: [Patient Name, Age, Gender]
 
-   Diagnosis:
-   • [Diagnosis item]
+   Diagnosis & Involved Teeth:
+   • [Tooth # and Condition]
 
-   Advised Physio:
-   1) [Therapy item 1]
-   2) [Therapy item 2]
+   Procedures Performed / Advised:
+   1) [Dental procedure 1]
+   2) [Dental procedure 2]
 
-   Precautions:
-   • [Precaution item]
+   Prescriptions (Rx):
+   • [Medication, dosage, frequency, duration]
 
-   Alerts:
-   • [Alert item]
+   Post-Op & Home Care:
+   • [Patient instructions]
 
-2. "formattedSoapNote": Format a standardized, clinical SOAP note with double line breaks between sections:
-   Subjective: [Patient presentation, history, symptoms, and pain description]
+2. "formattedSoapNote": Format a standardized, clinical Dental SOAP note with double line breaks:
+   Subjective: [Chief complaint (pain on chewing, thermal sensitivity, bleeding), duration, involved tooth/quadrant]
 
-   Objective: [Clinical examination findings, ROM, tests, and medical observations]
+   Objective: [Clinical & intraoral examination, percussion, mobility, periodontal probing, and IOPAR / OPG radiographic findings]
 
-   Assessment: [Diagnostic synthesis and clinical rehabilitation stage]
+   Assessment: [Diagnostic synthesis, pulpal/periodontal diagnosis, tooth # classification]
 
-   Plan: [Specific physical therapy protocol, modalities, exercise prescriptions, frequency, precautions, and contraindication alerts]
+   Plan: [Specific dental procedure completed today, materials/medicaments used, next sitting plan, and Rx prescription]
 
-3. "providerRemindersAndAlerts": Isolate all pre-existing conditions, implants (e.g. Pacemaker), past surgeries, trauma, allergies, and contraindications.
+3. "providerRemindersAndAlerts": Isolate systemic conditions (Diabetes, Hypertension, Bleeding disorders), blood thinner medications (Aspirin/Ecosprin, Clopidogrel), allergies (Penicillin, NSAIDs), and surgical precautions.
 `;
 
 // Strict JSON Schemas for Guaranteed Zero-Error Parsing
@@ -197,20 +217,20 @@ export async function POST(req: NextRequest) {
       if (documentType === "DOCTOR_PRESCRIPTION") {
         return NextResponse.json({
           documentType: "DOCTOR_PRESCRIPTION",
-          doctorName: "Dr. Rajesh Kumar (MS Ortho)",
-          hospitalOrClinic: "Manipal Hospital, Whitefield",
+          doctorName: "Dr. Ramesh Darisi (MDS Prosthodontics & Implantology)",
+          hospitalOrClinic: "Ramesh Dental Clinic, Whitefield",
           prescriptionDate: new Date().toISOString().split("T")[0],
-          diagnosis: "Post-op Right Knee Total Knee Replacement (TKR) - Day 14",
-          prescribedTherapies: "Start Phase 2 rehabilitation: Active-assisted knee ROM (0°-90°), Quadriceps isometric sets, Cryotherapy post-session, Gait training with walker.",
-          precautionsAndRestrictions: "Partial weight bearing only with walker. Avoid twisting.",
-          medicationsList: "Tab Ecosprin 75mg (1-0-0) x 1 month, Tab Ultracet SOS for pain",
+          diagnosis: "Acute Irreversible Pulpitis with Periapical Periodontitis - Tooth #36 (Lower Left First Molar)",
+          prescribedTherapies: "Rotary Endodontic Therapy (Single Sitting RCT) #36 followed by Core Build-up and CAD/CAM Monolithic Zirconia Crown. Full mouth ultrasonic scaling advised.",
+          precautionsAndRestrictions: "Avoid biting hard foods on left side until final zirconia crown cementation. Maintain warm saline rinses.",
+          medicationsList: "Tab Augmentin 625mg (1-0-1) x 5 days, Tab Zerodol-SP (1-0-1) x 3 days post-food, Cap Pantocid 40mg (1-0-0) before breakfast x 5 days, Hexidine Mouthwash 0.2% (10ml gargle BD)",
           providerRemindersAndAlerts: [
-            "Post-op Right TKR (Day 14)",
-            "Hypertension & Diabetes",
-            "On Blood Thinners (Ecosprin 75mg) - Avoid deep tissue bruising"
+            "Allergic to Penicillin: None reported",
+            "History of Hypertension (controlled with Telma 40mg)",
+            "Deep distal caries #36 approaching pulp canal"
           ],
-          rawVerbatimTranscript: "Dr. Rajesh Kumar (MS Ortho)\nManipal Hospital, Whitefield\nPt: Rahul Sharma | Dt: 14/08/2026\nRx: Post-op Right Knee TKR Day 14\nAdv: Phase 2 rehab, active-assisted ROM 0-90 deg, quad isometrics, gait training with walker\nPrec: PWB with walker\nMed: Tab Ecosprin 75mg (1-0-0), Tab Ultracet SOS",
-          summaryForRecord: "Referred by Dr. Rajesh Kumar (Manipal Hospital, Whitefield) for Post-op Right TKR rehab. Focus on active-assisted ROM (0-90°) and isometric strengthening.",
+          rawVerbatimTranscript: "Dr. Ramesh Darisi (MDS Prostho & Implantology)\nRamesh Dental Clinic, Whitefield\nPt: Rahul Sharma (34M) | Dt: 14/08/2026\nDx: Acute Irreversible Pulpitis #36\nTx: Single Sitting RCT #36 + Core Build-up + Zirconia Crown\nRx:\n1) Tab Augmentin 625mg (1-0-1) x 5d\n2) Tab Zerodol-SP (1-0-1) x 3d pc\n3) Hexidine Mouthwash (10ml gargle BD)\nPrecautions: Soft diet, avoid mastication on left side.",
+          summaryForRecord: "Consultation by Dr. Ramesh Darisi for Acute Irreversible Pulpitis #36. Advised Single Sitting RCT, Core Build-up, and Zirconia Crown with antibiotics & anti-inflammatory coverage.",
           confidenceScore: 0.98
         });
       }
@@ -219,23 +239,22 @@ export async function POST(req: NextRequest) {
         documentType: "CLINICAL_ASSESSMENT",
         patientName: "Rahul Sharma",
         visitDate: new Date().toISOString().split("T")[0],
-        therapistName: "Dr. Kinnera",
-        subjectiveComplaints: "Right knee stiffness & pain post-ACL reconstruction (Day 21). VAS 6/10.",
-        vasPainScore: 6,
+        therapistName: "Dr. Ramesh Darisi",
+        subjectiveComplaints: "Severe spontaneous throbbing pain in lower left molar region (#36), lingering pain with cold water, disturbed sleep last night. VAS 8/10.",
+        vasPainScore: 8,
         objectiveFindings: {
-          specialTests: "Knee Flexion 85°, Extension -5° lag. Lachman test negative.",
-          postureGait: "Antalgic gait with reduced cadence and limp on right stance phase."
+          specialTests: "Tooth #36 tender on vertical percussion (+ve). Grade I mobility. Electric Pulp Test: Hyper-responsive. Probing depth 3mm.",
+          postureGait: "IOPAR Radiograph shows deep disto-occlusal radiolucency invading pulp chamber of #36 with slight widening of apical periodontal ligament space."
         },
-        modalitiesAdministered: "IFT (15 mins) on knee, Cryotherapy, Patellar mobilization Grade II, Passive ROM to 90°",
-        exercisePrescriptions: "Quad sets (15x3), Heel slides, Straight Leg Raise (SLR) with brace",
+        modalitiesAdministered: "Local anaesthesia (2% Lignocaine with 1:80,000 adrenaline - Inferior Alveolar Nerve Block). Access cavity prepared, pulp extirpated, working length verified: MB 20mm, ML 20mm, D 21mm. Rotary biomechanical preparation with Protaper Gold up to F2. 3% NaOCl + 17% EDTA irrigation. Closed dressing with Ca(OH)2 + Cavit.",
+        exercisePrescriptions: "Warm saline rinses 3 times daily starting tomorrow. Do not chew on left side.",
         providerRemindersAndAlerts: [
-          "Past sports injury (2024)",
-          "Metal suture anchor in right tibia",
-          "Post-op Right ACL Reconstruction (Day 21)"
+          "Tooth #36 in active root canal treatment",
+          "Next sitting scheduled for Obturation & Core Build-up in 4 days"
         ],
-        rawVerbatimTranscript: "Assessment Note:\nPatient: Rahul Sharma | Date: 14/08/2026\nComplaints: Right knee stiffness & pain post-ACL reconstruction (Day 21). VAS 6/10.\nExam: Flexion 85 deg, Ext -5 deg lag. Antalgic limp.\nTreatment: IFT 15m, Ice pack, Patellar Grade 2 mob.\nExercises: Quad sets 15x3, Heel slides, SLR with brace.\nAlerts: Metal anchor in tibia.",
-        formattedSoapNote: "SUBJECTIVE: Right knee stiffness & pain post-ACL reconstruction Day 21 (VAS 6/10).\nOBJECTIVE: Knee Flexion 85°, Extension -5° lag. Lachman negative. Antalgic gait.\nASSESSMENT: Post-op ACL reconstruction rehabilitation Phase 1.\nPLAN: IFT (15m) + Cryotherapy + Patellar Grade II mobilization + Quad sets (15x3) & Heel slides.",
-        confidenceScore: 0.96
+        rawVerbatimTranscript: "Clinical Case Sheet:\nPatient: Rahul Sharma (34M) | Date: 14/08/2026\nC/O: Throbbing pain #36, nocturnal pain (+ve), cold sensitive. VAS 8/10.\nExam: Tender on percussion (+ve). IOPAR: Deep DO caries #36 into pulp, PDL widening.\nProcedure: IANB given. Access open #36, BMP done (MB 20, ML 20, D 21mm) to F2. NaOCl/EDTA irrigation. Ca(OH)2 closed dressing placed.",
+        formattedSoapNote: "SUBJECTIVE: Severe spontaneous throbbing pain #36, lingering cold sensitivity, nocturnal pain (VAS 8/10).\nOBJECTIVE: Tender on percussion (+ve). IOPAR shows deep DO caries into pulp chamber with apical PDL widening.\nASSESSMENT: Acute Irreversible Pulpitis with symptomatic apical periodontitis #36.\nPLAN: Single-sitting RCT initiated. Access cavity prepared, BMP completed (MB 20mm, ML 20mm, D 21mm) to Protaper F2. NaOCl/EDTA irrigation. Closed dressing with Ca(OH)2 placed. Recall in 4 days for obturation.",
+        confidenceScore: 0.97
       });
     }
 

@@ -334,17 +334,17 @@ export default function DocumentScannerModal({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 min-w-0">
                 <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base truncate">
-                  {isPrescriptionMode ? "Scan Prescription / Referral" : "Scan Case Sheet"}
+                  {isPrescriptionMode ? "Scan Dental Prescription / Rx" : "Scan Dental Case Sheet / Radiograph"}
                 </h3>
                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/20 to-purple-600/20 border border-orange-400/30 text-orange-700 dark:text-amber-300 text-[10px] font-extrabold tracking-wider uppercase items-center gap-1 shrink-0">
-                  <Sparkles className="w-2.5 h-2.5 text-amber-500" /> AI Vision
+                  <Sparkles className="w-2.5 h-2.5 text-amber-500" /> AI Dental Vision
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                 {patientName ? `Patient: ${patientName} • ` : ""}
                 {isPrescriptionMode
-                  ? "Transcribes diagnosis, doctor, restrictions & alerts"
-                  : "Transcribes VAS pain score, ROM, findings & SOAP notes"}
+                  ? "Transcribes dental diagnosis, doctor, medication dosage & alerts"
+                  : "Transcribes tooth numbers, IOPAR findings, procedures & dental SOAP notes"}
               </p>
             </div>
           </div>

@@ -51,6 +51,7 @@ import {
   Check
 } from "lucide-react";
 import jsPDF from "jspdf";
+import DentalOdontogram from "@/components/dashboard/DentalOdontogram";
 import ExercisePrescriberModal from "@/components/dashboard/ExercisePrescriberModal";
 import DocumentScannerModal, { ScanResult } from "@/components/dashboard/DocumentScannerModal";
 import CreateEditInvoiceModal from "@/components/dashboard/invoices/CreateEditInvoiceModal";
@@ -231,7 +232,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
     whatsappUrl?: string;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"timeline" | "files" | "invoices">("timeline");
+  const [activeTab, setActiveTab] = useState<"odontogram" | "timeline" | "files" | "invoices">("odontogram");
   const [isPrescriberOpen, setIsPrescriberOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isLinkFamilyModalOpen, setIsLinkFamilyModalOpen] = useState(false);
@@ -662,22 +663,23 @@ export default function PatientDetailClient({ id }: { id: string }) {
 
   const insertSoapSkeleton = () => {
     const template = `SUBJECTIVE:
-• Chief Complaint: 
-• Pain Score (VAS 0-10): /10
-• Onset / Aggravating factors: 
- 
-OBJECTIVE:
-• Range of Motion (ROM): 
-• Special Tests / Palpation: 
-• Posture & Gait Analysis: 
+• Chief Dental Complaint: (e.g. Sharp throbbing pain on mastication / cold sensitivity / broken restoration)
+• Quadrant & Tooth Number(s): Tooth # (FDI 11-48)
+• Pain Score (VAS 0-10): /10 | Onset & Duration: 
+
+OBJECTIVE (Clinical & Radiographic Examination):
+• Intraoral Findings: (Caries, calculus, tenderness on percussion, mobility Gr 0/I/II/III)
+• Periodontal Status: (Gingival bleeding, probing pocket depth: mm)
+• Radiographic / IOPAR/OPG Findings: (Periapical radiolucency, bone resorption, pulpal involvement)
 
 ASSESSMENT:
-• Clinical Impression / Diagnosis: 
+• Dental Diagnosis: (e.g. Acute Irreversible Pulpitis #36 / Chronic Marginal Gingivitis / Impacted #48)
 
-PLAN:
-• Treatment / Modalities Given: 
-• Home Exercise Prescriptions: 
-• Next Review Date: `;
+PLAN & TREATMENT:
+• Procedure Performed Today: (e.g. Access opening, biomechanical preparation, canal disinfection)
+• Materials / Medicaments Used: (e.g. Calcium Hydroxide dressing, Cavit temporary seal)
+• Prescription Given: (e.g. Augmentin 625mg BD, Zerodol-SP TDS x 3 days, Hexidine rinse)
+• Next Appointment & Review: `;
     setNotes(template);
   };
 
@@ -691,14 +693,12 @@ PLAN:
       return `${dd}/${mm}`;
     };
 
-    const template = `7-DAY REHABILITATION PACKAGE PROGRESS LOG:
-• Day 1 (${dStr(0)}): Initial Assessment | Modalities: Cryotherapy + IFT | VAS: 7/10 | Range of Motion: 
-• Day 2 (${dStr(1)}): Modalities: Ultrasound + Laser | Isometric Quad Sets (3x10) | Tolerance: Good
-• Day 3 (${dStr(2)}): Modalities: Joint Mobilization | Active Assisted ROM | VAS: 5/10
-• Day 4 (${dStr(3)}): Modalities: Electrotherapy | Straight Leg Raises (3x10) | Swelling reduced
-• Day 5 (${dStr(4)}): Modalities: Resistance Bands | Gait Training & Weight Bearing Ambulation
-• Day 6 (${dStr(5)}): Modalities: Static Cycling (10m) | Core & Balance Drills | VAS: 3/10
-• Day 7 (${dStr(6)}): Milestone Evaluation | ROM Restored to 95° | Discharged to Home Protocol`;
+    const template = `MULTI-SITTING DENTAL TREATMENT PROTOCOL LOG:
+• Sitting 1 (${dStr(0)}): Diagnostic IOPAR & Emergency Relief | Access Opening & Pulp Extirpation | Working Length: mm | Closed Dressing
+• Sitting 2 (${dStr(3)}): Biomechanical Preparation (Rotary Protaper) | Canal Disinfection (NaOCl 3% + EDTA) | Ca(OH)2 Intra-Canal Dressing
+• Sitting 3 (${dStr(7)}): Canal Dry & Asymptomatic | Gutta-Percha Obturation (AH Plus) | Master Cone Verification Radiograph
+• Sitting 4 (${dStr(10)}): Post & Core Build-up (Dual-Cure Resin) | Zirconia Crown Tooth Preparation & Gingival Retraction | Digital Impression
+• Sitting 5 (${dStr(14)}): CAD/CAM Monolithic Zirconia Crown Trial | Margin Fit & Occlusion Check | Permanent Resin Cementation (RelyX)`;
 
     if (notes.trim()) {
       setNotes((prev) => `${prev}\n\n${template}`);
@@ -828,11 +828,11 @@ PLAN:
         if (config && config.therapists && config.therapists.length > 0) {
           setEnrolledTherapists(config.therapists);
         } else {
-          setEnrolledTherapists(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
+          setEnrolledTherapists(["Dr. Ramesh Darisi", "Dr. Sneha Reddy", "Dr. Arvind Kumar", "Dr. Priya Nair"]);
         }
       } catch (err) {
         console.error("Error loading therapists list in patient details:", err);
-        setEnrolledTherapists(["Dr.Kinnera", "Dr.Ridha", "Dr.Ammulu John", "Dr.Rakshitha"]);
+        setEnrolledTherapists(["Dr. Ramesh Darisi", "Dr. Sneha Reddy", "Dr. Arvind Kumar", "Dr. Priya Nair"]);
       }
     }
     loadTherapists();
@@ -844,7 +844,7 @@ PLAN:
     };
   }, [id]);
 
-  const defaultTherapist = enrolledTherapists[0] || "Dr.Kinnera";
+  const defaultTherapist = enrolledTherapists[0] || "Dr. Ramesh Darisi";
 
   // Set default visit date to today
   useEffect(() => {
@@ -2590,7 +2590,7 @@ Warm regards,
               </div>
 
               <div className="border-t border-slate-100 dark:border-slate-850 pt-3">
-                <p className="text-[9px] font-extrabold uppercase text-slate-400">Primary Therapist</p>
+                <p className="text-[9px] font-extrabold uppercase text-slate-400">Attending Dental Surgeon</p>
                 <p className="text-xs font-bold text-brand-charcoal dark:text-slate-200 mt-0.5">{patient.therapistName || defaultTherapist}</p>
               </div>
 
@@ -2972,39 +2972,72 @@ Warm regards,
           
           {/* Tab Selector Navigation */}
           <div className="border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex gap-6">
+            <div className="flex gap-4 sm:gap-6 overflow-x-auto">
               <button
+                type="button"
+                onClick={() => setActiveTab("odontogram")}
+                className={`pb-4 text-xs font-black relative transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  activeTab === "odontogram"
+                    ? "text-brand-green border-b-2 border-brand-green"
+                    : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
+                }`}
+              >
+                <span>🦷</span>
+                <span>Tooth Chart & Odontogram</span>
+                {patient.dentalChart && Object.keys(patient.dentalChart).length > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse" />
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveTab("timeline")}
-                className={`pb-4 text-xs font-black relative transition-all ${
+                className={`pb-4 text-xs font-black relative transition-all shrink-0 cursor-pointer ${
                   activeTab === "timeline"
                     ? "text-brand-green border-b-2 border-brand-green"
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Consultations & Prescriptions ({consultations.length})
+                Dental Consultations ({consultations.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("files")}
-                className={`pb-4 text-xs font-black relative transition-all ${
+                className={`pb-4 text-xs font-black relative transition-all shrink-0 cursor-pointer ${
                   activeTab === "files"
                     ? "text-brand-green border-b-2 border-brand-green"
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Medical Scans & Reports ({files.length})
+                Dental X-Rays & Reports ({files.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveTab("invoices")}
-                className={`pb-4 text-xs font-black relative transition-all ${
+                className={`pb-4 text-xs font-black relative transition-all shrink-0 cursor-pointer ${
                   activeTab === "invoices"
                     ? "text-brand-green border-b-2 border-brand-green"
                     : "text-slate-400 hover:text-brand-charcoal dark:hover:text-white"
                 }`}
               >
-                Invoices & Billing ({patientInvoices.length})
+                Invoices & Treatment Estimates ({patientInvoices.length})
               </button>
             </div>
           </div>
+
+          {/* TAB 0: Dental Odontogram & Tooth Chart */}
+          {activeTab === "odontogram" && (
+            <DentalOdontogram
+              patientId={patient.id!}
+              initialChart={patient.dentalChart || {}}
+              onInsertToNotes={(textToAppend) => {
+                setNotes((prev) => (prev ? `${prev}\n${textToAppend}` : textToAppend));
+                setActiveTab("timeline");
+              }}
+              onChartSaved={(updatedChart) => {
+                setPatient((prev: any) => ({ ...prev, dentalChart: updatedChart }));
+              }}
+            />
+          )}
 
           {/* TAB 1: timeline panel */}
           {activeTab === "timeline" && (
@@ -3073,20 +3106,20 @@ Warm regards,
                         type="button"
                         onClick={insertSoapSkeleton}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:border-brand-green hover:text-brand-green transition-all cursor-pointer"
-                        title="Insert SOAP Clinical Note Template"
+                        title="Insert Dental SOAP Clinical Note Template"
                       >
                         <FileText className="w-3.5 h-3.5 text-brand-green" />
-                        <span>+ SOAP Template</span>
+                        <span>+ Dental SOAP Note</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={insertPackageSkeleton}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:border-amber-500 hover:text-amber-600 transition-all cursor-pointer"
-                        title="Insert 7-Day Package Progress Log Template"
+                        title="Insert Multi-Sitting Treatment Plan Log Template"
                       >
                         <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                        <span>+ 7-Day Package Log</span>
+                        <span>+ Multi-Sitting Treatment Log</span>
                       </button>
 
                       {notes && (
@@ -3158,7 +3191,7 @@ Warm regards,
                       </span>
                     </div>
                     <textarea
-                      placeholder="Type clinical session notes (Subjective complaints, Range of motion measurements, Modalities administered, and Home Exercise prescriptions) or click 'Scan Case Sheet' below."
+                      placeholder="Type dental clinical notes (Chief complaint, Tooth # involved, IOPAR radiographic findings, Procedures completed today, Canal instrumentation, Crown prep/cementation, and Rx prescriptions) or click '+ Add to Clinical Note' from the Tooth Chart tab above."
                       rows={isEditorExpanded ? 16 : 8}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}

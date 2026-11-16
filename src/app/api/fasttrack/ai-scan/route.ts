@@ -136,7 +136,7 @@ Analyze the documents and extract EVERY patient into a structured JSON list for 
 ==================================================================
 - If the document is an individual DOCTOR PRESCRIPTION / REFERRAL SLIP:
   * Look at the top/header section for Patient Demographics: "Patient Name / Name: [Name]", "Age: [Age]", "Sex/Gender: [M/F]", "Date", "Phone/Mobile: [Number]".
-  * Look at the clinical body / diagnosis section for: "Diagnosis:", "Impression:", "C/O (Complaints):", "Adv: Physiotherapy for...", "Rx: ...", e.g., "Cervical Spondylosis", "Bilateral Knee Osteoarthritis", "ACL Tear Rehab", "Frozen Shoulder", "Sciatica", "Lower Back Pain", "Stroke Hemiplegia Rehab".
+  * Look at the clinical body / diagnosis section for: "Diagnosis:", "Impression:", "C/O (Complaints):", "Adv: ...", "Rx: ...", e.g., "Root Canal Treatment #36", "Dental Implants Upper Arch", "Deep Caries #16", "Full Mouth Scaling", "Zirconia Crown #21", "Impacted Third Molar #48", "Clear Aligners".
   * Look at the letterhead or signature for the Prescribing / Attending Doctor or Department.
   * Extract this as 1 complete patient entry.
 
@@ -154,7 +154,7 @@ Analyze the documents and extract EVERY patient into a structured JSON list for 
 - Gender terms: "M", "F", "Male", "Female", "Woman", "Man". Extract "Male", "Female", or "Other".
 - Phone terms: "Phone", "Mobile", "Contact", "Ph", "Mob", "Tel", "WhatsApp", 10-digit Indian numbers starting with 6/7/8/9. If omitted, return "".
 - Email: Email if written, else "".
-- Chief Complaints / Diagnosis / Treatment Plan: Extract clinical diagnosis, symptoms, or advised physiotherapy protocol (e.g. "Cervical Spondylosis", "Post-op ACL Recovery").
+- Chief Complaints / Diagnosis / Treatment Plan: Extract clinical dental diagnosis, tooth complaints, or advised dental procedure (e.g. "Root Canal Therapy #36", "Dental Implants", "Zirconia Crown #16", "Clear Aligners").
 - Therapist / Doctor terms: Match closest clinic therapist: [${enrolledTherapists.join(", ")}] or default to "${defaultTherapist}".
 - Status terms: "active" (default), "completed", "pending".
 

@@ -1152,7 +1152,7 @@ function WalkInBookingContent() {
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Assign Therapist (Optional)
+                Assign Dental Surgeon / Specialist (Optional)
               </label>
               <div className="relative">
                 <select

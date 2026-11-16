@@ -16,8 +16,30 @@ import {
   deleteField
 } from "firebase/firestore";
 
+export type ToothStatus = 
+  | "healthy" 
+  | "caries" 
+  | "rct_advised" 
+  | "rct_done" 
+  | "crown_advised" 
+  | "crown_placed" 
+  | "missing" 
+  | "implant" 
+  | "impacted" 
+  | "filling";
+
+export interface ToothRecord {
+  toothNumber: number; // 11-48 FDI notation (or 1-32)
+  status: ToothStatus;
+  surfaces?: ("M" | "O" | "D" | "B" | "L")[]; // Mesial, Occlusal, Distal, Buccal, Lingual
+  notes?: string;
+  updatedAt?: string;
+}
+
+export type DentalChart = Record<string, ToothRecord>; // Key is tooth number string, e.g. "16", "21"
+
 export interface Patient {
-  id?: string;               // Document ID in firestore, format: "GPC-XXXXX"
+  id?: string;               // Document ID in firestore, format: "RD-XXXXX"
   customId?: string;
   name: string;
   email: string;
@@ -26,21 +48,24 @@ export interface Patient {
   dob?: string;              // YYYY-MM-DD (legacy)
   age?: string | number;     // Patient age in years
   gender?: string;
-  treatmentPlan: string;     // e.g. "Post-op ACL Recovery"
+  treatmentPlan: string;     // e.g. "Root Canal Therapy & Zirconia Crown"
   status: "active" | "completed" | "pending";
   googleDriveFolderId?: string; // Google Drive folder ID reference
-  therapistId?: string;      // ID of the primary therapist
-  therapistName?: string;    // Name of the primary therapist
+  therapistId?: string;      // ID of the primary attending doctor
+  therapistName?: string;    // Name of the primary attending doctor
   joinedDate?: string;       // YYYY-MM-DD or DD-MM-YYYY format
   lastVisit?: string;        // DD-MM-YYYY or Date
   upcoming?: string;         // DD-MM-YYYY or string representation
   reminders?: string[];      // clinical provider reminders
-  activationCode?: string;   // portal activation code, format: "GPC-XXXXX"
+  activationCode?: string;   // portal activation code, format: "RD-XXXXX"
   activated?: boolean;       // whether patient portal account is registered
   authUid?: string;          // Firebase auth UID link
   
+  // Interactive Dental Odontogram / Tooth Chart
+  dentalChart?: DentalChart;
+
   // Multi-User Family Circle & Profile Switcher
-  familyGroupId?: string;           // Canonical Family Group ID (e.g., "FAM-GPC-1024")
+  familyGroupId?: string;           // Canonical Family Group ID (e.g., "FAM-RD-1024")
   relationship?: "Self" | "Spouse" | "Husband" | "Wife" | "Son" | "Daughter" | "Father" | "Mother" | "Brother" | "Sister" | "Other";
   isPrimaryAccount?: boolean;       // true if this patient is the primary account owner
   primaryPatientId?: string;       // PID of the family head (e.g., "GPC-1024")

@@ -397,22 +397,22 @@ export default function DashboardOverview() {
   // 3. INFOGRAPHIC: Split Hours According to Clinical Services
   // =========================================================================
   const serviceHourAllocations = useMemo<ServiceHourAllocation[]>(() => {
-    // 5 core clinical service categories
+    // 5 core clinical dental service categories
     const categories = [
       {
-        id: "gait",
-        name: "Biomechanical Gait & Posture",
-        category: "Gait Analysis & Spine Alignment",
+        id: "rct",
+        name: "Rotary Endodontics (RCT)",
+        category: "Single-Visit & Re-RCT",
         color: "#0F4C3A", // Deep Emerald
         bgLight: "bg-emerald-50 dark:bg-emerald-950/30",
         borderLight: "border-emerald-200 dark:border-emerald-800/40",
-        defaultDurationMins: 60,
+        defaultDurationMins: 45,
         count: 0
       },
       {
-        id: "spine",
-        name: "Spine & Disc Decompression",
-        category: "Cervical & Lumbar Traction",
+        id: "crowns",
+        name: "Zirconia Crowns & Restorative",
+        category: "CAD/CAM Crowns & Composite",
         color: "#135242", // Forest Teal
         bgLight: "bg-teal-50 dark:bg-teal-950/30",
         borderLight: "border-teal-200 dark:border-teal-800/40",
@@ -420,19 +420,19 @@ export default function DashboardOverview() {
         count: 0
       },
       {
-        id: "postop",
-        name: "Post-Op Joint Rehabilitation",
-        category: "Knee / ACL / Shoulder Restoration",
+        id: "implants",
+        name: "Implants & Oral Surgery",
+        category: "Osseointegrated Implants & Extraction",
         color: "#D9A441", // Warm Ochre
         bgLight: "bg-amber-50 dark:bg-amber-950/30",
         borderLight: "border-amber-200 dark:border-amber-800/40",
-        defaultDurationMins: 45,
+        defaultDurationMins: 60,
         count: 0
       },
       {
-        id: "manual",
-        name: "Dry Needling & Myofascial",
-        category: "Trigger Point & Deep Tissue Laser",
+        id: "aligners",
+        name: "Clear Aligners & Orthodontics",
+        category: "Invisalign & Self-Ligating Braces",
         color: "#C65D4B", // Terracotta
         bgLight: "bg-rose-50 dark:bg-rose-950/30",
         borderLight: "border-rose-200 dark:border-rose-800/40",
@@ -440,13 +440,13 @@ export default function DashboardOverview() {
         count: 0
       },
       {
-        id: "sports",
-        name: "Sports Injury & Return-to-Play",
-        category: "Athletic Mobility & Conditioning",
+        id: "hygiene",
+        name: "Preventive & Periodontal Care",
+        category: "Ultrasonic Scaling & Laser Gum Care",
         color: "#0284C7", // Sky Blue
         bgLight: "bg-sky-50 dark:bg-sky-950/30",
         borderLight: "border-sky-200 dark:border-sky-800/40",
-        defaultDurationMins: 45,
+        defaultDurationMins: 30,
         count: 0
       }
     ];
@@ -456,13 +456,13 @@ export default function DashboardOverview() {
     
     sourcePool.forEach(item => {
       const s = ((item as any).serviceId || "").toLowerCase();
-      if (s.includes("gait") || s.includes("posture") || s.includes("biomechan")) {
+      if (s.includes("rct") || s.includes("canal") || s.includes("pulp") || s.includes("toothache")) {
         categories[0].count += 1;
-      } else if (s.includes("spine") || s.includes("disc") || s.includes("cervical") || s.includes("lumbar")) {
+      } else if (s.includes("crown") || s.includes("zirconia") || s.includes("filling") || s.includes("composite") || s.includes("veneer") || s.includes("bridge")) {
         categories[1].count += 1;
-      } else if (s.includes("knee") || s.includes("acl") || s.includes("post-op") || s.includes("shoulder") || s.includes("replacement")) {
+      } else if (s.includes("implant") || s.includes("surgery") || s.includes("extraction") || s.includes("wisdom") || s.includes("impact")) {
         categories[2].count += 1;
-      } else if (s.includes("needling") || s.includes("laser") || s.includes("myofascial") || s.includes("electro")) {
+      } else if (s.includes("aligner") || s.includes("invisalign") || s.includes("ortho") || s.includes("brace")) {
         categories[3].count += 1;
       } else {
         categories[4].count += 1;

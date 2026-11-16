@@ -33,11 +33,11 @@ import {
 } from "@/lib/storiesDb";
 
 const CATEGORIES = [
-  "Orthopedic Rehab",
-  "Spine & Posture",
-  "Neuro & Gait",
-  "Hand & Upper Limb",
-  "Geriatric Mobility",
+  "Smile Makeover & Veneers",
+  "Full Mouth Dental Implants",
+  "Clear Aligners (Invisalign)",
+  "Rotary Endodontics (RCT)",
+  "Laser Gum Aesthetics",
 ] as const;
 
 export default function DashboardStoriesPage() {
@@ -78,10 +78,10 @@ export default function DashboardStoriesPage() {
       id: `story-${Date.now()}`,
       title: "",
       subtitle: "",
-      category: "Orthopedic Rehab",
+      category: "Smile Makeover & Veneers",
       orientation: "portrait",
       videoUrl: "",
-      therapist: "Dr. Ramesh Darisi (Lead Physiotherapist)",
+      therapist: "Dr. Ramesh Darisi (Chief Dental Surgeon)",
       duration: "0:45",
       highlights: [],
       clinicalNotes: "",

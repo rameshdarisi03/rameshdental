@@ -17,6 +17,7 @@ import {
 export interface InvoiceItem {
   id: string;
   description: string;
+  toothNumber?: string; // Optional dental tooth number e.g. "#16", "#21", "Full Mouth"
   quantity: number;
   unitPrice: number;
   rate?: number;
@@ -30,7 +31,7 @@ export interface Invoice {
   patientName: string;
   patientEmail: string;
   patientPhone: string;
-  therapistName: string;
+  therapistName: string; // Attending Dental Surgeon / Specialist
   serviceDate: string;
   dueDate: string;
   items: InvoiceItem[];
@@ -52,15 +53,20 @@ export interface Invoice {
 }
 
 export const CLINICAL_SERVICES_PRESETS = [
-  { description: "Initial Physiotherapy Assessment", price: 600 },
-  { description: "Follow-up Rehabilitation Session", price: 500 },
-  { description: "Biomechanical Gait & Posture Analysis", price: 1000 },
-  { description: "Dry Needling Therapy Session", price: 800 },
-  { description: "Class IV Deep Tissue Laser Therapy", price: 1200 },
-  { description: "IFT / TENS + Ultrasound Electrotherapy", price: 500 },
-  { description: "Custom Orthotics Fitting & Molding", price: 2500 },
-  { description: "Personalised Exercise Prescription & Home Plan", price: 750 },
-  { description: "Home Care Visit / Geriatric Mobility Session", price: 1500 },
+  { description: "Comprehensive Dental Examination & Digital IOPAR", price: 500 },
+  { description: "Rotary Endodontic Therapy (Single Sitting RCT)", price: 4500 },
+  { description: "Multi-Sitting Root Canal Treatment (Molar)", price: 4000 },
+  { description: "CAD/CAM Monolithic Zirconia Crown (15-Yr Warranty)", price: 8500 },
+  { description: "Porcelain Fused to Metal (PFM) Crown", price: 4500 },
+  { description: "Full Mouth Ultrasonic Scaling & Polishing", price: 1200 },
+  { description: "Deep Subgingival Curettage & Laser Bacterial Reduction", price: 3500 },
+  { description: "Direct Light-Cured Posterior Composite Restoration", price: 1500 },
+  { description: "Surgical Extraction / Impacted Third Molar", price: 3500 },
+  { description: "Simple Tooth Extraction (Exodontia)", price: 1500 },
+  { description: "Titanium Dental Implant Fixture (Osseointegrated)", price: 25000 },
+  { description: "Clear Aligner 3D Digital Treatment Plan & Scan", price: 5000 },
+  { description: "In-Office Laser Teeth Whitening (Zoom 3-Cycle)", price: 9000 },
+  { description: "Pediatric Pulpectomy & Stainless Steel Crown", price: 3500 },
 ];
 
 const INVOICES_COLLECTION = "invoices";
