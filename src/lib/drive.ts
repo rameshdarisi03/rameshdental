@@ -101,8 +101,10 @@ export async function uploadFileToFolder(
     const result = await callAppsScript({
       action: "uploadFile",
       folderId: folderId,
+      parentFolderId: folderId,
       fileName: fileName,
       mimeType: mimeType,
+      fileData: base64Data,
       base64Data: base64Data,
       replaceExisting: Boolean(replaceExisting),
     });
@@ -110,7 +112,7 @@ export async function uploadFileToFolder(
     return {
       id: result.id,
       webViewLink: result.webViewLink || "",
-      webContentLink: result.webContentLink || "",
+      webContentLink: result.downloadUrl || result.webContentLink || "",
     };
   } catch (error: any) {
     console.error("Error uploading file to Google Drive:", error);

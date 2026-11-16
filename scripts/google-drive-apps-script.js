@@ -64,11 +64,13 @@ function doPost(e) {
 
     // 2. Upload Base64 File to Specific Folder
     if (action === "uploadFile") {
-      if (!data.folderId || !data.fileName || !data.base64Data) {
-        return jsonResponse({ success: false, error: "Missing folderId, fileName, or base64Data." });
+      const folderId = data.folderId || data.parentFolderId;
+      const base64Data = data.fileData || data.base64Data;
+      if (!folderId || !data.fileName || !base64Data) {
+        return jsonResponse({ success: false, error: "Missing folderId, fileName, or fileData." });
       }
 
-      const targetFolder = DriveApp.getFolderById(data.folderId);
+      const targetFolder = DriveApp.getFolderById(folderId);
 
       // If replaceExisting is true, trash any existing files with this name first
       if (data.replaceExisting) {
@@ -82,7 +84,7 @@ function doPost(e) {
         }
       }
 
-      const decodedBytes = Utilities.base64Decode(data.base64Data);
+      const decodedBytes = Utilities.base64Decode(base64Data);
       const mimeType = data.mimeType || "application/octet-stream";
       const blob = Utilities.newBlob(decodedBytes, mimeType, data.fileName);
       const file = targetFolder.createFile(blob);
@@ -99,6 +101,7 @@ function doPost(e) {
         id: file.getId(),
         name: file.getName(),
         webViewLink: file.getUrl(),
+        downloadUrl: file.getDownloadUrl(),
         webContentLink: file.getDownloadUrl()
       });
     }
