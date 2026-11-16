@@ -497,6 +497,11 @@ export function PatientAuthProvider({ children }: { children: React.ReactNode })
       if (err.code === "auth/popup-closed-by-user") {
         return { success: false, error: "Google Sign-In was cancelled." };
       }
+      if (err.code === "auth/unauthorized-domain") {
+        const domainMsg = "Google Sign-In requires 'rameshdental.vercel.app' to be authorized in Firebase Console > Authentication > Settings > Authorized Domains. In the meantime, please sign in with Phone Number or Email below.";
+        setError(domainMsg);
+        return { success: false, error: domainMsg };
+      }
       const msg = err.message || "Failed to sign in with Google.";
       setError(msg);
       return { success: false, error: msg };

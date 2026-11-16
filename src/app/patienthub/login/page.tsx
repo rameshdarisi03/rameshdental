@@ -135,6 +135,8 @@ function LoginContent() {
       if (typeof window !== "undefined") {
         window.location.href = "/patienthub/dashboard";
       }
+    } else if (result.error) {
+      setError(result.error);
     }
   };
 
@@ -151,6 +153,8 @@ function LoginContent() {
       if (typeof window !== "undefined") {
         window.location.href = "/patienthub/dashboard";
       }
+    } else if (result.error) {
+      setError(result.error);
     }
   };
 
@@ -236,6 +240,8 @@ function LoginContent() {
       if (typeof window !== "undefined") {
         window.location.href = "/patienthub/dashboard";
       }
+    } else if (result.error) {
+      setError(result.error);
     }
   };
 
@@ -1380,7 +1386,7 @@ function LoginContent() {
             {/* Context Hint */}
             <div className="text-center pb-4">
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Choose your preferred sign-in method to access your personalized home exercises, clinical recovery plans, and treatment invoices.
+                Choose your preferred sign-in method to access your dental records, treatment plans, prescriptions, and invoices.
               </p>
             </div>
 
@@ -1465,7 +1471,7 @@ function LoginContent() {
 
       {/* Footer Branding */}
       <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-        Ramesh Dental Clinic &bull; Bengaluru &bull; Need help? Contact +91 89714 62949
+        Ramesh Dental Clinic &bull; Hyderabad &bull; Need help? Contact +91 98765 43210
       </div>
     </div>
   );
