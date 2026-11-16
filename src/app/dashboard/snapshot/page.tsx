@@ -934,19 +934,19 @@ export default function DaySnapshot() {
     const cleanPhone = getCleanWhatsAppNumber(targetPhone);
 
     const effectiveDelay = isCustomDelay && customDelayInput ? parseInt(customDelayInput, 10) || delayMinutes : delayMinutes;
-    const therapistText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : "";
+    const doctorText = app.assignedTherapist ? ` with *${app.assignedTherapist}*` : " with *Dr. Ramesh Darisi*";
     let message = "";
 
     if (templateType === "confirm") {
       const calendarUrl = generateGoogleCalendarUrl(app);
       const calendarMsg = calendarUrl ? `\n\nAdd to Google Calendar: ${calendarUrl}` : "";
-      message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${therapistText} on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
+      message = `Hi *${app.patientName}*, your appointment for *${app.serviceId}*${doctorText} on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic is CONFIRMED!${calendarMsg}\n\nLooking forward to seeing you.`;
     } else if (templateType === "delay") {
-      message = `Hi *${app.patientName}*, regarding your session scheduled at *${app.slot}* today${therapistText}:\nOur therapist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes after your scheduled time*. Thank you for your kind understanding! - Ramesh Dental Clinic`;
+      message = `Hi *${app.patientName}*, regarding your dental appointment scheduled at *${app.slot}* today${doctorText}:\nOur dentist is currently completing an in-depth clinical procedure with an ongoing patient. Kindly arrive approximately *${effectiveDelay} minutes after your scheduled time*. Thank you for your kind understanding! - Ramesh Dental Clinic`;
     } else if (templateType === "early") {
-      message = `Hi *${app.patientName}*, kindly arrive approximately *${earlyMinutes} minutes before your scheduled appointment at ${app.slot}* today for initial biometric preparation. See you soon! - Ramesh Dental Clinic`;
+      message = `Hi *${app.patientName}*, kindly arrive approximately *${earlyMinutes} minutes before your scheduled appointment at ${app.slot}* today for initial clinical registration & dental prep. See you soon! - Ramesh Dental Clinic`;
     } else if (templateType === "custom") {
-      message = customMsg || `Hi *${app.patientName}*, regarding your appointment on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic...`;
+      message = customMsg || `Hi *${app.patientName}*, regarding your dental appointment on *${app.date}* at *${app.slot}* at Ramesh Dental Clinic...`;
     }
 
     if (mode === "redirect") {
@@ -1013,12 +1013,43 @@ export default function DaySnapshot() {
           }),
         });
 
+        if (app.patientEmail) {
+          const subject =
+            templateType === "delay"
+              ? `🦷 Schedule Update: Running +${effectiveDelay} Mins Late — Ramesh Dental Clinic`
+              : templateType === "early"
+              ? `🦷 Reminder: Please Arrive ${earlyMinutes} Mins Early — Ramesh Dental Clinic`
+              : `🦷 Clinical Update — Ramesh Dental Clinic`;
+
+          fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "CUSTOM",
+              payload: {
+                to: [{ email: app.patientEmail, name: app.patientName }],
+                subject,
+                htmlContent: `<div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                  <h3 style="color: #0d9488; margin-top: 0;">🦷 Ramesh Dental Clinic</h3>
+                  <p>Hello <strong>${app.patientName}</strong>,</p>
+                  <p style="background: #f8fafc; border-left: 4px solid #0d9488; padding: 12px; border-radius: 4px; font-size: 14px; line-height: 1.6;">
+                    ${message.replace(/\n/g, "<br/>")}
+                  </p>
+                  <p style="color: #64748b; font-size: 12px; margin-top: 20px;">
+                    Ramesh Dental Clinic • Care Desk • +91 98765 43210
+                  </p>
+                </div>`,
+              },
+            }),
+          }).catch((err) => console.warn("Delay/Early email dispatch notice:", err));
+        }
+
         if (templateType === "delay") {
           showToast(`Delay note (+${effectiveDelay}m) dispatched to ${app.patientName}!`);
         } else if (templateType === "early") {
           showToast(`Early arrival reminder (${earlyMinutes}m) dispatched to ${app.patientName}!`);
         } else {
-          showToast(`Custom WhatsApp note dispatched to ${app.patientName}!`);
+          showToast(`Custom note dispatched to ${app.patientName}!`);
           setCustomWhatsAppMessage("");
           setShowCustomMsgInput(false);
         }
@@ -2353,10 +2384,10 @@ export default function DaySnapshot() {
                 </div>
               </div>
 
-              {/* 2. Assigned Therapist Selector */}
+              {/* 2. Assigned Dentist Selector */}
               <div className="bg-slate-50/60 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 p-4 rounded-2xl space-y-2.5">
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 block">
-                  Assigned Therapist
+                  Attending Dentist
                 </label>
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-slate-400 shrink-0" />
@@ -2505,7 +2536,7 @@ export default function DaySnapshot() {
                           Please Arrive Early
                         </p>
                         <p className="text-[10px] text-slate-500 font-semibold">
-                          Pre-session clinical & posture biometric preparation
+                          Pre-session clinical registration & dental prep
                         </p>
                       </div>
 
